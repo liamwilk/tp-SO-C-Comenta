@@ -52,3 +52,4 @@ $(sort $(dir $(BIN) $(OBJS))):
 
 test:
 	@echo "Hello, World from tests!"
+	

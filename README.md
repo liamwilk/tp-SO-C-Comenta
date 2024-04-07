@@ -3,6 +3,21 @@
 Esta es una plantilla de proyecto diseñada para generar un TP de Sistemas
 Operativos de la UTN FRBA.
 
+
+## Git hooks
+Para utilizar los pre-commits & git hooks:
+
+```bash
+chmod +x hooks.sh 
+sh hooks.sh
+```
+
+Si queres saltearte las verificaciones:
+
+```bash
+git commit -m "Mensaje comit" --no-verify
+```
+
 ## Dependencias
 
 Para poder compilar y ejecutar el proyecto, es necesario tener instalada la
