@@ -49,3 +49,6 @@ $(DEPS): $$(shell find $$(patsubst %bin/,%src/,$$(dir $$@)) -iname "*.c" -or -in
 
 $(sort $(dir $(BIN) $(OBJS))):
 	mkdir -pv $@
+
+test:
+	@echo "Hello, World from tests!"
