@@ -1,5 +1,6 @@
 #include "conexiones.h"
 
+int iniciar_servidor(t_log *logger, const char *name, char *ip, char *puerto)
 {
 
     int socketServidor;
