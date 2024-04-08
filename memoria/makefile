@@ -35,6 +35,9 @@ release: $(BIN)
 clean:
 	-rm -rfv obj bin
 
+test:
+	./bin/memoria
+
 $(BIN): $(OBJS) | $(dir $(BIN))
 	$(CC) $(CFLAGS) -o "$@" $^ $(IDIRS:%=-I%) $(LIBDIRS:%=-L%) $(LIBS:%=-l%)
 
