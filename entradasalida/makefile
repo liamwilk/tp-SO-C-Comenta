@@ -35,6 +35,10 @@ release: $(BIN)
 clean:
 	-rm -rfv obj bin
 
+test:
+	./bin/entradasalida
+
+
 $(BIN): $(OBJS) | $(dir $(BIN))
 	$(CC) $(CFLAGS) -o "$@" $^ $(IDIRS:%=-I%) $(LIBDIRS:%=-L%) $(LIBS:%=-l%)
 
