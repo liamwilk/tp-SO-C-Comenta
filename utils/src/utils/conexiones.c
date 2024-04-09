@@ -121,5 +121,5 @@ int crear_conexion(t_log *logger, const char *server_name, char *ip, char *puert
 
 void liberar_conexion(int *socket_cliente)
 {
-    // TODO
+    close(socket_cliente);
 }
