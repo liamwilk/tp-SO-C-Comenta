@@ -1,10 +1,14 @@
 #include "conexiones.h"
 
-{
+int iniciar_servidor(t_log *logger, const char *name, char *ip, char *puerto){
 
     int socketServidor;
 
-    struct addrinfo hints, *serverinfo;
+    struct addrinfo hints, *serverinfo, *p;
+
+    // Variable de chequeo
+    int check;
+    bool conectionSuccess = false;
 
     // Inicializar hints
     memset(&hints, 0, sizeof(hints));
@@ -12,21 +16,49 @@
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
 
-    getaddrinfo(ip, puerto, &hints, &serverinfo);
+    // Seteo serverinfo, y me atajo de posibles errores con gai_strerror
+    if((check = getaddrinfo(ip, puerto, &hints, &serverinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(check));
+        freeaddrinfo(serverinfo);
+        exit(1);
+    }
 
-    // Crear socket de escucha del servidor
-    socketServidor = socket(serverinfo->ai_family,
-                            serverinfo->ai_socktype,
-                            serverinfo->ai_protocol);
+    // Loopeo los nodos de serverinfo hasta que me pueda bindear a alguno
+    for(p = serverinfo; p != NULL; p = p->ai_next) {
+        
+        // Crear socket de escucha del servidor
+        socketServidor = socket(serverinfo->ai_family,
+                                serverinfo->ai_socktype,
+                                serverinfo->ai_protocol);
 
-    // Asociar socket a un puerto
-    bind(socketServidor, serverinfo->ai_addr, serverinfo->ai_addrlen);
+        // Si no se pudo conectar exitosamente con socket(), vuelvo a iterar
+        if(socketServidor == -1) {
+            continue;
+        }
 
-    // Escuchar conexiones entrantes
+        // Bindeo del socket al puerto y control de error
+        if(bind(socketServidor, p->ai_addr, p->ai_addrlen) == -1) {
+            close(socketServidor);
+            log_error(logger, "Error al bindear el socket del servidor");
+            continue;
+        }
+
+        conectionSuccess = true;
+        break;
+    }
+
+    // En caso de iterar todos los nodos y no poder conectarse, rompemos
+    if(!conectionSuccess) {
+        freeaddrinfo(serverinfo);
+        exit(1);
+    }
+
+    // Escuchar conexiones entrantes, maximo 4096
     listen(socketServidor, SOMAXCONN);
 
-    freeaddrinfo(serverinfo);
     log_trace(logger, "%s escuchando en %s:%s \n", name, ip, puerto);
+
+    freeaddrinfo(serverinfo);
 
     return socketServidor;
 }
