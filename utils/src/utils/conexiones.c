@@ -1,6 +1,7 @@
 #include "conexiones.h"
 
-int iniciar_servidor(t_log *logger, const char *name, char *ip, char *puerto){
+int iniciar_servidor(t_log *logger, const char *name, char *ip, char *puerto)
+{
 
     int socketServidor;
 
@@ -17,27 +18,31 @@ int iniciar_servidor(t_log *logger, const char *name, char *ip, char *puerto){
     hints.ai_flags = AI_PASSIVE;
 
     // Seteo serverinfo, y me atajo de posibles errores con gai_strerror
-    if((check = getaddrinfo(ip, puerto, &hints, &serverinfo)) != 0) {
+    if ((check = getaddrinfo(ip, puerto, &hints, &serverinfo)) != 0)
+    {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(check));
         freeaddrinfo(serverinfo);
         exit(1);
     }
 
     // Loopeo los nodos de serverinfo hasta que me pueda bindear a alguno
-    for(p = serverinfo; p != NULL; p = p->ai_next) {
-        
+    for (p = serverinfo; p != NULL; p = p->ai_next)
+    {
+
         // Crear socket de escucha del servidor
         socketServidor = socket(serverinfo->ai_family,
                                 serverinfo->ai_socktype,
                                 serverinfo->ai_protocol);
 
         // Si no se pudo conectar exitosamente con socket(), vuelvo a iterar
-        if(socketServidor == -1) {
+        if (socketServidor == -1)
+        {
             continue;
         }
 
         // Bindeo del socket al puerto y control de error
-        if(bind(socketServidor, p->ai_addr, p->ai_addrlen) == -1) {
+        if (bind(socketServidor, p->ai_addr, p->ai_addrlen) == -1)
+        {
             close(socketServidor);
             log_error(logger, "Error al bindear el socket del servidor");
             continue;
@@ -48,7 +53,8 @@ int iniciar_servidor(t_log *logger, const char *name, char *ip, char *puerto){
     }
 
     // En caso de iterar todos los nodos y no poder conectarse, rompemos
-    if(!conectionSuccess) {
+    if (!conectionSuccess)
+    {
         freeaddrinfo(serverinfo);
         exit(1);
     }
@@ -65,8 +71,13 @@ int iniciar_servidor(t_log *logger, const char *name, char *ip, char *puerto){
 
 int esperar_cliente(t_log *logger, const char *name, int socket_servidor)
 {
-    // TODO
-    return 0;
+    int socket_cliente=accept(socket_servidor,NULL,NULL);
+    if(socket_cliente <0){
+        log_error(logger,"No se pudo conectar: %s",name)
+        exit(1);
+    }
+    log_info(logger, "Se conecto: %s",name);
+    return socket_cliente;
 }
 
 int crear_conexion(t_log *logger, const char *server_name, char *ip, char *puerto)
