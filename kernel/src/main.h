@@ -12,8 +12,8 @@
 #include<unistd.h>
 #include<pthread.h>
 #include<limits.h>
-//#include <utils/hello.h>
 
+// Manejo de envios
 typedef enum
 {
 	MENSAJE,
@@ -32,10 +32,33 @@ typedef struct
 	t_buffer* buffer;
 } t_paquete;
 
+// Estructuras de configuracion y log
+t_log* logger;
+t_config* config;
+
+// Config en memoria
+int puertoEscucha,puertoMemoria,puertoCpuDispatch,puertoCpuInterrupt,quantum,gradoMultiprogramacion;
+char* ipMemoria;
+char* ipCpu;
+char* algoritmoPlanificador;
+char* recursos;
+char* instanciasRecursos;
+
+// Threads
+pthread_t cpu_interrupt_t;
+pthread_t memoria_t;
+pthread_t cpu_dispatch_t;
+
+// Sockets
+int socketMemoria;
+int socketCpuDispatch;
+int socketCpuInterrupt;
+int serverKernel;
+
+// Funciones
 t_log* iniciar_logger(char*);
 t_config* iniciar_config(t_log* logger);
 void terminar_programa(int, t_log*, t_config*);
-int crear_conexion(t_log*,char*, int);
 void* serializar_paquete(t_paquete*, int);
 void enviar_mensaje(char*, int);
 void crear_buffer(t_paquete*);
@@ -43,12 +66,15 @@ void agregar_a_paquete(t_paquete*, void*, int);
 void enviar_paquete(t_paquete*, int);
 void eliminar_paquete(t_paquete*);
 void liberar_conexion(int);
-
 int iniciar_servidor(t_log*, int);
 int esperar_cliente(t_log*, int);
 int recibir_operacion(int);
 void recibir_mensaje(t_log*,int);
 void *recibir_buffer(int*,int);
-
+int crear_conexion(t_log*,char*, int,char*);
+void* handshakeCpuInterrupt();
+void* handshakeCpuDispatch();
+void* handshakeMemoria();
+uint32_t handshake(int,uint32_t,t_log*,char*);
 
 #endif /* MAIN_H_ */
