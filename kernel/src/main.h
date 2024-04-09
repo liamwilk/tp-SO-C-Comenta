@@ -75,6 +75,6 @@ int crear_conexion(t_log*,char*, int,char*);
 void* handshakeCpuInterrupt();
 void* handshakeCpuDispatch();
 void* handshakeMemoria();
-uint32_t handshake(int,uint32_t,t_log*,char*);
+uint32_t handshake(t_log*,int,uint32_t,char*);
 
 #endif /* MAIN_H_ */

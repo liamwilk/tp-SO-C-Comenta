@@ -83,7 +83,7 @@ Estas 3 de handshake hay que armarlas en una sola funcion polimorfica para no re
 void* handshakeMemoria(){
 	char* modulo = "Memoria";
 	socketMemoria = crear_conexion(logger,ipMemoria,puertoMemoria,modulo);
-	handshake(socketMemoria, 1, logger, modulo);
+	handshake(logger, socketMemoria, 1 , modulo);
 	enviar_mensaje("Conectado con Kernel", socketMemoria);
 	return NULL;
 }
@@ -91,7 +91,7 @@ void* handshakeMemoria(){
 void* handshakeCpuDispatch(){
 	char* modulo = "CPU Dispatch";
 	socketCpuDispatch = crear_conexion(logger,ipCpu,puertoCpuDispatch,modulo);
-	handshake(socketCpuDispatch, 1, logger, modulo);
+	handshake(logger,socketCpuDispatch, 1, modulo);
 	enviar_mensaje("Conectado con Kernel", socketCpuDispatch);
 	return NULL;
 }
@@ -99,12 +99,12 @@ void* handshakeCpuDispatch(){
 void* handshakeCpuInterrupt(){
 	char* modulo = "CPU Interrupt";
 	socketCpuInterrupt = crear_conexion(logger,ipCpu,puertoCpuInterrupt,modulo);
-	handshake(socketCpuInterrupt, 1, logger, modulo);
+	handshake(logger,socketCpuInterrupt, 1, modulo);
 	enviar_mensaje("Conectado con Kernel", socketCpuInterrupt);
 	return NULL;
 }
 
-uint32_t handshake(int conexion, uint32_t envio, t_log* logger, char *modulo){
+uint32_t handshake(t_log* logger,int conexion, uint32_t envio, char *modulo){
 	uint32_t result;
 
 	send(conexion, &envio, sizeof(uint32_t), 0);
