@@ -37,14 +37,14 @@ int main() {
 
 	// Handshakes
 
-	pthread_create(&memoria_t, NULL, handshakeMemoria, NULL);
-	pthread_detach(memoria_t);
+	pthread_create(&memoriatThread, NULL, handshakeMemoria, NULL);
+	pthread_detach(memoriatThread);
 
-	pthread_create(&cpu_dispatch_t, NULL, handshakeCpuDispatch, NULL);
-	pthread_detach(cpu_dispatch_t);
+	pthread_create(&cpuDispatchThread, NULL, handshakeCpuDispatch, NULL);
+	pthread_detach(cpuDispatchThread);
 
-	pthread_create(&cpu_interrupt_t, NULL, handshakeCpuInterrupt, NULL);
-	pthread_detach(cpu_interrupt_t);
+	pthread_create(&cpuInterruptThread, NULL, handshakeCpuInterrupt, NULL);
+	pthread_detach(cpuInterruptThread);
 
  	
 	// Levanto el servidor de memoria

@@ -45,9 +45,9 @@ char* recursos;
 char* instanciasRecursos;
 
 // Threads
-pthread_t cpu_interrupt_t;
-pthread_t memoria_t;
-pthread_t cpu_dispatch_t;
+pthread_t cpuInterruptThread;
+pthread_t cpuDispatchThread;
+pthread_t memoriatThread;
 
 // Sockets
 int socketMemoria;
