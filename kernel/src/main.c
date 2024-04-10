@@ -4,23 +4,24 @@
 
 int main() {
     
-    t_log* logger;
-	t_config* config;
-
     logger = iniciar_logger("kernel");
     config = iniciar_config(logger);
-    
-    int puertoEscucha = config_get_int_value(config,"PUERTO_ESCUCHA");
-    char* ipMemoria = config_get_string_value(config,"IP_MEMORIA");
-    int puertoMemoria = config_get_int_value(config,"PUERTO_MEMORIA");
-    char* ipCpu = config_get_string_value(config,"IP_CPU");
-    int puertoCpuDispatch = config_get_int_value(config,"PUERTO_CPU_DISPATCH");
-    int puertoCpuInterrupt = config_get_int_value(config,"PUERTO_CPU_INTERRUPT");
-    char* algoritmoPlanificador = config_get_string_value(config,"ALGORITMO_PLANIFICADOR");
-    int quantum = config_get_int_value(config,"QUANTUM");
-    char* recursos = config_get_string_value(config,"RECURSOS");
-    char* instanciasRecursos = config_get_string_value(config,"INSTANCIAS_RECURSOS");
-    int gradoMultiprogramacion = config_get_int_value(config,"GRADO_MULTIPROGRAMACION");
+
+	// TODO: Llevarlo a una sola funcion externa
+
+    puertoEscucha = config_get_int_value(config,"PUERTO_ESCUCHA");
+    ipMemoria = config_get_string_value(config,"IP_MEMORIA");
+    puertoMemoria = config_get_int_value(config,"PUERTO_MEMORIA");
+    ipCpu = config_get_string_value(config,"IP_CPU");
+    puertoCpuDispatch = config_get_int_value(config,"PUERTO_CPU_DISPATCH");
+    puertoCpuInterrupt = config_get_int_value(config,"PUERTO_CPU_INTERRUPT");
+    algoritmoPlanificador = config_get_string_value(config,"ALGORITMO_PLANIFICADOR");
+    quantum = config_get_int_value(config,"QUANTUM");
+    recursos = config_get_string_value(config,"RECURSOS");
+    instanciasRecursos = config_get_string_value(config,"INSTANCIAS_RECURSOS");
+    gradoMultiprogramacion = config_get_int_value(config,"GRADO_MULTIPROGRAMACION");
+
+	// TODO: Llevarlo a una sola funcion externa
 
     log_info(logger,"PUERTO_ESCUCHA: %d",puertoEscucha);
 	log_info(logger,"IP_MEMORIA: %s",ipMemoria);
@@ -34,53 +35,88 @@ int main() {
     log_info(logger,"INSTANCIAS_RECURSOS: %s",instanciasRecursos);
     log_info(logger,"GRADO_MULTIPROGRAMACION: %d",gradoMultiprogramacion);
 
-	// Mensajes a clientes
+	// Handshakes
 
-	int socketMemoria = crear_conexion(logger,ipMemoria,puertoMemoria);
-	enviar_mensaje("Hola, soy Kernel!", socketMemoria);
+	pthread_create(&memoriatThread, NULL, handshakeMemoria, NULL);
+	pthread_detach(memoriatThread);
+
+	pthread_create(&cpuDispatchThread, NULL, handshakeCpuDispatch, NULL);
+	pthread_detach(cpuDispatchThread);
+
+	pthread_create(&cpuInterruptThread, NULL, handshakeCpuInterrupt, NULL);
+	pthread_detach(cpuInterruptThread);
+
+ 	
+	// Levanto el servidor de memoria
+    serverKernel = iniciar_servidor(logger,puertoEscucha);
+	log_info(logger, "Servidor listo para recibir al cliente");
+
+	/* TODO:
+	Aca hay que implementar el controlador de consolas.
+	*/
+
+	// Espero que todos los threads finalicen
+    pthread_exit(0);
+
+	// Libero todas las conexiones
 	liberar_conexion(socketMemoria);
-
-	int socketCpuDispatch = crear_conexion(logger,ipCpu,puertoCpuDispatch);
-	enviar_mensaje("Hola, soy Kernel!", socketCpuDispatch);
 	liberar_conexion(socketCpuDispatch);
+	liberar_conexion(socketCpuInterrupt);
 
-	// Hay que hacerlo con hilos
-
-	// int socketCpuInterrupt = crear_conexion(logger,ipCpu,puertoCpuInterrupt);
-	// enviar_mensaje("Hola, soy Kernel!", socketCpuInterrupt);
-	// liberar_conexion(socketCpuInterrupt);
-	
-    // Inicio server Kernel
-
-	int server_fd = iniciar_servidor(logger,puertoEscucha);
-	log_info(logger, "Servidor listo para recibir clientes.");
-
-	int contador=0;
-
-    while (contador<1) {
-		int cliente_fd = esperar_cliente(logger,server_fd);
-		int cod_op = recibir_operacion(cliente_fd);
-
-		switch (cod_op) {
-		case MENSAJE:
-			recibir_mensaje(logger,cliente_fd);
-			contador++;
-			break;
-		default:
-			log_warning(logger,"Operacion desconocida.");
-			break;
-		}
-	}
-
-	// Libero recursos adicionales
-
+	// Libero los punteros
 	free(ipMemoria);
 	free(ipCpu);
 	free(algoritmoPlanificador);
 	free(recursos);
 	free(instanciasRecursos);
 
-    return 0;
+	// Destruyo estructuras
+	config_destroy(config);
+	log_destroy(logger);
+}
+
+
+/* TODO:
+Estas 3 de handshake hay que armarlas en una sola funcion polimorfica para no repetir codigo
+*/
+
+void* handshakeMemoria(){
+	char* modulo = "Memoria";
+	socketMemoria = crear_conexion(logger,ipMemoria,puertoMemoria,modulo);
+	handshake(logger, socketMemoria, 1 , modulo);
+	enviar_mensaje("Conectado con Kernel", socketMemoria);
+	return NULL;
+}
+
+void* handshakeCpuDispatch(){
+	char* modulo = "CPU Dispatch";
+	socketCpuDispatch = crear_conexion(logger,ipCpu,puertoCpuDispatch,modulo);
+	handshake(logger,socketCpuDispatch, 1, modulo);
+	enviar_mensaje("Conectado con Kernel", socketCpuDispatch);
+	return NULL;
+}
+
+void* handshakeCpuInterrupt(){
+	char* modulo = "CPU Interrupt";
+	socketCpuInterrupt = crear_conexion(logger,ipCpu,puertoCpuInterrupt,modulo);
+	handshake(logger,socketCpuInterrupt, 1, modulo);
+	enviar_mensaje("Conectado con Kernel", socketCpuInterrupt);
+	return NULL;
+}
+
+uint32_t handshake(t_log* logger,int conexion, uint32_t envio, char *modulo){
+	uint32_t result;
+
+	send(conexion, &envio, sizeof(uint32_t), 0);
+	recv(conexion, &result, sizeof(uint32_t), MSG_WAITALL);
+
+	if(result == 0) {
+		log_info(logger, "[%s] Conexion establecida.", modulo);
+	} else {
+		log_error(logger, "[%s] Error en la conexión.", modulo);
+		return -1;
+	}
+	return result;
 }
 
 void *recibir_buffer(int *size, int socket_cliente)
@@ -171,10 +207,6 @@ int iniciar_servidor(t_log* logger, int puerto)
 t_log* iniciar_logger(char* nombreDelModulo){
 	
     t_log* nuevo_logger;
-	//char* filename=NULL;
-
-    //strcpy(filename,nombreDelModulo);
-    //strcat(filename,".log");
 
 	nuevo_logger = log_create("module.log", nombreDelModulo, true, LOG_LEVEL_DEBUG);
 
@@ -206,6 +238,10 @@ t_config* iniciar_config(t_log* logger){
 	return nuevo_config;
 }
 
+/* TODO:
+Hay que refactorearla para que acepte un array de sockets conexion e itere todos.
+*/
+
 void terminar_programa(int conexion, t_log* logger, t_config* config)
 {
 	if(logger != NULL) {
@@ -219,33 +255,33 @@ void terminar_programa(int conexion, t_log* logger, t_config* config)
 	liberar_conexion(conexion);
 }
 
-int crear_conexion(t_log* logger,char *ip, int puerto)
-{
-    struct addrinfo hints;
-    struct addrinfo *server_info;
-    char puerto_str[6];
+int crear_conexion(t_log* logger, char *ip, int puerto, char* modulo){
+	struct addrinfo hints;
+	struct addrinfo *server_info;
+	char puerto_str[6];
 
-    // Convierto el puerto a string, para poder usarlo en getaddrinfo
-    snprintf(puerto_str, sizeof(puerto_str), "%d", puerto);
+	snprintf(puerto_str, sizeof(puerto_str), "%d", puerto);
 
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
 
-    getaddrinfo(ip, puerto_str, &hints, &server_info);
+	getaddrinfo(ip,puerto_str,&hints,&server_info);
 
-    int socket_cliente = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);
+	int socketCliente = socket(server_info->ai_family,server_info->ai_socktype,server_info->ai_protocol);
+	int resultado = connect(socketCliente,server_info->ai_addr,server_info->ai_addrlen);
 
-    if (connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen) == -1){
-        log_error(logger,"No se pudo conectar el socket cliente al servidor puerto %d!",puerto);
-		perror("No se pudo conectar el socket cliente al servidor!");
-	 	exit(1);
-    }
+	// Espero a que se conecte
+	while(resultado == -1){
+		log_info(logger, "[%s@%s:%d] No se pudo conectar. Reintentando...", modulo, ip, *puerto_str);
+		sleep(1);
+		resultado = connect(socketCliente,server_info->ai_addr,server_info->ai_addrlen);
+	}
 
-    freeaddrinfo(server_info);
+	log_info(logger, "[%s@%s:%d] Conectado!", modulo, ip, puerto);
+	freeaddrinfo(server_info);
 
-    return socket_cliente;
+	return socketCliente;
 }
 
 void* serializar_paquete(t_paquete* paquete, int bytes)

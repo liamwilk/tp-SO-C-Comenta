@@ -3,41 +3,73 @@
 
 int main() {
     
-    t_log* logger;
-	t_config* config;
-
+	// Inicio el logger y la configuracion
     logger = iniciar_logger("memoria");
     config = iniciar_config(logger);
     
+	// Cargo la configuracion
     int puertoEscucha = config_get_int_value(config,"PUERTO_ESCUCHA");
+	int tamMemoria = config_get_int_value(config,"TAM_MEMORIA");
+	int tamPagina = config_get_int_value(config,"TAM_PAGINA");
+	char* pathInstrucciones = config_get_string_value(config,"PATH_INSTRUCCIONES");
+	int retardoRespuesta = config_get_int_value(config,"RETARDO_RESPUESTA");
+
+	// Logeo la configuracion
     log_info(logger,"PUERTO_ESCUCHA: %d",puertoEscucha);
+	log_info(logger,"TAM_MEMORIA: %d",tamMemoria);
+	log_info(logger,"TAM_PAGINA: %d",tamPagina);
+	log_info(logger,"PATH_INSTRUCCIONES: %s",pathInstrucciones);
+	log_info(logger,"RETARDO_RESPUESTA: %d",retardoRespuesta);
 
-    int server_fd = iniciar_servidor(logger,puertoEscucha);
-	log_info(logger, "Servidor listo para recibir al cliente");
+	// Levanto el servidor de memoria
+    serverMemoria = iniciar_servidor(logger,puertoEscucha);
+	log_info(logger, "Memoria está lista para recibir clientes.");
 
-	int contador=0;
+	// Espero la conexion del Kernel 
+	// (para saber cual es cual cuando haya más,
+	// hay que poner semaforos y ordenarlos)
 
-    while (contador<3) {
-		int cliente_fd = esperar_cliente(logger,server_fd);
-		int cod_op = recibir_operacion(cliente_fd);
+	pthread_create(&kernelThread, NULL, esperarKernel, NULL);
+	pthread_detach(kernelThread);
 
+	// Espero que todos los threads finalicen
+	pthread_exit(0);
+
+	// Libero punteros
+	liberar_conexion(socketKernel);
+
+	// Destruyo estructuras
+    log_destroy(logger);
+    config_destroy(config);
+}
+
+void* esperarKernel(){
+	socketKernel = nuevoSocket();
+	while(1){
+		int cod_op = recibir_operacion(socketKernel);
 		switch (cod_op) {
 		case MENSAJE:
-			recibir_mensaje(logger,cliente_fd);
-			contador++;
-			break;
-		default:
-			log_warning(logger,"Operacion desconocida.");
+			recibir_mensaje(logger,socketKernel);
 			break;
 		}
 	}
-	
-	log_info(logger,"Comunicaciones recibidas de los tres modulos, cerrando servidor.");
+	return NULL;
+}
 
-    log_destroy(logger);
-    config_destroy(config);
+int nuevoSocket(){
+	int nuevoSocket = esperar_cliente(logger,serverMemoria);
+	uint32_t ok = 0;
+	uint32_t error = -1;
 
-    return 0;
+	recv(nuevoSocket, &respuesta, sizeof(uint32_t), MSG_WAITALL);
+	if(respuesta == 1){
+	   send(nuevoSocket, &ok, sizeof(uint32_t), 0);
+	   }
+	else{
+	   send(nuevoSocket, &error, sizeof(uint32_t), 0);
+	   log_error(logger,"Error en el manejo de handhsake.");
+	   }
+	return nuevoSocket;
 }
 
 void *recibir_buffer(int *size, int socket_cliente)
@@ -55,18 +87,19 @@ void recibir_mensaje(t_log* logger, int socket_cliente)
 {
 	int size;
 	char *buffer = recibir_buffer(&size, socket_cliente);
-	log_info(logger, "Me llego el mensaje %s", buffer);
+	log_info(logger, "Me llego el mensaje: %s", buffer);
 	free(buffer);
 }
 
 int recibir_operacion(int socket_cliente)
 {
 	int cod_op;
-	if (recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) > 0)
+	if (recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) > 0){
 		return cod_op;
-	else
-	{
+	}
+	else{
 		close(socket_cliente);
+		log_info(logger,"Cliente desconectado");
 		return -1;
 	}
 }
