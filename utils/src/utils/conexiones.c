@@ -73,7 +73,7 @@ int esperar_cliente(t_log *logger, const char *name, int socket_servidor)
 {
     int socket_cliente=accept(socket_servidor,NULL,NULL);
     if(socket_cliente <0){
-        log_error(logger,"No se pudo conectar: %s",name)
+        log_error(logger,"No se pudo conectar: %s",name);
         exit(1);
     }
     log_info(logger, "Se conecto: %s",name);
@@ -121,5 +121,5 @@ int crear_conexion(t_log *logger, const char *server_name, char *ip, char *puert
 
 void liberar_conexion(int *socket_cliente)
 {
-    close(socket_cliente);
+    close(*socket_cliente);
 }

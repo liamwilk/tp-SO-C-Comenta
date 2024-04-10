@@ -12,6 +12,9 @@
 #include<unistd.h>
 #include<pthread.h>
 #include<limits.h>
+#include<utils/configs.h>
+#include<utils/modulos.h>
+
 
 // Manejo de envios
 typedef enum

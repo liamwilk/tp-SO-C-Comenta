@@ -7,33 +7,11 @@ int main() {
     logger = iniciar_logger("kernel");
     config = iniciar_config(logger);
 
-	// TODO: Llevarlo a una sola funcion externa
 
-    puertoEscucha = config_get_int_value(config,"PUERTO_ESCUCHA");
-    ipMemoria = config_get_string_value(config,"IP_MEMORIA");
-    puertoMemoria = config_get_int_value(config,"PUERTO_MEMORIA");
-    ipCpu = config_get_string_value(config,"IP_CPU");
-    puertoCpuDispatch = config_get_int_value(config,"PUERTO_CPU_DISPATCH");
-    puertoCpuInterrupt = config_get_int_value(config,"PUERTO_CPU_INTERRUPT");
-    algoritmoPlanificador = config_get_string_value(config,"ALGORITMO_PLANIFICADOR");
-    quantum = config_get_int_value(config,"QUANTUM");
-    recursos = config_get_string_value(config,"RECURSOS");
-    instanciasRecursos = config_get_string_value(config,"INSTANCIAS_RECURSOS");
-    gradoMultiprogramacion = config_get_int_value(config,"GRADO_MULTIPROGRAMACION");
+    Kernel kernel= inicializar_kernel(config);
 
-	// TODO: Llevarlo a una sola funcion externa
 
-    log_info(logger,"PUERTO_ESCUCHA: %d",puertoEscucha);
-	log_info(logger,"IP_MEMORIA: %s",ipMemoria);
-	log_info(logger,"PUERTO_MEMORIA: %d",puertoMemoria);
-    log_info(logger,"IP_CPU: %s",ipCpu);
-    log_info(logger,"PUERTO_CPU_DISPATCH: %d",puertoCpuDispatch);
-    log_info(logger,"PUERTO_CPU_INTERRUPT: %d",puertoCpuInterrupt);
-    log_info(logger,"ALGORITMO_PLANIFICADOR: %s",algoritmoPlanificador);
-    log_info(logger,"QUANTUM: %d",quantum);
-    log_info(logger,"RECURSOS: %s",recursos);
-    log_info(logger,"INSTANCIAS_RECURSOS: %s",instanciasRecursos);
-    log_info(logger,"GRADO_MULTIPROGRAMACION: %d",gradoMultiprogramacion);
+    log_kernel(kernel);
 
 	// Handshakes
 
@@ -48,7 +26,7 @@ int main() {
 
  	
 	// Levanto el servidor de memoria
-    serverKernel = iniciar_servidor(logger,puertoEscucha);
+    serverKernel = iniciar_servidor(logger,kernel.puertoEscucha);
 	log_info(logger, "Servidor listo para recibir al cliente");
 
 	/* TODO:
@@ -204,39 +182,7 @@ int iniciar_servidor(t_log* logger, int puerto)
 	return socket_servidor;
 }
 
-t_log* iniciar_logger(char* nombreDelModulo){
-	
-    t_log* nuevo_logger;
 
-	nuevo_logger = log_create("module.log", nombreDelModulo, true, LOG_LEVEL_DEBUG);
-
-	if (nuevo_logger == NULL) {
-		log_error(nuevo_logger, "No se pudo crear el logger.");
-		perror("No se puedo crear el logger.");
-	}
-
-	return nuevo_logger;
-}
-
-t_config* iniciar_config(t_log* logger){
-	t_config* nuevo_config;
-
-	char *current_dir = getcwd(NULL, 0);
-
-	char ruta_completa[PATH_MAX]; 
-    sprintf(ruta_completa, "%s/module.config", current_dir);
-	printf("%s",ruta_completa);
-
-	nuevo_config = config_create(ruta_completa);
-
-    if(nuevo_config == NULL){
-		log_error(logger,"No se pudo crear la config.");
-		perror("No se pudo crear la config.");
-	}
-
-	free(current_dir);
-	return nuevo_config;
-}
 
 /* TODO:
 Hay que refactorearla para que acepte un array de sockets conexion e itere todos.
