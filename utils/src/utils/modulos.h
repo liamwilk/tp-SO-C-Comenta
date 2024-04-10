@@ -50,6 +50,35 @@ void log_kernel(Kernel kernel,t_log logger){
 };
 
 
+// macros para funciones de casting usando structs
+#define CASTING(T)  \
+void casting_##T(struct T *arg, void **casted) { \
+    *casted = (void*) arg;   \
+}
+
+#define DECASTING(T) \
+void decasting_##T(struct T** arg , void* decasted){ \
+    *arg = (struct T* ) decasted; \
+}
+
+// Ejemplo de implementación 
+//struct dato{
+//    int dato1;
+//};
+//
+//CASTING(dato);
+//DECASTING(dato);
+
+
+// Ejemplo de uso 
+//
+//pthread_t hilo1;
+//
+//struct dato v1 = {1 , 'g' , 1}; // parámetro que recibe la función 
+//void* c1 = NULL;  // puntero a void usado en el casting
+//casting_dato(&v1 , &c1); 
+//pthread_create(&hilo1 , NULL , func1 , c1);
+//pthread_detach(hilo1);
 
 
 
