@@ -71,12 +71,13 @@ int iniciar_servidor(t_log *logger, const char *name, char *ip, char *puerto)
 
 int esperar_cliente(t_log *logger, const char *name, int socket_servidor)
 {
-    int socket_cliente=accept(socket_servidor,NULL,NULL);
-    if(socket_cliente <0){
-        log_error(logger,"No se pudo conectar: %s",name);
+    int socket_cliente = accept(socket_servidor, NULL, NULL);
+    if (socket_cliente < 0)
+    {
+        log_error(logger, "No se pudo conectar: %s", name);
         exit(1);
     }
-    log_info(logger, "Se conecto: %s",name);
+    log_info(logger, "Se conecto: %s", name);
     return socket_cliente;
 }
 
