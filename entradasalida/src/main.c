@@ -8,9 +8,10 @@ int main()
 	t_log *logger;
 	t_config *config;
 
-	logger = iniciar_logger("kernel");
+	logger = iniciar_logger("Entrada-Salida");
 	config = iniciar_config(logger);
 
+	// Se pasan los datos de config a local
 	char *ipMemoria = config_get_string_value(config, "IP_MEMORIA");
 	int puertoMemoria = config_get_int_value(config, "PUERTO_MEMORIA");
 	char *ipKernel = config_get_string_value(config, "IP_KERNEL");
@@ -21,6 +22,7 @@ int main()
 	int blockSize = config_get_int_value(config, "BLOCK_SIZE");
 	int blockCount = config_get_int_value(config, "BLOCK_COUNT");
 
+	// Se loggean los valores de config
 	log_info(logger, "IP_MEMORIA: %s", ipMemoria);
 	log_info(logger, "PUERTO_MEMORIA: %d", puertoMemoria);
 	log_info(logger, "IP_KERNEL: %s", ipKernel);
@@ -31,13 +33,15 @@ int main()
 	log_info(logger, "BLOCK_SIZE: %d", blockSize);
 	log_info(logger, "BLOCK_COUNT: %d", blockCount);
 
-	int socketMemoria = crear_conexion(logger, ipMemoria, puertoMemoria);
-	enviar_mensaje("Hola, soy I/O", socketMemoria);
-	liberar_conexion(socketMemoria);
+	// Threads para los Handshakes
+	pthread_create(&memoriatThread, NULL, handshake_memoria, NULL);
+	pthread_detach(memoriatThread);
 
-	int socketKernel = crear_conexion(logger, ipKernel, puertoKernel);
-	enviar_mensaje("Hola, soy I/O!", socketKernel);
-	liberar_conexion(socketKernel);
+	pthread_create(&kernelThread, NULL, handshake_kernel, NULL);
+	pthread_detach(kernelThread);
+
+	pthread_exit(0); // para que finalice
+
 
 	log_destroy(logger);
 
@@ -57,57 +61,41 @@ t_paquete *crear_paquete(void)
 	return paquete;
 }
 
-void comunicarConCliente(t_paqueteCliente *cliente)
+void *handshake_memoria()
 {
-
-	cliente->socket = crear_conexion(cliente->logger, cliente->ip, cliente->puerto);
-	enviar_mensaje("Hola, soy Kernel", cliente->socket);
+	char *modulo = "Memoria";
+	socketMemoria = crear_conexion(logger, ipMemoria, puertoMemoria, modulo);
+	handshake(logger, socketMemoria, 1, modulo);
+	enviar_mensaje("Conectado con Memoria", socketMemoria);
+	return NULL;
 }
 
-int esperar_cliente(t_log *logger, int socket_servidor)
+void *handshake_kernel()
 {
-	// Aceptamos un nuevo cliente
-	int socket_cliente = accept(socket_servidor, NULL, NULL);
-	log_info(logger, "Se conecto un cliente!");
-
-	return socket_cliente;
+	char *modulo = "Kernel";
+	socketKernel = crear_conexion(logger, ipKernel, puertoKernel, modulo);
+	handshake(logger, socketKernel, 1, modulo);
+	enviar_mensaje("Conectado con Kernel", socketKernel);
+	return NULL;
 }
 
-int iniciar_servidor(t_log *logger, int puerto)
+uint32_t handshake(t_log *logger, int conexion, uint32_t envio, char *modulo)
 {
+	uint32_t result;
 
-	char puerto_str[6];
+	send(conexion, &envio, sizeof(uint32_t), 0);
+	recv(conexion, &result, sizeof(uint32_t), MSG_WAITALL);
 
-	// Convierto el puerto a string, para poder usarlo en getaddrinfo
-	snprintf(puerto_str, sizeof(puerto_str), "%d", puerto);
-
-	struct addrinfo hints, *servinfo;
-
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_PASSIVE;
-
-	getaddrinfo(NULL, puerto_str, &hints, &servinfo);
-
-	// Creamos el socket de escucha del servidor
-
-	int socket_servidor = socket(servinfo->ai_family,
-								 servinfo->ai_socktype,
-								 servinfo->ai_protocol);
-
-	// Asociamos el socket a un puerto
-
-	bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen);
-
-	// Escuchamos las conexiones entrantes
-
-	listen(socket_servidor, SOMAXCONN);
-
-	freeaddrinfo(servinfo);
-	log_trace(logger, "Listo para escuchar a mi cliente");
-
-	return socket_servidor;
+	if (result == 0)
+	{
+		log_info(logger, "[%s] Conexion establecida.", modulo);
+	}
+	else
+	{
+		log_error(logger, "[%s] Error en la conexión.", modulo);
+		return -1;
+	}
+	return result;
 }
 
 t_log *iniciar_logger(char *nombreDelModulo)
@@ -161,35 +149,6 @@ void terminar_programa(int conexion, t_log *logger, t_config *config)
 	}
 
 	liberar_conexion(conexion);
-}
-
-int crear_conexion(t_log *logger, char *ip, int puerto)
-{
-	struct addrinfo hints;
-	struct addrinfo *server_info;
-	char puerto_str[6];
-
-	// Convierto el puerto a string, para poder usarlo en getaddrinfo
-	snprintf(puerto_str, sizeof(puerto_str), "%d", puerto);
-
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-
-	getaddrinfo(ip, puerto_str, &hints, &server_info);
-
-	int socket_cliente = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);
-
-	if (connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen) == -1)
-	{
-		log_error(logger, "No se pudo conectar el socket cliente al servidor puerto %d!", puerto);
-		perror("No se pudo conectar el socket cliente al servidor!");
-		exit(1);
-	}
-
-	freeaddrinfo(server_info);
-
-	return socket_cliente;
 }
 
 void *serializar_paquete(t_paquete *paquete, int bytes)
@@ -259,9 +218,4 @@ void eliminar_paquete(t_paquete *paquete)
 	free(paquete->buffer->stream);
 	free(paquete->buffer);
 	free(paquete);
-}
-
-void liberar_conexion(int socket_cliente)
-{
-	close(socket_cliente);
 }

@@ -81,46 +81,38 @@ int esperar_cliente(t_log *logger, const char *name, int socket_servidor)
     return socket_cliente;
 }
 
-int crear_conexion(t_log *logger, const char *server_name, char *ip, char *puerto)
+int crear_conexion(t_log *logger, char *ip, int puerto, char *modulo)
 {
-    struct addrinfo hints;
-    struct addrinfo *server_info;
+	struct addrinfo hints;
+	struct addrinfo *server_info;
+	char puerto_str[6];
 
-    // Se inicializa hints
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
+	snprintf(puerto_str, sizeof(puerto_str), "%d", puerto);
 
-    // Recibe addrinfo
-    getaddrinfo(ip, puerto, &hints, &server_info);
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
 
-    // Crea un socket con la informacion recibida (del primero, suficiente)
-    int socket_cliente = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);
+	getaddrinfo(ip, puerto_str, &hints, &server_info);
 
-    // Caso en el que falle la creación del socket
-    if (socket_cliente == -1)
-    {
-        log_error(logger, "Error creando el socket para %s:%s", ip, puerto);
-        return 0;
-    }
+	int socketCliente = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);
+	int resultado = connect(socketCliente, server_info->ai_addr, server_info->ai_addrlen);
 
-    // Caso en el que falle la conexión
-    if (connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen) == -1)
-    {
-        log_error(logger, "Error al conectar (a %s)\n", server_name);
-        freeaddrinfo(server_info);
-        return 0;
-    }
-    else
-        log_info(logger, "Cliente conectado en %s:%s (a %s)\n", ip, puerto, server_name);
+	// Espero a que se conecte
+	while (resultado == -1)
+	{
+		log_info(logger, "[%s@%s:%d] No se pudo conectar. Reintentando...", modulo, ip, *puerto_str);
+		sleep(1);
+		resultado = connect(socketCliente, server_info->ai_addr, server_info->ai_addrlen);
+	}
 
-    freeaddrinfo(server_info); // Se libera memoria
+	log_info(logger, "[%s@%s:%d] Conectado!", modulo, ip, puerto);
+	freeaddrinfo(server_info);
 
-    return socket_cliente;
+	return socketCliente;
 }
 
-void liberar_conexion(int *socket_cliente)
+void liberar_conexion(int socket_cliente)
 {
-    close(*socket_cliente);
+    close(socket_cliente);
 }

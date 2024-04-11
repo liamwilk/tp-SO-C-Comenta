@@ -12,7 +12,26 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <limits.h>
-// #include <utils/hello.h>
+#include <utils/conexiones.h>
+
+// Threads
+pthread_t kernelThread;
+pthread_t memoriatThread;
+
+// Sockets
+int socketMemoria;
+int socketKernel;
+
+// Config a local
+char *ipMemoria;
+char *ipKernel;
+int puertoMemoria, puertoKernel, tiempoUnidadDeTrabajo, blockSize, blockCount;
+char *tipoInterfaz;
+char *pathBaseDialFs;
+
+// Estructuras de logger y config
+t_log *logger;
+t_config *config;
 
 typedef enum
 {
@@ -40,19 +59,18 @@ typedef struct
 	int socket;
 } t_paqueteCliente;
 
+
+// Funciones
 t_log *iniciar_logger(char *);
 t_config *iniciar_config(t_log *logger);
 void terminar_programa(int, t_log *, t_config *);
-int crear_conexion(t_log *, char *, int);
 void *serializar_paquete(t_paquete *, int);
 void enviar_mensaje(char *, int);
 void crear_buffer(t_paquete *);
 void agregar_a_paquete(t_paquete *, void *, int);
 void enviar_paquete(t_paquete *, int);
 void eliminar_paquete(t_paquete *);
-void liberar_conexion(int);
-
-int iniciar_servidor(t_log *, int);
-int esperar_cliente(t_log *, int);
-void comunicarConCliente(t_paqueteCliente *);
+void *handshake_memoria();
+void *handshake_kernel();
+uint32_t handshake(t_log *, int, uint32_t, char *);
 #endif /* MAIN_H_ */

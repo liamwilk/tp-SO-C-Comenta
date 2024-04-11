@@ -35,20 +35,7 @@ Kernel inicializar_kernel(t_config *config);
  * @param kernel Instancia de kernel (inicializar_kernel)
  * @param logger Instancia de t_log
  */
-void log_kernel(Kernel kernel, t_log *logger)
-{
-    log_info(logger, "PUERTO_ESCUCHA: %d", kernel.puertoEscucha);
-    log_info(logger, "IP_MEMORIA: %s", kernel.ipMemoria);
-    log_info(logger, "PUERTO_MEMORIA: %d", kernel.puertoMemoria);
-    log_info(logger, "IP_CPU: %s", kernel.ipCpu);
-    log_info(logger, "PUERTO_CPU_DISPATCH: %d", kernel.puertoCpuDispatch);
-    log_info(logger, "PUERTO_CPU_INTERRUPT: %d", kernel.puertoCpuInterrupt);
-    log_info(logger, "ALGORITMO_PLANIFICADOR: %s", kernel.algoritmoPlanificador);
-    log_info(logger, "QUANTUM: %d", kernel.quantum);
-    log_info(logger, "RECURSOS: %s", kernel.recursos);
-    log_info(logger, "INSTANCIAS_RECURSOS: %s", kernel.instanciasRecursos);
-    log_info(logger, "GRADO_MULTIPROGRAMACION: %d", kernel.gradoMultiprogramacion);
-};
+void log_kernel(Kernel kernel, t_log *logger);
 
 // macros para funciones de casting usando structs
 #define CASTING(T)                                 \
