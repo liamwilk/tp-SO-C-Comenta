@@ -12,8 +12,10 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <limits.h>
-#include <utils/configs.h>
+#include <utils/hilos.h>
 #include <utils/modulos.h>
+#include <utils/configs.h>
+#include <utils/conexiones.h>
 
 // Manejo de envios
 typedef enum
@@ -68,15 +70,9 @@ void agregar_a_paquete(t_paquete *, void *, int);
 void enviar_paquete(t_paquete *, int);
 void eliminar_paquete(t_paquete *);
 void liberar_conexion(int);
-int iniciar_servidor(t_log *, int);
-int esperar_cliente(t_log *, int);
 int recibir_operacion(int);
 void recibir_mensaje(t_log *, int);
 void *recibir_buffer(int *, int);
-int crear_conexion(t_log *, char *, int, char *);
-void *handshakeCpuInterrupt();
-void *handshakeCpuDispatch();
-void *handshakeMemoria();
 uint32_t handshake(t_log *, int, uint32_t, char *);
 
 #endif /* MAIN_H_ */
