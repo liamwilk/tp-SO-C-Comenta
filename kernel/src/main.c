@@ -4,27 +4,21 @@
 
 int main()
 {
-
 	logger = iniciar_logger("kernel");
 	config = iniciar_config(logger);
 
-	Kernel kernel = inicializar_kernel(config);
+	t_kernel kernel = kernel_inicializar(config);
 
-	log_kernel(kernel, logger);
+	kernel_log(kernel, logger);
+	
+	//Handshakes
+	t_handshake handshakeMemoria = kernel_handshake_memoria(kernel,hilo_handshake,logger);
+	t_handshake handshakeCpuDispatch= kernel_handshake_cpu_dispatch(kernel,hilo_handshake,logger);
+	t_handshake handshakeCpuInterrupt = kernel_handshake_cpu_interrupt(kernel,hilo_handshake,logger);
 
-	// Handshakes
-
-	pthread_create(&memoriatThread, NULL, handshakeMemoria, NULL);
-	pthread_detach(memoriatThread);
-
-	pthread_create(&cpuDispatchThread, NULL, handshakeCpuDispatch, NULL);
-	pthread_detach(cpuDispatchThread);
-
-	pthread_create(&cpuInterruptThread, NULL, handshakeCpuInterrupt, NULL);
-	pthread_detach(cpuInterruptThread);
 
 	// Levanto el servidor de memoria
-	serverKernel = iniciar_servidor(logger, kernel.puertoEscucha);
+	serverKernel = iniciar_servidor(logger, "kernel",NULL,kernel.puertoEscucha);
 	log_info(logger, "Servidor listo para recibir al cliente");
 
 	/* TODO:
@@ -35,71 +29,16 @@ int main()
 	pthread_exit(0);
 
 	// Libero todas las conexiones
-	liberar_conexion(socketMemoria);
-	liberar_conexion(socketCpuDispatch);
-	liberar_conexion(socketCpuInterrupt);
+	liberar_conexion(handshakeMemoria.socketDestino);
+	liberar_conexion(handshakeCpuDispatch.socketDestino);
+	liberar_conexion(handshakeCpuInterrupt.socketDestino);
 
-	// Libero los punteros
-	free(ipMemoria);
-	free(ipCpu);
-	free(algoritmoPlanificador);
-	free(recursos);
-	free(instanciasRecursos);
 
 	// Destruyo estructuras
 	config_destroy(config);
 	log_destroy(logger);
 }
 
-/* TODO:
-Estas 3 de handshake hay que armarlas en una sola funcion polimorfica para no repetir codigo
-*/
-
-void *handshakeMemoria()
-{
-	char *modulo = "Memoria";
-	socketMemoria = crear_conexion(logger, ipMemoria, puertoMemoria, modulo);
-	handshake(logger, socketMemoria, 1, modulo);
-	enviar_mensaje("Conectado con Kernel", socketMemoria);
-	return NULL;
-}
-
-void *handshakeCpuDispatch()
-{
-	char *modulo = "CPU Dispatch";
-	socketCpuDispatch = crear_conexion(logger, ipCpu, puertoCpuDispatch, modulo);
-	handshake(logger, socketCpuDispatch, 1, modulo);
-	enviar_mensaje("Conectado con Kernel", socketCpuDispatch);
-	return NULL;
-}
-
-void *handshakeCpuInterrupt()
-{
-	char *modulo = "CPU Interrupt";
-	socketCpuInterrupt = crear_conexion(logger, ipCpu, puertoCpuInterrupt, modulo);
-	handshake(logger, socketCpuInterrupt, 1, modulo);
-	enviar_mensaje("Conectado con Kernel", socketCpuInterrupt);
-	return NULL;
-}
-
-uint32_t handshake(t_log *logger, int conexion, uint32_t envio, char *modulo)
-{
-	uint32_t result;
-
-	send(conexion, &envio, sizeof(uint32_t), 0);
-	recv(conexion, &result, sizeof(uint32_t), MSG_WAITALL);
-
-	if (result == 0)
-	{
-		log_info(logger, "[%s] Conexion establecida.", modulo);
-	}
-	else
-	{
-		log_error(logger, "[%s] Error en la conexión.", modulo);
-		return -1;
-	}
-	return result;
-}
 
 void *recibir_buffer(int *size, int socket_cliente)
 {
@@ -140,52 +79,6 @@ t_paquete *crear_paquete(void)
 	return paquete;
 }
 
-int esperar_cliente(t_log *logger, int socket_servidor)
-{
-	// Aceptamos un nuevo cliente
-	int socket_cliente = accept(socket_servidor, NULL, NULL);
-	log_info(logger, "Se conecto un cliente!");
-
-	return socket_cliente;
-}
-
-int iniciar_servidor(t_log *logger, int puerto)
-{
-	char puerto_str[6];
-
-	// Convierto el puerto a string, para poder usarlo en getaddrinfo
-	snprintf(puerto_str, sizeof(puerto_str), "%d", puerto);
-
-	struct addrinfo hints, *servinfo;
-
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_PASSIVE;
-
-	getaddrinfo(NULL, puerto_str, &hints, &servinfo);
-
-	// Creamos el socket de escucha del servidor
-
-	int socket_servidor = socket(servinfo->ai_family,
-								 servinfo->ai_socktype,
-								 servinfo->ai_protocol);
-
-	// Asociamos el socket a un puerto
-
-	bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen);
-
-	// Escuchamos las conexiones entrantes
-
-	listen(socket_servidor, SOMAXCONN);
-
-	freeaddrinfo(servinfo);
-
-	log_trace(logger, "Listo para escuchar a mi cliente");
-
-	return socket_servidor;
-}
-
 /* TODO:
 Hay que refactorearla para que acepte un array de sockets conexion e itere todos.
 */
@@ -205,36 +98,6 @@ void terminar_programa(int conexion, t_log *logger, t_config *config)
 	liberar_conexion(conexion);
 }
 
-int crear_conexion(t_log *logger, char *ip, int puerto, char *modulo)
-{
-	struct addrinfo hints;
-	struct addrinfo *server_info;
-	char puerto_str[6];
-
-	snprintf(puerto_str, sizeof(puerto_str), "%d", puerto);
-
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-
-	getaddrinfo(ip, puerto_str, &hints, &server_info);
-
-	int socketCliente = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);
-	int resultado = connect(socketCliente, server_info->ai_addr, server_info->ai_addrlen);
-
-	// Espero a que se conecte
-	while (resultado == -1)
-	{
-		log_info(logger, "[%s@%s:%d] No se pudo conectar. Reintentando...", modulo, ip, *puerto_str);
-		sleep(1);
-		resultado = connect(socketCliente, server_info->ai_addr, server_info->ai_addrlen);
-	}
-
-	log_info(logger, "[%s@%s:%d] Conectado!", modulo, ip, puerto);
-	freeaddrinfo(server_info);
-
-	return socketCliente;
-}
 
 void *serializar_paquete(t_paquete *paquete, int bytes)
 {
