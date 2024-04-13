@@ -84,7 +84,7 @@ t_handshake kernel_handshake_cpu_interrupt(t_kernel kernel, void *fn, t_log *log
 
 /*--------CPU--------*/
 
-/*Estructura basica del kernel*/
+/*Estructura basica de la CPU*/
 
 typedef struct t_cpu
 {
@@ -112,13 +112,49 @@ t_cpu cpu_inicializar(t_config *config);
  */
 void cpu_log(t_cpu cpu, t_log *logger);
 
+/*--------EntradaSalida--------*/
+typedef struct t_entradasalida
+{
+    char *ipMemoria;
+    int puertoMemoria;
+    char *ipKernel;
+    int puertoKernel;
+    char *tipoInterfaz;
+    int tiempoUnidadDeTrabajo;
+    char *pathBaseDialFs;
+    int blockSize;
+    int blockCount;
+} t_entradasalida;
+
 /**
- * @fn    log_kernel
- * @brief Log obligatorios de kernel junto con su configuracion
- * @param kernel Instancia de kernel (kernel_inicializar)
- * @param logger Instancia de t_log
+ * @fn    entradasalida_inicializar
+ * @brief Inicializa la entrada-salida junto con todas sus configuraciones
+ * @param config Instancia de module.config
+ * @return config
  */
-void kernel_log(t_kernel kernel, t_log *logger);
+t_entradasalida entradasalida_inicializar(t_config *config);
+
+/**
+ * @fn    entradasalida_log
+ * @brief Logs necesarios para entrada-salida
+ * @param config Instancia de module.config
+ * @return t_cpu
+ */
+void entradasalida_log(t_entradasalida entradasalida, t_log *logger);
+
+/**
+ * @fn    entradasalida_handshake_memoria
+ * @brief Crea un handshake a memoria
+ * @param entradasalida Instancia de EntradaSalida (entradasalida_inicializar)
+ */
+t_handshake entradasalida_handshake_memoria(t_entradasalida entradasalida, void *fn, t_log *logger);
+
+/**
+ * @fn    entradasalida_handshake_kernel
+ * @brief Crea un handshake a Kernel
+ * @param entradasalida Instancia de EntradaSalida (entradasalida_inicializar)
+ */
+t_handshake entradasalida_handshake_kernel(t_entradasalida entradasalida, void *fn, t_log *logger);
 
 /*--------Serializacion y sockets--------*/
 typedef enum
