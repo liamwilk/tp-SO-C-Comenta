@@ -82,6 +82,44 @@ t_handshake kernel_handshake_cpu_dispatch(t_kernel kernel, void *fn, t_log *logg
  */
 t_handshake kernel_handshake_cpu_interrupt(t_kernel kernel, void *fn, t_log *logger);
 
+/*--------CPU--------*/
+
+/*Estructura basica del kernel*/
+
+typedef struct t_cpu
+{
+    char *puertoEscuchaDispatch;
+    int puertoEscuchaInterrupt;
+    char *ipMemoria;
+    int puertoMemoria;
+    int cantidadEntradasTlb;
+    char *algoritmoTlb
+} t_cpu;
+
+/**
+ * @fn    cpu_inicializar
+ * @brief Inicializa el cpu junto con todas sus configuraciones
+ * @param config Instancia de module.config
+ * @return config
+ */
+t_cpu cpu_inicializar(t_config *config);
+
+/**
+ * @fn    cpu_log
+ * @brief Logs necesarios para cpu
+ * @param config Instancia de module.config
+ * @return t_cpu
+ */
+void cpu_log(t_cpu cpu, t_log *logger);
+
+/**
+ * @fn    log_kernel
+ * @brief Log obligatorios de kernel junto con su configuracion
+ * @param kernel Instancia de kernel (kernel_inicializar)
+ * @param logger Instancia de t_log
+ */
+void kernel_log(t_kernel kernel, t_log *logger);
+
 /*--------Serializacion y sockets--------*/
 typedef enum
 {

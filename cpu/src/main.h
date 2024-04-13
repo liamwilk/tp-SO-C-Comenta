@@ -17,5 +17,16 @@
 #include <utils/hilos.h>
 #include <utils/modulos.h>
 
+
+typedef struct
+{
+	t_log *logger;
+	char *ip;
+	int puerto;
+	int socket;
+	char *mensaje;
+} t_paqueteCliente;
+
+
 void comunicarConCliente(t_paqueteCliente *);
 #endif /* MAIN_H_ */
