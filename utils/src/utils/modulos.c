@@ -94,6 +94,28 @@ t_handshake kernel_handshake_cpu_interrupt(t_kernel kernel, void *fn, t_log *log
     return handshakeCpuInterrupt;
 };
 
+t_handshake entradasalida_handshake_memoria(t_entradasalida entradasalida, void *fn, t_log *logger)
+{
+    t_handshake handshakeEntradasalidaMemoria = {entradasalida.ipMemoria,
+                                                 entradasalida.puertoMemoria,
+                                                 0,
+                                                 "Memoria",
+                                                 logger};
+    hilo_crear_d(&fn, &handshakeEntradasalidaMemoria, logger);
+    return handshakeEntradasalidaMemoria;
+};
+
+t_handshake entradasalida_handshake_kernel(t_entradasalida entradasalida, void *fn, t_log *logger)
+{
+    t_handshake handshakeEntradasalidaKernel = {entradasalida.ipKernel,
+                                                entradasalida.puertoKernel,
+                                                0,
+                                                "Kernel",
+                                                logger};
+    hilo_crear_d(&fn, &handshakeEntradasalidaKernel, logger);
+    return handshakeEntradasalidaKernel;
+};
+
 /*--------Liberar memoria y al programa--------*/
 
 void terminar_programa(int conexion, t_log *logger, t_config *config)
@@ -244,4 +266,34 @@ void cpu_log(t_cpu cpu, t_log *logger)
     log_info(logger, "PUERTO_MEMORIA: %d", cpu.puertoEscuchaInterrupt);
     log_info(logger, "CANTIDAD_ENTRADAS_TLB: %d", cpu.cantidadEntradasTlb);
     log_info(logger, "ALGORITMO_TLB: %s", cpu.algoritmoTlb);
+};
+
+/*--------EntradaSalida--------*/
+
+t_entradasalida entradasalida_inicializar(t_config *config)
+{
+    t_entradasalida entradasalida;
+    entradasalida.blockCount = config_get_int_value(config, "BLOCK_COUNT");
+    entradasalida.blockSize = config_get_int_value(config, "BLOCK_SIZE");
+    entradasalida.ipKernel = config_get_string_value(config, "IP_KERNEL");
+    entradasalida.ipMemoria = config_get_string_value(config, "IP_MEMORIA");
+    entradasalida.pathBaseDialFs = config_get_string_value(config, "PATH_BASE_DIALFS");
+    entradasalida.puertoKernel = config_get_int_value(config, "PUERTO_KERNEL");
+    entradasalida.puertoMemoria = config_get_int_value(config, "PUERTO_MEMORIA");
+    entradasalida.tiempoUnidadDeTrabajo = config_get_int_value(config, "TIEMPO_UNIDAD_TRABAJO");
+    entradasalida.tipoInterfaz = config_get_string_value(config, "TIPO_INTERFAZ");
+    return entradasalida;
+};
+
+void entradasalida_log(t_entradasalida entradasalida, t_log *logger)
+{
+    log_info(logger, "BLOCK_COUNT: %d", entradasalida.blockCount);
+    log_info(logger, "BLOCK_SIZE: %d", entradasalida.blockSize);
+    log_info(logger, "IP_KERNEL: %s", entradasalida.ipKernel);
+    log_info(logger, "IP_MEMORIA: %s", entradasalida.ipMemoria);
+    log_info(logger, "PATH_BASE_DIALFS: %s", entradasalida.pathBaseDialFs);
+    log_info(logger, "PUERTO_KERNEL: %d", entradasalida.puertoKernel);
+    log_info(logger, "PUERTO_MEMORIA: %d", entradasalida.puertoMemoria);
+    log_info(logger, "TIEMPO_UNIDAD_TRABAJO: %d", entradasalida.tiempoUnidadDeTrabajo);
+    log_info(logger, "TIPO_INTERFAZ: %s", entradasalida.tipoInterfaz);
 };
