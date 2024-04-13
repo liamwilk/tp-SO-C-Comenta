@@ -16,7 +16,9 @@ GREEN="\033[0;32m"
 NC="\033[0m"
 
 
-cd utils/
+cd tests/
+make 
+make tests
 
 echo -e "${GREEN} ✦✦ Ejecutando utils tests ✦✦ ${NC}"
 make test
