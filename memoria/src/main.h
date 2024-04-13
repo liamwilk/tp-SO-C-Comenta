@@ -12,56 +12,18 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <limits.h>
-
-typedef enum
-{
-	MENSAJE,
-	PAQUETE
-} op_code;
-
-typedef struct
-{
-	int size;
-	void *stream;
-} t_buffer;
-
-typedef struct
-{
-	op_code codigo_operacion;
-	t_buffer *buffer;
-} t_paquete;
+#include <utils/hilos.h>
+#include <utils/modulos.h>
+#include <utils/configs.h>
+#include <utils/conexiones.h>
 
 // Funciones
-t_log *iniciar_logger(char *);
-t_config *iniciar_config(t_log *logger);
-void terminar_programa(int, t_log *, t_config *);
-int crear_conexion(t_log *, char *, int);
-void *serializar_paquete(t_paquete *, int);
-void enviar_mensaje(char *, int);
-void crear_buffer(t_paquete *);
-void agregar_a_paquete(t_paquete *, void *, int);
-void enviar_paquete(t_paquete *, int);
-void eliminar_paquete(t_paquete *);
-void liberar_conexion(int);
-int iniciar_servidor(t_log *, int);
-int esperar_cliente(t_log *, int);
-int recibir_operacion(int);
-void recibir_mensaje(t_log *, int);
-void *recibir_buffer(int *, int);
 void *esperarKernel();
 int nuevoSocket();
-
-uint32_t respuesta;
-
-// Threads
-pthread_t kernelThread;
 
 // Estructuras config y log
 t_log *logger;
 t_config *config;
 
-// Sockets
-int serverMemoria;
-int socketKernel;
 
 #endif /* MAIN_H_ */
