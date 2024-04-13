@@ -138,7 +138,6 @@ t_entradasalida entradasalida_inicializar(t_config *config);
  * @fn    entradasalida_log
  * @brief Logs necesarios para entrada-salida
  * @param config Instancia de module.config
- * @return t_cpu
  */
 void entradasalida_log(t_entradasalida entradasalida, t_log *logger);
 
@@ -155,6 +154,29 @@ t_handshake entradasalida_handshake_memoria(t_entradasalida entradasalida, void 
  * @param entradasalida Instancia de EntradaSalida (entradasalida_inicializar)
  */
 t_handshake entradasalida_handshake_kernel(t_entradasalida entradasalida, void *fn, t_log *logger);
+
+/*--------Memoria--------*/
+typedef struct t_memoria
+{
+    int tamMemoria, tamPagina, retardoRespuesta;
+    char *pathInstrucciones;
+    char *puertoEscucha;
+} t_memoria;
+
+/**
+ * @fn    memoria_inicializar
+ * @brief Inicializa la memoria junto con todas sus configuraciones
+ * @param config Instancia de module.config
+ * @return config
+ */
+t_memoria memoria_inicializar(t_config *config);
+
+/**
+ * @fn    memoria_log
+ * @brief Logs necesarios para memoria
+ * @param config Instancia de module.config
+ */
+void memoria_log(t_memoria memoria, t_log *logger);
 
 /*--------Serializacion y sockets--------*/
 typedef enum
