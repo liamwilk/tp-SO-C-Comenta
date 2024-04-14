@@ -21,5 +21,6 @@
 t_log *logger;
 t_config *config;
 
+int servidor_kernel;
 
 #endif /* MAIN_H_ */
