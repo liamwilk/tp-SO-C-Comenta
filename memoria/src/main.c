@@ -22,7 +22,7 @@ int main()
 	// (para saber cual es cual cuando haya más,
 	// hay que poner semaforos y ordenarlos)
 
-	pthread_create(&kernelThread, NULL, esperarKernel, NULL);
+	pthread_create(&kernelThread, NULL, esperar_kernel, NULL);
 	pthread_detach(kernelThread);
 
 	// Espero que todos los threads finalicen
@@ -36,9 +36,9 @@ int main()
 	config_destroy(config);
 }
 
-void *esperarKernel()
+void *esperar_kernel()
 {
-	socketKernel = nuevoSocket();
+	socketKernel = nuevo_socket();
 	while (1)
 	{
 		int cod_op = recibir_operacion(socketKernel);
@@ -52,9 +52,9 @@ void *esperarKernel()
 	return NULL;
 }
 
-int nuevoSocket()
+int nuevo_socket()
 {
-	int nuevoSocket = esperar_cliente(logger, serverMemoria);
+	int nuevoSocket = esperar_cliente(logger, "memoria", serverMemoria);
 	uint32_t ok = 0;
 	uint32_t error = -1;
 
