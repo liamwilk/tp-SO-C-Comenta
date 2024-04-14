@@ -83,33 +83,31 @@ int esperar_cliente(t_log *logger, const char *name, int socket_servidor)
 
 int crear_conexion(t_log *logger, char *ip, int puerto, char *modulo)
 {
-	struct addrinfo hints;
-	struct addrinfo *server_info;
-	char puerto_str[6];
+    struct addrinfo hints;
+    struct addrinfo *server_info;
+    char puerto_str[6];
 
-	snprintf(puerto_str, sizeof(puerto_str), "%d", puerto);
+    snprintf(puerto_str, sizeof(puerto_str), "%d", puerto);
 
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
 
-	getaddrinfo(ip, puerto_str, &hints, &server_info);
+    getaddrinfo(ip, puerto_str, &hints, &server_info);
 
-	int socketCliente = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);
-	int resultado = connect(socketCliente, server_info->ai_addr, server_info->ai_addrlen);
+    int socketCliente = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);
+    int resultado = connect(socketCliente, server_info->ai_addr, server_info->ai_addrlen);
 
-	// Espero a que se conecte
-	while (resultado == -1)
-	{
-		log_info(logger, "[%s@%s:%d] No se pudo conectar. Reintentando...", modulo, ip, *puerto_str);
-		sleep(1);
-		resultado = connect(socketCliente, server_info->ai_addr, server_info->ai_addrlen);
-	}
+    // Espero a que se conecte
+    if (resultado == -1)
+    {
+        log_info(logger, "[%s@%s:%d] No se pudo conectar.", modulo, ip, *puerto_str);
+    }
 
-	log_info(logger, "[%s@%s:%d] Conectado!", modulo, ip, puerto);
-	freeaddrinfo(server_info);
+    log_info(logger, "[%s@%s:%d] Conectado!", modulo, ip, puerto);
+    freeaddrinfo(server_info);
 
-	return socketCliente;
+    return socketCliente;
 }
 
 void liberar_conexion(int socket_cliente)
