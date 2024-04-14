@@ -65,6 +65,7 @@ t_handshake kernel_handshake_memoria(t_kernel kernel, void *fn, t_log *logger)
         logger};
 
     hilo_crear_d(&fn, &handshakeMemoria, logger);
+    log_info(logger, "Hilo de handshake Kernel <-> Memoria creado correctamente.");
     return handshakeMemoria;
 };
 
@@ -78,6 +79,7 @@ t_handshake kernel_handshake_cpu_dispatch(t_kernel kernel, void *fn, t_log *logg
         "CPU Dispatch",
         logger};
     hilo_crear_d(&fn, &handshakeCpuDispatch, logger);
+    log_info(logger, "Hilo de handshake Kernel <-> CPU Dispatch creado correctamente.");
     return handshakeCpuDispatch;
 };
 
@@ -91,6 +93,7 @@ t_handshake kernel_handshake_cpu_interrupt(t_kernel kernel, void *fn, t_log *log
         "CPU Interrupt",
         logger};
     hilo_crear_d(&fn, &handshakeCpuInterrupt, logger);
+    log_info(logger, "Hilo de handshake Kernel <-> CPU Interrupt creado correctamente.");
     return handshakeCpuInterrupt;
 };
 
@@ -102,6 +105,7 @@ t_handshake entradasalida_handshake_memoria(t_entradasalida entradasalida, void 
                                                  "Memoria",
                                                  logger};
     hilo_crear_d(&fn, &handshakeEntradasalidaMemoria, logger);
+    log_info(logger, "Hilo de handshake I/O <-> Memoria creado correctamente.");
     return handshakeEntradasalidaMemoria;
 };
 
@@ -113,6 +117,7 @@ t_handshake entradasalida_handshake_kernel(t_entradasalida entradasalida, void *
                                                 "Kernel",
                                                 logger};
     hilo_crear_d(&fn, &handshakeEntradasalidaKernel, logger);
+    log_info(logger, "Hilo de handshake I/O <-> Kernel creado correctamente.");
     return handshakeEntradasalidaKernel;
 };
 
