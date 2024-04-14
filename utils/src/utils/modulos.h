@@ -93,7 +93,7 @@ typedef struct t_cpu
     char *ipMemoria;
     int puertoMemoria;
     int cantidadEntradasTlb;
-    char *algoritmoTlb
+    char *algoritmoTlb;
 } t_cpu;
 
 /**
