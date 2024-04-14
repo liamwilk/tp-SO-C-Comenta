@@ -18,8 +18,18 @@
 #include <utils/conexiones.h>
 
 // Funciones
-void *esperarKernel();
-int nuevoSocket();
+void *esperar_kernel();
+int nuevo_socket();
+
+// Threads
+pthread_t kernelThread;
+
+// Sockets
+int serverMemoria;
+int socketKernel;
+
+uint32_t respuesta;
+
 
 // Estructuras config y log
 t_log *logger;
