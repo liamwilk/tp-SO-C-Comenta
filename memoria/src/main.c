@@ -10,7 +10,7 @@ int main() {
 
 	// Inicio el servidor de Memoria
 
-    socket_server_memoria = iniciar_servidor(logger,puertoEscucha);
+    socket_server_memoria = iniciar_servidor(logger,memoria.puertoEscucha);
 	log_info(logger, "Servidor listo para recibir al cliente");
 
 	// Atiendo las conexiones entrantes de CPU Dispatch, CPU Interrupt, Kernel y I/O, en ese orden.

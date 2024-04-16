@@ -108,9 +108,8 @@ void entradasalida_log(t_entradasalida entradasalida, t_log *logger);
 /*--------Memoria--------*/
 typedef struct t_memoria
 {
-    int tamMemoria, tamPagina, retardoRespuesta;
+    int tamMemoria, tamPagina, retardoRespuesta, puertoEscucha;
     char *pathInstrucciones;
-    char *puertoEscucha;
 } t_memoria;
 
 /**
