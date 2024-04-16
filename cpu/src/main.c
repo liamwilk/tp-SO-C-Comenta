@@ -44,7 +44,7 @@ int main() {
     log_destroy(logger);
     config_destroy(config);
 
-    pthread_exit(0);
+    return 0;
 }
 
 void* servidor_dispatch(){
