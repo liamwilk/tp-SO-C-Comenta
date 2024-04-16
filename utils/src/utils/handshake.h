@@ -15,26 +15,22 @@
 #include <utils/modulos.h>
 
 /**
- * @NAME: handshake
- * @DESC: Realiza el handshake con el servidor
- * @PARAMS:
- *  - t_log* logger: logger del modulo
- *  - int conexion: socket de conexion
- *  - uint32_t envio: mensaje a enviar
- *  - char* modulo: nombre del modulo
- * @RETURN: uint32_t
+ * @fn handshake
+ * @brief Realiza el handshake con el servidor
+ * @param t_log* logger: logger del modulo
+ * @param conexion: socket de conexion
+ * @param envio: mensaje a enviar
+ * @param modulo: nombre del modulo
+ * @return uint32_t
  */
-
 uint32_t handshake(t_log *logger, int conexion, uint32_t envio, char *modulo);
 
 /**
- * @NAME: esperar_handshake
- * @DESC: Espera el handshake del cliente
- * @PARAMS:
- *  - int nuevoSocket: socket de conexion
- * @RETURN: int
+ * @fn    esperar_handshake
+ * @brief Espera el handshake del cliente
+ * @param nuevoSocket socket de conexion
+ * @return int
  */
-
 int esperar_handshake(int nuevoSocket);
 
 #endif /* HANDSHAKE_H_ */

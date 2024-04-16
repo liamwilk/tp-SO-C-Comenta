@@ -14,38 +14,9 @@
 #include<limits.h>
 #include <utils/handshake.h>
 #include <utils/modulos.h>
+#include <utils/conexiones.h>
+#include <utils/configs.h>
 int socketMemoria;
-
-
-typedef enum
-{
-	MENSAJE,
-	PAQUETE
-}op_code;
-
-typedef struct
-{
-	int size;
-	void* stream;
-} t_buffer;
-
-typedef struct
-{
-	op_code codigo_operacion;
-	t_buffer* buffer;
-} t_paquete;
-
-t_log* iniciar_logger(char*);
-t_config* iniciar_config(t_log* logger);
-void terminar_programa(int, t_log*, t_config*);
-int crear_conexion(t_log*,char*, int);
-void* serializar_paquete(t_paquete*, int);
-void enviar_mensaje(char*, int);
-void crear_buffer(t_paquete*);
-void agregar_a_paquete(t_paquete*, void*, int);
-void enviar_paquete(t_paquete*, int);
-void eliminar_paquete(t_paquete*);
-void liberar_conexion(int);
 
 t_log* logger;
 t_config* config;

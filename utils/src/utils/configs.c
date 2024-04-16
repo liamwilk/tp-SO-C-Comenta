@@ -37,3 +37,17 @@ t_log *iniciar_logger(char *nombreDelModulo)
 
 	return nuevo_logger;
 }
+
+
+void terminar_programa(int conexion, t_log* logger, t_config* config)
+{
+	if(logger != NULL) {
+		log_destroy(logger);
+	}
+
+	if(config != NULL) {
+		config_destroy(config);
+	}
+
+	liberar_conexion(conexion);
+}
