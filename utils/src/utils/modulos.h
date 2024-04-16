@@ -4,35 +4,19 @@
 #include <stdlib.h>
 #include <commons/log.h>
 #include <commons/config.h>
-#include "conexiones.h"
-#include "hilos.h"
-
-/*--------HANDSHAKING--------*/
-
-/*Estructura basica del handshake*/
-typedef struct t_handshake
-{
-    char *ipDestino;
-    int puertoDestino;
-    int socketDestino;
-    char *modulo;
-    t_log *logger;
-} t_handshake;
-
-/**
- * @fn    handshake_crear
- * @brief Realiza un handshake al modulo destino
- * @param config Instancia de `t_handshake` handshake
- * @param logger Instancia de `t_log`
- */
-void handshake_crear(t_handshake *handshake, t_log *logger);
+#include <readline/readline.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <limits.h>
 
 /*--------KERNEL--------*/
 
 /*Estructura basica del kernel*/
 typedef struct t_kernel
 {
-    char *puertoEscucha;
+    int puertoEscucha;
     char *ipMemoria;
     int puertoMemoria;
     char *ipCpu;
@@ -61,34 +45,13 @@ t_kernel kernel_inicializar(t_config *config);
  */
 void kernel_log(t_kernel kernel, t_log *logger);
 
-/**
- * @fn    kernel_handshake_cpu_dispatch
- * @brief Crea un handshake a memoria
- * @param kernel Instancia de kernel (kernel_inicializar)
- */
-t_handshake kernel_handshake_memoria(t_kernel kernel, void *fn, t_log *logger);
-
-/**
- * @fn    kernel_handshake_cpu_dispatch
- * @brief Crea un handshake a cpu dispatch
- * @param kernel Instancia de kernel (kernel_inicializar)
- */
-t_handshake kernel_handshake_cpu_dispatch(t_kernel kernel, void *fn, t_log *logger);
-
-/**
- * @fn    kernel_handshake_cpu_dispatch
- * @brief Crea un handshake a cpu dispatch
- * @param kernel Instancia de kernel (kernel_inicializar)
- */
-t_handshake kernel_handshake_cpu_interrupt(t_kernel kernel, void *fn, t_log *logger);
-
 /*--------CPU--------*/
 
 /*Estructura basica de la CPU*/
 
 typedef struct t_cpu
 {
-    char *puertoEscuchaDispatch;
+    int puertoEscuchaDispatch;
     int puertoEscuchaInterrupt;
     char *ipMemoria;
     int puertoMemoria;
@@ -112,7 +75,6 @@ t_cpu cpu_inicializar(t_config *config);
  */
 void cpu_log(t_cpu cpu, t_log *logger);
 
-/*--------EntradaSalida--------*/
 typedef struct t_entradasalida
 {
     char *ipMemoria;
@@ -141,26 +103,11 @@ t_entradasalida entradasalida_inicializar(t_config *config);
  */
 void entradasalida_log(t_entradasalida entradasalida, t_log *logger);
 
-/**
- * @fn    entradasalida_handshake_memoria
- * @brief Crea un handshake a memoria
- * @param entradasalida Instancia de EntradaSalida (entradasalida_inicializar)
- */
-t_handshake entradasalida_handshake_memoria(t_entradasalida entradasalida, void *fn, t_log *logger);
-
-/**
- * @fn    entradasalida_handshake_kernel
- * @brief Crea un handshake a Kernel
- * @param entradasalida Instancia de EntradaSalida (entradasalida_inicializar)
- */
-t_handshake entradasalida_handshake_kernel(t_entradasalida entradasalida, void *fn, t_log *logger);
-
 /*--------Memoria--------*/
 typedef struct t_memoria
 {
-    int tamMemoria, tamPagina, retardoRespuesta;
+    int tamMemoria, tamPagina, retardoRespuesta, puertoEscucha;
     char *pathInstrucciones;
-    char *puertoEscucha;
 } t_memoria;
 
 /**
@@ -179,6 +126,7 @@ t_memoria memoria_inicializar(t_config *config);
 void memoria_log(t_memoria memoria, t_log *logger);
 
 /*--------Serializacion y sockets--------*/
+
 typedef enum
 {
     MENSAJE,
@@ -273,46 +221,4 @@ void recibir_mensaje(t_log *logger, int socket_cliente);
  */
 int recibir_operacion(int socket_cliente);
 
-/*--------Liberar memoria y al programa--------*/
-
-/**
- * @fn    terminar_programa
- * @brief Recibe un array de conexiones y libera todos los recursos para terminar el programa
- * @param conexion Array de conexiones
- * @param logger Instancia de logger
- * @param config Instancia de config
- */
-void terminar_programa(int conexion, t_log *logger, t_config *config);
-
-/*--------Macros--------*/
-
-#define CASTING(T)                                 \
-    void casting_##T(struct T *arg, void **casted) \
-    {                                              \
-        *casted = (void *)arg;                     \
-    }
-
-#define DECASTING(T)                                   \
-    void decasting_##T(struct T **arg, void *decasted) \
-    {                                                  \
-        *arg = (struct T *)decasted;                   \
-    }
-
-// Ejemplo de implementación
-// struct dato{
-//    int dato1;
-//};
-//
-// CASTING(dato);
-// DECASTING(dato);
-
-// Ejemplo de uso
-//
-// pthread_t hilo1;
-//
-// struct dato v1 = {1 , 'g' , 1}; // parámetro que recibe la función
-// void* c1 = NULL;  // puntero a void usado en el casting
-// casting_dato(&v1 , &c1);
-// pthread_create(&hilo1 , NULL , func1 , c1);
-// pthread_detach(hilo1);
-#endif
+#endif /* MODULOS_H_ */

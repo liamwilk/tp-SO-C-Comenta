@@ -1,39 +1,49 @@
 #ifndef MAIN_H_
 #define MAIN_H_
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <commons/log.h>
-#include <commons/string.h>
-#include <commons/config.h>
-#include <readline/readline.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <pthread.h>
-#include <limits.h>
-#include <utils/hilos.h>
+#include<stdio.h>
+#include<stdlib.h>
+#include<commons/log.h>
+#include<commons/string.h>
+#include<commons/config.h>
+#include<readline/readline.h>
+#include<sys/socket.h>
+#include<netdb.h>
+#include<unistd.h>
+#include<pthread.h>
+#include<limits.h>
+#include <utils/handshake.h>
 #include <utils/modulos.h>
-#include <utils/configs.h>
 #include <utils/conexiones.h>
+#include <utils/configs.h>
 
-// Funciones
-void *esperar_kernel();
-int nuevo_socket();
+t_log* logger;
+t_config* config;
 
-// Threads
-pthread_t kernelThread;
-
-// Sockets
-int serverMemoria;
-int socketKernel;
-
-uint32_t respuesta;
+t_memoria memoria;
 
 
-// Estructuras config y log
-t_log *logger;
-t_config *config;
+typedef struct 
+{
+    t_log* logger;
+	char* ip;
+    int puerto;
+	int socket;
+	char* mensaje;
+} t_paqueteCliente;
 
+
+void* atender_cpu_dispatch();
+void* atender_cpu_interrupt();
+void* atender_kernel();
+void* atender_io();
+
+pthread_t cpu_dispatch,cpu_interrupt,kernel,io;
+
+int socket_cpu_dispatch;
+int socket_cpu_interrupt;
+int socket_kernel;
+int socket_io;
+int socket_server_memoria;
 
 #endif /* MAIN_H_ */

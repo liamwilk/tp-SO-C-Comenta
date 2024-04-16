@@ -1,72 +1,73 @@
 /* Módulo Memoria */
 #include "main.h"
 
-int main()
-{
-
-	// Inicio el logger y la configuracion
-	logger = iniciar_logger("memoria");
-	config = iniciar_config(logger);
-
-	// Cargo la configuracion
-	t_memoria memoria = memoria_inicializar(config);
-
-	// Logeo la configuracion
+int main() {
+    
+    logger = iniciar_logger("memoria");
+    config = iniciar_config(logger);
+	memoria = memoria_inicializar(config);
 	memoria_log(memoria, logger);
 
-	// Levanto el servidor de memoria
-	iniciar_servidor(logger, "memoria", NULL, memoria.puertoEscucha);
-	log_info(logger, "Memoria está lista para recibir clientes.");
+	// Inicio el servidor de Memoria
 
-	// Espero la conexion del Kernel
-	// (para saber cual es cual cuando haya más,
-	// hay que poner semaforos y ordenarlos)
+    socket_server_memoria = iniciar_servidor(logger,memoria.puertoEscucha);
+	log_info(logger, "Servidor listo para recibir al cliente");
 
-	pthread_create(&kernelThread, NULL, esperar_kernel, NULL);
-	pthread_detach(kernelThread);
+	// Atiendo las conexiones entrantes de CPU Dispatch, CPU Interrupt, Kernel y I/O, en ese orden.
 
-	// Espero que todos los threads finalicen
-	pthread_exit(0);
+	pthread_create(&cpu_dispatch,NULL,atender_cpu_dispatch,NULL);
+	pthread_join(cpu_dispatch,NULL);
 
-	// Libero punteros
-	liberar_conexion(socketKernel);
+	pthread_create(&cpu_interrupt,NULL,atender_cpu_interrupt,NULL);
+	pthread_join(cpu_interrupt,NULL);
 
-	// Destruyo estructuras
-	log_destroy(logger);
+	pthread_create(&kernel,NULL,atender_kernel,NULL);
+	pthread_join(kernel,NULL);
+
+	pthread_create(&io,NULL,atender_io,NULL);
+	pthread_join(io,NULL);
+
+
+	/*
+	Aca va todo lo que hace Memoria, una vez que ya tiene todas las conexiones habilitadas a todos los Modulos.
+	*/
+
+	// Libero
+
 	config_destroy(config);
+	log_destroy(logger);
+	
+	liberar_conexion(socket_server_memoria);
+	liberar_conexion(socket_cpu_dispatch);
+	liberar_conexion(socket_cpu_interrupt);
+	liberar_conexion(socket_kernel);
+	liberar_conexion(socket_io);
+	
+    return 0;
 }
 
-void *esperar_kernel()
-{
-	socketKernel = nuevo_socket();
-	while (1)
-	{
-		int cod_op = recibir_operacion(socketKernel);
-		switch (cod_op)
-		{
-		case MENSAJE:
-			recibir_mensaje(logger, socketKernel);
-			break;
-		}
-	}
-	return NULL;
+void* atender_cpu_dispatch(){
+	socket_cpu_dispatch = esperar_cliente(logger,socket_server_memoria);
+	log_info(logger,"CPU Dispatch conectado en socket %d",socket_cpu_dispatch);
+	pthread_exit(0);
 }
 
-int nuevo_socket()
-{
-	int nuevoSocket = esperar_cliente(logger, "memoria", serverMemoria);
-	uint32_t ok = 0;
-	uint32_t error = -1;
-
-	recv(nuevoSocket, &respuesta, sizeof(uint32_t), MSG_WAITALL);
-	if (respuesta == 1)
-	{
-		send(nuevoSocket, &ok, sizeof(uint32_t), 0);
-	}
-	else
-	{
-		send(nuevoSocket, &error, sizeof(uint32_t), 0);
-		log_error(logger, "Error en el manejo de handhsake.");
-	}
-	return nuevoSocket;
+void* atender_cpu_interrupt(){
+	socket_cpu_interrupt = esperar_cliente(logger,socket_server_memoria);
+	log_info(logger,"CPU Interrupt conectado en socket %d",socket_cpu_interrupt);
+	pthread_exit(0);
 }
+
+void* atender_kernel(){
+	socket_kernel = esperar_cliente(logger,socket_server_memoria);
+	log_info(logger,"Kernel conectado en socket %d",socket_kernel);
+	pthread_exit(0);
+}
+
+void* atender_io(){
+	socket_io = esperar_cliente(logger,socket_server_memoria);
+	log_info(logger,"I/O conectado en socket %d",socket_io);
+	pthread_exit(0);
+}
+
+

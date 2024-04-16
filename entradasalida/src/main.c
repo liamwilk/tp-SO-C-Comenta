@@ -2,30 +2,31 @@
 
 #include "main.h"
 
-int main()
-{
-	logger = iniciar_logger("entradasalida");
-	config = iniciar_config(logger);
+int main() {
+    
+    logger = iniciar_logger("entradasalida");
+    config = iniciar_config(logger);
+    entradasalida = entradasalida_inicializar(config);
+    entradasalida_log(entradasalida,logger);
 
-	// Se pasan los datos de config a local
-	t_entradasalida entradasalida = entradasalida_inicializar(config);
 
-	// Se loggean los valores de config
-	entradasalida_log(entradasalida, logger);
+	// Conectamos con Memoria y Kernel.
 
-	// Se realizan los handshakes pertinentes
-	t_handshake handshakeKernel = entradasalida_handshake_kernel(entradasalida, hilo_handshake, logger);
-	t_handshake handshakeMemoria = entradasalida_handshake_memoria(entradasalida, hilo_handshake, logger);
+    socket_memoria = crear_conexion(logger,entradasalida.ipMemoria,entradasalida.puertoMemoria);
+	log_info(logger,"Conectado a Memoria en socket %d",socket_memoria);
 
-	hilo_exit();
+    socket_kernel = crear_conexion(logger,entradasalida.ipKernel,entradasalida.puertoKernel);
+	log_info(logger,"Conectado a Kernel en socket %d",socket_kernel);
 
-	// Se liberan las conexiones
-	liberar_conexion(handshakeKernel.socketDestino);
-	liberar_conexion(handshakeMemoria.socketDestino);
+	/*
+	Aca iria la logica de lo que hace I/O una vez que ya tiene las conexiones abiertas con Kernel y Memoria.
+	*/
 
-	// Se destruyen las estructuras
+    log_destroy(logger);
 	config_destroy(config);
-	log_destroy(logger);
+
+	liberar_conexion(socket_memoria);
+	liberar_conexion(socket_kernel);
 
 	return 0;
 }

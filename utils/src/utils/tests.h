@@ -1,3 +1,4 @@
+#include <assert.h>
 #define COLOR_BLUE "\x1b[34m"
 #define COLOR_RED "\x1b[31m"
 #define COLOR_GREEN "\x1b[32m"
