@@ -8,7 +8,6 @@ t_config *iniciar_config(t_log *logger)
 
 	char ruta_completa[PATH_MAX];
 	sprintf(ruta_completa, "%s/module.config", current_dir);
-	printf("%s", ruta_completa);
 
 	nuevo_config = config_create(ruta_completa);
 
