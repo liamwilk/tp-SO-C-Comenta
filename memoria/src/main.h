@@ -20,6 +20,7 @@
 t_log* logger;
 t_config* config;
 
+t_memoria* memoria;
 
 
 typedef struct 

@@ -16,11 +16,13 @@
 #include <utils/modulos.h>
 #include <utils/conexiones.h>
 #include <utils/configs.h>
+
 int socketMemoria;
 
 t_log* logger;
 t_config* config;
 
+t_entradasalida entradasalida;
 
 int iniciar_servidor(t_log*, int);
 int esperar_cliente(t_log*, int);

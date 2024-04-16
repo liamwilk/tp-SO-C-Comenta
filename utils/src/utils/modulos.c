@@ -1,6 +1,6 @@
 #include "modulos.h"
 
-
+/*--------KERNEL--------*/
 t_kernel kernel_inicializar(t_config *config)
 {
     t_kernel kernel;
@@ -108,9 +108,6 @@ void memoria_log(t_memoria memoria, t_log *logger)
     log_info(logger, "PATH_INSTRUCCIONES: %s", memoria.pathInstrucciones);
     log_info(logger, "RETARDO_RESPUESTA: %d", memoria.retardoRespuesta);
 };
-
-
-
 
 /*--------Serializacion y sockets--------*/
 

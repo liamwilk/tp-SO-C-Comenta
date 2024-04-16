@@ -5,18 +5,8 @@ int main() {
     
     logger = iniciar_logger("memoria");
     config = iniciar_config(logger);
-    
-    int puertoEscucha = config_get_int_value(config,"PUERTO_ESCUCHA");  
-	int tamMemoria = config_get_int_value(config,"TAM_MEMORIA");
-	int tamPagina = config_get_int_value(config,"TAM_PAGINA");
-	char* pathInstrucciones = config_get_string_value(config,"PATH_INSTRUCCIONES");
-	int retardoRespuesta = config_get_int_value(config,"RETARDO_RESPUESTA");
-
-	log_info(logger,"PUERTO_ESCUCHA: %d",puertoEscucha);
-	log_info(logger,"TAM_MEMORIA: %d",tamMemoria);
-	log_info(logger,"TAM_PAGINA: %d",tamPagina);
-	log_info(logger,"PATH_INSTRUCCIONES: %s",pathInstrucciones);
-	log_info(logger,"RETARDO_RESPUESTA: %d",retardoRespuesta);
+	memoria = memoria_inicializar(config);
+	memoria_log(memoria, logger);
 
 	// Inicio el servidor de Memoria
 
