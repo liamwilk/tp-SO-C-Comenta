@@ -4,9 +4,6 @@
 
 int main() {
     
-    t_log* logger;
-	t_config* config;
-
     logger = iniciar_logger("cpu");
     config = iniciar_config(logger);
     
@@ -32,37 +29,58 @@ int main() {
 
 	// Inicio servidor de CPU
 
-    int serverDispatch_fd = iniciar_servidor(logger,puertoEscuchaDispatch);
-	log_info(logger, "Servidor listo para recibir al cliente en Dispatch.");
-   
-	// Falta abrir Interrupt tambien, hay que hacerlo bien de una con hilos
-	// int serverInterrupt_fd = iniciar_servidor(logger,puertoEscuchaInterrupt);
-	// log_info(logger, "Servidor listo para recibir al cliente en Interrupt.");
+    serverDispatch_fd = iniciar_servidor(logger,puertoEscuchaDispatch);
+	log_info(logger, "Servidor Dispatch listo para recibir al cliente en Dispatch.");
 
-    int contador=0;
+	serverInterrupt_fd = iniciar_servidor(logger,puertoEscuchaInterrupt);
+	log_info(logger, "Servidor listo para recibir al cliente en Interrupt.");
 
-    while (contador<1) {
+	pthread_create(&dispatch,NULL,servidor_dispatch,NULL);
+	pthread_create(&interrupt,NULL,servidor_interrupt,NULL);
+
+	pthread_join(dispatch,NULL);
+	pthread_join(interrupt,NULL);
+
+    log_destroy(logger);
+    config_destroy(config);
+
+    pthread_exit(0);
+}
+
+void* servidor_dispatch(){
+
+	while (1) {
 		int cliente_fd = esperar_cliente(logger,serverDispatch_fd);
 		int cod_op = recibir_operacion(cliente_fd);
 
 		switch (cod_op) {
 		case MENSAJE:
 			recibir_mensaje(logger,cliente_fd);
-			contador++;
 			break;
 		default:
 			log_warning(logger,"Operacion desconocida.");
 			break;
 		}
 	}
+	return NULL;
+}
 
-    log_destroy(logger);
-    config_destroy(config);
+void* servidor_interrupt(){
 
-	free(ipMemoria);
-	free(algoritmoTlb);
+	while (1) {
+		int cliente_fd = esperar_cliente(logger,serverInterrupt_fd);
+		int cod_op = recibir_operacion(cliente_fd);
 
-    return 0;
+		switch (cod_op) {
+		case MENSAJE:
+			recibir_mensaje(logger,cliente_fd);
+			break;
+		default:
+			log_warning(logger,"Operacion desconocida.");
+			break;
+		}
+	}
+	return NULL;
 }
 
 void *recibir_buffer(int *size, int socket_cliente)

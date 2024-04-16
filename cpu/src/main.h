@@ -14,6 +14,14 @@
 #include<limits.h>
 //#include <utils/hello.h>
 
+pthread_t dispatch,interrupt;
+
+t_log* logger;
+t_config* config;
+
+int serverInterrupt_fd;
+int serverDispatch_fd;
+
 typedef enum
 {
 	MENSAJE,
@@ -59,4 +67,9 @@ void comunicarConCliente(t_paqueteCliente*);
 int recibir_operacion(int);
 void recibir_mensaje(t_log*,int);
 void *recibir_buffer(int*,int);
+
+
+void* servidor_dispatch();
+void* servidor_interrupt();
+
 #endif /* MAIN_H_ */

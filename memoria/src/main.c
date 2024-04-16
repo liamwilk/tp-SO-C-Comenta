@@ -15,24 +15,19 @@ int main() {
     int server_fd = iniciar_servidor(logger,puertoEscucha);
 	log_info(logger, "Servidor listo para recibir al cliente");
 
-	int contador=0;
-
-    while (contador<3) {
+    while (1) {
 		int cliente_fd = esperar_cliente(logger,server_fd);
 		int cod_op = recibir_operacion(cliente_fd);
 
 		switch (cod_op) {
 		case MENSAJE:
 			recibir_mensaje(logger,cliente_fd);
-			contador++;
 			break;
 		default:
 			log_warning(logger,"Operacion desconocida.");
 			break;
 		}
 	}
-	
-	log_info(logger,"Comunicaciones recibidas de los tres modulos, cerrando servidor.");
 
     log_destroy(logger);
     config_destroy(config);

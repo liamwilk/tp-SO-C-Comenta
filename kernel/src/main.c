@@ -37,34 +37,25 @@ int main() {
 	// Mensajes a clientes
 
 	int socketMemoria = crear_conexion(logger,ipMemoria,puertoMemoria);
-	enviar_mensaje("Hola, soy Kernel!", socketMemoria);
-	liberar_conexion(socketMemoria);
-
+	int socketCpuInterrupt = crear_conexion(logger,ipCpu,puertoCpuInterrupt);
 	int socketCpuDispatch = crear_conexion(logger,ipCpu,puertoCpuDispatch);
+
 	enviar_mensaje("Hola, soy Kernel!", socketCpuDispatch);
-	liberar_conexion(socketCpuDispatch);
+	enviar_mensaje("Hola, soy Kernel!", socketCpuInterrupt);
+	enviar_mensaje("Hola, soy Kernel!", socketMemoria);
 
-	// Hay que hacerlo con hilos
-
-	// int socketCpuInterrupt = crear_conexion(logger,ipCpu,puertoCpuInterrupt);
-	// enviar_mensaje("Hola, soy Kernel!", socketCpuInterrupt);
-	// liberar_conexion(socketCpuInterrupt);
-	
     // Inicio server Kernel
 
 	int server_fd = iniciar_servidor(logger,puertoEscucha);
 	log_info(logger, "Servidor listo para recibir clientes.");
 
-	int contador=0;
-
-    while (contador<1) {
+    while (1) {
 		int cliente_fd = esperar_cliente(logger,server_fd);
 		int cod_op = recibir_operacion(cliente_fd);
 
 		switch (cod_op) {
 		case MENSAJE:
 			recibir_mensaje(logger,cliente_fd);
-			contador++;
 			break;
 		default:
 			log_warning(logger,"Operacion desconocida.");
@@ -72,13 +63,12 @@ int main() {
 		}
 	}
 
-	// Libero recursos adicionales
+	liberar_conexion(socketMemoria);
+	liberar_conexion(socketCpuInterrupt);
+	liberar_conexion(socketCpuDispatch);
 
-	free(ipMemoria);
-	free(ipCpu);
-	free(algoritmoPlanificador);
-	free(recursos);
-	free(instanciasRecursos);
+	log_destroy(logger);
+	config_destroy(config);
 
     return 0;
 }

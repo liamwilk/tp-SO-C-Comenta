@@ -39,11 +39,7 @@ int main() {
 	liberar_conexion(socketKernel);
 	
     log_destroy(logger);
-    
-	free(ipMemoria);
-	free(ipKernel);
-	free(tipoInterfaz);
-	free(pathBaseDialFs);
+	config_destroy(config);
 
     return 0;
 }
