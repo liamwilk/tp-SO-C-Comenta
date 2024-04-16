@@ -22,9 +22,6 @@ t_cpu cpu;
 t_log* logger;
 t_config* config;
 
-int serverInterrupt_fd;
-int serverDispatch_fd;
-
 typedef enum
 {
 	MENSAJE,
@@ -43,15 +40,6 @@ typedef struct
 	t_buffer* buffer;
 } t_paquete;
 
-typedef struct 
-{
-    t_log* logger;
-	char* ip;
-    int puerto;
-	int socket;
-	char* mensaje;
-} t_paqueteCliente;
-
 t_log* iniciar_logger(char*);
 t_config* iniciar_config(t_log* logger);
 void terminar_programa(int, t_log*, t_config*);
@@ -63,16 +51,22 @@ void agregar_a_paquete(t_paquete*, void*, int);
 void enviar_paquete(t_paquete*, int);
 void eliminar_paquete(t_paquete*);
 void liberar_conexion(int);
-
 int iniciar_servidor(t_log*, int);
 int esperar_cliente(t_log*, int);
-void comunicarConCliente(t_paqueteCliente*);
 int recibir_operacion(int);
 void recibir_mensaje(t_log*,int);
 void *recibir_buffer(int*,int);
 
+// Esto es para abrir sockets//////
+void* atender_kernel_dispatch();///
+void* atender_kernel_interrupt();//
+///////////////////////////////////
 
-void* servidor_dispatch();
-void* servidor_interrupt();
+int socket_kernel_dispatch;
+int socket_kernel_interrupt;
+int socket_memoria_dispatch;
+int socket_memoria_interrupt;
+int socket_server_dispatch;
+int socket_server_interrupt;
 
 #endif /* MAIN_H_ */

@@ -6,52 +6,51 @@ int main() {
 
     logger = iniciar_logger("kernel");
     config = iniciar_config(logger);
-    
     kernel = kernel_inicializar(config);
-    
 	kernel_log(kernel, logger);
 
-	// Mensajes a clientes
+	// Creo las conexiones a Memoria, CPU Dispatch y CPU Interrupt
 
-	int socketMemoria = crear_conexion(logger,kernel.ipMemoria,kernel.puertoMemoria);
-	handshake(logger, socketMemoria, 1 , "Memoria");
-	enviar_mensaje("Hola, soy Kernel!", socketMemoria);
+	socket_memoria = crear_conexion(logger,kernel.ipMemoria,kernel.puertoMemoria);
+	log_info(logger,"Conectado a Memoria en socket %d",socket_memoria);
 
-	int socketCpuInterrupt = crear_conexion(logger,kernel.ipCpu,kernel.puertoCpuInterrupt);
-	handshake(logger, socketMemoria, 1 , "CPU Interrupt");
-	enviar_mensaje("Hola, soy Kernel!", socketCpuInterrupt);
+	socket_cpu_interrupt = crear_conexion(logger,kernel.ipCpu,kernel.puertoCpuInterrupt);
+	log_info(logger,"Conectado a CPU por Interrupt en socket %d",socket_cpu_interrupt);
 
-	int socketCpuDispatch = crear_conexion(logger,kernel.ipCpu,kernel.puertoCpuDispatch);
-	handshake(logger, socketMemoria, 1 , "CPU Dispatch");
-	enviar_mensaje("Hola, soy Kernel!", socketCpuDispatch);
+	socket_cpu_dispatch = crear_conexion(logger,kernel.ipCpu,kernel.puertoCpuDispatch);
+	log_info(logger,"Conectado a CPU por Dispatch en socket %d",socket_cpu_dispatch);
 
     // Inicio server Kernel
 
-	int server_fd = iniciar_servidor(logger,kernel.puertoEscucha);
+	socket_server_kernel = iniciar_servidor(logger,kernel.puertoEscucha);
 	log_info(logger, "Servidor listo para recibir clientes.");
 
-    while (1) {
-		int cliente_fd = esperar_cliente(logger,server_fd);
-		int cod_op = recibir_operacion(cliente_fd);
+	// Atendemos las conexiones entrantes a Kernel desde IO
 
-		switch (cod_op) {
-		case MENSAJE:
-			recibir_mensaje(logger,cliente_fd);
-			break;
-		default:
-			log_warning(logger,"Operacion desconocida.");
-			break;
-		}
-	}
+	pthread_create(&io,NULL,atender_io,NULL);
+	pthread_join(io,NULL);
 
-	liberar_conexion(socketMemoria);
-	liberar_conexion(socketCpuInterrupt);
-	liberar_conexion(socketCpuDispatch);
+	/*
+	Aca va lo que hace Kernel, una vez que ya tiene todas las conexiones con todos los modulos establecidas.
+	*/
+
+	// Libero
+
+	liberar_conexion(socket_server_kernel);
+	liberar_conexion(socket_memoria);
+	liberar_conexion(socket_cpu_interrupt);
+	liberar_conexion(socket_cpu_dispatch);
 
 	log_destroy(logger);
 	config_destroy(config);
 
     return 0;
+}
+
+void* atender_io(){
+	socket_io = esperar_cliente(logger,socket_server_kernel);
+	log_info(logger,"I/O conectado en socket %d",socket_io);
+	pthread_exit(0);
 }
 
 void *recibir_buffer(int *size, int socket_cliente)
@@ -164,7 +163,6 @@ t_config* iniciar_config(t_log* logger){
 
 	char ruta_completa[PATH_MAX]; 
     sprintf(ruta_completa, "%s/module.config", current_dir);
-	printf("%s",ruta_completa);
 
 	nuevo_config = config_create(ruta_completa);
 

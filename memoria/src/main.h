@@ -24,7 +24,6 @@ typedef enum
 t_log* logger;
 t_config* config;
 
-int serverMemoria;
 
 typedef struct
 {
@@ -63,4 +62,18 @@ int esperar_cliente(t_log*, int);
 int recibir_operacion(int);
 void recibir_mensaje(t_log*,int);
 void *recibir_buffer(int*,int);
+
+void* atender_cpu_dispatch();
+void* atender_cpu_interrupt();
+void* atender_kernel();
+void* atender_io();
+
+pthread_t cpu_dispatch,cpu_interrupt,kernel,io;
+
+int socket_cpu_dispatch;
+int socket_cpu_interrupt;
+int socket_kernel;
+int socket_io;
+int socket_server_memoria;
+
 #endif /* MAIN_H_ */

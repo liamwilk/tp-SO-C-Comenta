@@ -6,33 +6,79 @@ int main() {
     logger = iniciar_logger("memoria");
     config = iniciar_config(logger);
     
-    int puertoEscucha = config_get_int_value(config,"PUERTO_ESCUCHA");
-    log_info(logger,"PUERTO_ESCUCHA: %d",puertoEscucha);
+    int puertoEscucha = config_get_int_value(config,"PUERTO_ESCUCHA");  
+	int tamMemoria = config_get_int_value(config,"TAM_MEMORIA");
+	int tamPagina = config_get_int_value(config,"TAM_PAGINA");
+	char* pathInstrucciones = config_get_string_value(config,"PATH_INSTRUCCIONES");
+	int retardoRespuesta = config_get_int_value(config,"RETARDO_RESPUESTA");
 
-    serverMemoria = iniciar_servidor(logger,puertoEscucha);
+	log_info(logger,"PUERTO_ESCUCHA: %d",puertoEscucha);
+	log_info(logger,"TAM_MEMORIA: %d",tamMemoria);
+	log_info(logger,"TAM_PAGINA: %d",tamPagina);
+	log_info(logger,"PATH_INSTRUCCIONES: %s",pathInstrucciones);
+	log_info(logger,"RETARDO_RESPUESTA: %d",retardoRespuesta);
+
+	// Inicio el servidor de Memoria
+
+    socket_server_memoria = iniciar_servidor(logger,puertoEscucha);
 	log_info(logger, "Servidor listo para recibir al cliente");
 
-    while (1) {
-		int cliente_fd = esperar_cliente(logger,serverMemoria);
-		esperar_handshake(cliente_fd);
-		int cod_op = recibir_operacion(cliente_fd);
+	// Atiendo las conexiones entrantes de CPU Dispatch, CPU Interrupt, Kernel y I/O, en ese orden.
 
-		switch (cod_op) {
-		case MENSAJE:
-			recibir_mensaje(logger,cliente_fd);
-			break;
-		default:
-			log_warning(logger,"Operacion desconocida.");
-			break;
-		}
-	}
+	pthread_create(&cpu_dispatch,NULL,atender_cpu_dispatch,NULL);
+	pthread_join(cpu_dispatch,NULL);
 
-    log_destroy(logger);
-    config_destroy(config);
+	pthread_create(&cpu_interrupt,NULL,atender_cpu_interrupt,NULL);
+	pthread_join(cpu_interrupt,NULL);
 
+	pthread_create(&kernel,NULL,atender_kernel,NULL);
+	pthread_join(kernel,NULL);
+
+	pthread_create(&io,NULL,atender_io,NULL);
+	pthread_join(io,NULL);
+
+
+	/*
+	Aca va todo lo que hace Memoria, una vez que ya tiene todas las conexiones habilitadas a todos los Modulos.
+	*/
+
+	// Libero
+
+	config_destroy(config);
+	log_destroy(logger);
+	
+	liberar_conexion(socket_server_memoria);
+	liberar_conexion(socket_cpu_dispatch);
+	liberar_conexion(socket_cpu_interrupt);
+	liberar_conexion(socket_kernel);
+	liberar_conexion(socket_io);
+	
     return 0;
 }
 
+void* atender_cpu_dispatch(){
+	socket_cpu_dispatch = esperar_cliente(logger,socket_server_memoria);
+	log_info(logger,"CPU Dispatch conectado en socket %d",socket_cpu_dispatch);
+	pthread_exit(0);
+}
+
+void* atender_cpu_interrupt(){
+	socket_cpu_interrupt = esperar_cliente(logger,socket_server_memoria);
+	log_info(logger,"CPU Interrupt conectado en socket %d",socket_cpu_interrupt);
+	pthread_exit(0);
+}
+
+void* atender_kernel(){
+	socket_kernel = esperar_cliente(logger,socket_server_memoria);
+	log_info(logger,"Kernel conectado en socket %d",socket_kernel);
+	pthread_exit(0);
+}
+
+void* atender_io(){
+	socket_io = esperar_cliente(logger,socket_server_memoria);
+	log_info(logger,"I/O conectado en socket %d",socket_io);
+	pthread_exit(0);
+}
 
 void *recibir_buffer(int *size, int socket_cliente)
 {
@@ -77,14 +123,13 @@ int esperar_cliente(t_log* logger, int socket_servidor)
 {
 	// Aceptamos un nuevo cliente
 	int socket_cliente = accept(socket_servidor, NULL, NULL);
-	log_info(logger, "Se conecto un cliente!");
+	log_info(logger, "Se conecto un cliente en socket %d!",socket_cliente);
 
 	return socket_cliente;
 }
 
 int iniciar_servidor(t_log* logger, int puerto)
 {
-
 	char puerto_str[6];
 
     // Convierto el puerto a string, para poder usarlo en getaddrinfo
@@ -140,7 +185,6 @@ t_config* iniciar_config(t_log* logger){
 
 	char ruta_completa[PATH_MAX]; 
     sprintf(ruta_completa, "%s/module.config", current_dir);
-	printf("%s",ruta_completa);
 
 	nuevo_config = config_create(ruta_completa);
 

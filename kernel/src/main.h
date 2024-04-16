@@ -56,4 +56,15 @@ int recibir_operacion(int);
 void recibir_mensaje(t_log*,int);
 void *recibir_buffer(int*,int);
 
+
+void* atender_io();
+
+pthread_t io;
+
+int socket_io;
+int socket_server_kernel;
+int socket_memoria;
+int socket_cpu_interrupt;
+int socket_cpu_dispatch;
+
 #endif /* MAIN_H_ */

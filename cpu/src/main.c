@@ -6,72 +6,62 @@ int main() {
     
     logger = iniciar_logger("cpu");
     config = iniciar_config(logger);
-    
     cpu = cpu_inicializar(config);
-
     cpu_log(cpu, logger);
 
-	// Envio mensaje a Memoria
+	// Abrimos los sockets de conexion
 
-	int socketMemoria = crear_conexion(logger,cpu.ipMemoria,cpu.puertoMemoria);
-	handshake(logger, socketMemoria, 1 , "Memoria");
-	enviar_mensaje("Hola, soy CPU!", socketMemoria);
-	liberar_conexion(socketMemoria);
+	socket_memoria_dispatch = crear_conexion(logger,cpu.ipMemoria,cpu.puertoMemoria);
+	log_info(logger,"Conectado a Memoria por Dispatch en socket %d",socket_memoria_dispatch);
+	
+	socket_memoria_interrupt = crear_conexion(logger,cpu.ipMemoria,cpu.puertoMemoria);
+	log_info(logger,"Conectado a Memoria por Interrupt en socket %d",socket_memoria_interrupt);
 
-	// Inicio servidor de CPU
+	// Iniciamos los servidores de CPU (Dispatch y Interrupt)
 
-    serverDispatch_fd = iniciar_servidor(logger,cpu.puertoEscuchaDispatch);
+    socket_server_dispatch = iniciar_servidor(logger,cpu.puertoEscuchaDispatch);
 	log_info(logger, "Servidor Dispatch listo para recibir al cliente en Dispatch.");
 
-	serverInterrupt_fd = iniciar_servidor(logger,cpu.puertoEscuchaInterrupt);
-	log_info(logger, "Servidor listo para recibir al cliente en Interrupt.");
+	socket_server_interrupt = iniciar_servidor(logger,cpu.puertoEscuchaInterrupt);
+	log_info(logger, "Servidor Interrupt listo para recibir al cliente en Interrupt.");
 
-	pthread_create(&dispatch,NULL,servidor_dispatch,NULL);
-	pthread_create(&interrupt,NULL,servidor_interrupt,NULL);
+	// Atendemos las conexiones entrantes a CPU desde Kernel
 
+	pthread_create(&dispatch,NULL,atender_kernel_dispatch,NULL);
 	pthread_join(dispatch,NULL);
+
+	pthread_create(&interrupt,NULL,atender_kernel_interrupt,NULL);
 	pthread_join(interrupt,NULL);
+
+	/*
+	Aca va el resto de lo que falta hacer en CPU despues, en este punto ya tenemos las conexiones bidireccionales con Memoria y Kernel abiertas en sus sockets.
+	*/
+
+	// Libero
 
     log_destroy(logger);
     config_destroy(config);
 
+	liberar_conexion(socket_memoria_dispatch);
+	liberar_conexion(socket_memoria_interrupt);
+	liberar_conexion(socket_kernel_dispatch);
+	liberar_conexion(socket_kernel_interrupt);
+	liberar_conexion(socket_server_dispatch);
+	liberar_conexion(socket_server_interrupt);
+
     return 0;
 }
 
-void* servidor_dispatch(){
-
-	while (1) {
-		int cliente_fd = esperar_cliente(logger,serverDispatch_fd);
-		int cod_op = recibir_operacion(cliente_fd);
-
-		switch (cod_op) {
-		case MENSAJE:
-			recibir_mensaje(logger,cliente_fd);
-			break;
-		default:
-			log_warning(logger,"Operacion desconocida.");
-			break;
-		}
-	}
-	return NULL;
+void* atender_kernel_dispatch(){
+	socket_kernel_dispatch = esperar_cliente(logger,socket_server_dispatch);
+	log_info(logger,"Kernel conectado por Dispatch en socket %d",socket_kernel_dispatch);
+	pthread_exit(0);
 }
 
-void* servidor_interrupt(){
-
-	while (1) {
-		int cliente_fd = esperar_cliente(logger,serverInterrupt_fd);
-		int cod_op = recibir_operacion(cliente_fd);
-
-		switch (cod_op) {
-		case MENSAJE:
-			recibir_mensaje(logger,cliente_fd);
-			break;
-		default:
-			log_warning(logger,"Operacion desconocida.");
-			break;
-		}
-	}
-	return NULL;
+void* atender_kernel_interrupt(){
+	socket_kernel_interrupt = esperar_cliente(logger,socket_server_interrupt);
+	log_info(logger,"Kernel conectado por Interrupt en socket %d",socket_kernel_interrupt);
+	pthread_exit(0);
 }
 
 void *recibir_buffer(int *size, int socket_cliente)
@@ -111,12 +101,6 @@ t_paquete* crear_paquete(void)
 	paquete->codigo_operacion = PAQUETE;
 	crear_buffer(paquete);
 	return paquete;
-}
-
-void comunicarConCliente(t_paqueteCliente* cliente){
-
-	cliente->socket = crear_conexion(cliente->logger,cliente->ip,cliente->puerto);
-	enviar_mensaje("Hola, soy Kernel", cliente->socket);
 }
 
 int esperar_cliente(t_log* logger, int socket_servidor)
@@ -186,7 +170,6 @@ t_config* iniciar_config(t_log* logger){
 
 	char ruta_completa[PATH_MAX]; 
     sprintf(ruta_completa, "%s/module.config", current_dir);
-	printf("%s",ruta_completa);
 
 	nuevo_config = config_create(ruta_completa);
 

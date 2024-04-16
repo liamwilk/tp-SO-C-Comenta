@@ -4,10 +4,7 @@
 
 int main() {
     
-    t_log* logger;
-	t_config* config;
-
-    logger = iniciar_logger("kernel");
+    logger = iniciar_logger("entradasalida");
     config = iniciar_config(logger);
 
     char* ipMemoria = config_get_string_value(config,"IP_MEMORIA");
@@ -30,17 +27,23 @@ int main() {
     log_info(logger,"BLOCK_SIZE: %d",blockSize);
     log_info(logger,"BLOCK_COUNT: %d",blockCount);
 
-    int socketMemoria = crear_conexion(logger,ipMemoria,puertoMemoria);
-	handshake(logger, socketMemoria, 1 , "Memoria");
-	enviar_mensaje("Hola, soy I/O", socketMemoria);
-	liberar_conexion(socketMemoria);
+	// Conectamos con Memoria y Kernel.
 
-    // int socketKernel = crear_conexion(logger,ipKernel,puertoKernel);
-	// enviar_mensaje("Hola, soy I/O!", socketKernel);
-	// liberar_conexion(socketKernel);
-	
-    // log_destroy(logger);
-	// config_destroy(config);
+    socket_memoria = crear_conexion(logger,ipMemoria,puertoMemoria);
+	log_info(logger,"Conectado a Memoria en socket %d",socket_memoria);
+
+    socket_kernel = crear_conexion(logger,ipKernel,puertoKernel);
+	log_info(logger,"Conectado a Kernel en socket %d",socket_kernel);
+
+	/*
+	Aca iria la logica de lo que hace I/O una vez que ya tiene las conexiones abiertas con Kernel y Memoria.
+	*/
+
+    log_destroy(logger);
+	config_destroy(config);
+
+	liberar_conexion(socket_memoria);
+	liberar_conexion(socket_kernel);
 
     return 0;
 }
@@ -51,12 +54,6 @@ t_paquete* crear_paquete(void)
 	paquete->codigo_operacion = PAQUETE;
 	crear_buffer(paquete);
 	return paquete;
-}
-
-void comunicarConCliente(t_paqueteCliente* cliente){
-
-	cliente->socket = crear_conexion(cliente->logger,cliente->ip,cliente->puerto);
-	enviar_mensaje("Hola, soy Kernel", cliente->socket);
 }
 
 int esperar_cliente(t_log* logger, int socket_servidor)
@@ -126,7 +123,6 @@ t_config* iniciar_config(t_log* logger){
 
 	char ruta_completa[PATH_MAX]; 
     sprintf(ruta_completa, "%s/module.config", current_dir);
-	printf("%s",ruta_completa);
 
 	nuevo_config = config_create(ruta_completa);
 
