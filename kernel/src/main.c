@@ -3,50 +3,31 @@
 #include "main.h"
 
 int main() {
-    
-    t_log* logger;
-	t_config* config;
 
     logger = iniciar_logger("kernel");
     config = iniciar_config(logger);
     
-    int puertoEscucha = config_get_int_value(config,"PUERTO_ESCUCHA");
-    char* ipMemoria = config_get_string_value(config,"IP_MEMORIA");
-    int puertoMemoria = config_get_int_value(config,"PUERTO_MEMORIA");
-    char* ipCpu = config_get_string_value(config,"IP_CPU");
-    int puertoCpuDispatch = config_get_int_value(config,"PUERTO_CPU_DISPATCH");
-    int puertoCpuInterrupt = config_get_int_value(config,"PUERTO_CPU_INTERRUPT");
-    char* algoritmoPlanificador = config_get_string_value(config,"ALGORITMO_PLANIFICADOR");
-    int quantum = config_get_int_value(config,"QUANTUM");
-    char* recursos = config_get_string_value(config,"RECURSOS");
-    char* instanciasRecursos = config_get_string_value(config,"INSTANCIAS_RECURSOS");
-    int gradoMultiprogramacion = config_get_int_value(config,"GRADO_MULTIPROGRAMACION");
-
-    log_info(logger,"PUERTO_ESCUCHA: %d",puertoEscucha);
-	log_info(logger,"IP_MEMORIA: %s",ipMemoria);
-	log_info(logger,"PUERTO_MEMORIA: %d",puertoMemoria);
-    log_info(logger,"IP_CPU: %s",ipCpu);
-    log_info(logger,"PUERTO_CPU_DISPATCH: %d",puertoCpuDispatch);
-    log_info(logger,"PUERTO_CPU_INTERRUPT: %d",puertoCpuInterrupt);
-    log_info(logger,"ALGORITMO_PLANIFICADOR: %s",algoritmoPlanificador);
-    log_info(logger,"QUANTUM: %d",quantum);
-    log_info(logger,"RECURSOS: %s",recursos);
-    log_info(logger,"INSTANCIAS_RECURSOS: %s",instanciasRecursos);
-    log_info(logger,"GRADO_MULTIPROGRAMACION: %d",gradoMultiprogramacion);
+    kernel = kernel_inicializar(config);
+    
+	kernel_log(kernel, logger);
 
 	// Mensajes a clientes
 
-	int socketMemoria = crear_conexion(logger,ipMemoria,puertoMemoria);
-	int socketCpuInterrupt = crear_conexion(logger,ipCpu,puertoCpuInterrupt);
-	int socketCpuDispatch = crear_conexion(logger,ipCpu,puertoCpuDispatch);
-
-	enviar_mensaje("Hola, soy Kernel!", socketCpuDispatch);
-	enviar_mensaje("Hola, soy Kernel!", socketCpuInterrupt);
+	int socketMemoria = crear_conexion(logger,kernel.ipMemoria,kernel.puertoMemoria);
+	handshake(logger, socketMemoria, 1 , "Memoria");
 	enviar_mensaje("Hola, soy Kernel!", socketMemoria);
+
+	int socketCpuInterrupt = crear_conexion(logger,kernel.ipCpu,kernel.puertoCpuInterrupt);
+	handshake(logger, socketMemoria, 1 , "CPU Interrupt");
+	enviar_mensaje("Hola, soy Kernel!", socketCpuInterrupt);
+
+	int socketCpuDispatch = crear_conexion(logger,kernel.ipCpu,kernel.puertoCpuDispatch);
+	handshake(logger, socketMemoria, 1 , "CPU Dispatch");
+	enviar_mensaje("Hola, soy Kernel!", socketCpuDispatch);
 
     // Inicio server Kernel
 
-	int server_fd = iniciar_servidor(logger,puertoEscucha);
+	int server_fd = iniciar_servidor(logger,kernel.puertoEscucha);
 	log_info(logger, "Servidor listo para recibir clientes.");
 
     while (1) {

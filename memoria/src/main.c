@@ -3,20 +3,18 @@
 
 int main() {
     
-    t_log* logger;
-	t_config* config;
-
     logger = iniciar_logger("memoria");
     config = iniciar_config(logger);
     
     int puertoEscucha = config_get_int_value(config,"PUERTO_ESCUCHA");
     log_info(logger,"PUERTO_ESCUCHA: %d",puertoEscucha);
 
-    int server_fd = iniciar_servidor(logger,puertoEscucha);
+    serverMemoria = iniciar_servidor(logger,puertoEscucha);
 	log_info(logger, "Servidor listo para recibir al cliente");
 
     while (1) {
-		int cliente_fd = esperar_cliente(logger,server_fd);
+		int cliente_fd = esperar_cliente(logger,serverMemoria);
+		esperar_handshake(cliente_fd);
 		int cod_op = recibir_operacion(cliente_fd);
 
 		switch (cod_op) {
@@ -34,6 +32,7 @@ int main() {
 
     return 0;
 }
+
 
 void *recibir_buffer(int *size, int socket_cliente)
 {

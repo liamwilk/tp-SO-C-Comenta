@@ -12,13 +12,19 @@
 #include<unistd.h>
 #include<pthread.h>
 #include<limits.h>
-//#include <utils/hello.h>
+#include <utils/handshake.h>
+#include <utils/modulos.h>
 
 typedef enum
 {
 	MENSAJE,
 	PAQUETE
 }op_code;
+
+t_log* logger;
+t_config* config;
+
+int serverMemoria;
 
 typedef struct
 {
@@ -40,7 +46,6 @@ typedef struct
 	int socket;
 	char* mensaje;
 } t_paqueteCliente;
-
 t_log* iniciar_logger(char*);
 t_config* iniciar_config(t_log* logger);
 void terminar_programa(int, t_log*, t_config*);

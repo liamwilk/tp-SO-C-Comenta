@@ -12,7 +12,10 @@
 #include<unistd.h>
 #include<pthread.h>
 #include<limits.h>
-//#include <utils/hello.h>
+#include <utils/handshake.h>
+#include <utils/modulos.h>
+int socketMemoria;
+
 
 typedef enum
 {
@@ -51,6 +54,7 @@ void agregar_a_paquete(t_paquete*, void*, int);
 void enviar_paquete(t_paquete*, int);
 void eliminar_paquete(t_paquete*);
 void liberar_conexion(int);
+
 
 int iniciar_servidor(t_log*, int);
 int esperar_cliente(t_log*, int);

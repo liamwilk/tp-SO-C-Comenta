@@ -7,32 +7,23 @@ int main() {
     logger = iniciar_logger("cpu");
     config = iniciar_config(logger);
     
-    int puertoEscuchaDispatch = config_get_int_value(config,"PUERTO_ESCUCHA_DISPATCH");
-    int puertoEscuchaInterrupt = config_get_int_value(config,"PUERTO_ESCUCHA_INTERRUPT");
-	char* ipMemoria = config_get_string_value(config,"IP_MEMORIA");
-	int puertoMemoria = config_get_int_value(config,"PUERTO_MEMORIA");
-	int cantidadEntradasTlb = config_get_int_value(config,"CANTIDAD_ENTRADAS_TLB"); 
-	char* algoritmoTlb = config_get_string_value(config,"ALGORITMO_TLB");
+    cpu = cpu_inicializar(config);
 
-    log_info(logger,"PUERTO_ESCUCHA_DISPATCH: %d",puertoEscuchaDispatch);
-    log_info(logger,"PUERTO_ESCUCHA_INTERRUPT: %d",puertoEscuchaInterrupt);
-	log_info(logger,"IP_MEMORIA: %d",puertoMemoria);
-    log_info(logger,"PUERTO_MEMORIA: %d",puertoEscuchaInterrupt);
-	log_info(logger,"CANTIDAD_ENTRADAS_TLB: %d",cantidadEntradasTlb);
-    log_info(logger,"ALGORITMO_TLB: %s",algoritmoTlb);
+    cpu_log(cpu, logger);
 
 	// Envio mensaje a Memoria
 
-	int socketMemoria = crear_conexion(logger,ipMemoria,puertoMemoria);
+	int socketMemoria = crear_conexion(logger,cpu.ipMemoria,cpu.puertoMemoria);
+	handshake(logger, socketMemoria, 1 , "Memoria");
 	enviar_mensaje("Hola, soy CPU!", socketMemoria);
 	liberar_conexion(socketMemoria);
 
 	// Inicio servidor de CPU
 
-    serverDispatch_fd = iniciar_servidor(logger,puertoEscuchaDispatch);
+    serverDispatch_fd = iniciar_servidor(logger,cpu.puertoEscuchaDispatch);
 	log_info(logger, "Servidor Dispatch listo para recibir al cliente en Dispatch.");
 
-	serverInterrupt_fd = iniciar_servidor(logger,puertoEscuchaInterrupt);
+	serverInterrupt_fd = iniciar_servidor(logger,cpu.puertoEscuchaInterrupt);
 	log_info(logger, "Servidor listo para recibir al cliente en Interrupt.");
 
 	pthread_create(&dispatch,NULL,servidor_dispatch,NULL);

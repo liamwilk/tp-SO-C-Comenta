@@ -12,9 +12,12 @@
 #include<unistd.h>
 #include<pthread.h>
 #include<limits.h>
-//#include <utils/hello.h>
+#include <utils/handshake.h>
+#include <utils/modulos.h>
 
 pthread_t dispatch,interrupt;
+
+t_cpu cpu;
 
 t_log* logger;
 t_config* config;

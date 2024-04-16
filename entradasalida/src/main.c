@@ -31,15 +31,16 @@ int main() {
     log_info(logger,"BLOCK_COUNT: %d",blockCount);
 
     int socketMemoria = crear_conexion(logger,ipMemoria,puertoMemoria);
+	handshake(logger, socketMemoria, 1 , "Memoria");
 	enviar_mensaje("Hola, soy I/O", socketMemoria);
 	liberar_conexion(socketMemoria);
 
-    int socketKernel = crear_conexion(logger,ipKernel,puertoKernel);
-	enviar_mensaje("Hola, soy I/O!", socketKernel);
-	liberar_conexion(socketKernel);
+    // int socketKernel = crear_conexion(logger,ipKernel,puertoKernel);
+	// enviar_mensaje("Hola, soy I/O!", socketKernel);
+	// liberar_conexion(socketKernel);
 	
-    log_destroy(logger);
-	config_destroy(config);
+    // log_destroy(logger);
+	// config_destroy(config);
 
     return 0;
 }
