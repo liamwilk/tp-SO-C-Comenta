@@ -16,6 +16,7 @@
 #include <utils/modulos.h>
 #include <utils/conexiones.h>
 #include <utils/configs.h>
+#include <utils/serial.h>
 
 int socketMemoria;
 

@@ -16,6 +16,7 @@
 #include <utils/handshake.h>
 #include <utils/conexiones.h>
 #include <utils/configs.h>
+#include <utils/serial.h>
 
 t_kernel kernel;
 
