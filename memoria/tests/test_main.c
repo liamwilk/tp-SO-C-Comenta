@@ -8,6 +8,7 @@ int test_inicializacion(){
     config = iniciar_config(logger);
     memoria = memoria_inicializar(config);
     test(sizeof(memoria) > 0);
+    return 0;
 };
 
 int main() {
