@@ -38,7 +38,7 @@ void* atender_cpu_interrupt();
 void* atender_kernel();
 void* atender_io();
 
-pthread_t cpu_dispatch,cpu_interrupt,kernel,io;
+pthread_t thread_atender_cpu_dispatch,thread_atender_cpu_interrupt,thread_atender_kernel,thread_atender_io;
 
 int socket_cpu_dispatch;
 int socket_cpu_interrupt;
