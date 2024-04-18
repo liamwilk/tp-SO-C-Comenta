@@ -10,7 +10,7 @@ t_kernel kernel_inicializar(t_config *config)
     kernel.ipCpu = config_get_string_value(config, "IP_CPU");
     kernel.puertoCpuDispatch = config_get_int_value(config, "PUERTO_CPU_DISPATCH");
     kernel.puertoCpuInterrupt = config_get_int_value(config, "PUERTO_CPU_INTERRUPT");
-    kernel.algoritmoPlanificador = config_get_string_value(config, "ALGORITMO_PLANIFICADOR");
+    kernel.algoritmoPlanificador = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
     kernel.quantum = config_get_int_value(config, "QUANTUM");
     kernel.recursos = config_get_string_value(config, "RECURSOS");
     kernel.instanciasRecursos = config_get_string_value(config, "INSTANCIAS_RECURSOS");
@@ -26,7 +26,7 @@ void kernel_log(t_kernel kernel, t_log *logger)
     log_info(logger, "IP_CPU: %s", kernel.ipCpu);
     log_info(logger, "PUERTO_CPU_DISPATCH: %d", kernel.puertoCpuDispatch);
     log_info(logger, "PUERTO_CPU_INTERRUPT: %d", kernel.puertoCpuInterrupt);
-    log_info(logger, "ALGORITMO_PLANIFICADOR: %s", kernel.algoritmoPlanificador);
+    log_info(logger, "ALGORITMO_PLANIFICACION: %s", kernel.algoritmoPlanificador);
     log_info(logger, "QUANTUM: %d", kernel.quantum);
     log_info(logger, "RECURSOS: %s", kernel.recursos);
     log_info(logger, "INSTANCIAS_RECURSOS: %s", kernel.instanciasRecursos);
