@@ -23,7 +23,7 @@
  * @param modulo: nombre del modulo
  * @return uint32_t
  */
-uint32_t handshake(t_log *logger, int conexion, uint32_t envio, char *modulo);
+uint32_t handshake(t_log *logger_info, t_log *logger_error, int conexion, uint32_t envio, char *modulo);
 
 /**
  * @fn    esperar_handshake

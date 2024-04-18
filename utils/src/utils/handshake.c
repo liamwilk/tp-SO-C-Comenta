@@ -1,15 +1,15 @@
 #include "handshake.h"
 
-uint32_t handshake(t_log* logger,int conexion, uint32_t envio, char *modulo){
+uint32_t handshake(t_log* logger_info,t_log* logger_error,int conexion, uint32_t envio, char *modulo){
 	uint32_t result;
 
 	send(conexion, &envio, sizeof(uint32_t), 0);
 	recv(conexion, &result, sizeof(uint32_t), MSG_WAITALL);
 
 	if(result == 0) {
-		log_info(logger, "[%s] Conexion establecida.", modulo);
+		log_info(logger_info, "[%s] Conexion establecida.", modulo);
 	} else {
-		log_error(logger, "[%s] Error en la conexión.", modulo);
+		log_error(logger_error, "[%s] Error en la conexión.", modulo);
 		return -1;
 	}
 	return result;
