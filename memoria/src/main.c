@@ -15,18 +15,17 @@ int main() {
 
 	// Atiendo las conexiones entrantes de CPU Dispatch, CPU Interrupt, Kernel y I/O, en ese orden.
 
-	pthread_create(&cpu_dispatch,NULL,atender_cpu_dispatch,NULL);
-	pthread_join(cpu_dispatch,NULL);
+	pthread_create(&thread_atender_cpu_dispatch,NULL,atender_cpu_dispatch,NULL);
+	pthread_join(thread_atender_cpu_dispatch,NULL);
 
-	pthread_create(&cpu_interrupt,NULL,atender_cpu_interrupt,NULL);
-	pthread_join(cpu_interrupt,NULL);
+	pthread_create(&thread_atender_cpu_interrupt,NULL,atender_cpu_interrupt,NULL);
+	pthread_join(thread_atender_cpu_interrupt,NULL);
 
-	pthread_create(&kernel,NULL,atender_kernel,NULL);
-	pthread_join(kernel,NULL);
+	pthread_create(&thread_atender_kernel,NULL,atender_kernel,NULL);
+	pthread_join(thread_atender_kernel,NULL);
 
-	pthread_create(&io,NULL,atender_io,NULL);
-	pthread_join(io,NULL);
-
+	pthread_create(&thread_atender_io,NULL,atender_io,NULL);
+	pthread_join(thread_atender_io,NULL);
 
 	/*
 	Aca va todo lo que hace Memoria, una vez que ya tiene todas las conexiones habilitadas a todos los Modulos.
@@ -48,26 +47,28 @@ int main() {
 
 void* atender_cpu_dispatch(){
 	socket_cpu_dispatch = esperar_cliente(logger,socket_server_memoria);
+	esperar_handshake(socket_cpu_dispatch);
 	log_info(logger,"CPU Dispatch conectado en socket %d",socket_cpu_dispatch);
 	pthread_exit(0);
 }
 
 void* atender_cpu_interrupt(){
 	socket_cpu_interrupt = esperar_cliente(logger,socket_server_memoria);
+	esperar_handshake(socket_cpu_interrupt);
 	log_info(logger,"CPU Interrupt conectado en socket %d",socket_cpu_interrupt);
 	pthread_exit(0);
 }
 
 void* atender_kernel(){
 	socket_kernel = esperar_cliente(logger,socket_server_memoria);
+	esperar_handshake(socket_kernel);
 	log_info(logger,"Kernel conectado en socket %d",socket_kernel);
 	pthread_exit(0);
 }
 
 void* atender_io(){
 	socket_io = esperar_cliente(logger,socket_server_memoria);
+	esperar_handshake(socket_io);
 	log_info(logger,"I/O conectado en socket %d",socket_io);
 	pthread_exit(0);
 }
-
-

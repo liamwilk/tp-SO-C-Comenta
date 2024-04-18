@@ -25,8 +25,10 @@ t_config* config;
 
 t_entradasalida entradasalida;
 
-int iniciar_servidor(t_log*, int);
-int esperar_cliente(t_log*, int);
+pthread_t thread_conectar_kernel,thread_conectar_memoria;
+
+void* conectar_kernel();
+void* conectar_memoria();
 
 int socket_memoria;
 int socket_kernel;

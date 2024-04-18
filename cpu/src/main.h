@@ -20,19 +20,17 @@
 
 
 
-pthread_t dispatch,interrupt;
+pthread_t thread_atender_kernel_dispatch,thread_atender_kernel_interrupt,thread_conectar_memoria_dispatch,thread_conectar_memoria_interrupt;
 
 t_cpu cpu;
 
 t_log* logger;
 t_config* config;
 
-
-
-// Esto es para abrir sockets//////
-void* atender_kernel_dispatch();///
-void* atender_kernel_interrupt();//
-///////////////////////////////////
+void* atender_kernel_dispatch();
+void* atender_kernel_interrupt();
+void* conectar_memoria_dispatch();
+void* conectar_memoria_interrupt();
 
 int socket_kernel_dispatch;
 int socket_kernel_interrupt;
