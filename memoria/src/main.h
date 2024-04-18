@@ -18,7 +18,11 @@
 #include <utils/configs.h>
 #include <utils/serial.h>
 
-t_log* logger;
+t_log* logger_info;
+t_log* logger_error;
+t_log* logger_debug;
+t_log* logger_warning;
+t_log* logger_trace;
 t_config* config;
 
 t_memoria memoria;

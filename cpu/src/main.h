@@ -24,7 +24,12 @@ pthread_t thread_atender_kernel_dispatch,thread_atender_kernel_interrupt,thread_
 
 t_cpu cpu;
 
-t_log* logger;
+t_log* logger_info;
+t_log* logger_error;
+t_log* logger_debug;
+t_log* logger_warning;
+t_log* logger_trace;
+
 t_config* config;
 
 void* atender_kernel_dispatch();

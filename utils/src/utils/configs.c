@@ -21,12 +21,41 @@ t_config *iniciar_config(t_log *logger)
 	return nuevo_config;
 }
 
-t_log *iniciar_logger(char *nombreDelModulo)
+t_log *iniciar_logger(char *nombreDelModulo , t_log_level nivel)
 {
+
+	char* name_logfile;
+
+	switch (nivel)
+	{
+	case LOG_LEVEL_DEBUG:
+		name_logfile = "debug.log";
+		break;
+
+	case LOG_LEVEL_WARNING:
+		name_logfile = "warning.log";
+		break;
+
+	case LOG_LEVEL_ERROR:
+		name_logfile = "error.log";
+		break;
+	
+	case LOG_LEVEL_INFO:
+		name_logfile = "module.log";
+		break;
+	
+	case LOG_LEVEL_TRACE:
+		name_logfile = "trace.log";
+		break;
+
+	default:
+		name_logfile = "module.log";
+		break;
+	}
 
 	t_log *nuevo_logger;
 
-	nuevo_logger = log_create("module.log", nombreDelModulo, true, LOG_LEVEL_DEBUG);
+	nuevo_logger = log_create(name_logfile, nombreDelModulo, true, nivel);
 
 	if (nuevo_logger == NULL)
 	{
