@@ -23,14 +23,14 @@ jobs:
         cd commons
         sudo make install
 
-    - name: Clonar so-commons-library
+    - name: Clonar repositorio del TP
       uses: actions/checkout@v3
       with:
         repository: sisoputnfrba/tp-2024-1c-Operativos-y-los-Redonditos-de-Ricota
         ref: feature/makefile
         path: tp
 
-    - name: Probar compilacion correcta
+    - name: Probar compilacion correcta del TP
       run: |
         cd tp
         make compile
