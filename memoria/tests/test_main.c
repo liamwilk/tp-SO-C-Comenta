@@ -5,7 +5,7 @@
 
 int test_inicializacion(){
     describe("[MEMORIA] Test de module.config != NULL\n");
-    config = iniciar_config(logger_info123);
+    config = iniciar_config(logger_info);
     memoria = memoria_inicializar(config);
     test(sizeof(memoria) > 0);
     return 0;
