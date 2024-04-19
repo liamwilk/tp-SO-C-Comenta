@@ -24,7 +24,9 @@ jobs:
         sudo make install
 
     - name: Checkout repositorio
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4.1.2
+      with:
+        ref: feature/makefile
 
     - name: Ejecutar make compile
       run: make compile
