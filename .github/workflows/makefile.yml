@@ -2,9 +2,9 @@ name: Test de compilación
 
 on:
   push:
-    branches: [ "feature/makefile" ]
+    branches: "*"
   pull_request:
-    branches: [ "feature/makefile" ]
+    branches: "*"
 
 jobs:
   build:
@@ -27,7 +27,7 @@ jobs:
       uses: actions/checkout@v3
       with:
         repository: sisoputnfrba/tp-2024-1c-Operativos-y-los-Redonditos-de-Ricota
-        ref: feature/makefile
+        ref: ${{ github.event.pull_request.head.ref || github.ref }}
         path: tp
 
     - name: Probar compilacion correcta del TP
