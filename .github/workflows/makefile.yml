@@ -23,13 +23,14 @@ jobs:
         cd commons
         sudo make install
 
-    - name: Agregar archivo .gitignore
-      run: echo "cspec/cspecs/cspec.c" >> .gitignore
-  
-    - name: Checkout repositorio
-      uses: actions/checkout@v4.1.2
+    - name: Clonar so-commons-library
+      uses: actions/checkout@v3
       with:
+        repository: sisoputnfrba/tp-2024-1c-Operativos-y-los-Redonditos-de-Ricota
         ref: feature/makefile
+        path: tp
 
-    - name: Ejecutar make compile
-      run: make compile
+    - name: Probar compilacion correcta
+      run: |
+        cd tp
+        make compile
