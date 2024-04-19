@@ -23,6 +23,9 @@ jobs:
         cd commons
         sudo make install
 
+    - name: Agregar archivo .gitignore
+      run: echo "cspec/cspecs/cspec.c" >> .gitignore
+  
     - name: Checkout repositorio
       uses: actions/checkout@v4.1.2
       with:
