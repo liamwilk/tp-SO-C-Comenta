@@ -1,0 +1,30 @@
+name: Test de compilación
+
+on:
+  push:
+    branches: [ "feature/makefile" ]
+  pull_request:
+    branches: [ "feature/makefile" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    steps:
+    - name: Clonar so-commons-library
+      uses: actions/checkout@v3
+      with:
+        repository: sisoputnfrba/so-commons-library
+        ref: master
+        path: commons
+
+    - name: Instalar so-commons-library
+      run: |
+        cd commons
+        sudo make install
+
+    - name: Checkout repositorio
+      uses: actions/checkout@v3
+
+    - name: Ejecutar make compile
+      run: make compile
