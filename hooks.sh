@@ -9,22 +9,23 @@ setup_pre_commit_hook(){
         rm "$HOOK_FILE"
     fi
 
-    echo "Setting up pre-commit hook ..."
+    echo "Inicializando pre-commit hook ..."
     cp .git/hooks/pre-commit.sample "$HOOK_FILE"
     cat > "$HOOK_FILE" << EOF
 #!/bin/bash
 
-echo -e "\033[0;32mSetting up pre-commit hook ...\033[0m"
+echo -e "\033[0;32mInicializando pre-commit hook ...\033[0m"
 
-# Function to run tests in a directory
+
 run_tests() {
-    echo -e "\033[0;32m ✦✦ Ejecutando tests para $1 ✦✦ \033[0m"
-    cd "$1"
+    local module=\$1
+    echo -e "\033[0;32m ✦✦ Ejecutando tests para \$module ✦✦ \033[0m"
+    cd "\$module"
     make test
     cd ..
 }
 
-# Run tests for each directory
+# Se corren los tests para cada directorio
 run_tests "memoria"
 run_tests "cpu"
 run_tests "kernel"
