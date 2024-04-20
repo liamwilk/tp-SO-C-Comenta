@@ -29,11 +29,11 @@ all: debug
 
 .PHONY: debug
 debug: CFLAGS = $(CDEBUG)
-debug: $(BIN) $(TEST_BIN)
+debug: $(BIN)
 
 .PHONY: release
 release: CFLAGS = $(CRELEASE)
-release: $(BIN) $(TEST_BIN)
+release: $(BIN)
 
 .PHONY: clean
 clean:
@@ -43,20 +43,18 @@ clean:
 cpu: $(BIN)
 	./$(BIN)
 
-
 .PHONY: test
 test: $(TEST_BIN)
 	./$(TEST_BIN)
 
-
 $(BIN): $(OBJS) | $(dir $(BIN))
-	$(CC) $(CFLAGS) -o "$@" $^ $(IDIRS:%=-I%) $(LIBDIRS:%=-L%) $(LIBS:%=-l%)
+	$(CC) $(CFLAGS) -o "$@" $^ $(IDIRS:%=-I%) $(LIBDIRS:%=-L%) $(LIBS:%=-l%) 
 
 obj/%.o: src/%.c $(SRCS_H) $(DEPS) | $(dir $(OBJS))
 	$(CC) $(CFLAGS) -c -o "$@" $< $(IDIRS:%=-I%)
 
 $(TEST_BIN): $(TEST_OBJS) | $(dir $(TEST_BIN))
-	$(CC) $(CFLAGS) -o "$@" $^ $(IDIRS:%=-I%) $(LIBDIRS:%=-L%) $(LIBS:%=-l%)
+	$(CC) $(CFLAGS) -o "$@" $^ $(IDIRS:%=-I%) $(LIBDIRS:%=-L%) $(LIBS:%=-l%) -lcspecs
 
 obj/tests/%.o: tests/%.c $(SRCS_H) $(DEPS) | $(dir $(TEST_OBJS))
 	$(CC) $(CFLAGS) -c -o "$@" $< $(IDIRS:%=-I%)
