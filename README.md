@@ -3,6 +3,15 @@
 Esta es una plantilla de proyecto diseñada para generar un TP de Sistemas
 Operativos de la UTN FRBA.
 
+## Test cases
+
+En este tp utilizamos  `mumuki/cspec`, se tiene que habilitar globalmente como una biblioteca:
+
+```bash
+git clone https://github.com/mumuki/cspec.git
+cd cspec
+make install
+```
 
 ## Git hooks
 Para utilizar los pre-commits & git hooks:
@@ -15,7 +24,7 @@ sh hooks.sh
 Si queres saltearte las verificaciones:
 
 ```bash
-git commit -m "Mensaje comit" --no-verify
+git commit -m "Mensaje commit" --no-verify
 ```
 
 ## Dependencias
