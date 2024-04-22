@@ -17,7 +17,7 @@ int main() {
 	socket_server_interrupt = iniciar_servidor(logger,cpu.puertoEscuchaInterrupt);
 	log_info(logger, "Servidor Interrupt listo para recibir al cliente en Interrupt.");
 
-	// Abrimos los sockets de conexion
+	// Abro la conexion a Memoria y comienzo a atenderla.
 
 	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
 	pthread_join(thread_conectar_memoria,NULL);
@@ -37,6 +37,7 @@ int main() {
 	pthread_join(thread_conectar_kernel_interrupt,NULL);
 
 	// Dejo el ultimo en join para que el main no termine y el CPU no muera.
+	// TODO: Revisar esto, para ver que hay que hacer en cpu. Deberia ser temporal este fix.
 
 	pthread_create(&thread_atender_kernel_interrupt,NULL,atender_kernel_interrupt,NULL);
 	pthread_join(thread_atender_kernel_interrupt,NULL);
@@ -50,7 +51,7 @@ int main() {
 }
 void* conectar_memoria(){
 	socket_memoria = crear_conexion(logger,cpu.ipMemoria,cpu.puertoMemoria);
-	handshake(logger, logger,socket_memoria,1,"Memoria por Dispatch");
+	handshake(logger,socket_memoria,1,"Memoria por Dispatch");
 	log_info(logger,"Conectado a Memoria en socket %d",socket_memoria);
 	pthread_exit(0);
 }

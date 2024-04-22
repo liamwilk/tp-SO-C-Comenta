@@ -5,12 +5,11 @@
 int main() {
 
     logger = iniciar_logger("kernel" , LOG_LEVEL_INFO);
-
     config = iniciar_config(logger);
     kernel = kernel_inicializar(config);
 	kernel_log(kernel, logger);
 
-	// Creo las conexiones a Memoria, CPU Dispatch y CPU Interrupt
+	// Creo las conexiones a Memoria, CPU Dispatch y CPU Interrupt. Voy atendiendo las peticiones a medida que las abro.
 
 	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
 	pthread_join(thread_conectar_memoria,NULL);
@@ -39,6 +38,8 @@ int main() {
 	Atendemos las conexiones entrantes a Kernel desde IO.
 	Ahora mismo es Join, pero debería ser detached luego, cuando se implemente la consola interactiva.
 	Ese es el hilo que tiene que ser el join que mantiene vivo el main.
+
+	TODO: Implementar consola interactiva, y luego poner ese hilo con join y este con detach.
 	*/
 
 	pthread_create(&thread_conectar_io,NULL,conectar_io,NULL);
@@ -108,7 +109,7 @@ void* atender_io(void* args){
 
 void* conectar_memoria(){
 	socket_memoria = crear_conexion(logger,kernel.ipMemoria,kernel.puertoMemoria);
-	handshake(logger,logger,socket_memoria,1,"Memoria");
+	handshake(logger,socket_memoria,1,"Memoria");
 	log_info(logger,"Conectado a Memoria en socket %d",socket_memoria);
 	pthread_exit(0);
 }
@@ -144,7 +145,7 @@ void* atender_memoria(){
 
 void* conectar_cpu_dispatch(){
 	socket_cpu_dispatch = crear_conexion(logger,kernel.ipCpu,kernel.puertoCpuDispatch);
-	handshake(logger,  logger,socket_cpu_dispatch,1,"CPU Dispatch");
+	handshake(logger,socket_cpu_dispatch,1,"CPU Dispatch");
 	log_info(logger,"Conectado a CPU por Dispatch en socket %d",socket_cpu_dispatch);
 	pthread_exit(0);
 }
@@ -180,7 +181,7 @@ void* atender_cpu_dispatch(){
 
 void* conectar_cpu_interrupt(){
 	socket_cpu_interrupt = crear_conexion(logger,kernel.ipCpu,kernel.puertoCpuInterrupt);
-	handshake(logger,  logger,socket_cpu_interrupt,1,"CPU Interrupt");
+	handshake(logger,socket_cpu_interrupt,1,"CPU Interrupt");
 	log_info(logger,"Conectado a CPU por Interrupt en socket %d",socket_cpu_interrupt);
 	pthread_exit(0);
 }
