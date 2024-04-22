@@ -15,7 +15,8 @@
 typedef enum
 {
 	MENSAJE,
-	PAQUETE
+	PAQUETE,
+	DESCONECTAR
 } op_code;
 
 typedef struct
@@ -27,6 +28,7 @@ typedef struct
 typedef struct
 {
 	op_code codigo_operacion;
+	uint64_t size;
 	t_buffer *buffer;
 } t_paquete;
 
@@ -143,6 +145,8 @@ void buffer_destroy(t_buffer *buffer);
  * @param size
  */
 void buffer_read(t_buffer *buffer, void *data, uint32_t size);
+
+t_paquete *recibir_paquete(int socket);
 
 // con el debido casting de tipos de datos, ninguna de todas estas funciones sería necesaria
 

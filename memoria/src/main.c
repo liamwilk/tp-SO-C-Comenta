@@ -3,79 +3,121 @@
 
 int main() {
     
-    logger_info = iniciar_logger("memoria" , LOG_LEVEL_INFO);
-	logger_debug = iniciar_logger("memoria" , LOG_LEVEL_DEBUG);
-	logger_warning = iniciar_logger("memoria" , LOG_LEVEL_WARNING);
-	logger_error = iniciar_logger("memoria" , LOG_LEVEL_ERROR);
-	logger_trace = iniciar_logger("memoria" , LOG_LEVEL_TRACE);
-
-    config = iniciar_config(logger_error);
+    logger = iniciar_logger("memoria" , LOG_LEVEL_INFO);
+    config = iniciar_config(logger);
 	memoria = memoria_inicializar(config);
-	memoria_log(memoria, logger_info);
+	memoria_log(memoria, logger);
 
 	// Inicio el servidor de Memoria
 
-    socket_server_memoria = iniciar_servidor(logger_info,memoria.puertoEscucha);
-	log_info(logger_info, "Servidor listo para recibir al cliente");
-
-	// Atiendo las conexiones entrantes de CPU Dispatch, CPU Interrupt, Kernel y I/O, en ese orden.
-
-	pthread_create(&thread_atender_cpu_dispatch,NULL,atender_cpu,NULL);
-	pthread_join(thread_atender_cpu_dispatch,NULL);
-
-	pthread_create(&thread_atender_kernel,NULL,atender_kernel,NULL);
-	pthread_join(thread_atender_kernel,NULL);
-
-	pthread_create(&thread_atender_io,NULL,procesar_io,NULL);
+    socket_server_memoria = iniciar_servidor(logger,memoria.puertoEscucha);
+	log_info(logger, "Servidor listo para recibir al cliente");
 
 	/*
-	Aca va todo lo que hace Memoria, una vez que ya tiene todas las conexiones habilitadas a todos los Modulos.
+	Atiendo las conexiones entrantes de CPU y Kernel, en orden bloqueante para asegurar que son esos los clientes que se conectan.
+	A medida que habilito los sockets, empiezo a escuchar en esos sockets, con hilos detached para seguir conectando los demas.
 	*/
-	
-	// Espero al hilo de I/O
+
+	pthread_create(&thread_conectar_cpu,NULL,conectar_cpu,NULL);
+	pthread_join(thread_conectar_cpu,NULL);
+
+	pthread_create(&thread_atender_cpu,NULL,atender_cpu,NULL);
+	pthread_detach(thread_atender_cpu);
+
+	pthread_create(&thread_conectar_kernel,NULL,conectar_kernel,NULL);
+	pthread_join(thread_conectar_kernel,NULL);
+
+	pthread_create(&thread_atender_kernel,NULL,atender_kernel,NULL);
+	pthread_detach(thread_atender_kernel);
+
+	// Atiendo las conexiones de I/O en un hilo join, para que no finalice el main hasta que no de la orden Kernel.
+
+	pthread_create(&thread_atender_io,NULL,conectar_io,NULL);
 	pthread_join(thread_atender_io,NULL);
 
-	// Libero
+	// Libero todo
 
 	config_destroy(config);
-	log_destroy(logger_info);
-	log_destroy(logger_debug);
-	log_destroy(logger_warning);
-	log_destroy(logger_error);
-	log_destroy(logger_trace);
-	
-	liberar_conexion(socket_server_memoria);
-	liberar_conexion(socket_cpu);
-	liberar_conexion(socket_kernel);
+	log_destroy(logger);
 	
     return 0;
 }
 
-void* atender_cpu(){
-	socket_cpu = esperar_cliente(logger_info,socket_server_memoria);
+void* conectar_cpu(){
+	socket_cpu = esperar_cliente(logger,socket_server_memoria);
 	esperar_handshake(socket_cpu);
-	log_info(logger_info,"CPU conectado en socket %d",socket_cpu);
+	log_info(logger,"CPU conectado en socket %d",socket_cpu);
+	pthread_exit(0);
+}
+
+void* atender_cpu(){
+	while(kernel_orden_apagado){
+		log_info(logger,"Esperando paquete de CPU en socket %d",socket_cpu);
+		t_paquete* paquete = recibir_paquete(socket_cpu);
+
+		if(paquete == NULL){
+			log_warning(logger, "Conexión interrumpida con CPU. Cerrando socket %d", socket_cpu);
+			liberar_conexion(socket_cpu);
+			free(paquete);
+			pthread_exit(0);
+		}
+
+		switch(paquete->codigo_operacion){
+			case DESCONECTAR:
+				log_info(logger, "Solicitud de desconexion con CPU. Cerrando socket %d", socket_cpu);
+				liberar_conexion(socket_cpu);
+				free(paquete);
+				break;
+			default:
+				log_info(logger, "Operacion desconocida");
+				break;
+		}
+	}
+
+	log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion CPU.");
+
+	pthread_exit(0);
+}
+
+void* conectar_kernel(){
+	socket_kernel = esperar_cliente(logger,socket_server_memoria);
+	esperar_handshake(socket_kernel);
+	log_info(logger,"Kernel conectado en socket %d",socket_kernel);
 	pthread_exit(0);
 }
 
 void* atender_kernel(){
-	socket_kernel = esperar_cliente(logger_info,socket_server_memoria);
-	esperar_handshake(socket_kernel);
-	log_info(logger_info,"Kernel conectado en socket %d",socket_kernel);
+	while(kernel_orden_apagado){
+		log_info(logger,"Esperando paquete de Kernel en socket %d",socket_kernel);
+		t_paquete* paquete = recibir_paquete(socket_kernel);
+
+		if(paquete == NULL){
+			log_warning(logger, "Conexión interrumpida con Kernel. Cerrando socket %d", socket_kernel);
+			liberar_conexion(socket_kernel);
+			free(paquete);
+			pthread_exit(0);
+		}
+
+		switch(paquete->codigo_operacion){
+			case DESCONECTAR:
+				log_info(logger, "Solicitud de desconexion con Kernel. Cerrando socket %d", socket_kernel);
+				liberar_conexion(socket_cpu);
+				free(paquete);
+				break;
+			default:
+				log_info(logger, "Operacion desconocida");
+				break;
+		}
+	}
+
+	log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion Kernel.");
+
 	pthread_exit(0);
 }
 
-void* atender_io(void* args){
-	int socket_cliente = *(int *)args;
-	esperar_handshake(socket_cliente);
-	log_info(logger_info, "I/O conectado en: %d", socket_cliente);
-	// liberar_conexion(socket_cliente);
-	return NULL;
-}
-
-void* procesar_io(){
-	while(1){
-		int socket_cliente = esperar_cliente(logger_info, socket_server_memoria);
+void* conectar_io(){
+	while(kernel_orden_apagado){
+		int socket_cliente = esperar_cliente(logger, socket_server_memoria);
 
 		if(socket_cliente == -1){
 			break;
@@ -88,5 +130,39 @@ void* procesar_io(){
 		pthread_detach(hilo);
 	}
 
-	return NULL;
+	log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion I/O.");
+
+	pthread_exit(0);
+}
+
+void* atender_io(void* args){
+	int socket_cliente = *(int *)args;
+	esperar_handshake(socket_cliente);
+	log_info(logger, "I/O conectado en socket %d", socket_cliente);
+	free(args);
+
+	while(kernel_orden_apagado){
+		log_info(logger,"Esperando paquete de I/O en socket %d",socket_cliente);
+		t_paquete* paquete = recibir_paquete(socket_cliente);
+
+		if(paquete == NULL){
+			log_warning(logger, "Conexión interrumpida con I/O. Cerrando socket %d", socket_cliente);
+			liberar_conexion(socket_cliente);
+			free(paquete);
+			pthread_exit(0);
+		}
+
+		switch(paquete->codigo_operacion){
+			case DESCONECTAR:
+				log_info(logger, "Solicitud de desconexion con I/O. Cerrando socket %d", socket_cliente);
+				liberar_conexion(socket_cliente);
+				free(paquete);
+				break;
+			default:
+				log_info(logger, "Operacion desconocida");
+				break;
+		}
+	}
+
+	pthread_exit(0);
 }

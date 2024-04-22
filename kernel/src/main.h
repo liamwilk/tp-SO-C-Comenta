@@ -19,15 +19,8 @@
 #include <utils/serial.h>
 
 t_kernel kernel;
-
-t_log* logger_info;
-t_log* logger_error;
-t_log* logger_debug;
-t_log* logger_warning;
-t_log* logger_trace;
-
+t_log* logger;
 t_config* config;
-
 
 void terminar_programa(int, t_log*, t_config*);
 int esperar_cliente(t_log*, int);
@@ -37,14 +30,22 @@ void *recibir_buffer(int*,int);
 void* conectar_memoria();
 void* conectar_cpu_dispatch();
 void* conectar_cpu_interrupt();
-void* atender_io(void* args);
-void* procesar_io();
 
-pthread_t thread_atender_io,thread_conectar_memoria,thread_conectar_cpu_dispatch,thread_conectar_cpu_interrupt;
+void* atender_memoria();
+void* atender_cpu_dispatch();
+void* atender_cpu_interrupt();
+
+void* conectar_io();
+void* atender_io(void*);
+
+pthread_t thread_conectar_io,thread_conectar_memoria,thread_conectar_cpu_dispatch,thread_conectar_cpu_interrupt,thread_atender_memoria,thread_atender_cpu_dispatch,thread_atender_cpu_interrupt;
 
 int socket_server_kernel;
 int socket_memoria;
 int socket_cpu_interrupt;
 int socket_cpu_dispatch;
+
+// Cuando vale 0, es porque el Kernel ordeno a todos los modulos apagarse
+int kernel_orden_apagado = 1;
 
 #endif /* MAIN_H_ */
