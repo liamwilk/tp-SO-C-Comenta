@@ -16,11 +16,8 @@ int main() {
 
 	// Abrimos los sockets de conexion
 
-	pthread_create(&thread_conectar_memoria_dispatch,NULL,conectar_memoria_dispatch,NULL);
-	pthread_join(thread_conectar_memoria_dispatch,NULL);
-	
-	pthread_create(&thread_conectar_memoria_interrupt,NULL,conectar_memoria_interrupt,NULL);
-	pthread_join(thread_conectar_memoria_interrupt,NULL);
+	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
+	pthread_join(thread_conectar_memoria,NULL);
 
 	// Iniciamos los servidores de CPU (Dispatch y Interrupt)
 
@@ -55,8 +52,7 @@ int main() {
 
 	config_destroy(config);
 
-	liberar_conexion(socket_memoria_dispatch);
-	liberar_conexion(socket_memoria_interrupt);
+	liberar_conexion(socket_memoria);
 	liberar_conexion(socket_kernel_dispatch);
 	liberar_conexion(socket_kernel_interrupt);
 	liberar_conexion(socket_server_dispatch);
@@ -64,19 +60,13 @@ int main() {
 
 	return 0;
 }
-void* conectar_memoria_dispatch(){
-	socket_memoria_dispatch = crear_conexion(logger_info,cpu.ipMemoria,cpu.puertoMemoria);
-	handshake(logger_info, logger_error,socket_memoria_dispatch,1,"Memoria por Dispatch");
-	log_info(logger_info,"Conectado a Memoria por Dispatch en socket %d",socket_memoria_dispatch);
+void* conectar_memoria(){
+	socket_memoria = crear_conexion(logger_info,cpu.ipMemoria,cpu.puertoMemoria);
+	handshake(logger_info, logger_error,socket_memoria,1,"Memoria por Dispatch");
+	log_info(logger_info,"Conectado a Memoria en socket %d",socket_memoria);
 	pthread_exit(0);
 }
 
-void* conectar_memoria_interrupt(){
-	socket_memoria_interrupt = crear_conexion(logger_info,cpu.ipMemoria,cpu.puertoMemoria);
-	handshake(logger_info, logger_error,socket_memoria_interrupt,1,"Memoria por Interrupt");
-	log_info(logger_info,"Conectado a Memoria por Interrupt en socket %d",socket_memoria_interrupt);
-	pthread_exit(0);
-}
 
 void* atender_kernel_dispatch(){
 	socket_kernel_dispatch = esperar_cliente(logger_info,socket_server_dispatch);

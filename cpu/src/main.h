@@ -20,7 +20,7 @@
 
 
 
-pthread_t thread_atender_kernel_dispatch,thread_atender_kernel_interrupt,thread_conectar_memoria_dispatch,thread_conectar_memoria_interrupt;
+pthread_t thread_atender_kernel_dispatch,thread_atender_kernel_interrupt,thread_conectar_memoria;
 
 t_cpu cpu;
 
@@ -34,13 +34,11 @@ t_config* config;
 
 void* atender_kernel_dispatch();
 void* atender_kernel_interrupt();
-void* conectar_memoria_dispatch();
-void* conectar_memoria_interrupt();
+void* conectar_memoria();
 
 int socket_kernel_dispatch;
 int socket_kernel_interrupt;
-int socket_memoria_dispatch;
-int socket_memoria_interrupt;
+int socket_memoria;
 int socket_server_dispatch;
 int socket_server_interrupt;
 

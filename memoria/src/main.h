@@ -38,17 +38,15 @@ typedef struct
 } t_paqueteCliente;
 
 
-void* atender_cpu_dispatch();
-void* atender_cpu_interrupt();
+void* atender_cpu();
 void* atender_kernel();
-void* atender_io();
+void* atender_io(void* args);
+void* procesar_io();
 
 pthread_t thread_atender_cpu_dispatch,thread_atender_cpu_interrupt,thread_atender_kernel,thread_atender_io;
 
-int socket_cpu_dispatch;
-int socket_cpu_interrupt;
+int socket_cpu;
 int socket_kernel;
-int socket_io;
 int socket_server_memoria;
 
 #endif /* MAIN_H_ */

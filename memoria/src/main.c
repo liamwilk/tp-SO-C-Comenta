@@ -20,21 +20,20 @@ int main() {
 
 	// Atiendo las conexiones entrantes de CPU Dispatch, CPU Interrupt, Kernel y I/O, en ese orden.
 
-	pthread_create(&thread_atender_cpu_dispatch,NULL,atender_cpu_dispatch,NULL);
+	pthread_create(&thread_atender_cpu_dispatch,NULL,atender_cpu,NULL);
 	pthread_join(thread_atender_cpu_dispatch,NULL);
-
-	pthread_create(&thread_atender_cpu_interrupt,NULL,atender_cpu_interrupt,NULL);
-	pthread_join(thread_atender_cpu_interrupt,NULL);
 
 	pthread_create(&thread_atender_kernel,NULL,atender_kernel,NULL);
 	pthread_join(thread_atender_kernel,NULL);
 
-	pthread_create(&thread_atender_io,NULL,atender_io,NULL);
-	pthread_join(thread_atender_io,NULL);
+	pthread_create(&thread_atender_io,NULL,procesar_io,NULL);
 
 	/*
 	Aca va todo lo que hace Memoria, una vez que ya tiene todas las conexiones habilitadas a todos los Modulos.
 	*/
+	
+	// Espero al hilo de I/O
+	pthread_join(thread_atender_io,NULL);
 
 	// Libero
 
@@ -46,25 +45,16 @@ int main() {
 	log_destroy(logger_trace);
 	
 	liberar_conexion(socket_server_memoria);
-	liberar_conexion(socket_cpu_dispatch);
-	liberar_conexion(socket_cpu_interrupt);
+	liberar_conexion(socket_cpu);
 	liberar_conexion(socket_kernel);
-	liberar_conexion(socket_io);
 	
     return 0;
 }
 
-void* atender_cpu_dispatch(){
-	socket_cpu_dispatch = esperar_cliente(logger_info,socket_server_memoria);
-	esperar_handshake(socket_cpu_dispatch);
-	log_info(logger_info,"CPU Dispatch conectado en socket %d",socket_cpu_dispatch);
-	pthread_exit(0);
-}
-
-void* atender_cpu_interrupt(){
-	socket_cpu_interrupt = esperar_cliente(logger_info,socket_server_memoria);
-	esperar_handshake(socket_cpu_interrupt);
-	log_info(logger_info,"CPU Interrupt conectado en socket %d",socket_cpu_interrupt);
+void* atender_cpu(){
+	socket_cpu = esperar_cliente(logger_info,socket_server_memoria);
+	esperar_handshake(socket_cpu);
+	log_info(logger_info,"CPU conectado en socket %d",socket_cpu);
 	pthread_exit(0);
 }
 
@@ -75,9 +65,28 @@ void* atender_kernel(){
 	pthread_exit(0);
 }
 
-void* atender_io(){
-	socket_io = esperar_cliente(logger_info,socket_server_memoria);
-	esperar_handshake(socket_io);
-	log_info(logger_info,"I/O conectado en socket %d",socket_io);
-	pthread_exit(0);
+void* atender_io(void* args){
+	int socket_cliente = *(int *)args;
+	esperar_handshake(socket_cliente);
+	log_info(logger_info, "I/O conectado en: %d", socket_cliente);
+	// liberar_conexion(socket_cliente);
+	return NULL;
+}
+
+void* procesar_io(){
+	while(1){
+		int socket_cliente = esperar_cliente(logger_info, socket_server_memoria);
+
+		if(socket_cliente == -1){
+			break;
+		}
+
+		pthread_t hilo;
+		int* args = malloc(sizeof(int));
+		*args = socket_cliente;
+		pthread_create(&hilo, NULL, atender_io, args);
+		pthread_detach(hilo);
+	}
+
+	return NULL;
 }

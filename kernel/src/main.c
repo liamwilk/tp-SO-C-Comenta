@@ -32,12 +32,14 @@ int main() {
 
 	// Atendemos las conexiones entrantes a Kernel desde IO
 
-	pthread_create(&thread_atender_io,NULL,atender_io,NULL);
-	pthread_join(thread_atender_io,NULL);
+	pthread_create(&thread_atender_io,NULL,procesar_io,NULL);
+	
 
 	/*
 	Aca va lo que hace Kernel, una vez que ya tiene todas las conexiones con todos los modulos establecidas.
 	*/
+
+	pthread_join(thread_atender_io,NULL);
 
 	// Libero
 
@@ -59,11 +61,30 @@ int main() {
     return 0;
 }
 
-void* atender_io(){
-	socket_io = esperar_cliente(logger_info,socket_server_kernel);
-	esperar_handshake(socket_io);
-	log_info(logger_info,"I/O conectado en socket %d",socket_io);
-	pthread_exit(0);
+void* atender_io(void* args){
+	int socket_cliente = *(int *)args;
+	esperar_handshake(socket_cliente);
+	log_info(logger_info, "I/O conectado en: %d", socket_cliente);
+	// liberar_conexion(socket_cliente);
+	return NULL;
+}
+
+void* procesar_io(){
+	while(1){
+		int socket_cliente = esperar_cliente(logger_info, socket_server_kernel);
+
+		if(socket_cliente == -1){
+			break;
+		}
+
+		pthread_t hilo;
+		int* args = malloc(sizeof(int));
+		*args = socket_cliente;
+		pthread_create(&hilo, NULL, atender_io, args);
+		pthread_detach(hilo);
+	}
+
+	return NULL;
 }
 
 void* conectar_memoria(){

@@ -37,11 +37,11 @@ void *recibir_buffer(int*,int);
 void* conectar_memoria();
 void* conectar_cpu_dispatch();
 void* conectar_cpu_interrupt();
-void* atender_io();
+void* atender_io(void* args);
+void* procesar_io();
 
 pthread_t thread_atender_io,thread_conectar_memoria,thread_conectar_cpu_dispatch,thread_conectar_cpu_interrupt;
 
-int socket_io;
 int socket_server_kernel;
 int socket_memoria;
 int socket_cpu_interrupt;
