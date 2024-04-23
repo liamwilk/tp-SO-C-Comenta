@@ -98,7 +98,6 @@ void *atender_consola()
 				break;
 			}
 			free(separar_linea);
-			free(linea);
 		}
 		else
 		{
