@@ -11,7 +11,7 @@ int main() {
 	// Inicio el servidor de Memoria
 
     socket_server_memoria = iniciar_servidor(logger,memoria.puertoEscucha);
-	log_info(logger, "Servidor listo para recibir al cliente");
+	log_info(logger, "Servidor Memoria listo para recibir al cliente en socket %d",socket_server_memoria);
 
 	/*
 	Atiendo las conexiones entrantes de CPU y Kernel, en orden bloqueante para asegurar que son esos los clientes que se conectan.
@@ -69,13 +69,17 @@ void* atender_cpu(){
 				free(paquete);
 				pthread_exit(0);
 				break;
+			case TERMINAR:
+				log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion CPU.");
+				liberar_conexion(socket_cpu);
+				free(paquete);
+				kernel_orden_apagado=0;
+				pthread_exit(0);
 			default:
 				log_info(logger, "Operacion desconocida");
 				break;
 		}
 	}
-
-	log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion CPU.");
 
 	pthread_exit(0);
 }
@@ -102,10 +106,16 @@ void* atender_kernel(){
 		switch(paquete->codigo_operacion){
 			case DESCONECTAR:
 				log_info(logger, "Solicitud de desconexion con Kernel. Cerrando socket %d", socket_kernel);
-				liberar_conexion(socket_cpu);
+				liberar_conexion(socket_kernel);
 				free(paquete);
 				pthread_exit(0);
 				break;
+			case TERMINAR:
+				log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion CPU.");
+				liberar_conexion(socket_kernel);
+				free(paquete);
+				kernel_orden_apagado=0;
+				pthread_exit(0);
 			default:
 				log_info(logger, "Operacion desconocida");
 				break;
@@ -161,6 +171,12 @@ void* atender_io(void* args){
 				free(paquete);
 				pthread_exit(0);
 				break;
+			case TERMINAR:
+				log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion CPU.");
+				liberar_conexion(socket_cliente);
+				free(paquete);
+				kernel_orden_apagado=0;
+				pthread_exit(0);
 			default:
 				log_info(logger, "Operacion desconocida");
 				break;

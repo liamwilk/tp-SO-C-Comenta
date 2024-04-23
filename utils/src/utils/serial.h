@@ -16,7 +16,8 @@ typedef enum
 {
 	MENSAJE,
 	PAQUETE,
-	DESCONECTAR
+	DESCONECTAR,
+	TERMINAR
 } op_code;
 
 typedef struct
@@ -32,7 +33,7 @@ typedef struct
 	t_buffer *buffer;
 } t_paquete;
 
-t_paquete *crear_paquete(void);
+t_paquete *crear_paquete(op_code codigo_de_operacion);
 
 /**
  * @fn    serializar_paquete
