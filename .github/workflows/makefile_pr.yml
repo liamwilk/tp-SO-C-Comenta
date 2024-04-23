@@ -1,4 +1,4 @@
-name: Test de compilación
+name: (pull_request) Verificaciones automáticas
 
 on:
   pull_request:
