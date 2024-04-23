@@ -67,6 +67,7 @@ void* atender_cpu(){
 				log_info(logger, "Solicitud de desconexion con CPU. Cerrando socket %d", socket_cpu);
 				liberar_conexion(socket_cpu);
 				free(paquete);
+				pthread_exit(0);
 				break;
 			default:
 				log_info(logger, "Operacion desconocida");
@@ -103,6 +104,7 @@ void* atender_kernel(){
 				log_info(logger, "Solicitud de desconexion con Kernel. Cerrando socket %d", socket_kernel);
 				liberar_conexion(socket_cpu);
 				free(paquete);
+				pthread_exit(0);
 				break;
 			default:
 				log_info(logger, "Operacion desconocida");
@@ -157,6 +159,7 @@ void* atender_io(void* args){
 				log_info(logger, "Solicitud de desconexion con I/O. Cerrando socket %d", socket_cliente);
 				liberar_conexion(socket_cliente);
 				free(paquete);
+				pthread_exit(0);
 				break;
 			default:
 				log_info(logger, "Operacion desconocida");
