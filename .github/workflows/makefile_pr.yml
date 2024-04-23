@@ -1,7 +1,6 @@
-name: Test de compilación
+name: (pull_request) Verificaciones automáticas
 
 on:
-  push:
   pull_request:
 
 jobs:
@@ -20,7 +19,18 @@ jobs:
       run: |
         cd commons
         sudo make install
+    - name: Clonar mumuki/cspec
+      uses: actions/checkout@v3
+      with:
+        repository: mumuki/cspec
+        ref: master
+        path: cspec
 
+    - name: Instalar mumuki/cspec
+      run: |
+        cd cspec
+        sudo make install
+    
     - name: Clonar repositorio del TP
       uses: actions/checkout@v3
       with:
@@ -32,3 +42,7 @@ jobs:
       run: |
         cd tp
         make compile
+    - name: Ejecutar tests de todos los modulos
+      run: |
+        cd tp
+        make test
