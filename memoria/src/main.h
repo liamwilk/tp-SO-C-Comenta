@@ -18,37 +18,25 @@
 #include <utils/configs.h>
 #include <utils/serial.h>
 
-t_log* logger_info;
-t_log* logger_error;
-t_log* logger_debug;
-t_log* logger_warning;
-t_log* logger_trace;
+t_log* logger;
 t_config* config;
-
 t_memoria memoria;
 
+void* conectar_cpu();
+void* conectar_kernel();
+void* conectar_io();
 
-typedef struct 
-{
-    t_log* logger;
-	char* ip;
-    int puerto;
-	int socket;
-	char* mensaje;
-} t_paqueteCliente;
-
-
-void* atender_cpu_dispatch();
-void* atender_cpu_interrupt();
+void* atender_cpu();
 void* atender_kernel();
-void* atender_io();
+void* atender_io(void*);
 
-pthread_t thread_atender_cpu_dispatch,thread_atender_cpu_interrupt,thread_atender_kernel,thread_atender_io;
+pthread_t thread_atender_cpu,thread_atender_kernel,thread_atender_io,thread_conectar_cpu,thread_conectar_kernel;
 
-int socket_cpu_dispatch;
-int socket_cpu_interrupt;
+int socket_cpu;
 int socket_kernel;
-int socket_io;
 int socket_server_memoria;
+
+// Cuando vale 0, es porque el Kernel ordeno a todos los modulos apagarse
+int kernel_orden_apagado = 1;
 
 #endif /* MAIN_H_ */

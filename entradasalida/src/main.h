@@ -18,16 +18,8 @@
 #include <utils/configs.h>
 #include <utils/serial.h>
 
-int socketMemoria;
-
-t_log* logger_info;
-t_log* logger_error;
-t_log* logger_debug;
-t_log* logger_warning;
-t_log* logger_trace;
-
+t_log* logger;
 t_config* config;
-
 t_entradasalida entradasalida;
 
 pthread_t thread_conectar_kernel,thread_conectar_memoria;

@@ -18,30 +18,27 @@
 #include <utils/configs.h>
 #include <utils/serial.h>
 
-
-
-pthread_t thread_atender_kernel_dispatch,thread_atender_kernel_interrupt,thread_conectar_memoria_dispatch,thread_conectar_memoria_interrupt;
-
 t_cpu cpu;
-
-t_log* logger_info;
-t_log* logger_error;
-t_log* logger_debug;
-t_log* logger_warning;
-t_log* logger_trace;
-
+t_log* logger;
 t_config* config;
 
 void* atender_kernel_dispatch();
 void* atender_kernel_interrupt();
-void* conectar_memoria_dispatch();
-void* conectar_memoria_interrupt();
+void* atender_memoria();
+
+void* conectar_kernel_dispatch();
+void* conectar_kernel_interrupt();
+void* conectar_memoria();
 
 int socket_kernel_dispatch;
 int socket_kernel_interrupt;
-int socket_memoria_dispatch;
-int socket_memoria_interrupt;
+int socket_memoria;
 int socket_server_dispatch;
 int socket_server_interrupt;
+
+pthread_t thread_atender_kernel_dispatch,thread_atender_kernel_interrupt,thread_conectar_memoria,thread_atender_memoria,thread_conectar_kernel_dispatch,thread_conectar_kernel_interrupt;
+
+// Cuando vale 0, es porque el Kernel ordeno a todos los modulos apagarse
+int kernel_orden_apagado = 1;
 
 #endif /* MAIN_H_ */

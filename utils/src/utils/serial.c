@@ -88,6 +88,44 @@ void *recibir_buffer(int *size, int socket_cliente)
 	return buffer;
 }
 
+t_paquete *recibir_paquete(int socket)
+{
+	t_paquete *ret = malloc(sizeof(t_paquete));
+
+	// Obtengo el tamanio del paquete
+	uint64_t *size = malloc(sizeof(uint64_t));
+	if (recv(socket, size, sizeof(uint64_t), MSG_WAITALL) < 1)
+	{
+		free(ret);
+		free(size);
+		return NULL;
+	}
+
+	ret->size = *size;
+	free(size);
+
+	// Obtengo el opcode
+	op_code *opcode = malloc(sizeof(op_code));
+	if (recv(socket, opcode, sizeof(op_code), MSG_WAITALL) < 1)
+	{
+		free(ret);
+		free(opcode);
+		return NULL;
+	}
+	ret->codigo_operacion = *opcode;
+	free(opcode);
+
+	// Obtengo el buffer
+	ret->buffer = malloc(ret->size);
+	if (ret->size != 0 && recv(socket, ret->buffer, ret->size, MSG_WAITALL) < 1)
+	{
+		free(ret->buffer);
+		free(ret);
+		return NULL;
+	}
+	return ret;
+}
+
 int recibir_operacion(int socket_cliente)
 {
 	int cod_op;
