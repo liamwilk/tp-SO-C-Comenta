@@ -90,7 +90,6 @@ void *atender_consola()
 				break;
 			case FINALIZAR:
 				kernel_orden_apagado = 0;
-				free(linea);
 				break;
 
 			default:
@@ -98,6 +97,7 @@ void *atender_consola()
 				break;
 			}
 			free(separar_linea);
+			free(linea);
 		}
 		else
 		{
