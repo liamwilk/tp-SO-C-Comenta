@@ -7,6 +7,7 @@
 #include<commons/string.h>
 #include<commons/config.h>
 #include<readline/readline.h>
+#include<readline/history.h>
 #include<sys/socket.h>
 #include<netdb.h>
 #include<unistd.h>
@@ -38,7 +39,9 @@ void* atender_cpu_interrupt();
 void* conectar_io();
 void* atender_io(void*);
 
-pthread_t thread_conectar_io,thread_conectar_memoria,thread_conectar_cpu_dispatch,thread_conectar_cpu_interrupt,thread_atender_memoria,thread_atender_cpu_dispatch,thread_atender_cpu_interrupt;
+void* atender_consola();
+
+pthread_t thread_conectar_io,thread_conectar_memoria,thread_conectar_cpu_dispatch,thread_conectar_cpu_interrupt,thread_atender_memoria,thread_atender_cpu_dispatch,thread_atender_cpu_interrupt,thread_atender_consola;
 
 int socket_server_kernel;
 int socket_memoria;

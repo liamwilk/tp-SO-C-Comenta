@@ -32,19 +32,16 @@ int main() {
     // Inicio server Kernel
 
 	socket_server_kernel = iniciar_servidor(logger,kernel.puertoEscucha);
-	log_info(logger, "Servidor listo para recibir clientes.");
+	log_info(logger, "Servidor listo para recibir clientes en socket %d.",socket_server_kernel);
 
-	/*
-	Atendemos las conexiones entrantes a Kernel desde IO.
-	Ahora mismo es Join, pero debería ser detached luego, cuando se implemente la consola interactiva.
-	Ese es el hilo que tiene que ser el join que mantiene vivo el main.
-
-	TODO: Implementar consola interactiva, y luego poner ese hilo con join y este con detach.
-	*/
+	// Conecto interfaces de I/O y levanto consola interactiva (en join para que no finalice el main hasta que el usuario termine)
 
 	pthread_create(&thread_conectar_io,NULL,conectar_io,NULL);
-	pthread_join(thread_conectar_io,NULL);
-
+	pthread_detach(thread_conectar_io);
+ 
+	pthread_create(&thread_atender_consola,NULL,atender_consola,NULL);
+	pthread_join(thread_atender_consola,NULL);
+	
 	// Libero
 
 	log_destroy(logger);
@@ -53,8 +50,36 @@ int main() {
     return 0;
 }
 
+void* atender_consola() {
+    char *linea;
+
+    while (kernel_orden_apagado) { 
+
+        linea = readline("\n> ");
+        if (linea) {
+            add_history(linea);
+            log_info(logger, "%s", linea);
+
+            // TODO: Validar el comando (descomponerlo, analizarlo) y luego tomar acción en base a eso (enviarlo a algun lado internamente, procesarlo).
+
+            if (strcmp(linea, "TERMINAR") == 0) {
+                kernel_orden_apagado = 0;
+                free(linea);
+                break; 
+            }
+            free(linea);
+        } else {
+            kernel_orden_apagado = 0;
+            break;
+        }
+    }
+
+    pthread_exit(0);
+}
+
 void* conectar_io(){
 	while(kernel_orden_apagado){
+		log_debug(logger,"Estoy esperando");
 		int socket_cliente = esperar_cliente(logger, socket_server_kernel);
 
 		if(socket_cliente == -1){
@@ -97,13 +122,17 @@ void* atender_io(void* args){
 				free(paquete);
 				pthread_exit(0);
 				break;
+			case TERMINAR:
+				log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion I/O.");
+				liberar_conexion(socket_cliente);
+				free(paquete);
+				kernel_orden_apagado=0;
+				pthread_exit(0);
 			default:
 				log_info(logger, "Operacion desconocida");
 				break;
 		}
 	}
-
-	log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion I/O.");
 
 	pthread_exit(0);
 }
@@ -134,13 +163,17 @@ void* atender_memoria(){
 				free(paquete);
 				pthread_exit(0);
 				break;
+			case TERMINAR:
+				log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion Memoria.");
+				liberar_conexion(socket_memoria);
+				free(paquete);
+				kernel_orden_apagado=0;
+				pthread_exit(0);
 			default:
 				log_info(logger, "Operacion desconocida");
 				break;
 		}
 	}
-
-	log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion Memoria.");
 
 	pthread_exit(0);
 }
@@ -171,13 +204,17 @@ void* atender_cpu_dispatch(){
 				free(paquete);
 				pthread_exit(0);
 				break;
+			case TERMINAR:
+				log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion CPU Dispatch.");
+				liberar_conexion(socket_cpu_dispatch);
+				free(paquete);
+				kernel_orden_apagado=0;
+				pthread_exit(0);
 			default:
 				log_info(logger, "Operacion desconocida");
 				break;
 		}
 	}
-
-	log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion CPU Dispatch.");
 
 	pthread_exit(0);
 }
@@ -208,13 +245,17 @@ void* atender_cpu_interrupt(){
 				free(paquete);
 				pthread_exit(0);
 				break;
+			case TERMINAR:
+				log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion CPU Interrupt.");
+				liberar_conexion(socket_cpu_interrupt);
+				free(paquete);
+				kernel_orden_apagado=0;
+				pthread_exit(0);
 			default:
 				log_info(logger, "Operacion desconocida");
 				break;
 		}
 	}
-
-	log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion CPU Interrupt.");
 
 	pthread_exit(0);
 }
