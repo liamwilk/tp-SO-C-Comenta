@@ -24,11 +24,11 @@ jobs:
       with:
         repository: mumuki/cspec
         ref: master
-        path: mumuki
+        path: cspec
 
     - name: Instalar mumuki/cspec
       run: |
-        cd mumuki/cspec
+        cd cspec
         sudo make install
     
     - name: Clonar repositorio del TP
