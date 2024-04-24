@@ -93,10 +93,13 @@ void* atender_kernel_dispatch(){
 
 		switch(cod_op){
 			case TERMINAR:
-				log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion Kernel Dispatch.");
-				liberar_conexion(socket_kernel_dispatch);
 				kernel_orden_apagado=0;
-				pthread_exit(0);
+				liberar_conexion(socket_kernel_dispatch);
+				liberar_conexion(socket_kernel_interrupt);
+				liberar_conexion(socket_server_dispatch);
+				liberar_conexion(socket_memoria);
+				liberar_conexion(socket_server_interrupt);
+				break;
 			default:
 				log_info(logger, "Operacion desconocida");
 				break;
@@ -119,12 +122,12 @@ void* atender_kernel_interrupt(){
 		int cod_op = recibir_operacion(socket_kernel_interrupt);
 
 		switch(cod_op){
-			case TERMINAR:
-				log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion Kernel Interrupt.");
-				liberar_conexion(socket_kernel_interrupt);
-				kernel_orden_apagado=0;
+			case MENSAJE:
+				//placeholder
 			default:
-				log_info(logger, "Operacion desconocida");
+				if(kernel_orden_apagado!=0){
+					log_info(logger, "Operacion desconocida");
+				}
 				break;
 		}
 	}
