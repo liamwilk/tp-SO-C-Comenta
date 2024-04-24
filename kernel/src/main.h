@@ -41,6 +41,33 @@ void* atender_io(void*);
 
 void* atender_consola();
 
+// Definición del array de strings
+char* FuncionesStrings[] = {
+    "EJECUTAR_SCRIPT",
+    "INICIAR_PROCESO",
+    "FINALIZAR_PROCESO",
+    "DETENER_PLANIFICACION",
+    "INICIAR_PLANIFICACION",
+    "MULTIPROGRAMACION",
+    "PROCESO_ESTADO",
+    "FINALIZAR"
+};
+
+typedef enum{
+    EJECUTAR_SCRIPT,
+    INICIAR_PROCESO,
+    FINALIZAR_PROCESO,
+    DETENER_PLANIFICACION,
+    INICIAR_PLANIFICACION,
+    MULTIPROGRAMACION,
+    PROCESO_ESTADO,
+    FINALIZAR,
+    NUM_FUNCIONES // siempre mantener este al final para saber el tamaño del enum
+} funciones;
+
+
+funciones obtener_funcion(char* funcion);
+
 pthread_t thread_conectar_io,thread_conectar_memoria,thread_conectar_cpu_dispatch,thread_conectar_cpu_interrupt,thread_atender_memoria,thread_atender_cpu_dispatch,thread_atender_cpu_interrupt,thread_atender_consola;
 
 int socket_server_kernel;
