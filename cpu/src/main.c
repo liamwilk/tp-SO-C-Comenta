@@ -65,13 +65,13 @@ void* atender_memoria(){
 		int cod_op = recibir_operacion(socket_memoria);
 
 		switch(cod_op){
-			case DESCONECTAR:
+			case MENSAJE:
+				// Placeholder
+				break;
+			default:
 				log_info(logger, "Solicitud de desconexion con Memoria. Cerrando socket %d", socket_memoria);
 				liberar_conexion(socket_memoria);
 				pthread_exit(0);
-				break;
-			default:
-				log_info(logger, "Operacion desconocida");
 				break;
 		}
 	}
@@ -92,11 +92,6 @@ void* atender_kernel_dispatch(){
 		int cod_op = recibir_operacion(socket_kernel_dispatch);
 
 		switch(cod_op){
-			case DESCONECTAR:
-				log_info(logger, "Solicitud de desconexion con Kernel. Cerrando socket %d", socket_kernel_dispatch);
-				liberar_conexion(socket_kernel_dispatch);
-				pthread_exit(0);
-				break;
 			case TERMINAR:
 				log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion Kernel Dispatch.");
 				liberar_conexion(socket_kernel_dispatch);
@@ -124,11 +119,6 @@ void* atender_kernel_interrupt(){
 		int cod_op = recibir_operacion(socket_kernel_interrupt);
 
 		switch(cod_op){
-			case DESCONECTAR:
-				log_info(logger, "Solicitud de desconexion con Kernel Interrupt. Cerrando socket %d", socket_kernel_interrupt);
-				liberar_conexion(socket_kernel_interrupt);
-				pthread_exit(0);
-				break;
 			case TERMINAR:
 				log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion Kernel Interrupt.");
 				liberar_conexion(socket_kernel_interrupt);
