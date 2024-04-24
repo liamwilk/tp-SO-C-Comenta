@@ -2,18 +2,38 @@
 
 void *serializar_paquete(t_paquete *paquete, int bytes)
 {
-	void *magic = malloc(bytes);
+	void *buffer = malloc(bytes);
 	int desplazamiento = 0;
 
-	memcpy(magic + desplazamiento, &(paquete->codigo_operacion), sizeof(int));
+	memcpy(buffer + desplazamiento, &(paquete->codigo_operacion), sizeof(int));
 	desplazamiento += sizeof(int);
-	memcpy(magic + desplazamiento, &(paquete->buffer->size), sizeof(int));
+	memcpy(buffer + desplazamiento, &(paquete->buffer->size), sizeof(int));
 	desplazamiento += sizeof(int);
-	memcpy(magic + desplazamiento, paquete->buffer->stream, paquete->buffer->size);
+	memcpy(buffer + desplazamiento, paquete->buffer->stream, paquete->buffer->size);
 	desplazamiento += paquete->buffer->size;
 
-	return magic;
+	return buffer;
 };
+
+t_paquete *deserializar_paquete(void *buffer_serializado)
+{
+
+	t_paquete *paquete = malloc(sizeof(t_paquete));
+	paquete->buffer = malloc(sizeof(t_buffer));
+
+	int desplazamiento = 0;
+
+	memcpy(&(paquete->codigo_operacion), buffer_serializado + desplazamiento, sizeof(int));
+	desplazamiento += sizeof(int);
+
+	memcpy(&(paquete->buffer->size), buffer_serializado + desplazamiento, sizeof(int));
+	desplazamiento += sizeof(int);
+
+	paquete->buffer->stream = malloc(paquete->buffer->size);
+	memcpy(paquete->buffer->stream, buffer_serializado + desplazamiento, paquete->buffer->size);
+
+	return paquete;
+}
 
 void enviar_mensaje(char *mensaje, int socket_cliente)
 {
@@ -47,6 +67,7 @@ t_paquete *crear_paquete(op_code codigo_de_operacion)
 	t_paquete *paquete = malloc(sizeof(t_paquete));
 	paquete->codigo_operacion = codigo_de_operacion;
 	crear_buffer(paquete);
+
 	return paquete;
 };
 
@@ -64,9 +85,7 @@ void enviar_paquete(t_paquete *paquete, int socket_cliente)
 {
 	int bytes = paquete->buffer->size + 2 * sizeof(int);
 	void *a_enviar = serializar_paquete(paquete, bytes);
-
 	send(socket_cliente, a_enviar, bytes, 0);
-
 	free(a_enviar);
 }
 
@@ -88,6 +107,7 @@ void *recibir_buffer(int *size, int socket_cliente)
 	return buffer;
 }
 
+// No usar, esto no funciona
 t_paquete *recibir_paquete(int socket)
 {
 	t_paquete *ret = malloc(sizeof(t_paquete));
@@ -136,49 +156,4 @@ int recibir_operacion(int socket_cliente)
 		close(socket_cliente);
 		return -1;
 	}
-}
-
-t_buffer *buffer_create(uint32_t size)
-{
-	t_buffer *buffer = malloc(sizeof(t_buffer)); // reservamos memoria para almacenar en algún lugar los datos del buffer
-	buffer->stream = NULL;
-	buffer->size = size;
-	return buffer;
-}
-
-void buffer_destroy(t_buffer *buffer)
-{
-	free(buffer->stream);
-	free(buffer);
-}
-
-void buffer_add(t_buffer *buffer, void *data, uint32_t size)
-{
-	buffer->stream = realloc(buffer->stream, (size + sizeof(uint32_t)));				 // expandimos el tamaño del stream que almacena el buffer
-	memcpy(buffer->stream + buffer->size, &size, sizeof(uint32_t));						 // copiamos el tamaño del próximo dato que almacena
-	memcpy(buffer->stream + buffer->size + buffer->size + sizeof(uint32_t), data, size); // copiamos el dato en cuestión
-}
-
-void buffer_read(t_buffer *buffer, void *data, uint32_t size)
-{
-
-	if (buffer == NULL || buffer->stream == NULL)
-	{
-		printf("ERROR: el puntero a buffer no apunta a ningun buffer \n");
-		return; // de esta forma se evitan los condicionales anidados
-	}
-
-	if (buffer->size == 0 || size == 0)
-	{
-		printf("ERROR: no hay datos para leer en el buffer \n");
-		return;
-	}
-
-	if (buffer->size < size)
-	{
-		printf("ERROR: el buffer es menor a la cantidad de memoria que se desea leer \n");
-		return;
-	}
-
-	memcpy(data, buffer->stream, size);
 }

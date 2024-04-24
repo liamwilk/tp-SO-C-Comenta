@@ -13,7 +13,7 @@ int main() {
 
 	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
 	pthread_join(thread_conectar_memoria,NULL);
-
+	
 	pthread_create(&thread_conectar_kernel,NULL,conectar_kernel,NULL);
 	pthread_join(thread_conectar_kernel,NULL);
 
@@ -38,7 +38,9 @@ void* conectar_memoria(){
 }
 
 void* conectar_kernel(){
+	printf("solicitando crear conexion");
 	socket_kernel = crear_conexion(logger,entradasalida.ipKernel,entradasalida.puertoKernel);
+	printf("haciendo handshake");
 	handshake(logger,socket_kernel,1,"Kernel");
 	log_info(logger,"Conectado a Kernel en socket %d",socket_kernel);
 	pthread_exit(0);

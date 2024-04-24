@@ -23,13 +23,13 @@ int main() {
 
 	pthread_create(&thread_atender_cpu,NULL,atender_cpu,NULL);
 	pthread_detach(thread_atender_cpu);
-
+	
 	pthread_create(&thread_conectar_kernel,NULL,conectar_kernel,NULL);
 	pthread_join(thread_conectar_kernel,NULL);
 
 	pthread_create(&thread_atender_kernel,NULL,atender_kernel,NULL);
 	pthread_detach(thread_atender_kernel);
-
+	
 	// Atiendo las conexiones de I/O en un hilo join, para que no finalice el main hasta que no de la orden Kernel.
 
 	pthread_create(&thread_atender_io,NULL,conectar_io,NULL);
@@ -53,30 +53,16 @@ void* conectar_cpu(){
 void* atender_cpu(){
 	while(kernel_orden_apagado){
 		log_info(logger,"Esperando paquete de CPU en socket %d",socket_cpu);
-		t_paquete* paquete = recibir_paquete(socket_cpu);
+		int cod_op = recibir_operacion(socket_cpu);
 
-		if(paquete == NULL){
-			log_warning(logger, "Conexión interrumpida con CPU. Cerrando socket %d", socket_cpu);
-			liberar_conexion(socket_cpu);
-			free(paquete);
-			pthread_exit(0);
-		}
-
-		switch(paquete->codigo_operacion){
-			case DESCONECTAR:
+		switch(cod_op){
+			case MENSAJE:
+				// placeholder
+				break;
+			default:
 				log_info(logger, "Solicitud de desconexion con CPU. Cerrando socket %d", socket_cpu);
 				liberar_conexion(socket_cpu);
-				free(paquete);
 				pthread_exit(0);
-				break;
-			case TERMINAR:
-				log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion CPU.");
-				liberar_conexion(socket_cpu);
-				free(paquete);
-				kernel_orden_apagado=0;
-				pthread_exit(0);
-			default:
-				log_info(logger, "Operacion desconocida");
 				break;
 		}
 	}
@@ -94,26 +80,12 @@ void* conectar_kernel(){
 void* atender_kernel(){
 	while(kernel_orden_apagado){
 		log_info(logger,"Esperando paquete de Kernel en socket %d",socket_kernel);
-		t_paquete* paquete = recibir_paquete(socket_kernel);
+		int cod_op = recibir_operacion(socket_kernel);
 
-		if(paquete == NULL){
-			log_warning(logger, "Conexión interrumpida con Kernel. Cerrando socket %d", socket_kernel);
-			liberar_conexion(socket_kernel);
-			free(paquete);
-			pthread_exit(0);
-		}
-
-		switch(paquete->codigo_operacion){
-			case DESCONECTAR:
-				log_info(logger, "Solicitud de desconexion con Kernel. Cerrando socket %d", socket_kernel);
-				liberar_conexion(socket_kernel);
-				free(paquete);
-				pthread_exit(0);
-				break;
+		switch(cod_op){
 			case TERMINAR:
 				log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion CPU.");
 				liberar_conexion(socket_kernel);
-				free(paquete);
 				kernel_orden_apagado=0;
 				pthread_exit(0);
 			default:
@@ -155,30 +127,16 @@ void* atender_io(void* args){
 
 	while(kernel_orden_apagado){
 		log_info(logger,"Esperando paquete de I/O en socket %d",socket_cliente);
-		t_paquete* paquete = recibir_paquete(socket_cliente);
+		int cod_op = recibir_operacion(socket_cliente);
 
-		if(paquete == NULL){
-			log_warning(logger, "Conexión interrumpida con I/O. Cerrando socket %d", socket_cliente);
-			liberar_conexion(socket_cliente);
-			free(paquete);
-			pthread_exit(0);
-		}
-
-		switch(paquete->codigo_operacion){
-			case DESCONECTAR:
+		switch(cod_op){
+			case MENSAJE:
+				// placeholder
+				break;
+			default:
 				log_info(logger, "Solicitud de desconexion con I/O. Cerrando socket %d", socket_cliente);
 				liberar_conexion(socket_cliente);
-				free(paquete);
 				pthread_exit(0);
-				break;
-			case TERMINAR:
-				log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion CPU.");
-				liberar_conexion(socket_cliente);
-				free(paquete);
-				kernel_orden_apagado=0;
-				pthread_exit(0);
-			default:
-				log_info(logger, "Operacion desconocida");
 				break;
 		}
 	}
