@@ -28,8 +28,8 @@ typedef struct
 
 typedef struct
 {
-	op_code codigo_operacion;
-	uint64_t size;
+	op_code codigo_operacion; // Header
+	int size;
 	t_buffer *buffer;
 } t_paquete;
 
@@ -108,44 +108,6 @@ void recibir_mensaje(t_log *logger, int socket_cliente);
  * @param socket_cliente
  */
 int recibir_operacion(int socket_cliente);
-
-/*--------BUFFERS--------*/
-
-/**
- *
- * @fn    buffer_create
- * @brief Crea un buffer vacío de tamaño size y offset 0
- * @param size
- */
-t_buffer *buffer_create(uint32_t size);
-
-/**
- *
- * @fn    buffer_add
- * @brief Agrega un stream al buffer en la posición actual y avanza el offset
- * @param buffer
- * @param data
- * @param size
- */
-void buffer_add(t_buffer *buffer, void *data, uint32_t size);
-
-/**
- *
- * @fn    buffer_destroy
- * @brief Libera la memoria asociada al buffer
- * @param buffer
- */
-void buffer_destroy(t_buffer *buffer);
-
-/**
- *
- * @fn    buffer_destroy
- * @brief Guarda size bytes del principio del buffer en la dirección data y avanza el offset
- * @param buffer
- * @param data
- * @param size
- */
-void buffer_read(t_buffer *buffer, void *data, uint32_t size);
 
 t_paquete *recibir_paquete(int socket);
 
