@@ -9,11 +9,6 @@ int main()
 	config = iniciar_config(logger);
 	kernel = kernel_inicializar(config);
 	kernel_log(kernel, logger);
-
-	// Creo paquete de shut-down
-
-	t_paquete* terminar = crear_paquete(TERMINAR);
-	terminar->size = sizeof(terminar->buffer);
 	
 	// Creo las conexiones a Memoria, CPU Dispatch y CPU Interrupt. Voy atendiendo las peticiones a medida que las abro.
 
@@ -60,6 +55,8 @@ void *atender_consola()
 {
 	char *linea;
 
+	t_paquete* finalizar = crear_paquete(TERMINAR);
+
 	while (kernel_orden_apagado)
 	{
 
@@ -95,6 +92,14 @@ void *atender_consola()
 				break;
 			case FINALIZAR:
 				kernel_orden_apagado = 0;
+				// se lo mando solo a cpu dispatch porque es lo mismo, con que le llegue a un modulo de cpu ya impacta a todo el modulo
+				enviar_paquete(finalizar,socket_cpu_dispatch);
+				// memoria no va a terminar hasta que primero se conecte IO, porque hay un hilo join esperando la conexion de IO.
+				enviar_paquete(finalizar,socket_memoria);
+				liberar_conexion(socket_cpu_dispatch);
+				liberar_conexion(socket_cpu_interrupt);
+				liberar_conexion(socket_memoria);
+				liberar_conexion(socket_server_kernel);
 				break;
 
 			default:

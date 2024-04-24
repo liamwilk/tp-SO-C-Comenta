@@ -84,10 +84,11 @@ void* atender_kernel(){
 
 		switch(cod_op){
 			case TERMINAR:
-				log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion CPU.");
-				liberar_conexion(socket_kernel);
 				kernel_orden_apagado=0;
-				pthread_exit(0);
+				liberar_conexion(socket_kernel);
+				liberar_conexion(socket_cpu);
+				liberar_conexion(socket_server_memoria);
+				break;
 			default:
 				log_info(logger, "Operacion desconocida");
 				break;
