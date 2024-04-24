@@ -28,7 +28,7 @@ typedef struct
 
 typedef struct
 {
-	op_code codigo_operacion;
+	op_code codigo_operacion; // Header
 	int size;
 	t_buffer *buffer;
 } t_paquete;
@@ -109,7 +109,6 @@ void recibir_mensaje(t_log *logger, int socket_cliente);
  */
 int recibir_operacion(int socket_cliente);
 
-t_paquete *deserializar_paquete(void *buffer_serializado);
 t_paquete *recibir_paquete(int socket);
 
 // con el debido casting de tipos de datos, ninguna de todas estas funciones sería necesaria
