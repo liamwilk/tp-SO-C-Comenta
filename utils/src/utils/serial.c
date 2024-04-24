@@ -15,26 +15,6 @@ void *serializar_paquete(t_paquete *paquete, int bytes)
 	return buffer;
 };
 
-t_paquete *deserializar_paquete(void *buffer_serializado)
-{
-
-	t_paquete *paquete = malloc(sizeof(t_paquete));
-	paquete->buffer = malloc(sizeof(t_buffer));
-
-	int desplazamiento = 0;
-
-	memcpy(&(paquete->codigo_operacion), buffer_serializado + desplazamiento, sizeof(int));
-	desplazamiento += sizeof(int);
-
-	memcpy(&(paquete->buffer->size), buffer_serializado + desplazamiento, sizeof(int));
-	desplazamiento += sizeof(int);
-
-	paquete->buffer->stream = malloc(paquete->buffer->size);
-	memcpy(paquete->buffer->stream, buffer_serializado + desplazamiento, paquete->buffer->size);
-
-	return paquete;
-}
-
 void enviar_mensaje(char *mensaje, int socket_cliente)
 {
 	t_paquete *paquete = malloc(sizeof(t_paquete));
@@ -105,6 +85,7 @@ void *recibir_buffer(int *size, int socket_cliente)
 	recv(socket_cliente, buffer, *size, MSG_WAITALL);
 
 	return buffer;
+	t_buffer
 }
 
 // No usar, esto no funciona
