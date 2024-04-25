@@ -8,15 +8,8 @@ int main() {
 	memoria = memoria_inicializar(config);
 	memoria_log(memoria, logger);
 
-	// Inicio el servidor de Memoria
-
     socket_server_memoria = iniciar_servidor(logger,memoria.puertoEscucha);
 	log_info(logger, "Servidor Memoria listo para recibir al cliente en socket %d",socket_server_memoria);
-
-	/*
-	Atiendo las conexiones entrantes de CPU y Kernel, en orden bloqueante para asegurar que son esos los clientes que se conectan.
-	A medida que habilito los sockets, empiezo a escuchar en esos sockets, con hilos detached para seguir conectando los demas.
-	*/
 
 	pthread_create(&thread_conectar_cpu,NULL,conectar_cpu,NULL);
 	pthread_join(thread_conectar_cpu,NULL);
@@ -27,15 +20,13 @@ int main() {
 	pthread_create(&thread_conectar_kernel,NULL,conectar_kernel,NULL);
 	pthread_join(thread_conectar_kernel,NULL);
 
-	pthread_create(&thread_atender_kernel,NULL,atender_kernel,NULL);
-	pthread_detach(thread_atender_kernel);
-	
-	// Atiendo las conexiones de I/O en un hilo join, para que no finalice el main hasta que no de la orden Kernel.
-
 	pthread_create(&thread_atender_io,NULL,conectar_io,NULL);
-	pthread_join(thread_atender_io,NULL);
+	pthread_detach(thread_atender_io);
 
-	// Libero todo
+	pthread_create(&thread_atender_kernel,NULL,atender_kernel,NULL);
+	pthread_join(thread_atender_kernel,NULL);
+	
+	log_warning(logger,"Kernel solicito el apagado del sistema operativo.");
 
 	config_destroy(config);
 	log_destroy(logger);
@@ -60,7 +51,6 @@ void* atender_cpu(){
 				// placeholder
 				break;
 			default:
-				log_info(logger, "Solicitud de desconexion con CPU. Cerrando socket %d", socket_cpu);
 				liberar_conexion(socket_cpu);
 				pthread_exit(0);
 				break;
@@ -95,19 +85,18 @@ void* atender_kernel(){
 		}
 	}
 
-	log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion Kernel.");
-
 	pthread_exit(0);
 }
 
 void* conectar_io(){
 	while(kernel_orden_apagado){
 		int socket_cliente = esperar_cliente(logger, socket_server_memoria);
-
+		
 		if(socket_cliente == -1){
 			break;
 		}
 
+		esperar_handshake(socket_cliente);
 		pthread_t hilo;
 		int* args = malloc(sizeof(int));
 		*args = socket_cliente;
@@ -115,18 +104,15 @@ void* conectar_io(){
 		pthread_detach(hilo);
 	}
 
-	log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion I/O.");
-
 	pthread_exit(0);
 }
 
 void* atender_io(void* args){
 	int socket_cliente = *(int *)args;
-	esperar_handshake(socket_cliente);
 	log_info(logger, "I/O conectado en socket %d", socket_cliente);
 	free(args);
 
-	while(kernel_orden_apagado){
+	do{
 		log_info(logger,"Esperando paquete de I/O en socket %d",socket_cliente);
 		int cod_op = recibir_operacion(socket_cliente);
 
@@ -135,12 +121,11 @@ void* atender_io(void* args){
 				// placeholder
 				break;
 			default:
-				log_info(logger, "Solicitud de desconexion con I/O. Cerrando socket %d", socket_cliente);
 				liberar_conexion(socket_cliente);
 				pthread_exit(0);
 				break;
 		}
-	}
+	}while(kernel_orden_apagado);
 
 	pthread_exit(0);
 }
