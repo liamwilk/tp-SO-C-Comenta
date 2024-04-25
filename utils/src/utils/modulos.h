@@ -29,6 +29,14 @@ typedef struct t_kernel
     int gradoMultiprogramacion;
 } t_kernel;
 
+typedef struct t_sockets_kernel
+{
+    int memoria;
+    int cpu_dispatch;
+    int cpu_interrupt;
+    int server;
+} t_sockets_kernel;
+
 /**
  * @fn    kernel_inicializar
  * @brief Inicializa el kernel junto con todas sus configuraciones
