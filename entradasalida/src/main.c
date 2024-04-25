@@ -9,17 +9,11 @@ int main() {
     entradasalida = entradasalida_inicializar(config);
     entradasalida_log(entradasalida,logger);
 
-	// Conecto con Memoria y Kernel.
-
 	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
 	pthread_join(thread_conectar_memoria,NULL);
 	
 	pthread_create(&thread_conectar_kernel,NULL,conectar_kernel,NULL);
 	pthread_join(thread_conectar_kernel,NULL);
-
-	/*
-	Aca iria la logica de lo que hace I/O una vez que ya tiene las conexiones abiertas con Kernel y Memoria.
-	*/
 
 	log_warning(logger,"Se cierra modulo I/O.");
 

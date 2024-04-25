@@ -9,23 +9,17 @@ int main() {
     cpu = cpu_inicializar(config);
     cpu_log(cpu, logger);
 
-	// Iniciamos los servidores de CPU (Dispatch y Interrupt)
-
     socket_server_dispatch = iniciar_servidor(logger,cpu.puertoEscuchaDispatch);
 	log_info(logger, "Servidor Dispatch listo para recibir al cliente en socket %d",socket_server_dispatch);
 
 	socket_server_interrupt = iniciar_servidor(logger,cpu.puertoEscuchaInterrupt);
 	log_info(logger, "Servidor Interrupt listo para recibir al cliente en socket %d",socket_server_interrupt);
 
-	// Abro la conexion a Memoria y comienzo a atenderla.
-
 	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
 	pthread_join(thread_conectar_memoria,NULL);
 
 	pthread_create(&thread_atender_memoria,NULL,atender_memoria,NULL);
 	pthread_detach(thread_atender_memoria);
-
-	// Atendemos las conexiones entrantes a CPU desde Kernel
 
 	pthread_create(&thread_conectar_kernel_dispatch,NULL,conectar_kernel_dispatch,NULL);
 	pthread_join(thread_conectar_kernel_dispatch,NULL);
@@ -35,12 +29,6 @@ int main() {
 
 	pthread_create(&thread_conectar_kernel_interrupt,NULL,conectar_kernel_interrupt,NULL);
 	pthread_join(thread_conectar_kernel_interrupt,NULL);
-
-	/*
-	Dejo el ultimo en join para que el main no termine y el CPU no muera.
-	TODO: Revisar esto, para ver que hay que hacer en cpu. Deberia ser temporal este fix.
-	Cuando el Kernel se desconecta, el CPU se cierra automaticamente porque se desconecta del socket interrupt.
-	*/
 
 	pthread_create(&thread_atender_kernel_interrupt,NULL,atender_kernel_interrupt,NULL);
 	pthread_join(thread_atender_kernel_interrupt,NULL);

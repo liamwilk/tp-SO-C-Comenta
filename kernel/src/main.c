@@ -4,13 +4,10 @@
 
 int main()
 {
-
 	logger = iniciar_logger("kernel", LOG_LEVEL_INFO);
 	config = iniciar_config(logger);
 	kernel = kernel_inicializar(config);
 	kernel_log(kernel, logger);
-	
-	// Creo las conexiones a Memoria, CPU Dispatch y CPU Interrupt. Voy atendiendo las peticiones a medida que las abro.
 
 	pthread_create(&thread_conectar_memoria, NULL, conectar_memoria, NULL);
 	pthread_join(thread_conectar_memoria, NULL);
@@ -30,12 +27,8 @@ int main()
 	pthread_create(&thread_atender_cpu_interrupt, NULL, atender_cpu_interrupt, NULL);
 	pthread_detach(thread_atender_cpu_interrupt);
 
-	// Inicio server Kernel
-
 	socket_server_kernel = iniciar_servidor(logger, kernel.puertoEscucha);
 	log_info(logger, "Servidor listo para recibir clientes en socket %d.", socket_server_kernel);
-
-	// Conecto interfaces de I/O y levanto consola interactiva (en join para que no finalice el main hasta que el usuario termine)
 
 	pthread_create(&thread_conectar_io, NULL, conectar_io, NULL);
 	pthread_detach(thread_conectar_io);
@@ -92,9 +85,7 @@ void *atender_consola()
 				break;
 			case FINALIZAR:
 				kernel_orden_apagado = 0;
-				// se lo mando solo a cpu dispatch porque es lo mismo, con que le llegue a un modulo de cpu ya impacta a todo el modulo
 				enviar_paquete(finalizar,socket_cpu_dispatch);
-				// memoria no va a terminar hasta que primero se conecte IO, porque hay un hilo join esperando la conexion de IO.
 				enviar_paquete(finalizar,socket_memoria);
 				liberar_conexion(socket_cpu_dispatch);
 				liberar_conexion(socket_cpu_interrupt);
@@ -158,12 +149,9 @@ void *atender_io(void *args)
 {
 	int socket_cliente = *(int *)args;
 	log_info(logger, "I/O conectado en socket %d", socket_cliente);
-	printf("\n> ");
 	free(args);
-
 	do{
 		log_info(logger,"Esperando paquete de I/O en socket %d",socket_cliente);
-		printf("\n> ");
 		int cod_op = recibir_operacion(socket_cliente);
 
 		switch(cod_op){

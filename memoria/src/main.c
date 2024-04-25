@@ -8,15 +8,8 @@ int main() {
 	memoria = memoria_inicializar(config);
 	memoria_log(memoria, logger);
 
-	// Inicio el servidor de Memoria
-
     socket_server_memoria = iniciar_servidor(logger,memoria.puertoEscucha);
 	log_info(logger, "Servidor Memoria listo para recibir al cliente en socket %d",socket_server_memoria);
-
-	/*
-	Atiendo las conexiones entrantes de CPU y Kernel, en orden bloqueante para asegurar que son esos los clientes que se conectan.
-	A medida que habilito los sockets, empiezo a escuchar en esos sockets, con hilos detached para seguir conectando los demas.
-	*/
 
 	pthread_create(&thread_conectar_cpu,NULL,conectar_cpu,NULL);
 	pthread_join(thread_conectar_cpu,NULL);
@@ -34,8 +27,6 @@ int main() {
 	pthread_join(thread_atender_kernel,NULL);
 	
 	log_warning(logger,"Kernel solicito el apagado del sistema operativo.");
-
-	// Libero todo
 
 	config_destroy(config);
 	log_destroy(logger);
