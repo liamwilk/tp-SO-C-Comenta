@@ -4,13 +4,10 @@
 
 int main()
 {
-
 	logger = iniciar_logger("kernel", LOG_LEVEL_INFO);
 	config = iniciar_config(logger);
 	kernel = kernel_inicializar(config);
 	kernel_log(kernel, logger);
-	
-	// Creo las conexiones a Memoria, CPU Dispatch y CPU Interrupt. Voy atendiendo las peticiones a medida que las abro.
 
 	pthread_create(&thread_conectar_memoria, NULL, conectar_memoria, NULL);
 	pthread_join(thread_conectar_memoria, NULL);
@@ -30,12 +27,8 @@ int main()
 	pthread_create(&thread_atender_cpu_interrupt, NULL, atender_cpu_interrupt, NULL);
 	pthread_detach(thread_atender_cpu_interrupt);
 
-	// Inicio server Kernel
-
 	socket_server_kernel = iniciar_servidor(logger, kernel.puertoEscucha);
 	log_info(logger, "Servidor listo para recibir clientes en socket %d.", socket_server_kernel);
-
-	// Conecto interfaces de I/O y levanto consola interactiva (en join para que no finalice el main hasta que el usuario termine)
 
 	pthread_create(&thread_conectar_io, NULL, conectar_io, NULL);
 	pthread_detach(thread_conectar_io);
@@ -43,7 +36,7 @@ int main()
 	pthread_create(&thread_atender_consola,NULL,atender_consola,NULL);
 	pthread_join(thread_atender_consola,NULL);
 	
-	// Libero
+	log_warning(logger,"El Usuario solicito el apagado del sistema operativo.");
 
 	log_destroy(logger);
 	config_destroy(config);
@@ -92,9 +85,7 @@ void *atender_consola()
 				break;
 			case FINALIZAR:
 				kernel_orden_apagado = 0;
-				// se lo mando solo a cpu dispatch porque es lo mismo, con que le llegue a un modulo de cpu ya impacta a todo el modulo
 				enviar_paquete(finalizar,socket_cpu_dispatch);
-				// memoria no va a terminar hasta que primero se conecte IO, porque hay un hilo join esperando la conexion de IO.
 				enviar_paquete(finalizar,socket_memoria);
 				liberar_conexion(socket_cpu_dispatch);
 				liberar_conexion(socket_cpu_interrupt);
@@ -136,13 +127,13 @@ void *conectar_io()
 {
 	while (kernel_orden_apagado)
 	{
-		log_debug(logger, "Estoy esperando");
 		int socket_cliente = esperar_cliente(logger, socket_server_kernel);
 
 		if (socket_cliente == -1)
 		{
 			break;
 		}
+		esperar_handshake(socket_cliente);
 
 		pthread_t hilo;
 		int *args = malloc(sizeof(int));
@@ -151,19 +142,15 @@ void *conectar_io()
 		pthread_detach(hilo);
 	}
 
-	log_warning(logger, "Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion I/O.");
-
 	pthread_exit(0);
 }
 
 void *atender_io(void *args)
 {
 	int socket_cliente = *(int *)args;
-	esperar_handshake(socket_cliente);
 	log_info(logger, "I/O conectado en socket %d", socket_cliente);
 	free(args);
-
-	while(kernel_orden_apagado){
+	do{
 		log_info(logger,"Esperando paquete de I/O en socket %d",socket_cliente);
 		int cod_op = recibir_operacion(socket_cliente);
 
@@ -172,12 +159,11 @@ void *atender_io(void *args)
 				// placeholder
 				break;
 			default:
-				log_info(logger, "Solicitud de desconexion con I/O. Cerrando socket %d", socket_cliente);
 				liberar_conexion(socket_cliente);
 				pthread_exit(0);
 				break;
 		}
-	}
+	}while(kernel_orden_apagado);
 
 	pthread_exit(0);
 }
@@ -200,7 +186,6 @@ void* atender_memoria(){
 				// placeholder para despues
 				break;
 			default:
-				log_info(logger, "Solicitud de desconexion con Memoria. Cerrando socket %d", socket_memoria);
 				liberar_conexion(socket_memoria);
 				pthread_exit(0);
 				break;
@@ -228,8 +213,7 @@ void* atender_cpu_dispatch(){
 				// Placeholder
 				break;
 			default:
-				log_info(logger, "Solicitud de desconexion con CPU Dispatch. Cerrando socket %d", socket_memoria);
-				liberar_conexion(socket_memoria);
+				liberar_conexion(socket_cpu_dispatch);
 				pthread_exit(0);
 				break;
 		}
@@ -256,7 +240,6 @@ void* atender_cpu_interrupt(){
 				// Placeholder
 				break;
 			default:
-				log_info(logger, "Solicitud de desconexion con CPU Interrupt. Cerrando socket %d", socket_cpu_interrupt);
 				liberar_conexion(socket_cpu_interrupt);
 				pthread_exit(0);
 				break;
