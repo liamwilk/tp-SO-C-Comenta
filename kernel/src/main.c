@@ -51,7 +51,8 @@ int main()
 void *atender_consola()
 {
 	procesar_consola(logger, &pid, new, &kernel_orden_apagado, &kernel, &sockets);
-}
+	return NULL;
+};
 
 void *conectar_io()
 {
@@ -121,7 +122,7 @@ void *atender_memoria()
 			// placeholder para despues
 			break;
 		default:
-			liberar_conexion(socket_memoria);
+			liberar_conexion(sockets.memoria);
 			pthread_exit(0);
 			break;
 		}
@@ -151,7 +152,7 @@ void *atender_cpu_dispatch()
 			// Placeholder
 			break;
 		default:
-			liberar_conexion(socket_cpu_dispatch);
+			liberar_conexion(sockets.cpu_dispatch);
 			pthread_exit(0);
 			break;
 		}
@@ -180,7 +181,8 @@ void *atender_cpu_interrupt()
 		case MENSAJE:
 			// Placeholder
 			break;
-			socket_server_kernel default : liberar_conexion(socket_cpu_interrupt);
+		default:
+			liberar_conexion(sockets.cpu_interrupt);
 			pthread_exit(0);
 			break;
 		}
