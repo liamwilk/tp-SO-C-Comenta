@@ -149,7 +149,6 @@ void *conectar_io()
 		*args = socket_cliente;
 		pthread_create(&hilo, NULL, atender_io, args);
 		pthread_detach(hilo);
-		free(args);
 	}
 
 	pthread_exit(0);
@@ -159,10 +158,12 @@ void *atender_io(void *args)
 {
 	int socket_cliente = *(int *)args;
 	log_info(logger, "I/O conectado en socket %d", socket_cliente);
+	printf("\n> ");
 	free(args);
 
 	do{
 		log_info(logger,"Esperando paquete de I/O en socket %d",socket_cliente);
+		printf("\n> ");
 		int cod_op = recibir_operacion(socket_cliente);
 
 		switch(cod_op){
@@ -197,7 +198,6 @@ void* atender_memoria(){
 				// placeholder para despues
 				break;
 			default:
-				log_info(logger, "Solicitud de desconexion con Memoria. Cerrando socket %d", socket_memoria);
 				liberar_conexion(socket_memoria);
 				pthread_exit(0);
 				break;

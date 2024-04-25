@@ -111,7 +111,6 @@ void* conectar_io(){
 		*args = socket_cliente;
 		pthread_create(&hilo, NULL, atender_io, args);
 		pthread_detach(hilo);
-		free(args);
 	}
 
 	pthread_exit(0);
