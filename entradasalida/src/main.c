@@ -21,6 +21,8 @@ int main() {
 	Aca iria la logica de lo que hace I/O una vez que ya tiene las conexiones abiertas con Kernel y Memoria.
 	*/
 
+	log_warning(logger,"Se cierra modulo I/O.");
+
     log_destroy(logger);
 	config_destroy(config);
 
@@ -38,9 +40,7 @@ void* conectar_memoria(){
 }
 
 void* conectar_kernel(){
-	printf("solicitando crear conexion");
 	socket_kernel = crear_conexion(logger,entradasalida.ipKernel,entradasalida.puertoKernel);
-	printf("haciendo handshake");
 	handshake(logger,socket_kernel,1,"Kernel");
 	log_info(logger,"Conectado a Kernel en socket %d",socket_kernel);
 	pthread_exit(0);

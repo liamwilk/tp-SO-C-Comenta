@@ -27,13 +27,13 @@ int main() {
 	pthread_create(&thread_conectar_kernel,NULL,conectar_kernel,NULL);
 	pthread_join(thread_conectar_kernel,NULL);
 
-	pthread_create(&thread_atender_kernel,NULL,atender_kernel,NULL);
-	pthread_detach(thread_atender_kernel);
-	
-	// Atiendo las conexiones de I/O en un hilo join, para que no finalice el main hasta que no de la orden Kernel.
-
 	pthread_create(&thread_atender_io,NULL,conectar_io,NULL);
-	pthread_join(thread_atender_io,NULL);
+	pthread_detach(thread_atender_io);
+
+	pthread_create(&thread_atender_kernel,NULL,atender_kernel,NULL);
+	pthread_join(thread_atender_kernel,NULL);
+	
+	log_warning(logger,"Kernel solicito el apagado del sistema operativo.");
 
 	// Libero todo
 
@@ -60,7 +60,6 @@ void* atender_cpu(){
 				// placeholder
 				break;
 			default:
-				log_info(logger, "Solicitud de desconexion con CPU. Cerrando socket %d", socket_cpu);
 				liberar_conexion(socket_cpu);
 				pthread_exit(0);
 				break;
@@ -95,38 +94,35 @@ void* atender_kernel(){
 		}
 	}
 
-	log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion Kernel.");
-
 	pthread_exit(0);
 }
 
 void* conectar_io(){
 	while(kernel_orden_apagado){
 		int socket_cliente = esperar_cliente(logger, socket_server_memoria);
-
+		
 		if(socket_cliente == -1){
 			break;
 		}
 
+		esperar_handshake(socket_cliente);
 		pthread_t hilo;
 		int* args = malloc(sizeof(int));
 		*args = socket_cliente;
 		pthread_create(&hilo, NULL, atender_io, args);
 		pthread_detach(hilo);
+		free(args);
 	}
-
-	log_warning(logger,"Kernel solicitó el apagado del sistema operativo. Se cierra servidor de atencion I/O.");
 
 	pthread_exit(0);
 }
 
 void* atender_io(void* args){
 	int socket_cliente = *(int *)args;
-	esperar_handshake(socket_cliente);
 	log_info(logger, "I/O conectado en socket %d", socket_cliente);
 	free(args);
 
-	while(kernel_orden_apagado){
+	do{
 		log_info(logger,"Esperando paquete de I/O en socket %d",socket_cliente);
 		int cod_op = recibir_operacion(socket_cliente);
 
@@ -135,12 +131,11 @@ void* atender_io(void* args){
 				// placeholder
 				break;
 			default:
-				log_info(logger, "Solicitud de desconexion con I/O. Cerrando socket %d", socket_cliente);
 				liberar_conexion(socket_cliente);
 				pthread_exit(0);
 				break;
 		}
-	}
+	}while(kernel_orden_apagado);
 
 	pthread_exit(0);
 }

@@ -45,13 +45,14 @@ int main() {
 	pthread_create(&thread_atender_kernel_interrupt,NULL,atender_kernel_interrupt,NULL);
 	pthread_join(thread_atender_kernel_interrupt,NULL);
 
-	// Libero
+	log_warning(logger,"Kernel solicito el apagado del sistema operativo.");
 
 	log_destroy(logger);
 	config_destroy(config);
 
 	return 0;
 }
+
 void* conectar_memoria(){
 	socket_memoria = crear_conexion(logger,cpu.ipMemoria,cpu.puertoMemoria);
 	handshake(logger,socket_memoria,1,"Memoria");
@@ -69,7 +70,6 @@ void* atender_memoria(){
 				// Placeholder
 				break;
 			default:
-				log_info(logger, "Solicitud de desconexion con Memoria. Cerrando socket %d", socket_memoria);
 				liberar_conexion(socket_memoria);
 				pthread_exit(0);
 				break;
@@ -95,13 +95,12 @@ void* atender_kernel_dispatch(){
 			case TERMINAR:
 				kernel_orden_apagado=0;
 				liberar_conexion(socket_kernel_dispatch);
-				liberar_conexion(socket_kernel_interrupt);
 				liberar_conexion(socket_server_dispatch);
-				liberar_conexion(socket_memoria);
-				liberar_conexion(socket_server_interrupt);
 				break;
 			default:
-				log_info(logger, "Operacion desconocida");
+				liberar_conexion(socket_kernel_dispatch);
+				liberar_conexion(socket_server_dispatch);
+				pthread_exit(0);
 				break;
 		}
 	}
@@ -125,16 +124,12 @@ void* atender_kernel_interrupt(){
 			case MENSAJE:
 				//placeholder
 			default:
-				if(kernel_orden_apagado!=0){
-					log_info(logger, "Operacion desconocida");
-				}
+				liberar_conexion(socket_kernel_interrupt);
+				liberar_conexion(socket_server_interrupt);
+				pthread_exit(0);
 				break;
 		}
 	}
 
 	pthread_exit(0);
 }
-
-
-
-
