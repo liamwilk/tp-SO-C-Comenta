@@ -30,5 +30,6 @@ void* conectar_memoria();
 int socket_memoria;
 int socket_kernel;
 
+t_tipointerfaz determinar_tipo_interfaz();
 
 #endif /* MAIN_H_ */

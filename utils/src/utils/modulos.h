@@ -86,7 +86,15 @@ typedef struct t_entradasalida
     char *pathBaseDialFs;
     int blockSize;
     int blockCount;
+    int retrasoCompactacion;
 } t_entradasalida;
+typedef enum
+{
+    GEN,
+    STDOUT,
+    STDIN,
+    DIALFS
+} t_tipointerfaz;
 
 /**
  * @fn    entradasalida_inicializar
@@ -94,14 +102,14 @@ typedef struct t_entradasalida
  * @param config Instancia de module.config
  * @return config
  */
-t_entradasalida entradasalida_inicializar(t_config *config);
+t_entradasalida entradasalida_inicializar(t_config *config, t_tipointerfaz tipoInterfaz);
 
 /**
  * @fn    entradasalida_log
  * @brief Logs necesarios para entrada-salida
  * @param config Instancia de module.config
  */
-void entradasalida_log(t_entradasalida entradasalida, t_log *logger);
+void entradasalida_log(t_entradasalida entradasalida, t_log *logger, t_tipointerfaz tipoInterfaz);
 
 /*--------Memoria--------*/
 typedef struct t_memoria
