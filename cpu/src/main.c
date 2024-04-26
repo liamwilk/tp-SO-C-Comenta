@@ -54,8 +54,19 @@ void* atender_memoria(){
 		int cod_op = recibir_operacion(socket_memoria);
 
 		switch(cod_op){
-			case MENSAJE:
-				// Placeholder
+			case RECIBIR_UNA_INSTRUCCION:
+				// Se recibe el buffer desde memoria, se deserializa y se hace algo. Posterior a eso se vuelve a solicitar una instruccion a memoria via DAME_UNA_INSTRUCCION
+				int size = recibir_operacion(socket_memoria);
+				t_buffer* buffer = recibir_buffer(size, socket_memoria);
+				t_cpu_memoria_instruccion* instruccion = deserializar_paquete(buffer); //TODO: Hay que hacer la función deserializar_paquete
+				log_info(logger,"Instruccion recibida: %s",instruccion->instruccion);
+				log_info(logger, "Argumentos: %s", instruccion->argumentos);
+				free(buffer);
+				free(instruccion);
+
+				t_buffer* buffer_envio = crear_paquete(DAME_PROXIMA_INSTRUCCION);
+				enviar_paquete(buffer_envio,socket_memoria);
+				free(buffer_envio);
 				break;
 			default:
 				liberar_conexion(socket_memoria);

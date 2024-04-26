@@ -17,6 +17,8 @@ typedef enum
 	MENSAJE,
 	PAQUETE,
 	DESCONECTAR,
+	DAME_PROXIMA_INSTRUCCION,
+	RECIBIR_UNA_INSTRUCCION,
 	TERMINAR
 } op_code;
 
@@ -25,6 +27,12 @@ typedef struct
 	int size;
 	void *stream;
 } t_buffer;
+
+typedef struct
+{
+	char *instruccion;
+	char **argumentos;
+} t_cpu_memoria_instruccion;
 
 typedef struct
 {

@@ -47,8 +47,9 @@ void* atender_cpu(){
 		int cod_op = recibir_operacion(socket_cpu);
 
 		switch(cod_op){
-			case MENSAJE:
-				// placeholder
+			case DAME_PROXIMA_INSTRUCCION:
+				// Se envia un paquete a CPU con una sola instruccion
+				
 				break;
 			default:
 				liberar_conexion(socket_cpu);
