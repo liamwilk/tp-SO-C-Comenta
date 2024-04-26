@@ -73,11 +73,7 @@ void* atender_kernel(){
 		log_info(logger,"Esperando paquete de Kernel en socket %d",socket_kernel);
 		
 		int cod_op = recibir_operacion(socket_kernel);
-		void* buffer_void = recibir_buffer(socket_kernel);
-		t_buffer buffer_struct;
-    	memcpy(&buffer_struct.size, buffer_void, sizeof(int));
-		buffer_struct.stream = malloc(buffer_struct.size);
-		memcpy(buffer_struct.stream, buffer_void + sizeof(int), buffer_struct.size);
+		void* stream = recibir_stream(socket_kernel);
 
 		switch(cod_op){
 			case RECIBIR_PATH_INSTRUCCIONES:
@@ -90,7 +86,7 @@ void* atender_kernel(){
 				// } t_kernel_memoria;
 
 				// Deserializar el path de las instrucciones
-				char* current_pos = (char*)buffer_struct.stream;
+				char* current_pos = (char*)stream;
 				char* pathInstrucciones = strdup(current_pos); // Duplico la cadena
 				current_pos += strlen(pathInstrucciones) + 1; // Muevo el puntero al próximo elemento, +1 por el \0
 
@@ -122,8 +118,7 @@ void* atender_kernel(){
 				break;
 		}
 
-		free(buffer_void);
-		free(buffer_struct.stream);
+		free(stream);
 	}
 
 	pthread_exit(0);

@@ -21,6 +21,17 @@ void *deserializar_paquete(t_buffer *buffer)
 	return NULL;
 };
 
+void *recibir_stream(int socket_cliente)
+{
+	void *buffer_void = recibir_buffer(socket_cliente);
+	t_buffer buffer_struct;
+	memcpy(&buffer_struct.size, buffer_void, sizeof(int));
+	buffer_struct.stream = malloc(buffer_struct.size);
+	memcpy(buffer_struct.stream, buffer_void + sizeof(int), buffer_struct.size);
+	free(buffer_void);
+	return buffer_struct.stream;
+}
+
 void enviar_mensaje(char *mensaje, int socket_cliente)
 {
 	t_paquete *paquete = malloc(sizeof(t_paquete));
