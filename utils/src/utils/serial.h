@@ -140,7 +140,7 @@ t_paquete *recibir_paquete(int socket);
  * @brief Realiza todo el proceso para recibir el paquete, deserializarlo y devolver un void* stream proveniente del buffer empaquetado.
  * @param socket_cliente
  */
-void *recibir_stream(int socket_cliente)
+void *recibir_stream(int socket_cliente);
 
 // con el debido casting de tipos de datos, ninguna de todas estas funciones sería necesaria
 

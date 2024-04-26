@@ -30,7 +30,7 @@ void *recibir_stream(int socket_cliente)
 	memcpy(buffer_struct.stream, buffer_void + sizeof(int), buffer_struct.size);
 	free(buffer_void);
 	return buffer_struct.stream;
-}
+};
 
 void enviar_mensaje(char *mensaje, int socket_cliente)
 {
