@@ -19,6 +19,7 @@ typedef enum
 	DESCONECTAR,
 	DAME_PROXIMA_INSTRUCCION,
 	RECIBIR_UNA_INSTRUCCION,
+	RECIBIR_PATH_INSTRUCCIONES,
 	TERMINAR
 } op_code;
 
@@ -33,6 +34,13 @@ typedef struct
 	char *instruccion;
 	char **argumentos;
 } t_cpu_memoria_instruccion;
+
+typedef struct t_kernel_memoria
+{
+	char *pathInstrucciones;
+	int program_counter;
+	// Agregar a demanda el struct
+} t_kernel_memoria;
 
 typedef struct
 {
@@ -106,7 +114,7 @@ void eliminar_paquete(t_paquete *paquete);
  * @brief Elimina el paquete para no generar memory leak
  * @param paquete Paquete de datos
  */
-void *recibir_buffer(int *size, int socket_cliente);
+void *recibir_buffer(int socket_cliente);
 
 /**
  *

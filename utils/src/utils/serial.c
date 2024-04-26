@@ -15,8 +15,10 @@ void *serializar_paquete(t_paquete *paquete, int bytes)
 	return buffer;
 };
 
-void *deserializar_paquete(t_buffer *buffer){
+void *deserializar_paquete(t_buffer *buffer)
+{
 	// TODO: Implementar
+	return NULL;
 };
 
 void enviar_mensaje(char *mensaje, int socket_cliente)
@@ -80,12 +82,16 @@ void eliminar_paquete(t_paquete *paquete)
 	free(paquete);
 };
 
-void *recibir_buffer(int *size, int socket_cliente)
+void *recibir_buffer(int socket_cliente)
 {
 	void *buffer;
 
+	int *size = malloc(sizeof(int));
+
 	recv(socket_cliente, size, sizeof(int), MSG_WAITALL);
+
 	buffer = malloc(*size);
+
 	recv(socket_cliente, buffer, *size, MSG_WAITALL);
 
 	return buffer;

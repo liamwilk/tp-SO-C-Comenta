@@ -60,23 +60,23 @@ void *atender_memoria()
 		switch (cod_op)
 		{
 		case RECIBIR_UNA_INSTRUCCION:
-			// Se recibe el buffer desde memoria, se deserializa y se hace algo. Posterior a eso se vuelve a solicitar una instruccion a memoria via DAME_UNA_INSTRUCCION
-			int size = recibir_operacion(socket_memoria);
-			int *size_instruccion = &size;  // se aplica adapter para recibir el tamanio de la instruccion y usarlo en recibir_buffer
-			t_buffer *buffer = recibir_buffer(size_instruccion, socket_memoria);
-			t_cpu_memoria_instruccion *instruccion = deserializar_paquete(buffer); // TODO: Hay que hacer la función deserializar_paquete
-			log_info(logger, "Instruccion recibida: %s", instruccion->instruccion);
-			char **argumentos = instruccion->argumentos;
-			for (int i = 0; argumentos[i] != NULL; i++)
-			{
-				log_info(logger, "Argumento %d: %s", i, argumentos[i]);
-			}
-			free(buffer);
-			free(instruccion);
+			// // Se recibe el buffer desde memoria, se deserializa y se hace algo. Posterior a eso se vuelve a solicitar una instruccion a memoria via DAME_UNA_INSTRUCCION
+			// int size = recibir_operacion(socket_memoria);
+			// int *size_instruccion = &size;  // se aplica adapter para recibir el tamanio de la instruccion y usarlo en recibir_buffer
+			// t_buffer *buffer = recibir_buffer(socket_memoria);
+			// t_cpu_memoria_instruccion *instruccion = deserializar_paquete(buffer); // TODO: Hay que hacer la función deserializar_paquete
+			// log_info(logger, "Instruccion recibida: %s", instruccion->instruccion);
+			// char **argumentos = instruccion->argumentos;
+			// for (int i = 0; argumentos[i] != NULL; i++)
+			// {
+			// 	log_info(logger, "Argumento %d: %s", i, argumentos[i]);
+			// }
+			// free(buffer);
+			// free(instruccion);
 
-			t_paquete *paquete = crear_paquete(DAME_PROXIMA_INSTRUCCION);
-			enviar_paquete(paquete, socket_memoria);
-			free(paquete);
+			// t_paquete *paquete = crear_paquete(DAME_PROXIMA_INSTRUCCION);
+			// enviar_paquete(paquete, socket_memoria);
+			// free(paquete);
 			break;
 		default:
 			liberar_conexion(socket_memoria);

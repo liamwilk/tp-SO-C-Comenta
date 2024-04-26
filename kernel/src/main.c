@@ -15,6 +15,23 @@ int main()
 	pthread_create(&thread_atender_memoria, NULL, atender_memoria, NULL);
 	pthread_detach(thread_atender_memoria);
 
+
+	// Se crea un paquete de prueba para recibir en Memoria
+	
+	t_paquete *paquete = crear_paquete(RECIBIR_PATH_INSTRUCCIONES);
+
+	t_kernel_memoria kernel_memoria;
+	kernel_memoria.pathInstrucciones = "Hola mundo";
+	kernel_memoria.program_counter = 0;
+
+	agregar_a_paquete(paquete, kernel_memoria.pathInstrucciones, strlen(kernel_memoria.pathInstrucciones) + 1);
+	agregar_a_paquete(paquete, &(kernel_memoria.program_counter), sizeof(int));
+
+	enviar_paquete(paquete, socket_memoria);
+	eliminar_paquete(paquete);
+
+	////////////////////////////////////////////////////////
+
 	pthread_create(&thread_conectar_cpu_dispatch, NULL, conectar_cpu_dispatch, NULL);
 	pthread_join(thread_conectar_cpu_dispatch, NULL);
 
