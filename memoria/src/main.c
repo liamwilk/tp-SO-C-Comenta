@@ -45,6 +45,7 @@ void* atender_cpu(){
 	while(kernel_orden_apagado){
 		log_info(logger,"Esperando paquete de CPU en socket %d",socket_cpu);
 		int cod_op = recibir_operacion(socket_cpu);
+		void* stream = recibir_stream(socket_cpu);
 
 		switch(cod_op){
 			case DAME_PROXIMA_INSTRUCCION:
@@ -151,6 +152,7 @@ void* atender_io(void* args){
 	do{
 		log_info(logger,"Esperando paquete de I/O en socket %d",socket_cliente);
 		int cod_op = recibir_operacion(socket_cliente);
+		void* stream = recibir_stream(socket_cliente);
 
 		switch(cod_op){
 			case MENSAJE:
