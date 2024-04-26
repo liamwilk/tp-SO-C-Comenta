@@ -27,6 +27,7 @@ void *recibir_stream(int socket_cliente)
 	t_buffer buffer_struct;
 	memcpy(&buffer_struct.size, buffer_void, sizeof(int));
 	buffer_struct.stream = malloc(buffer_struct.size);
+	// Esto va a dar segmentation fault si le envian un paquete que tiene NULL en el stream. No lo hagan :)
 	memcpy(buffer_struct.stream, buffer_void + sizeof(int), buffer_struct.size);
 	free(buffer_void);
 	return buffer_struct.stream;

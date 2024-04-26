@@ -57,6 +57,7 @@ void* atender_cpu(){
 				pthread_exit(0);
 				break;
 		}
+		free(stream);
 	}
 
 	pthread_exit(0);
@@ -163,6 +164,7 @@ void* atender_io(void* args){
 				pthread_exit(0);
 				break;
 		}
+		free(stream);
 	}while(kernel_orden_apagado);
 
 	pthread_exit(0);

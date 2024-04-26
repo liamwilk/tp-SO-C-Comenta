@@ -66,6 +66,8 @@ void *atender_consola()
 	char *linea;
 
 	t_paquete* finalizar = crear_paquete(TERMINAR);
+	char *path = "N/A";
+	agregar_a_paquete(finalizar, path, strlen(path) + 1);
 
 	while (kernel_orden_apagado)
 	{
@@ -123,7 +125,7 @@ void *atender_consola()
 			break;
 		}
 	}
-
+	eliminar_paquete(finalizar);
 	pthread_exit(0);
 }
 
