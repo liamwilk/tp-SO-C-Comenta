@@ -52,6 +52,13 @@ t_paquete *crear_paquete(op_code codigo_de_operacion);
 void *serializar_paquete(t_paquete *paquete, int bytes);
 
 /**
+ * @fn deserializar_paquete
+ * @brief Deserializa el paquete
+ * @param buffer
+ */
+void *deserializar_paquete(t_buffer *buffer);
+
+/**
  * @fn    enviar_mensaje
  * @brief Envia un mensaje `mensaje` al modulo conectado
  * @param mensaje Paquete con buffer y su op_code

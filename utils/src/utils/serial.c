@@ -15,6 +15,10 @@ void *serializar_paquete(t_paquete *paquete, int bytes)
 	return buffer;
 };
 
+void *deserializar_paquete(t_buffer *buffer){
+	// TODO: Implementar
+};
+
 void enviar_mensaje(char *mensaje, int socket_cliente)
 {
 	t_paquete *paquete = malloc(sizeof(t_paquete));
