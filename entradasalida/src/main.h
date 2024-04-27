@@ -17,6 +17,7 @@
 #include <utils/conexiones.h>
 #include <utils/configs.h>
 #include <utils/serial.h>
+#include "init.h"
 
 t_log* logger;
 t_config* config;
@@ -29,7 +30,5 @@ void* conectar_memoria();
 
 int socket_memoria;
 int socket_kernel;
-
-t_tipointerfaz determinar_tipo_interfaz();
 
 #endif /* MAIN_H_ */

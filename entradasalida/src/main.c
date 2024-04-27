@@ -7,21 +7,30 @@ int main() {
     logger = iniciar_logger("entradasalida" , LOG_LEVEL_INFO);
     config = iniciar_config(logger);
 
-	t_tipointerfaz tipoInterfaz = determinar_tipo_interfaz();
+	t_tipointerfaz tipoInterfaz = determinar_tipo_interfaz(config);
 
-	// switch(tipoInterfaz){
-	// 	case GEN:
-	// 		break;
-	// 	case STDIN:
-	// 		break;
-	// 	case DIALFS:
-	// 		break;
-	// 	default:
-	// 		break;
-	// }
+	switch(tipoInterfaz){
+		case GEN:
+			entradasalida = entradasalida_gen_inicializar(config);
+		    entradasalida_gen_log(entradasalida,logger);
+			break;
+		case STDIN:
+			entradasalida = entradasalida_stdin_inicializar(config);
+		    entradasalida_stdin_log(entradasalida,logger);		
+			break;
+		case STDOUT:
+			entradasalida = entradasalida_stdout_inicializar(config);
+		    entradasalida_stdout_log(entradasalida,logger);
+			break;		
+		case DIALFS:
+			entradasalida = entradasalida_dialfs_inicializar(config);
+		    entradasalida_dialfs_log(entradasalida,logger);		
+			break;
+		default:
+			log_error(logger, "Tipo de interfaz desconocida");
+			break;
+	}
 
-    entradasalida = entradasalida_inicializar(config, tipoInterfaz);
-    entradasalida_log(entradasalida,logger, tipoInterfaz);
 
 	// TODO: Estaria bueno cambiar esto, para tener el switch antes de las 2 funciones de arriba,
 	// y que ese switch inicialize ese tipo, lo loguee, y mande el hilo a procesar los mensajes que reciba.
@@ -59,19 +68,3 @@ void* conectar_kernel(){
 	pthread_exit(0);
 }
 
-t_tipointerfaz determinar_tipo_interfaz(){
-	char* tipoInterfaz = config_get_string_value(config, "TIPO_INTERFAZ");
-	if(!strcmp(tipoInterfaz, "GEN")){
-		return GEN;
-	}
-	if(!strcmp(tipoInterfaz, "STDOUT")){
-		return STDOUT;
-	}
-	if(!strcmp(tipoInterfaz, "STDIN")){
-		return STDIN;
-	}
-	if(!strcmp(tipoInterfaz, "DIALFS")){
-		return DIALFS;
-	}
-	return -1;
-};
