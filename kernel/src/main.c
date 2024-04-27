@@ -18,16 +18,59 @@ int main()
 
 	// Se crea un paquete de prueba para recibir en Memoria
 	
+	// typedef struct
+	// {
+	// 	op_code codigo_operacion; // Header
+	// 	uint32_t size_buffer;	  // Tamaño del buffer
+	// 	t_buffer *buffer;		  // Payload (puede ser un mensaje, un paquete, etc)
+	// } t_paquete;
+
 	t_paquete *paquete = crear_paquete(RECIBIR_PATH_INSTRUCCIONES);
 
-	t_kernel_memoria kernel_memoria;
-	kernel_memoria.pathInstrucciones = "Hola mundo";
-	kernel_memoria.program_counter = 0;
+	t_kernel_memoria dato;
 
-	agregar_a_paquete(paquete, kernel_memoria.pathInstrucciones, strlen(kernel_memoria.pathInstrucciones) + 1);
-	agregar_a_paquete(paquete, &(kernel_memoria.program_counter), sizeof(int));
+	char* mensaje = "instrucciones.txt Y LA CONCHA DE LA LORA";
+
+	dato.path_instrucciones = malloc(strlen(mensaje) + 1);
+	strcpy(dato.path_instrucciones, mensaje);
+	dato.size_path = strlen(mensaje) + 1;
+	dato.program_counter = 123456789;
+
+	// typedef struct t_kernel_memoria
+	// {
+	// uint32_t size_path;		  // Tamaño del path
+	// char *path_instrucciones; // Path de las instrucciones
+	// uint32_t program_counter; // Program counter
+	// } t_kernel_memoria;
+
+	paquete->buffer->size = dato.size_path + sizeof(uint32_t) + sizeof(uint32_t);
+	paquete->size_buffer = dato.size_path + sizeof(uint32_t) + sizeof(uint32_t);
+	paquete->buffer->stream = malloc(paquete->buffer->size);
+
+	// void* stream = paquete->buffer->stream;
+	// uint32_t offset = paquete->buffer->offset;
+
+	// typedef struct
+	// {
+	// uint32_t size;	 // Tamaño del payload
+	// uint32_t offset; // Desplazamiento dentro del payload
+	// void *stream;	 // Payload
+	// } t_buffer;
+
+	memcpy(paquete->buffer->stream + paquete->buffer->offset, &dato.size_path, sizeof(uint32_t));
+	paquete->buffer->offset += sizeof(uint32_t);
+
+	memcpy(paquete->buffer->stream + paquete->buffer->offset, dato.path_instrucciones, dato.size_path);
+	paquete->buffer->offset += dato.size_path;
+
+	memcpy(paquete->buffer->stream + paquete->buffer->offset, &dato.program_counter, sizeof(uint32_t));
+	paquete->buffer->offset += sizeof(uint32_t);
+
+	// buffer->stream = stream;
 
 	enviar_paquete(paquete, socket_memoria);
+	log_info(logger, "Paquete enviado a Memoria");
+	free(dato.path_instrucciones);
 	eliminar_paquete(paquete);
 
 	////////////////////////////////////////////////////////

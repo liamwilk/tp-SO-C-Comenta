@@ -70,43 +70,39 @@ void* conectar_kernel(){
 	pthread_exit(0);
 }
 
+t_kernel_memoria* deserializar(t_buffer* buffer) {
+
+    t_kernel_memoria* dato = malloc(sizeof(t_kernel_memoria));
+    void* stream = buffer->stream;
+    
+	memcpy(&(dato->size_path), stream, sizeof(uint32_t));
+    stream += sizeof(uint32_t);
+
+    dato->path_instrucciones = malloc(dato->size_path);
+	memcpy(dato->path_instrucciones, stream, dato->size_path);
+    stream += dato->size_path * sizeof(char);
+    
+	memcpy(&(dato->program_counter), stream, sizeof(uint32_t));
+
+    return dato;
+}
+
 void* atender_kernel(){
 	while(kernel_orden_apagado){
-		log_info(logger,"Esperando paquete de Kernel en socket %d",socket_kernel);
 		
-		int cod_op = recibir_operacion(socket_kernel);
-		void* stream = recibir_stream(socket_kernel);
+		log_info(logger,"Esperando paquete de Kernel en socket %d",socket_kernel);
+		t_paquete* paquete = recibir_paquete(socket_kernel);
 
-		switch(cod_op){
+		switch(paquete->codigo_operacion){
 			case RECIBIR_PATH_INSTRUCCIONES:
+				t_kernel_memoria *dato = deserializar(paquete->buffer);
 				
-				// Recibo de Kernel un paquete con el path de las instrucciones y el PC.
-				// typedef struct t_kernel_memoria
-				// {
-				// 	char *pathInstrucciones;
-				// 	int program_counter;
-				// } t_kernel_memoria;
+				log_info(logger,"Tamaño del path: %d",dato->size_path);
+				log_info(logger,"Path de instrucciones: %s",dato->path_instrucciones);
+				log_info(logger,"Program counter: %d",dato->program_counter);
 
-				// Deserializar el path de las instrucciones
-				char* current_pos = (char*)stream;
-				char* pathInstrucciones = strdup(current_pos); // Duplico la cadena
-				current_pos += strlen(pathInstrucciones) + 1; // Muevo el puntero al próximo elemento, +1 por el \0
-
-				// Deserializar el program_counter
-				int program_counter;
-				memcpy(&program_counter, current_pos, sizeof(int));
-
-				// Construyo la estructura t_kernel_memoria
-				t_kernel_memoria datos;
-				datos.pathInstrucciones = pathInstrucciones;
-				datos.program_counter = program_counter;
-
-				// Ahora uso los datos para algo. Despues mando el struct a una funcion externa y hago algo
-				printf("Path instrucciones: %s\n", datos.pathInstrucciones);
-				printf("Program counter: %d\n", datos.program_counter);
-
-				// Libero la memoria
-				free(pathInstrucciones);
+				free(dato->path_instrucciones);
+				free(dato);
 
 				break;
 			case TERMINAR:
@@ -119,8 +115,6 @@ void* atender_kernel(){
 				log_info(logger, "Operacion desconocida");
 				break;
 		}
-
-		free(stream);
 	}
 
 	pthread_exit(0);

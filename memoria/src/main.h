@@ -29,6 +29,7 @@ void* conectar_io();
 void* atender_cpu();
 void* atender_kernel();
 void* atender_io(void*);
+t_kernel_memoria* deserializar(t_buffer* buffer);
 
 pthread_t thread_atender_cpu,thread_atender_kernel,thread_atender_io,thread_conectar_cpu,thread_conectar_kernel;
 

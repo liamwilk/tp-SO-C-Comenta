@@ -9,9 +9,6 @@
 #include <string.h>
 #include <commons/log.h>
 #include <commons/collections/list.h>
-
-/*--------Serializacion y paquetes--------*/
-
 typedef enum
 {
 	MENSAJE,
@@ -25,29 +22,32 @@ typedef enum
 
 typedef struct
 {
-	int size;
-	void *stream;
+	uint32_t size;	 // Tamaño del payload
+	uint32_t offset; // Desplazamiento dentro del payload
+	void *stream;	 // Payload
 } t_buffer;
 
 typedef struct
 {
-	char *instruccion;
-	char **argumentos;
+	op_code codigo_operacion; // Header
+	uint32_t size_buffer;	  // Tamaño del buffer
+	t_buffer *buffer;		  // Payload (puede ser un mensaje, un paquete, etc)
+} t_paquete;
+
+typedef struct
+{
+	uint32_t size_instruccion; // Tamaño de la instruccion
+	char *instruccion;		   // Instruccion
+	uint32_t size_argumentos;  // Tamaño de los argumentos
+	char **argumentos;		   // Argumentos
 } t_cpu_memoria_instruccion;
 
 typedef struct t_kernel_memoria
 {
-	char *pathInstrucciones;
-	int program_counter;
-	// Agregar a demanda el struct
+	uint32_t size_path;		  // Tamaño del path
+	char *path_instrucciones; // Path de las instrucciones
+	uint32_t program_counter; // Program counter
 } t_kernel_memoria;
-
-typedef struct
-{
-	op_code codigo_operacion; // Header
-	int size;
-	t_buffer *buffer;
-} t_paquete;
 
 t_paquete *crear_paquete(op_code codigo_de_operacion);
 
@@ -57,14 +57,7 @@ t_paquete *crear_paquete(op_code codigo_de_operacion);
  * @param paquete Paquete con buffer y su op_code
  * @param bytes
  */
-void *serializar_paquete(t_paquete *paquete, int bytes);
-
-/**
- * @fn deserializar_paquete
- * @brief Deserializa el paquete
- * @param buffer
- */
-void *deserializar_paquete(t_buffer *buffer);
+void *serializar_paquete(t_paquete *paquete, uint32_t bytes);
 
 /**
  * @fn    enviar_mensaje
@@ -114,7 +107,7 @@ void eliminar_paquete(t_paquete *paquete);
  * @brief Elimina el paquete para no generar memory leak
  * @param paquete Paquete de datos
  */
-void *recibir_buffer(int socket_cliente);
+t_buffer *recibir_buffer(int socket_cliente);
 
 /**
  *
