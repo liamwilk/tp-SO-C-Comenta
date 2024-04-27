@@ -17,7 +17,9 @@
 #include <utils/conexiones.h>
 #include <utils/configs.h>
 #include <utils/serial.h>
+#include "common.h"
 #include "init.h"
+#include "generic.h"
 
 t_log* logger;
 t_config* config;
@@ -30,5 +32,11 @@ void* conectar_memoria();
 
 int socket_memoria;
 int socket_kernel;
+
+
+// TODO: implementar las siguientes funciones en sus respectivos archivos.
+void* procesar_entradasalida_stdin(t_entradasalida entradasalida,t_log *logger);		
+void* procesar_entradasalida_stdout(t_entradasalida entradasalida,t_log *logger);		
+void* procesar_entradasalida_dialfs(t_entradasalida entradasalida,t_log *logger);	
 
 #endif /* MAIN_H_ */

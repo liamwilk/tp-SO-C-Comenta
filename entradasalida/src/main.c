@@ -13,22 +13,26 @@ int main() {
 		case GEN:
 			entradasalida = entradasalida_gen_inicializar(config);
 		    entradasalida_gen_log(entradasalida,logger);
+			procesar_entradasalida_gen(entradasalida, logger);
 			break;
 		case STDIN:
 			entradasalida = entradasalida_stdin_inicializar(config);
-		    entradasalida_stdin_log(entradasalida,logger);		
+		    entradasalida_stdin_log(entradasalida,logger);
+			procesar_entradasalida_stdin(entradasalida, logger);		
 			break;
 		case STDOUT:
 			entradasalida = entradasalida_stdout_inicializar(config);
 		    entradasalida_stdout_log(entradasalida,logger);
+			procesar_entradasalida_stdout(entradasalida, logger);
 			break;		
 		case DIALFS:
 			entradasalida = entradasalida_dialfs_inicializar(config);
 		    entradasalida_dialfs_log(entradasalida,logger);		
+			procesar_entradasalida_dialfs(entradasalida, logger);
 			break;
 		default:
 			log_error(logger, "Tipo de interfaz desconocida");
-			break;
+			return 0;
 	}
 
 
@@ -68,3 +72,19 @@ void* conectar_kernel(){
 	pthread_exit(0);
 }
 
+
+
+
+
+void* procesar_entradasalida_stdin(t_entradasalida entradasalida,t_log *logger)
+{
+	return NULL;
+}		
+void* procesar_entradasalida_stdout(t_entradasalida entradasalida,t_log *logger)
+{
+	return NULL;
+}
+void* procesar_entradasalida_dialfs(t_entradasalida entradasalida,t_log *logger)
+{
+	return NULL;
+}
