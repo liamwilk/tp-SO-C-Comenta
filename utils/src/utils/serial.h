@@ -49,11 +49,16 @@ typedef struct t_kernel_memoria
 	uint32_t program_counter; // Program counter
 } t_kernel_memoria;
 
+/**
+ * @fn    *crear_paquete
+ * @brief Crea un paquete, y le asigna un buffer.
+ * @param codigo_de_operacion op_code que va a tener el paquete.
+ */
 t_paquete *crear_paquete(op_code codigo_de_operacion);
 
 /**
  * @fn    serializar_paquete
- * @brief Implementacion de la serializacion de un paquete (strings)
+ * @brief Implementacion de la serializacion de un paquete
  * @param paquete Paquete con buffer y su op_code
  * @param bytes
  */
@@ -68,9 +73,9 @@ void *serializar_paquete(t_paquete *paquete, uint32_t bytes);
 void enviar_mensaje(char *mensaje, int socket_cliente);
 
 /**
- *
  * @fn    crear_buffer
  * @brief Crea un buffer y lo agrega al paquete
+ * @param paquete Puntero al paquete donde se va a crear el buffer
  */
 void crear_buffer(t_paquete *paquete);
 
@@ -104,8 +109,8 @@ void eliminar_paquete(t_paquete *paquete);
 /**
  *
  * @fn    recibir_buffer
- * @brief Elimina el paquete para no generar memory leak
- * @param paquete Paquete de datos
+ * @brief Recibe el buffer entrante
+ * @param socket_cliente Socket desde el cual proviene el buffer
  */
 t_buffer *recibir_buffer(int socket_cliente);
 
@@ -125,35 +130,36 @@ void recibir_mensaje(t_log *logger, int socket_cliente);
  */
 int recibir_operacion(int socket_cliente);
 
-t_paquete *recibir_paquete(int socket);
+/**
+ * @fn    recibir_paquete
+ * @brief Invoca la funcion recv y recibe todo el paquete.
+ * @param logger Logger que se usara para reportar errores
+ * @param socket_cliente Socket desde el cual proviene el paquete
+ */
+t_paquete *recibir_paquete(t_log *logger, int socket_cliente);
 
 /**
- *
- * @fn    recibir_stream
- * @brief Realiza todo el proceso para recibir el paquete, deserializarlo y devolver un void* stream proveniente del buffer empaquetado.
- * @param socket_cliente
+ * @fn    serializar_uint32_t
+ * @brief Serializa un uint32_t en el paquete
+ * @param valor El valor a serializar
+ * @param paquete El puntero al paquete donde se serializara
  */
-void *recibir_stream(int socket_cliente);
+void serializar_uint32_t(uint32_t valor, t_paquete *paquete);
 
-// con el debido casting de tipos de datos, ninguna de todas estas funciones sería necesaria
+/**
+ * @fn    serializar_char
+ * @brief Serializa un char en el paquete
+ * @param valor El valor a serializar
+ * @param paquete El puntero al paquete donde se serializara
+ */
+void serializar_char(char *valor, t_paquete *paquete);
 
-//
-//// Agrega un uint32_t al buffer
-// void buffer_add_uint32(t_buffer *buffer, uint32_t data);
-//
-//// Lee un uint32_t del buffer y avanza el offset
-// uint32_t buffer_read_uint32(t_buffer *buffer);
-//
-//// Agrega un uint8_t al buffer
-// void buffer_add_uint8(t_buffer *buffer, uint8_t data);
-//
-//// Lee un uint8_t del buffer y avanza el offset
-// uint8_t buffer_read_uint8(t_buffer *buffer);
-//
-//// Agrega string al buffer con un uint32_t adelante indicando su longitud
-// void buffer_add_string(t_buffer *buffer, uint32_t length, char *string);
-//
-//// Lee un string y su longitud del buffer y avanza el offset
-// char *buffer_read_string(t_buffer *buffer, uint32_t *length);
+/**
+ * @fn    actualizar_buffer
+ * @brief En base a los valores cargados en el paquete, actualiza el buffer
+ * @param paquete El paquete que se va a actualizar
+ * @param size El tamaño total del buffer
+ */
+void actualizar_buffer(t_paquete *paquete, uint32_t size);
 
 #endif

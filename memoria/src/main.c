@@ -3,7 +3,7 @@
 
 int main() {
     
-    logger = iniciar_logger("memoria" , LOG_LEVEL_INFO);
+    logger = iniciar_logger("memoria" , LOG_LEVEL_DEBUG);
     config = iniciar_config(logger);
 	memoria = memoria_inicializar(config);
 	memoria_log(memoria, logger);
@@ -44,10 +44,9 @@ void* conectar_cpu(){
 void* atender_cpu(){
 	while(kernel_orden_apagado){
 		log_info(logger,"Esperando paquete de CPU en socket %d",socket_cpu);
-		int cod_op = recibir_operacion(socket_cpu);
-		void* stream = recibir_stream(socket_cpu);
+		t_paquete* paquete = recibir_paquete(logger,socket_cpu);
 
-		switch(cod_op){
+		switch(paquete->codigo_operacion){
 			case DAME_PROXIMA_INSTRUCCION:
 				// Se envia un paquete a CPU con una sola instruccion
 				
@@ -57,7 +56,9 @@ void* atender_cpu(){
 				pthread_exit(0);
 				break;
 		}
-		free(stream);
+		free(paquete->buffer->stream);
+		free(paquete->buffer);
+		free(paquete);
 	}
 
 	pthread_exit(0);
@@ -91,16 +92,23 @@ void* atender_kernel(){
 	while(kernel_orden_apagado){
 		
 		log_info(logger,"Esperando paquete de Kernel en socket %d",socket_kernel);
-		t_paquete* paquete = recibir_paquete(socket_kernel);
+		t_paquete* paquete = recibir_paquete(logger,socket_kernel);
 
 		switch(paquete->codigo_operacion){
 			case RECIBIR_PATH_INSTRUCCIONES:
 				t_kernel_memoria *dato = deserializar(paquete->buffer);
 				
-				log_info(logger,"Tamaño del path: %d",dato->size_path);
-				log_info(logger,"Path de instrucciones: %s",dato->path_instrucciones);
-				log_info(logger,"Program counter: %d",dato->program_counter);
+				log_warning(logger,"Recibido paquete de Kernel:");
+				log_debug(logger,"Codigo de operacion: %d",paquete->codigo_operacion);
+				log_debug(logger,"Size del buffer en paquete: %d",paquete->size_buffer);
+				log_debug(logger,"Offset en buffer: %d",paquete->buffer->offset);
+				log_debug(logger,"Size en buffer: %d",paquete->buffer->size);
 
+				log_warning(logger,"Deserializado del stream:");
+				log_debug(logger,"Tamaño del path_instrucciones: %d",dato->size_path);
+				log_debug(logger,"Path de instrucciones: %s",dato->path_instrucciones);
+				log_debug(logger,"Program counter: %d",dato->program_counter);
+				
 				free(dato->path_instrucciones);
 				free(dato);
 
@@ -115,6 +123,9 @@ void* atender_kernel(){
 				log_info(logger, "Operacion desconocida");
 				break;
 		}
+		free(paquete->buffer->stream);
+		free(paquete->buffer);
+		free(paquete);
 	}
 
 	pthread_exit(0);
@@ -146,10 +157,9 @@ void* atender_io(void* args){
 
 	do{
 		log_info(logger,"Esperando paquete de I/O en socket %d",socket_cliente);
-		int cod_op = recibir_operacion(socket_cliente);
-		void* stream = recibir_stream(socket_cliente);
+		t_paquete* paquete = recibir_paquete(logger,socket_cliente);
 
-		switch(cod_op){
+		switch(paquete->codigo_operacion){
 			case MENSAJE:
 				// placeholder
 				break;
@@ -158,7 +168,9 @@ void* atender_io(void* args){
 				pthread_exit(0);
 				break;
 		}
-		free(stream);
+		free(paquete->buffer->stream);
+		free(paquete->buffer);
+		free(paquete);
 	}while(kernel_orden_apagado);
 
 	pthread_exit(0);

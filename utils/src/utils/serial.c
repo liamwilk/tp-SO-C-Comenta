@@ -19,24 +19,6 @@ void *serializar_paquete(t_paquete *paquete, uint32_t bytes)
 	return buffer;
 };
 
-void *deserializar_paquete(t_buffer *buffer)
-{
-	// TODO: Implementar
-	return NULL;
-};
-
-void *recibir_stream(int socket_cliente)
-{
-	void *buffer_void = recibir_buffer(socket_cliente);
-	t_buffer buffer_struct;
-	memcpy(&buffer_struct.size, buffer_void, sizeof(int));
-	buffer_struct.stream = malloc(buffer_struct.size);
-	// Esto va a dar segmentation fault si le envian un paquete que tiene NULL en el stream. No lo hagan :)
-	memcpy(buffer_struct.stream, buffer_void + sizeof(int), buffer_struct.size);
-	free(buffer_void);
-	return buffer_struct.stream;
-};
-
 void enviar_mensaje(char *mensaje, int socket_cliente)
 {
 	t_paquete *paquete = malloc(sizeof(t_paquete));
@@ -108,18 +90,18 @@ t_buffer *recibir_buffer(int socket_cliente)
 	recv(socket_cliente, &size, sizeof(uint32_t), MSG_WAITALL);
 	recv(socket_cliente, &offset, sizeof(uint32_t), MSG_WAITALL);
 
-	void *buffer = malloc(size);
-	recv(socket_cliente, buffer, size, MSG_WAITALL);
+	void *stream = malloc(size);
+	recv(socket_cliente, stream, size, MSG_WAITALL);
 
-	t_buffer *ret = malloc(sizeof(t_buffer));
-	ret->size = size;
-	ret->offset = offset;
-	ret->stream = buffer;
+	t_buffer *buffer = malloc(sizeof(t_buffer));
+	buffer->size = size;
+	buffer->offset = offset;
+	buffer->stream = stream;
 
-	return ret;
+	return buffer;
 }
 
-t_paquete *recibir_paquete(int socket_cliente)
+t_paquete *recibir_paquete(t_log *logger, int socket_cliente)
 {
 	t_paquete *paquete = malloc(sizeof(t_paquete));
 
@@ -128,47 +110,27 @@ t_paquete *recibir_paquete(int socket_cliente)
 
 	paquete->buffer = recibir_buffer(socket_cliente);
 
+	if (paquete->buffer->stream == NULL || paquete->buffer == NULL || paquete == NULL)
+	{
+		log_error(logger, "Error al recibir el paquete. Se hallo NULL.");
+
+		if (paquete->buffer->stream != NULL)
+		{
+			free(paquete->buffer->stream);
+		}
+		if (paquete->buffer != NULL)
+		{
+			free(paquete->buffer);
+		}
+		if (paquete != NULL)
+		{
+			free(paquete);
+			return NULL;
+		}
+	}
+
 	return paquete;
 }
-
-// No usar, esto no funciona
-// t_paquete *recibir_paquete(int socket)
-// {
-// 	t_paquete *ret = malloc(sizeof(t_paquete));
-
-// 	// Obtengo el tamanio del paquete
-// 	uint64_t *size = malloc(sizeof(uint64_t));
-// 	if (recv(socket, size, sizeof(uint64_t), MSG_WAITALL) < 1)
-// 	{
-// 		free(ret);
-// 		free(size);
-// 		return NULL;
-// 	}
-
-// 	ret->size_buffer = *size;
-// 	free(size);
-
-// 	// Obtengo el opcode
-// 	op_code *opcode = malloc(sizeof(op_code));
-// 	if (recv(socket, opcode, sizeof(op_code), MSG_WAITALL) < 1)
-// 	{
-// 		free(ret);
-// 		free(opcode);
-// 		return NULL;
-// 	}
-// 	ret->codigo_operacion = *opcode;
-// 	free(opcode);
-
-// 	// Obtengo el buffer
-// 	ret->buffer = malloc(ret->size_buffer);
-// 	if (ret->size_buffer != 0 && recv(socket, ret->buffer, ret->size_buffer, MSG_WAITALL) < 1)
-// 	{
-// 		free(ret->buffer);
-// 		free(ret);
-// 		return NULL;
-// 	}
-// 	return ret;
-// }
 
 int recibir_operacion(int socket_cliente)
 {
@@ -180,4 +142,23 @@ int recibir_operacion(int socket_cliente)
 		close(socket_cliente);
 		return -1;
 	}
+}
+
+void serializar_uint32_t(uint32_t valor, t_paquete *paquete)
+{
+	memcpy(paquete->buffer->stream + paquete->buffer->offset, &valor, sizeof(uint32_t));
+	paquete->buffer->offset += sizeof(uint32_t);
+}
+
+void serializar_char(char *valor, t_paquete *paquete)
+{
+	memcpy(paquete->buffer->stream + paquete->buffer->offset, valor, strlen(valor) + 1);
+	paquete->buffer->offset += strlen(valor) + 1;
+}
+
+void actualizar_buffer(t_paquete *paquete, uint32_t size)
+{
+	paquete->buffer->size = size;
+	paquete->size_buffer = size;
+	paquete->buffer->stream = malloc(paquete->buffer->size);
 }

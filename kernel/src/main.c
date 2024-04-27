@@ -15,62 +15,82 @@ int main()
 	pthread_create(&thread_atender_memoria, NULL, atender_memoria, NULL);
 	pthread_detach(thread_atender_memoria);
 
+	////////////////////////////////////////////////////////
 
 	// Se crea un paquete de prueba para recibir en Memoria
 	
-	// typedef struct
-	// {
-	// 	op_code codigo_operacion; // Header
-	// 	uint32_t size_buffer;	  // Tamaño del buffer
-	// 	t_buffer *buffer;		  // Payload (puede ser un mensaje, un paquete, etc)
-	// } t_paquete;
+		// typedef struct
+		// {
+		// 	op_code codigo_operacion; // Header
+		// 	uint32_t size_buffer;	  // Tamaño del buffer
+		// 	t_buffer *buffer;		  // Payload (puede ser un mensaje, un paquete, etc)
+		// } t_paquete;
 
 	t_paquete *paquete = crear_paquete(RECIBIR_PATH_INSTRUCCIONES);
+	
+
+	// Creo el paquete que necesito mandarle a Memoria. Ojo con punteros, reserven memoria bien.
+	
+		// typedef struct t_kernel_memoria
+		// {
+		// uint32_t size_path;		  // Tamaño del path
+		// char *path_instrucciones; // Path de las instrucciones
+		// uint32_t program_counter; // Program counter
+		// } t_kernel_memoria;
+
+	// Creo el t_kernel_memoria que necesito mandarle a Memoria
 
 	t_kernel_memoria dato;
+	
+	// Inicializo los campos del t_kernel_memoria
 
-	char* mensaje = "instrucciones.txt Y LA CONCHA DE LA LORA";
-
+	char* mensaje = "instrucciones.txt";
 	dato.path_instrucciones = malloc(strlen(mensaje) + 1);
 	strcpy(dato.path_instrucciones, mensaje);
 	dato.size_path = strlen(mensaje) + 1;
 	dato.program_counter = 123456789;
 
-	// typedef struct t_kernel_memoria
-	// {
-	// uint32_t size_path;		  // Tamaño del path
-	// char *path_instrucciones; // Path de las instrucciones
-	// uint32_t program_counter; // Program counter
-	// } t_kernel_memoria;
+	// Actualizo el size del buffer y reservo la memoria necesaria
 
-	paquete->buffer->size = dato.size_path + sizeof(uint32_t) + sizeof(uint32_t);
-	paquete->size_buffer = dato.size_path + sizeof(uint32_t) + sizeof(uint32_t);
-	paquete->buffer->stream = malloc(paquete->buffer->size);
+	actualizar_buffer(paquete, dato.size_path + sizeof(uint32_t) + sizeof(uint32_t));
 
-	// void* stream = paquete->buffer->stream;
-	// uint32_t offset = paquete->buffer->offset;
+		// paquete->buffer->size = dato.size_path + sizeof(uint32_t) + sizeof(uint32_t);
+		// paquete->size_buffer = dato.size_path + sizeof(uint32_t) + sizeof(uint32_t);
+		// paquete->buffer->stream = malloc(paquete->buffer->size);
 
-	// typedef struct
-	// {
-	// uint32_t size;	 // Tamaño del payload
-	// uint32_t offset; // Desplazamiento dentro del payload
-	// void *stream;	 // Payload
-	// } t_buffer;
+		// typedef struct
+		// {
+		// uint32_t size;	 // Tamaño del payload
+		// uint32_t offset; // Desplazamiento dentro del payload
+		// void *stream;	 // Payload
+		// } t_buffer;
 
-	memcpy(paquete->buffer->stream + paquete->buffer->offset, &dato.size_path, sizeof(uint32_t));
-	paquete->buffer->offset += sizeof(uint32_t);
+	// Empiezo a serializar el t_kernel_memoria en el buffer del paquete
 
-	memcpy(paquete->buffer->stream + paquete->buffer->offset, dato.path_instrucciones, dato.size_path);
-	paquete->buffer->offset += dato.size_path;
+	serializar_uint32_t(dato.size_path, paquete);
+		// memcpy(paquete->buffer->stream + paquete->buffer->offset, &dato.size_path, sizeof(uint32_t));
+		// paquete->buffer->offset += sizeof(uint32_t);
 
-	memcpy(paquete->buffer->stream + paquete->buffer->offset, &dato.program_counter, sizeof(uint32_t));
-	paquete->buffer->offset += sizeof(uint32_t);
+	serializar_char(dato.path_instrucciones, paquete);
+		// memcpy(paquete->buffer->stream + paquete->buffer->offset, dato.path_instrucciones, dato.size_path);
+		// paquete->buffer->offset += dato.size_path;
 
-	// buffer->stream = stream;
+	serializar_uint32_t(dato.program_counter, paquete);
+		// memcpy(paquete->buffer->stream + paquete->buffer->offset, &dato.program_counter, sizeof(uint32_t));
+		// paquete->buffer->offset += sizeof(uint32_t);
+
+	// Envio el paquete a Memoria
 
 	enviar_paquete(paquete, socket_memoria);
-	log_info(logger, "Paquete enviado a Memoria");
+	
+	// Libero memoria
+
+	// Es el puntero a char que esta en mi t_kernel_memoria
+	
 	free(dato.path_instrucciones);
+
+	// Es el paquete que cree al principio
+
 	eliminar_paquete(paquete);
 
 	////////////////////////////////////////////////////////
