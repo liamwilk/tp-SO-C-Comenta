@@ -1,41 +1,49 @@
 #include "procesos.h"
 
-int new_pid(int *pid)
+int pid = 0;
+int new_pid()
 {
-    *pid = *pid + 1;
-    return *pid;
+    pid += 1;
+    return pid;
 };
 
-pcb *crear_pcb(t_log *logger, int *pid, int quantum)
+t_pcb *pcb_crear(t_log *logger, int quantum)
 {
-    log_info(logger, "Creando nueva pcb...");
-    pcb *nuevo_pcb = malloc(sizeof(pcb));
-    nuevo_pcb->pid = new_pid(pid);
-    nuevo_pcb->program_counter = 0;
-    nuevo_pcb->quantum = quantum;
     t_registros_cpu *registros_cpu = malloc(sizeof(t_registros_cpu));
-    registros_cpu->pc = 0;
-    registros_cpu->eax = 0;
-    registros_cpu->ebx = 0;
-    registros_cpu->ecx = 0;
-    registros_cpu->ax = 0;
-    registros_cpu->bx = 0;
-    registros_cpu->cx = 0;
-    registros_cpu->dx = 0;
-    nuevo_pcb->registros_cpu = registros_cpu;
+    *registros_cpu = (t_registros_cpu){.pc = 0, .eax = 0, .ebx = 0, .ecx = 0, .ax = 0, .bx = 0, .cx = 0, .dx = 0};
+    t_pcb *nuevo_pcb = malloc(sizeof(t_pcb));
+    *nuevo_pcb = (t_pcb){.pid = new_pid(), .program_counter = 0, .quantum = quantum, .registros_cpu = registros_cpu};
     return nuevo_pcb;
-};
+}
 
-pcb *nuevo_proceso(t_kernel *kernel, int *pid, t_sockets_kernel *sockets, char *instrucciones, t_log *logger)
+void proceso_agregar_new(t_queue *new, t_pcb *pcb) { queue_push(new, pcb); };
+void proceso_agregar_ready(t_queue *ready, t_pcb *pcb) { queue_push(ready, pcb); };
+void proceso_quitar_new(t_queue *new) { queue_pop(new); };
+void proceso_quitar_ready(t_queue *ready) { queue_pop(ready); };
+
+void proceso_mover_ready(int gradoMultiprogramacion, t_log *logger, diagrama_estados *estados)
 {
-    pcb *nuevaPcb = crear_pcb(logger, pid, kernel->quantum);
-    t_kernel_memoria *kernel_memoria = malloc(sizeof(t_kernel_memoria));
-    kernel_memoria->pathInstrucciones = instrucciones;
-    kernel_memoria->program_counter = nuevaPcb->program_counter;
-    t_paquete *paquete = crear_paquete(PAQUETE);
-    agregar_a_paquete(paquete, &kernel_memoria->pathInstrucciones, sizeof(char *));
-    agregar_a_paquete(paquete, &kernel_memoria->program_counter, sizeof(int));
-    enviar_paquete(paquete, sockets->memoria);
-    log_info(logger, "Se crea el proceso  <%d> en NEW", nuevaPcb->pid);
-    return nuevaPcb;
+
+    int cant_en_new = queue_size(estados->new);
+    int cant_en_ready = queue_size(estados->ready);
+
+    if (cant_en_ready < gradoMultiprogramacion)
+    {
+        while (cant_en_ready < gradoMultiprogramacion && cant_en_new > 0)
+        {
+            t_pcb *proceso = queue_pop(estados->new);
+            proceso_agregar_ready(estados->ready, proceso);
+            cant_en_ready++;
+            cant_en_new--;
+            log_info(logger, "Proceso %d movido a ready", proceso->pid);
+        }
+    }
+    if (cant_en_new == 0)
+    {
+        log_info(logger, "No se pueden mover mas procesos a ready, ya que se no hay mas procesos en new");
+    }
+    else
+    {
+        log_info(logger, "No se pueden mover mas procesos a ready, ya que se alcanzo el grado de multiprogramacion");
+    }
 };

@@ -1,7 +1,7 @@
 #include "consola.h"
 #include <utils/procesos.h>
 
-operaciones obtener_operacion(char *funcion)
+operacion obtener_operacion(char *funcion)
 {
     char *operacionesStrings[] = {
         "EJECUTAR_SCRIPT",
@@ -22,10 +22,9 @@ operaciones obtener_operacion(char *funcion)
     return NUM_FUNCIONES;
 }
 
-void procesar_consola(t_log *logger, int *pid, t_queue *new, int *flag, t_kernel *kernel, t_sockets_kernel *sockets)
+void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados, int *flag)
 {
     char *linea;
-    t_paquete *finalizar = crear_paquete(TERMINAR);
     while (*flag)
     {
         linea = readline("\n> ");
@@ -42,11 +41,14 @@ void procesar_consola(t_log *logger, int *pid, t_queue *new, int *flag, t_kernel
             log_info(logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
             break;
         case INICIAR_PROCESO:
-            log_info(logger, "Se ejecuto SCRIPT %s con argumento %s", separar_linea[0], separar_linea[1]);
+            log_warning(logger, "Se ejecuto SCRIPT %s con argumento %s", separar_linea[0], separar_linea[1]);
+            if (!separar_linea[1])
+            {
+                log_error(logger, "No se ingreso un path de instrucciones");
+                break;
+            }
             char *pathInstrucciones = separar_linea[1];
-            pcb *nuevaPcb = nuevo_proceso(kernel, pid, sockets, pathInstrucciones, logger);
-            push_new(new, nuevaPcb);
-            // Planificar procesos
+            kernel_nuevo_proceso(kernel, estados->new, logger, pathInstrucciones);
             break;
         case FINALIZAR_PROCESO:
             log_info(logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
@@ -56,21 +58,20 @@ void procesar_consola(t_log *logger, int *pid, t_queue *new, int *flag, t_kernel
             break;
         case INICIAR_PLANIFICACION:
             log_info(logger, "Se ejecuto script %s", separar_linea[0]);
+            proceso_mover_ready(kernel->gradoMultiprogramacion, logger, estados);
             break;
         case MULTIPROGRAMACION:
             log_info(logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+            int grado_multiprogramacion = atoi(separar_linea[1]);
+            kernel->gradoMultiprogramacion = grado_multiprogramacion;
+            log_info(logger, "GRADO_MULTIPROGRAMACION: %d", kernel->gradoMultiprogramacion);
             break;
         case PROCESO_ESTADO:
             log_info(logger, "Se ejecuto script %s", separar_linea[0]);
             break;
         case FINALIZAR:
-            *flag = 0;
-            enviar_paquete(finalizar, sockets->cpu_dispatch);
-            enviar_paquete(finalizar, sockets->memoria);
-            liberar_conexion(sockets->cpu_dispatch);
-            liberar_conexion(sockets->cpu_interrupt);
-            liberar_conexion(sockets->memoria);
-            liberar_conexion(sockets->server);
+            log_info(logger, "Se ejecuto script %s", separar_linea[0]);
+            kernel_finalizar(kernel, flag);
             break;
         default:
             log_info(logger, "Comando no reconocido");

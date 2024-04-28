@@ -9,8 +9,7 @@
 #include "utils/conexiones.h"
 #include "commons/string.h"
 #include "utils/procesos.h"
-#include "estados.h"
-
+#include <utils/kernel.h>
 typedef enum
 {
     EJECUTAR_SCRIPT,
@@ -22,10 +21,10 @@ typedef enum
     PROCESO_ESTADO,
     FINALIZAR,
     NUM_FUNCIONES // siempre mantener este al final para saber el tamaño del enum
-} operaciones;
+} operacion;
 
-operaciones obtener_operacion(char *funcion);
+operacion obtener_operacion(char *funcion);
 
-void procesar_consola(t_log *logger, int *pid, t_queue *new, int *flag, t_kernel *kernel, t_sockets_kernel *sockets);
+void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados, int *flag);
 
 #endif /* CONSOLA_H_ */
