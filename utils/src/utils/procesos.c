@@ -40,10 +40,10 @@ void proceso_mover_ready(int gradoMultiprogramacion, t_log *logger, diagrama_est
     }
     if (cant_en_new == 0)
     {
-        log_info(logger, "No se pueden mover mas procesos a ready, ya que se no hay mas procesos en new");
+        log_warning(logger, "No se pueden mover mas procesos a ready, ya que se no hay mas procesos en new");
     }
     else
     {
-        log_info(logger, "No se pueden mover mas procesos a ready, ya que se alcanzo el grado de multiprogramacion");
+        log_warning(logger, "No se pueden mover mas procesos a ready, ya que se alcanzo el grado de multiprogramacion");
     }
 };

@@ -30,25 +30,25 @@ int main()
 
 	pthread_create(&thread_conectar_kernel_interrupt, NULL, conectar_kernel_interrupt, NULL);
 	pthread_join(thread_conectar_kernel_interrupt, NULL);
-	
+
 	/*
 	Hasta que pongamos semaforos, necesito este sleep para darle tiempo a Memoria que reciba el path de instrucciones de
 	Kernel y las suba a la cola de instrucciones. Si lo saco, llega la instruccion DAME_PROXIMA_INSTRUCCION antes de que
-	memoria haya subido las instrucciones a la cola, y da error. 
+	memoria haya subido las instrucciones a la cola, y da error.
 	TODO: Acá hay que sincronizar con semáforos.
 	*/
 
-	sleep(5);
+	// sleep(5);
 
-	t_paquete* paquete = crear_paquete(DAME_PROXIMA_INSTRUCCION);
-	char *path = "vacio";
-	agregar_a_paquete(paquete, path, strlen(path) + 1);
+	// t_paquete *paquete = crear_paquete(DAME_PROXIMA_INSTRUCCION);
+	// char *path = "vacio";
+	// agregar_a_paquete(paquete, path, strlen(path) + 1);
 
 	// Envio la instruccion a CPU
-	enviar_paquete(paquete, socket_memoria);
-	
+	// enviar_paquete(paquete, socket_memoria);
+
 	// Libero la memoria del paquete de instruccion
-	eliminar_paquete(paquete);
+	// eliminar_paquete(paquete);
 
 	pthread_create(&thread_atender_kernel_interrupt, NULL, atender_kernel_interrupt, NULL);
 	pthread_join(thread_atender_kernel_interrupt, NULL);
@@ -74,9 +74,10 @@ void *atender_memoria()
 	while (kernel_orden_apagado)
 	{
 		log_info(logger, "Esperando paquete de Memoria en socket %d", socket_memoria);
-		t_paquete* paquete = recibir_paquete(logger,socket_memoria);
+		t_paquete *paquete = recibir_paquete(logger, socket_memoria);
 
-		switch(paquete->codigo_operacion){
+		switch (paquete->codigo_operacion)
+		{
 		case RECIBIR_UNA_INSTRUCCION:
 			t_memoria_cpu_instruccion *dato = deserializar_t_memoria_cpu_instruccion(paquete->buffer);
 
@@ -123,9 +124,10 @@ void *atender_kernel_dispatch()
 	while (kernel_orden_apagado)
 	{
 		log_info(logger, "Esperando paquete de Kernel Dispatch en socket %d", socket_kernel_dispatch);
-		t_paquete* paquete = recibir_paquete(logger,socket_kernel_dispatch);
+		t_paquete *paquete = recibir_paquete(logger, socket_kernel_dispatch);
 
-		switch(paquete->codigo_operacion){
+		switch (paquete->codigo_operacion)
+		{
 		case TERMINAR:
 			kernel_orden_apagado = 0;
 			liberar_conexion(socket_kernel_dispatch);
@@ -158,9 +160,10 @@ void *atender_kernel_interrupt()
 	while (kernel_orden_apagado)
 	{
 		log_info(logger, "Esperando paquete de Kernel Interrupt en socket %d", socket_kernel_interrupt);
-		t_paquete* paquete = recibir_paquete(logger,socket_kernel_interrupt);
+		t_paquete *paquete = recibir_paquete(logger, socket_kernel_interrupt);
 
-		switch(paquete->codigo_operacion){
+		switch (paquete->codigo_operacion)
+		{
 		case MENSAJE:
 			// placeholder
 		default:
@@ -177,32 +180,33 @@ void *atender_kernel_interrupt()
 	pthread_exit(0);
 }
 
-t_memoria_cpu_instruccion* deserializar_t_memoria_cpu_instruccion(t_buffer* buffer) {
+t_memoria_cpu_instruccion *deserializar_t_memoria_cpu_instruccion(t_buffer *buffer)
+{
 
-    t_memoria_cpu_instruccion* dato = malloc(sizeof(t_memoria_cpu_instruccion));
-    void* stream = buffer->stream;
-    
+	t_memoria_cpu_instruccion *dato = malloc(sizeof(t_memoria_cpu_instruccion));
+	void *stream = buffer->stream;
+
 	// Deserializo el tamaño de la instruccion
 	memcpy(&(dato->size_instruccion), stream, sizeof(uint32_t));
-    stream += sizeof(uint32_t);
+	stream += sizeof(uint32_t);
 
 	// Deserializo la instruccion
-    dato->instruccion = malloc(dato->size_instruccion);
+	dato->instruccion = malloc(dato->size_instruccion);
 	memcpy(dato->instruccion, stream, dato->size_instruccion);
-    stream += dato->size_instruccion * sizeof(char);
-    
+	stream += dato->size_instruccion * sizeof(char);
+
 	// Deserializo la cantidad de argumentos
 	memcpy(&(dato->cantidad_argumentos), stream, sizeof(uint32_t));
-    stream += sizeof(uint32_t);
+	stream += sizeof(uint32_t);
 
 	// Deserializo el tamaño del argumento 1
 	memcpy(&(dato->size_argumento_1), stream, sizeof(uint32_t));
-    stream += sizeof(uint32_t);
+	stream += sizeof(uint32_t);
 
 	// Deserializo el argumento 1
-    dato->argumento_1 = malloc(dato->size_argumento_1);
+	dato->argumento_1 = malloc(dato->size_argumento_1);
 	memcpy(dato->argumento_1, stream, dato->size_argumento_1);
-    stream += dato->size_argumento_1 * sizeof(char);
+	stream += dato->size_argumento_1 * sizeof(char);
 
 	// Deserializo el tamaño del argumento 2
 	memcpy(&(dato->size_argumento_2), stream, sizeof(uint32_t));
@@ -240,5 +244,5 @@ t_memoria_cpu_instruccion* deserializar_t_memoria_cpu_instruccion(t_buffer* buff
 	memcpy(dato->argumento_5, stream, dato->size_argumento_5);
 	stream += dato->size_argumento_5 * sizeof(char);
 
-    return dato;
+	return dato;
 }

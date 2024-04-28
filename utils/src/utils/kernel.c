@@ -13,7 +13,8 @@ t_kernel kernel_inicializar(t_config *config)
         .quantum = config_get_int_value(config, "QUANTUM"),
         .recursos = config_get_string_value(config, "RECURSOS"),
         .instanciasRecursos = config_get_string_value(config, "INSTANCIAS_RECURSOS"),
-        .gradoMultiprogramacion = config_get_int_value(config, "GRADO_MULTIPROGRAMACION")};
+        .gradoMultiprogramacion = config_get_int_value(config, "GRADO_MULTIPROGRAMACION"),
+        .sockets = {0, 0, 0, 0}};
     return kernel;
 };
 
@@ -73,18 +74,27 @@ diagrama_estados kernel_inicializar_estados(diagrama_estados *estados)
 t_pcb *kernel_nuevo_proceso(t_kernel *kernel, t_queue *colaNew, t_log *logger, char *instrucciones)
 {
     t_pcb *nuevaPcb = pcb_crear(logger, kernel->quantum);
-    log_debug(logger, "Nuevo proceso creado con PID: %d", nuevaPcb->pid);
-    log_debug(logger, "Nuevo proceso creado con PC: %d", nuevaPcb->program_counter);
-    log_debug(logger, "Nuevo proceso creado con Quantum: %d", nuevaPcb->quantum);
-    log_debug(logger, "Nuevo proceso creado con Path: %s", instrucciones);
+    log_debug(logger, "[PCB] Program Counter: %d", nuevaPcb->program_counter);
+    log_debug(logger, "[PCB] Quantum: %d", nuevaPcb->quantum);
+    log_debug(logger, "[PCB] PID: %d", nuevaPcb->pid);
+    log_debug(logger, "[PROCESO] Instrucciones: %s", instrucciones);
+
     t_kernel_memoria kernel_memoria = {.path_instrucciones = strdup(instrucciones), .size_path = strlen(instrucciones) + 1, .program_counter = nuevaPcb->program_counter};
-    t_paquete *paquete = crear_paquete(RECIBIR_PATH_INSTRUCCIONES);
+
+    t_paquete *paquete = crear_paquete(RECIBIR_PATH_INSTRUCCIONES); // OK
+
     actualizar_buffer(paquete, kernel_memoria.size_path + sizeof(uint32_t) + sizeof(uint32_t));
+
     serializar_uint32_t(kernel_memoria.size_path, paquete);
-    serializar_uint32_t(kernel_memoria.program_counter, paquete);
+
     serializar_char(kernel_memoria.path_instrucciones, paquete);
+
+    serializar_uint32_t(kernel_memoria.program_counter, paquete);
+
     enviar_paquete(paquete, kernel->sockets.memoria);
+
     proceso_agregar_new(colaNew, nuevaPcb);
+    eliminar_paquete(paquete);
     log_info(logger, "Se crea el proceso <%d> en NEW", nuevaPcb->pid);
     return nuevaPcb;
 }

@@ -25,6 +25,9 @@ operacion obtener_operacion(char *funcion)
 void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados, int *flag)
 {
     char *linea;
+    t_paquete *finalizar = crear_paquete(TERMINAR);
+    char *path = "N/A";
+    agregar_a_paquete(finalizar, path, strlen(path) + 1);
     while (*flag)
     {
         linea = readline("\n> ");
@@ -47,9 +50,13 @@ void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados,
                 log_error(logger, "No se ingreso un path de instrucciones");
                 break;
             }
-            char *pathInstrucciones = separar_linea[1];
-            kernel_nuevo_proceso(kernel, estados->new, logger, pathInstrucciones);
-            break;
+            else
+            {
+                char *pathInstrucciones = separar_linea[1];
+                kernel_nuevo_proceso(kernel, estados->new, logger, pathInstrucciones);
+                break;
+            }
+
         case FINALIZAR_PROCESO:
             log_info(logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
             break;
@@ -59,6 +66,8 @@ void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados,
         case INICIAR_PLANIFICACION:
             log_info(logger, "Se ejecuto script %s", separar_linea[0]);
             proceso_mover_ready(kernel->gradoMultiprogramacion, logger, estados);
+            log_debug(logger, "Se movieron los procesos a READY");
+            // Planificador a corto plazo (fifo y round robin)
             break;
         case MULTIPROGRAMACION:
             log_info(logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
@@ -71,7 +80,13 @@ void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados,
             break;
         case FINALIZAR:
             log_info(logger, "Se ejecuto script %s", separar_linea[0]);
-            kernel_finalizar(kernel, flag);
+            *flag = 0;
+            enviar_paquete(finalizar, kernel->sockets.cpu_dispatch);
+            enviar_paquete(finalizar, kernel->sockets.memoria);
+            liberar_conexion(kernel->sockets.cpu_dispatch);
+            liberar_conexion(kernel->sockets.cpu_interrupt);
+            liberar_conexion(kernel->sockets.memoria);
+            liberar_conexion(kernel->sockets.server);
             break;
         default:
             log_info(logger, "Comando no reconocido");

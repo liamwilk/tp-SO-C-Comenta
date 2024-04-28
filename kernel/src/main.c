@@ -5,7 +5,7 @@
 
 int main()
 {
-	logger = iniciar_logger("kernel", LOG_LEVEL_INFO);
+	logger = iniciar_logger("kernel", LOG_LEVEL_DEBUG);
 	config = iniciar_config(logger);
 	kernel = kernel_inicializar(config);
 	kernel_log(kernel, logger);

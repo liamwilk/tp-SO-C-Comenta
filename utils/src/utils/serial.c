@@ -104,12 +104,9 @@ t_buffer *recibir_buffer(int socket_cliente)
 t_paquete *recibir_paquete(t_log *logger, int socket_cliente)
 {
 	t_paquete *paquete = malloc(sizeof(t_paquete));
-
 	recv(socket_cliente, &(paquete->codigo_operacion), sizeof(op_code), MSG_WAITALL);
 	recv(socket_cliente, &(paquete->size_buffer), sizeof(uint32_t), MSG_WAITALL);
-
 	paquete->buffer = recibir_buffer(socket_cliente);
-
 	if (paquete->buffer->stream == NULL || paquete->buffer == NULL || paquete == NULL)
 	{
 		log_error(logger, "Error al recibir el paquete. Se hallo NULL.");
