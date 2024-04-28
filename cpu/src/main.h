@@ -30,6 +30,8 @@ void* conectar_kernel_dispatch();
 void* conectar_kernel_interrupt();
 void* conectar_memoria();
 
+t_memoria_cpu_instruccion* deserializar_t_memoria_cpu_instruccion(t_buffer* buffer);
+
 int socket_kernel_dispatch;
 int socket_kernel_interrupt;
 int socket_memoria;

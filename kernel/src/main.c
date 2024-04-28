@@ -27,7 +27,6 @@ int main()
 		// } t_paquete;
 
 	t_paquete *paquete = crear_paquete(RECIBIR_PATH_INSTRUCCIONES);
-	
 
 	// Creo el paquete que necesito mandarle a Memoria. Ojo con punteros, reserven memoria bien.
 	
@@ -180,6 +179,12 @@ void *atender_consola()
 				log_info(logger, "Comando no reconocido");
 				break;
 			}
+			// Libero la memoria de la línea separada
+			int index = 0;
+			while (separar_linea[index] != NULL) {
+				free(separar_linea[index]);
+				index++;
+			}
 			free(separar_linea);
 			free(linea);
 		}
@@ -191,19 +196,6 @@ void *atender_consola()
 	}
 	eliminar_paquete(finalizar);
 	pthread_exit(0);
-}
-
-funciones obtener_funcion(char *funcion)
-{
-	for (int i = 0; i < NUM_FUNCIONES; i++)
-	{
-		if (strcmp(FuncionesStrings[i], funcion) == 0)
-		{
-			return i;
-		}
-	}
-	// Devolver un valor por defecto o manejar el error como prefieras
-	return NUM_FUNCIONES;
 }
 
 void *conectar_io()
@@ -235,9 +227,9 @@ void *atender_io(void *args)
 	free(args);
 	do{
 		log_info(logger,"Esperando paquete de I/O en socket %d",socket_cliente);
-		int cod_op = recibir_operacion(socket_cliente);
+		t_paquete* paquete = recibir_paquete(logger,socket_cliente);
 
-		switch(cod_op){
+		switch(paquete->codigo_operacion){
 			case MENSAJE:
 				// placeholder
 				break;
@@ -246,6 +238,11 @@ void *atender_io(void *args)
 				pthread_exit(0);
 				break;
 		}
+
+		free(paquete->buffer->stream);
+		free(paquete->buffer);
+		free(paquete);
+
 	}while(kernel_orden_apagado);
 
 	pthread_exit(0);
@@ -262,9 +259,9 @@ void *conectar_memoria()
 void* atender_memoria(){
 	while(kernel_orden_apagado){
 		log_info(logger,"Esperando paquete de Memoria en socket %d",socket_memoria);
-		int cod_op = recibir_operacion(socket_memoria);
+		t_paquete* paquete = recibir_paquete(logger,socket_memoria);
 
-		switch(cod_op){
+		switch(paquete->codigo_operacion){
 			case MENSAJE:
 				// placeholder para despues
 				break;
@@ -273,6 +270,10 @@ void* atender_memoria(){
 				pthread_exit(0);
 				break;
 		}
+
+		free(paquete->buffer->stream);
+		free(paquete->buffer);
+		free(paquete);
 	}
 
 	pthread_exit(0);
@@ -289,9 +290,9 @@ void *conectar_cpu_dispatch()
 void* atender_cpu_dispatch(){
 	while(kernel_orden_apagado){
 		log_info(logger,"Esperando paquete de CPU Dispatch en socket %d",socket_cpu_dispatch);
-		int cod_op = recibir_operacion(socket_cpu_dispatch);
+		t_paquete* paquete = recibir_paquete(logger,socket_cpu_dispatch);
 
-		switch(cod_op){
+		switch(paquete->codigo_operacion){
 			case MENSAJE:
 				// Placeholder
 				break;
@@ -300,6 +301,9 @@ void* atender_cpu_dispatch(){
 				pthread_exit(0);
 				break;
 		}
+		free(paquete->buffer->stream);
+		free(paquete->buffer);
+		free(paquete);
 	}
 
 	pthread_exit(0);
@@ -316,9 +320,9 @@ void *conectar_cpu_interrupt()
 void* atender_cpu_interrupt(){
 	while(kernel_orden_apagado){
 		log_info(logger,"Esperando paquete de CPU Interrupt en socket %d",socket_cpu_interrupt);
-		int cod_op = recibir_operacion(socket_cpu_interrupt);
+		t_paquete* paquete = recibir_paquete(logger,socket_cpu_interrupt);
 
-		switch(cod_op){
+		switch(paquete->codigo_operacion){
 			case MENSAJE:
 				// Placeholder
 				break;
@@ -327,7 +331,23 @@ void* atender_cpu_interrupt(){
 				pthread_exit(0);
 				break;
 		}
+		free(paquete->buffer->stream);
+		free(paquete->buffer);
+		free(paquete);
 	}
 
 	pthread_exit(0);
+}
+
+funciones obtener_funcion(char *funcion)
+{
+	for (int i = 0; i < NUM_FUNCIONES; i++)
+	{
+		if (strcmp(FuncionesStrings[i], funcion) == 0)
+		{
+			return i;
+		}
+	}
+	// Devolver un valor por defecto o manejar el error como prefieras
+	return NUM_FUNCIONES;
 }
