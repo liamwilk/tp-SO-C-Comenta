@@ -45,8 +45,9 @@ int main()
 	// Inicializo los campos del t_kernel_memoria
 
 	char* mensaje = "instrucciones.txt";
-	dato.path_instrucciones = malloc(strlen(mensaje) + 1);
-	strcpy(dato.path_instrucciones, mensaje);
+	// dato.path_instrucciones = malloc(strlen(mensaje) + 1);
+	// strcpy(dato.path_instrucciones, mensaje);
+	dato.path_instrucciones = strdup(mensaje);
 	dato.size_path = strlen(mensaje) + 1;
 	dato.program_counter = 123456789;
 

@@ -36,11 +36,12 @@ typedef struct
 
 typedef struct
 {
-	uint32_t size_instruccion; // Tamaño de la instruccion
-	char *instruccion;		   // Instruccion
-	uint32_t size_argumentos;  // Tamaño de los argumentos
-	char **argumentos;		   // Argumentos
-} t_cpu_memoria_instruccion;
+	uint32_t size_instruccion;	  // Tamaño de la instruccion
+	char *instruccion;			  // Instruccion
+	uint32_t cantidad_argumentos; // Cantidad de argumentos
+	uint32_t size_argumentos;	  // Tamaño de los argumentos
+	char **argumentos;			  // Array de argumentos
+} t_memoria_cpu_instruccion;
 
 typedef struct t_kernel_memoria
 {
