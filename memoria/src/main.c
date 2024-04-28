@@ -303,7 +303,7 @@ int encolar_instrucciones(t_queue** cola,char* pathInstrucciones){
 		// Guardo el tamaño de la instruccion
 		instruccion->size_instruccion = strlen(instruccion->instruccion) + 1;
 
-		// Inicializo el contador de argumentos, empiezo en 1 porque en 0 esta la instruccion
+		// Inicializo el contador de argumentos
 		uint32_t arg_count = 1;
 
 		// Guardo los argumentos
@@ -346,9 +346,9 @@ int encolar_instrucciones(t_queue** cola,char* pathInstrucciones){
 		log_debug(logger,"Cantidad de argumentos: %d", instruccion->cantidad_argumentos);
 		
 		// Muestro los argumentos
-		uint32_t i = 1;
+		uint32_t i = 0;
 		while (i<instruccion->cantidad_argumentos){
-			log_debug(logger,"Argumento %d: %s",i,separar_linea[i]);
+			log_debug(logger,"Argumento %d: %s",i+1,separar_linea[i+1]);
 			i++;
 		}
 		
