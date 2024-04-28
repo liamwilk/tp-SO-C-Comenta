@@ -50,84 +50,9 @@ int main()
 
 void *atender_consola()
 {
-<<<<<<< HEAD
 	consola_iniciar(logger, &kernel, &estados, &kernel_orden_apagado);
 	return NULL;
 };
-=======
-	char *linea;
-
-	t_paquete *finalizar = crear_paquete(TERMINAR);
-	char *path = "N/A";
-	agregar_a_paquete(finalizar, path, strlen(path) + 1);
-
-	while (kernel_orden_apagado)
-	{
-
-		linea = readline("\n> ");
-		if (linea)
-		{
-			add_history(linea);
-			char **separar_linea = string_split(linea, " ");
-			funciones funcion = obtener_funcion(separar_linea[0]);
-
-			switch (funcion)
-			{
-			case EJECUTAR_SCRIPT:
-				log_info(logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-				break;
-			case INICIAR_PROCESO:
-				log_info(logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-				break;
-			case FINALIZAR_PROCESO:
-				log_info(logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-				break;
-			case DETENER_PLANIFICACION:
-				log_info(logger, "Se ejecuto script %s", separar_linea[0]);
-				break;
-			case INICIAR_PLANIFICACION:
-				log_info(logger, "Se ejecuto script %s", separar_linea[0]);
-				break;
-			case MULTIPROGRAMACION:
-				log_info(logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-				break;
-			case PROCESO_ESTADO:
-				log_info(logger, "Se ejecuto script %s", separar_linea[0]);
-				break;
-			case FINALIZAR:
-				kernel_orden_apagado = 0;
-				enviar_paquete(finalizar, socket_cpu_dispatch);
-				enviar_paquete(finalizar, socket_memoria);
-				liberar_conexion(socket_cpu_dispatch);
-				liberar_conexion(socket_cpu_interrupt);
-				liberar_conexion(socket_memoria);
-				liberar_conexion(socket_server_kernel);
-				break;
-
-			default:
-				log_info(logger, "Comando no reconocido");
-				break;
-			}
-			// Libero la memoria de la línea separada
-			int index = 0;
-			while (separar_linea[index] != NULL)
-			{
-				free(separar_linea[index]);
-				index++;
-			}
-			free(separar_linea);
-			free(linea);
-		}
-		else
-		{
-			kernel_orden_apagado = 0;
-			break;
-		}
-	}
-	eliminar_paquete(finalizar);
-	pthread_exit(0);
-}
->>>>>>> develop
 
 void *conectar_io()
 {
@@ -156,24 +81,6 @@ void *atender_io(void *args)
 	int socket_cliente = *(int *)args;
 	log_info(logger, "I/O conectado en socket %d", socket_cliente);
 	free(args);
-<<<<<<< HEAD
-	do
-	{
-		log_info(logger, "Esperando paquete de I/O en socket %d", socket_cliente);
-		int cod_op = recibir_operacion(socket_cliente);
-
-		switch (cod_op)
-		{
-		case MENSAJE:
-			// placeholder
-			break;
-		default:
-			liberar_conexion(socket_cliente);
-			pthread_exit(0);
-			break;
-		}
-	} while (kernel_orden_apagado);
-=======
 	do
 	{
 		log_info(logger, "Esperando paquete de I/O en socket %d", socket_cliente);
@@ -195,7 +102,6 @@ void *atender_io(void *args)
 		free(paquete);
 
 	} while (kernel_orden_apagado);
->>>>>>> develop
 
 	pthread_exit(0);
 }
@@ -209,30 +115,13 @@ void *conectar_memoria()
 	pthread_exit(0);
 }
 
-<<<<<<< HEAD
 void *atender_memoria()
 {
+	int socket = kernel.sockets.memoria;
 	while (kernel_orden_apagado)
 	{
-		log_info(logger, "Esperando paquete de Memoria en socket %d", kernel.sockets.memoria);
-		int cod_op = recibir_operacion(kernel.sockets.memoria);
-
-		switch (cod_op)
-		{
-		case MENSAJE:
-			// placeholder para despues
-			break;
-		default:
-			liberar_conexion(kernel.sockets.memoria);
-			pthread_exit(0);
-			break;
-=======
-void *atender_memoria()
-{
-	while (kernel_orden_apagado)
-	{
-		log_info(logger, "Esperando paquete de Memoria en socket %d", socket_memoria);
-		t_paquete *paquete = recibir_paquete(logger, socket_memoria);
+		log_info(logger, "Esperando paquete de Memoria en socket %d", socket);
+		t_paquete *paquete = recibir_paquete(logger, socket);
 
 		switch (paquete->codigo_operacion)
 		{
@@ -240,10 +129,9 @@ void *atender_memoria()
 			// placeholder para despues
 			break;
 		default:
-			liberar_conexion(socket_memoria);
+			liberar_conexion(socket);
 			pthread_exit(0);
 			break;
->>>>>>> develop
 		}
 
 		free(paquete->buffer->stream);
@@ -263,16 +151,15 @@ void *conectar_cpu_dispatch()
 	pthread_exit(0);
 }
 
-<<<<<<< HEAD
 void *atender_cpu_dispatch()
 {
 	int socket = kernel.sockets.cpu_dispatch;
 	while (kernel_orden_apagado)
 	{
 		log_info(logger, "Esperando paquete de CPU Dispatch en socket %d", socket);
-		int cod_op = recibir_operacion(socket);
+		t_paquete *paquete = recibir_paquete(logger, socket);
 
-		switch (cod_op)
+		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
 			// Placeholder
@@ -281,24 +168,6 @@ void *atender_cpu_dispatch()
 			liberar_conexion(socket);
 			pthread_exit(0);
 			break;
-=======
-void *atender_cpu_dispatch()
-{
-	while (kernel_orden_apagado)
-	{
-		log_info(logger, "Esperando paquete de CPU Dispatch en socket %d", socket_cpu_dispatch);
-		t_paquete *paquete = recibir_paquete(logger, socket_cpu_dispatch);
-
-		switch (paquete->codigo_operacion)
-		{
-		case MENSAJE:
-			// Placeholder
-			break;
-		default:
-			liberar_conexion(socket_cpu_dispatch);
-			pthread_exit(0);
-			break;
->>>>>>> develop
 		}
 		free(paquete->buffer->stream);
 		free(paquete->buffer);
@@ -317,16 +186,15 @@ void *conectar_cpu_interrupt()
 	pthread_exit(0);
 }
 
-<<<<<<< HEAD
 void *atender_cpu_interrupt()
 {
 	int socket = kernel.sockets.cpu_interrupt;
 	while (kernel_orden_apagado)
 	{
 		log_info(logger, "Esperando paquete de CPU Interrupt en socket %d", socket);
-		int cod_op = recibir_operacion(socket);
+		t_paquete *paquete = recibir_paquete(logger, socket);
 
-		switch (cod_op)
+		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
 			// Placeholder
@@ -335,24 +203,6 @@ void *atender_cpu_interrupt()
 			liberar_conexion(socket);
 			pthread_exit(0);
 			break;
-=======
-void *atender_cpu_interrupt()
-{
-	while (kernel_orden_apagado)
-	{
-		log_info(logger, "Esperando paquete de CPU Interrupt en socket %d", socket_cpu_interrupt);
-		t_paquete *paquete = recibir_paquete(logger, socket_cpu_interrupt);
-
-		switch (paquete->codigo_operacion)
-		{
-		case MENSAJE:
-			// Placeholder
-			break;
-		default:
-			liberar_conexion(socket_cpu_interrupt);
-			pthread_exit(0);
-			break;
->>>>>>> develop
 		}
 		free(paquete->buffer->stream);
 		free(paquete->buffer);
@@ -360,17 +210,4 @@ void *atender_cpu_interrupt()
 	}
 
 	pthread_exit(0);
-}
-
-funciones obtener_funcion(char *funcion)
-{
-	for (int i = 0; i < NUM_FUNCIONES; i++)
-	{
-		if (strcmp(FuncionesStrings[i], funcion) == 0)
-		{
-			return i;
-		}
-	}
-	// Devolver un valor por defecto o manejar el error como prefieras
-	return NUM_FUNCIONES;
 }
