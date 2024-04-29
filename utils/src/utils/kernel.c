@@ -81,7 +81,7 @@ t_pcb *kernel_nuevo_proceso(t_kernel *kernel, t_queue *colaNew, t_log *logger, c
 
     t_kernel_memoria kernel_memoria = {.path_instrucciones = strdup(instrucciones), .pid = nuevaPcb->pid, .size_path = strlen(instrucciones) + 1, .program_counter = nuevaPcb->program_counter};
 
-    t_paquete *paquete = crear_paquete(RECIBIR_PATH_INSTRUCCIONES);
+    t_paquete *paquete = crear_paquete(MEMORIA_INICIAR_PROCESO);
 
     actualizar_buffer(paquete, kernel_memoria.size_path + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t));
 

@@ -40,7 +40,7 @@ int main()
 	pthread_create(&thread_atender_consola, NULL, atender_consola, NULL);
 	pthread_join(thread_atender_consola, NULL);
 
-	log_warning(logger, "El Usuario solicito el apagado del sistema operativo.");
+	log_info(logger, "El Usuario solicito el apagado del sistema operativo.");
 
 	log_destroy(logger);
 	config_destroy(config);
@@ -51,7 +51,7 @@ int main()
 void *atender_consola()
 {
 	consola_iniciar(logger, &kernel, &estados, &kernel_orden_apagado);
-	return NULL;
+	pthread_exit(0);
 };
 
 void *conectar_io()

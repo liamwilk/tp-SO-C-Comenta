@@ -18,11 +18,20 @@
 #include <utils/configs.h>
 #include <utils/serial.h>
 #include <commons/collections/queue.h>
+#include <commons/collections/list.h>
+
+typedef struct
+{
+	uint32_t pid;	
+	uint32_t pc;
+    t_list* instrucciones;
+} t_proceso;
 
 t_log* logger;
 t_config* config;
 t_memoria memoria;
-t_queue* instrucciones_cpu;
+t_list* lista_procesos;
+t_dictionary* diccionario_procesos;
 
 void* conectar_cpu();
 void* conectar_kernel();
@@ -32,12 +41,41 @@ void* atender_cpu();
 void* atender_kernel();
 void* atender_io(void*);
 
-char* armar_ruta(char* ruta1, char* ruta2);
-int encolar_instrucciones(t_queue** cola,char* pathInstrucciones);
-t_memoria_cpu_instruccion* desencolar_instruccion(t_queue* instrucciones);
+/**
+ * @fn    *armar_ruta
+ * @brief Compone a ruta1 con ruta2
+ * @param ruta1 Ruta base
+ * @param ruta2 Ruta a concatenar
+ */
+char *armar_ruta(char* ruta1, char* ruta2);
 
-// Manejo del t_kernel_memoria
-t_kernel_memoria* deserializar_t_kernel_memoria(t_buffer* buffer);
+/**
+ * @fn    *memoria_leer_instrucciones
+ * @brief Lee las instrucciones de un archivo y retorna una lista con las instrucciones leidas
+ * @param path_instrucciones Ruta absoluta del archivo de instrucciones
+ */
+t_list *memoria_leer_instrucciones(char *path_instrucciones);
+
+/**
+ * @fn    *deserializar_t_kernel_memoria
+ * @brief Deserializa un buffer en un t_kernel_memoria
+ * @param buffer El buffer a deserializar
+ */
+t_kernel_memoria *deserializar_t_kernel_memoria(t_buffer* buffer);
+
+/**
+ * @fn    *deserializar_t_cpu_memoria_instruccion
+ * @brief Deserializa un buffer en un t_cpu_memoria_instruccion
+ * @param buffer El buffer a deserializar
+ */
+t_cpu_memoria_instruccion *deserializar_t_cpu_memoria_instruccion(t_buffer *buffer);
+
+/**
+ * @fn    *obtener_proceso
+ * @brief Dado un pid, retorna el proceso asociado de la lista global de procesos
+ * @param pid El pid del proceso a buscar
+ */
+t_proceso *obtener_proceso(uint32_t pid);
 
 pthread_t thread_atender_cpu,thread_atender_kernel,thread_atender_io,thread_conectar_cpu,thread_conectar_kernel;
 

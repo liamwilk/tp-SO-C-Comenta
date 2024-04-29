@@ -155,7 +155,10 @@ void serializar_char(char *valor, t_paquete *paquete)
 
 void actualizar_buffer(t_paquete *paquete, uint32_t size)
 {
+	// Estos dos uint32_t son por el offset y el size del stream en el buffer.
+	paquete->size_buffer = size + (sizeof(uint32_t) * 2);
+	// El tamaño del stream es el que nos dan
 	paquete->buffer->size = size;
-	paquete->size_buffer = size;
+	// Reservo el espacio necesario para el stream
 	paquete->buffer->stream = malloc(paquete->buffer->size);
 }

@@ -25,9 +25,6 @@ operacion obtener_operacion(char *funcion)
 void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados, int *flag)
 {
     char *linea;
-    t_paquete *finalizar = crear_paquete(TERMINAR);
-    char *path = "N/A";
-    agregar_a_paquete(finalizar, path, strlen(path) + 1);
     while (*flag)
     {
         linea = readline("\n> ");
@@ -81,15 +78,17 @@ void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados,
         case FINALIZAR:
             log_info(logger, "Se ejecuto script %s", separar_linea[0]);
             *flag = 0;
+            t_paquete *finalizar = crear_paquete(TERMINAR);
             enviar_paquete(finalizar, kernel->sockets.cpu_dispatch);
             enviar_paquete(finalizar, kernel->sockets.memoria);
             liberar_conexion(kernel->sockets.cpu_dispatch);
             liberar_conexion(kernel->sockets.cpu_interrupt);
             liberar_conexion(kernel->sockets.memoria);
             liberar_conexion(kernel->sockets.server);
+            eliminar_paquete(finalizar);
             break;
         default:
-            log_info(logger, "Comando no reconocido");
+            log_info(logger, "Comando no reconocido. Intente nuevamente.");
             break;
         }
         free(separar_linea);

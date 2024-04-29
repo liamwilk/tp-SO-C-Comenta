@@ -14,9 +14,9 @@ typedef enum
 	MENSAJE,
 	PAQUETE,
 	DESCONECTAR,
-	DAME_PROXIMA_INSTRUCCION,
+	PROXIMA_INSTRUCCION,
 	RECIBIR_UNA_INSTRUCCION,
-	RECIBIR_PATH_INSTRUCCIONES,
+	MEMORIA_INICIAR_PROCESO,
 	TERMINAR
 } op_code;
 
@@ -33,15 +33,6 @@ typedef struct
 	uint32_t size_buffer;	  // Tamaño del buffer
 	t_buffer *buffer;		  // Payload (puede ser un mensaje, un paquete, etc)
 } t_paquete;
-
-// typedef struct
-// {
-// 	uint32_t size_instruccion;	  // Tamaño de la instruccion
-// 	char *instruccion;			  // Instruccion
-// 	uint32_t cantidad_argumentos; // Cantidad de argumentos
-// 	uint32_t size_argumentos;	  // Tamaño de los argumentos
-// 	char **argumentos;			  // Array de argumentos
-// } t_memoria_cpu_instruccion;
 
 typedef struct
 {
@@ -60,12 +51,18 @@ typedef struct
 	char *argumento_5;			  // Size del argumento
 } t_memoria_cpu_instruccion;
 
-typedef struct t_kernel_memoria
+typedef struct
+{							  // Esto le manda CPU a Memoria, para que Memoria le devuelva a CPU la instruccion asociada al PID y PC
+	uint32_t program_counter; // Actua como offset en la lista de instrucciones
+	uint32_t pid;			  // Identifica al proceso
+} t_cpu_memoria_instruccion;
+
+typedef struct
 {
 	uint32_t size_path;		  // Tamaño del path
 	char *path_instrucciones; // Path de las instrucciones
 	uint32_t program_counter; // Program counter
-	uint32_t pid;
+	uint32_t pid;			  // PID
 } t_kernel_memoria;
 
 /**
@@ -76,7 +73,7 @@ typedef struct t_kernel_memoria
 t_paquete *crear_paquete(op_code codigo_de_operacion);
 
 /**
- * @fn    serializar_paquete
+ * @fn    *serializar_paquete
  * @brief Implementacion de la serializacion de un paquete
  * @param paquete Paquete con buffer y su op_code
  * @param bytes
@@ -127,7 +124,7 @@ void eliminar_paquete(t_paquete *paquete);
 
 /**
  *
- * @fn    recibir_buffer
+ * @fn    *recibir_buffer
  * @brief Recibe el buffer entrante
  * @param socket_cliente Socket desde el cual proviene el buffer
  */
@@ -150,7 +147,7 @@ void recibir_mensaje(t_log *logger, int socket_cliente);
 int recibir_operacion(int socket_cliente);
 
 /**
- * @fn    recibir_paquete
+ * @fn    *recibir_paquete
  * @brief Invoca la funcion recv y recibe todo el paquete.
  * @param logger Logger que se usara para reportar errores
  * @param socket_cliente Socket desde el cual proviene el paquete
@@ -177,7 +174,17 @@ void serializar_char(char *valor, t_paquete *paquete);
  * @fn    actualizar_buffer
  * @brief En base a los valores cargados en el paquete, actualiza el buffer
  * @param paquete El paquete que se va a actualizar
- * @param size El tamaño total del buffer
+ * @param size El tamaño total del stream. Es decir, el tamaño total de lo que contiene nuestro struct que queremos enviar.
+ *
+ * Ejemplo:
+ * struct t_kernel_memoria {
+ * 	uint32_t size_path;
+ * 	char* path_instrucciones;
+ * 	uint32_t program_counter;
+ * 	uint32_t pid;
+ * }
+ *
+ * En este caso, el size seria sizeof(uint32_t) + strlen(path_instrucciones) + 1 + sizeof(uint32_t) + sizeof(uint32_t)
  */
 void actualizar_buffer(t_paquete *paquete, uint32_t size);
 
