@@ -26,7 +26,6 @@ t_config* config;
 void terminar_programa(int, t_log*, t_config*);
 int esperar_cliente(t_log*, int);
 int recibir_operacion(int);
-void *recibir_buffer(int*,int);
 
 void* conectar_memoria();
 void* conectar_cpu_dispatch();
