@@ -65,6 +65,7 @@ typedef struct t_kernel_memoria
 	uint32_t size_path;		  // Tamaño del path
 	char *path_instrucciones; // Path de las instrucciones
 	uint32_t program_counter; // Program counter
+	uint32_t pid;
 } t_kernel_memoria;
 
 /**

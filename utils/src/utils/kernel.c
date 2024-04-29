@@ -79,17 +79,19 @@ t_pcb *kernel_nuevo_proceso(t_kernel *kernel, t_queue *colaNew, t_log *logger, c
     log_debug(logger, "[PCB] PID: %d", nuevaPcb->pid);
     log_debug(logger, "[PROCESO] Instrucciones: %s", instrucciones);
 
-    t_kernel_memoria kernel_memoria = {.path_instrucciones = strdup(instrucciones), .size_path = strlen(instrucciones) + 1, .program_counter = nuevaPcb->program_counter};
+    t_kernel_memoria kernel_memoria = {.path_instrucciones = strdup(instrucciones), .pid = nuevaPcb->pid, .size_path = strlen(instrucciones) + 1, .program_counter = nuevaPcb->program_counter};
 
-    t_paquete *paquete = crear_paquete(RECIBIR_PATH_INSTRUCCIONES); // OK
+    t_paquete *paquete = crear_paquete(RECIBIR_PATH_INSTRUCCIONES);
 
-    actualizar_buffer(paquete, kernel_memoria.size_path + sizeof(uint32_t) + sizeof(uint32_t));
+    actualizar_buffer(paquete, kernel_memoria.size_path + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t));
 
     serializar_uint32_t(kernel_memoria.size_path, paquete);
 
     serializar_char(kernel_memoria.path_instrucciones, paquete);
 
     serializar_uint32_t(kernel_memoria.program_counter, paquete);
+
+    serializar_uint32_t(kernel_memoria.pid, paquete);
 
     enviar_paquete(paquete, kernel->sockets.memoria);
 

@@ -1,7 +1,7 @@
 #include "procesos.h"
 
-int pid = 0;
-int new_pid()
+uint32_t pid = 0;
+uint32_t new_pid()
 {
     pid += 1;
     return pid;
@@ -35,12 +35,12 @@ void proceso_mover_ready(int gradoMultiprogramacion, t_log *logger, diagrama_est
             proceso_agregar_ready(estados->ready, proceso);
             cant_en_ready++;
             cant_en_new--;
-            log_info(logger, "Proceso %d movido a ready", proceso->pid);
+            log_debug(logger, "Proceso PID: <%d> movido a ready", proceso->pid);
         }
     }
     if (cant_en_new == 0)
     {
-        log_warning(logger, "No se pueden mover mas procesos a ready, ya que se no hay mas procesos en new");
+        log_warning(logger, "No se pueden mover mas procesos a ready, ya que se  hay mas procesos en new");
     }
     else
     {

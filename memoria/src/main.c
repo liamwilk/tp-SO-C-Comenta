@@ -160,6 +160,7 @@ void *atender_kernel()
 			log_debug(logger, "Tamaño del path_instrucciones: %d", dato->size_path);
 			log_debug(logger, "Path de instrucciones: %s", dato->path_instrucciones);
 			log_debug(logger, "Program counter: %d", dato->program_counter);
+			log_debug(logger, "PID: %d", dato->pid);
 
 			char *path_completo = armar_ruta(memoria.pathInstrucciones, dato->path_instrucciones);
 			log_debug(logger, "Path completo de instrucciones: %s", path_completo);
@@ -434,6 +435,8 @@ t_kernel_memoria *deserializar_t_kernel_memoria(t_buffer *buffer)
 	stream += dato->size_path * sizeof(char);
 
 	memcpy(&(dato->program_counter), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
 
+	memcpy(&(dato->pid), stream, sizeof(uint32_t));
 	return dato;
 }

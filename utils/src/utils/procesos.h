@@ -30,7 +30,7 @@ typedef struct pcb
     t_registros_cpu *registros_cpu;
 } t_pcb;
 
-extern int pid;
+extern uint32_t pid;
 
 /**
  * @file pcb.h
@@ -57,7 +57,7 @@ t_pcb *pcb_crear(t_log *logger, int quantum);
  * @param pid Un puntero al valor actual de PID.
  * @return El nuevo PID generado.
  */
-int new_pid();
+uint32_t new_pid();
 
 /**
  * Agrega un PCB a la cola "new".
