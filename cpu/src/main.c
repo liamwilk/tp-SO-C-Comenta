@@ -246,3 +246,34 @@ t_memoria_cpu_instruccion *deserializar_t_memoria_cpu_instruccion(t_buffer *buff
 
 	return dato;
 }
+
+t_pcb recibir_pcb()
+{
+	t_pcb pcb;
+	t_paquete *paquete = recibir_paquete(logger, socket_kernel_dispatch);
+	t_buffer *buffer = paquete->buffer;
+	void *stream = buffer->stream;
+
+	memcpy(&(pcb.pid), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+
+	memcpy(&(pcb.program_counter), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+
+	memcpy(&(pcb.quantum), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+
+	// Se vuelve a castear la estructura de registros_cpu
+	t_registros_cpu *registros_cpu = malloc(sizeof(t_registros_cpu));
+	memcpy(&registros_cpu, stream, sizeof(t_registros_cpu));
+	stream += sizeof(t_registros_cpu);
+
+	pcb.registros_cpu = registros_cpu;
+
+	free(registros_cpu);
+	free(paquete->buffer->stream);
+	free(paquete->buffer);
+	free(paquete);
+
+	return pcb;
+}

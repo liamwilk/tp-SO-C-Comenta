@@ -17,6 +17,7 @@
 #include <utils/conexiones.h>
 #include <utils/configs.h>
 #include <utils/serial.h>
+#include <utils/procesos.h>
 
 t_cpu cpu;
 t_log* logger;
