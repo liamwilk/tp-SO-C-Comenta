@@ -6,13 +6,11 @@ void* procesar_entradasalida_gen(t_entradasalida entradasalida, t_log *logger)
     // No seria necesario crear otro thread para atender la conexion con el kernel.
 
     int socket_kernel = crear_conexion(logger,entradasalida.ipKernel,entradasalida.puertoKernel);
-	handshake(logger,socket_kernel,1,"Kernel");
-	log_info(logger,"Conectado a Kernel en socket %d",socket_kernel);
+	// handshake(logger,socket_kernel,1,"Kernel");
+    char* nombre_modulo = "placeholder";
+    identificar_modulo(nombre_modulo, socket_kernel);
 
-    // TODO: pregunta como hay que matar a los modulos de I/O
-    //      es con una orden del kernel?
-    //      es despues de un determinado tiempo?
-    //      preguntas que le surgen a uno durante la vida misma...
+	log_info(logger,"Conectado a Kernel en socket %d",socket_kernel);
 
     while(1)
     {
@@ -32,8 +30,7 @@ void* procesar_entradasalida_gen(t_entradasalida entradasalida, t_log *logger)
         {
             log_info(logger, "%u : <%u> - Operacion a realizar: IO_GEN_SLEEP", process_getpid(), process_getpid());
             
-            // TODO: actualizar esto para que coincida con la nueva deserializacion de paquetes
-            int unidades_de_trabajo = *(int *)recibir_buffer((int *)sizeof(int), socket_kernel);
+            uint32_t unidades_de_trabajo = deserializar_unidades_de_trabajo(paquete);
             usleep(unidades_de_trabajo * entradasalida.tiempoUnidadDeTrabajo);
 
             t_paquete *aviso_sleep = crear_paquete(IO_GEN_SLEEP_TERMINADO);
@@ -52,4 +49,11 @@ void* procesar_entradasalida_gen(t_entradasalida entradasalida, t_log *logger)
     }
 
     return NULL;
+}
+
+uint32_t deserializar_unidades_de_trabajo(t_paquete *paquete)
+{
+    uint32_t dato;
+    memcpy(&dato, paquete->buffer->stream, sizeof(uint32_t));
+    return dato;
 }
