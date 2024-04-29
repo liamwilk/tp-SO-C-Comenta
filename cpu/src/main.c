@@ -151,7 +151,7 @@ void *atender_kernel_dispatch()
 			
 			free(pcb->registros_cpu);
 			free(pcb);
-			
+
 			break;
 		default:
 			liberar_conexion(socket_kernel_dispatch);
@@ -270,6 +270,8 @@ t_memoria_cpu_instruccion *deserializar_t_memoria_cpu_instruccion(t_buffer *buff
 t_pcb *deserializar_t_pcb(t_buffer *buffer)
 {
 	t_pcb *pcb = malloc(sizeof(t_pcb));
+	pcb->registros_cpu = malloc(sizeof(t_registros_cpu));
+
 	void *stream = buffer->stream;
 
 	memcpy(&(pcb->pid), stream, sizeof(uint32_t));
