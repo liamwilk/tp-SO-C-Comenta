@@ -41,12 +41,6 @@ int main() {
 
 	// AKA, Movete todas las funciones y las structs desde modulos.c/.h a un init.c/.h
 
-	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
-	pthread_join(thread_conectar_memoria,NULL);
-	
-	pthread_create(&thread_conectar_kernel,NULL,conectar_kernel,NULL);
-	pthread_join(thread_conectar_kernel,NULL);
-
 	log_warning(logger,"Se cierra modulo I/O.");
 
     log_destroy(logger);
@@ -73,18 +67,33 @@ void* conectar_kernel(){
 }
 
 
-
-
-
 void* procesar_entradasalida_stdin(t_entradasalida entradasalida,t_log *logger)
 {
+
+	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
+	pthread_join(thread_conectar_memoria,NULL);
+	
+	pthread_create(&thread_conectar_kernel,NULL,conectar_kernel,NULL);
+	pthread_join(thread_conectar_kernel,NULL);
 	return NULL;
 }		
 void* procesar_entradasalida_stdout(t_entradasalida entradasalida,t_log *logger)
 {
+
+	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
+	pthread_join(thread_conectar_memoria,NULL);
+	
+	pthread_create(&thread_conectar_kernel,NULL,conectar_kernel,NULL);
+	pthread_join(thread_conectar_kernel,NULL);
 	return NULL;
 }
 void* procesar_entradasalida_dialfs(t_entradasalida entradasalida,t_log *logger)
 {
+
+	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
+	pthread_join(thread_conectar_memoria,NULL);
+	
+	pthread_create(&thread_conectar_kernel,NULL,conectar_kernel,NULL);
+	pthread_join(thread_conectar_kernel,NULL);
 	return NULL;
 }

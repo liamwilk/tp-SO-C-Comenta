@@ -17,28 +17,39 @@ void* procesar_entradasalida_gen(t_entradasalida entradasalida, t_log *logger)
     while(1)
     {
 		log_info(logger,"Esperando paquete de Kernel en socket %d",socket_kernel);
-		int cod_op = recibir_operacion(socket_kernel);
+		t_paquete* paquete = recibir_paquete(logger, socket_kernel);
 
-        switch (cod_op)
+        // Rompo el while cuando se cae la conexion
+        if(paquete->codigo_operacion == 0){
+            liberar_conexion(socket_kernel);
+            log_info(logger, "Ejecucion de interfaz generica terminada.");
+            break;
+        }
+
+        switch (paquete->codigo_operacion)
         {
         case IO_GEN_SLEEP:
+        {
             log_info(logger, "%u : <%u> - Operacion a realizar: IO_GEN_SLEEP", process_getpid(), process_getpid());
-            int* tamanio_buffer = (int *)sizeof(int);
-            int unidades_de_trabajo = *(int *)recibir_buffer(tamanio_buffer, socket_kernel);
-            // TODO: hacer que duerma unidades de trabajo en lugar de segundos.
-            sleep(unidades_de_trabajo);
-            // free(unidades_de_trabajo); Hace falta liberar esto?
+            
+            // TODO: actualizar esto para que coincida con la nueva deserializacion de paquetes
+            int unidades_de_trabajo = *(int *)recibir_buffer((int *)sizeof(int), socket_kernel);
+            usleep(unidades_de_trabajo * entradasalida.tiempoUnidadDeTrabajo);
+
+            t_paquete *aviso_sleep = crear_paquete(IO_GEN_SLEEP_TERMINADO);
+            enviar_paquete(aviso_sleep, socket_kernel);
+            eliminar_paquete(aviso_sleep);
             break;
-        
+        }
+
         default:
-            log_info(logger, "No conozco la operacion recibida (%d)", cod_op);
-            // TODO: mandar EXIT a Kernel.
+            log_info(logger, "No conozco la operacion recibida (%d)", paquete->codigo_operacion);
+            t_paquete* exit = crear_paquete(IO_AVISO_EXIT);
+            enviar_paquete(exit, socket_kernel);
+            eliminar_paquete(exit);
             break;
         }
     }
-
-    liberar_conexion(socket_kernel);
-    log_info(logger, "Interfaz generica terminada.");
 
     return NULL;
 }
