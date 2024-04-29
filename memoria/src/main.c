@@ -66,42 +66,48 @@ void *atender_cpu()
 	{
 		log_debug(logger, "Esperando paquete de CPU en socket %d", socket_cpu);
 		t_paquete *paquete = recibir_paquete(logger, socket_cpu);
-
-		log_debug(logger, "Deserializado del paquete:");
-		log_debug(logger, "Codigo de operacion: %d", paquete->codigo_operacion);
-		log_debug(logger, "Size del buffer en paquete: %d", paquete->size_buffer);
-
-		log_debug(logger, "Deserializado del buffer:");
-		log_debug(logger, "Size del stream: %d", paquete->buffer->size);
-		log_debug(logger, "Offset del stream: %d", paquete->buffer->offset);
+		
+		revisar_paquete(paquete,logger,kernel_orden_apagado,"CPU");
 
 		switch (paquete->codigo_operacion)
 		{
 		case PROXIMA_INSTRUCCION:
 			{
+			
+			// Simulo el retardo de acceso a memoria en milisegundos
+			sleep(memoria.retardoRespuesta/1000);
+
 			// Creo el paquete
 			t_paquete *paquete_instruccion = crear_paquete(PROXIMA_INSTRUCCION);
 
 			t_cpu_memoria_instruccion *instruccion_recibida = deserializar_t_cpu_memoria_instruccion(paquete->buffer);
 
+			log_debug(logger, "Deserializado del stream:");
 			log_debug(logger, "Instruccion recibida de CPU:");
 			log_debug(logger, "PID: %d", instruccion_recibida->pid);
 			log_debug(logger, "Program counter: %d", instruccion_recibida->program_counter);
 			
-			// Este proceso no lo elimino al final porque está guardado en la lista de procesos
-			// Lo elimino cuando CPU me avise que este PID termino de ejecutar todas las instrucciones
-			// TODO: Armar caso donde CPU me pide que elimine el proceso de la lista de procesos que finalizo de ejecutar todas las instrucciones
+			/* TODO: Armar caso donde CPU me pide que elimine el proceso de la lista de procesos que finalizo de ejecutar todas las instrucciones
+			Este proceso no lo elimino al final porque está guardado en la lista de procesos
+			Lo elimino cuando CPU me avise que este PID termino de ejecutar todas las instrucciones
+			*/
 
 			t_proceso *proceso_encontrado = obtener_proceso(instruccion_recibida->pid);
 			
-			log_debug(logger, "Proceso encontrado en lista de procesos global:");
+			log_info(logger,"Se comienza a buscar el proceso solicitado por CPU en la lista de procesos globales.");
+			log_debug(logger, "Proceso encontrado:");
 			log_debug(logger, "PID: %d", proceso_encontrado->pid);
 			log_debug(logger, "PC: %d", proceso_encontrado->pc);
 			log_debug(logger, "Cantidad de instrucciones: %d", list_size(proceso_encontrado->instrucciones));
 
+			if(list_is_empty(proceso_encontrado->instrucciones)){
+				log_error(logger, "No se encontraron instrucciones para el proceso con PID %d", proceso_encontrado->pid);
+				break;
+			}
+
 			t_memoria_cpu_instruccion *instruccion_proxima = list_get(proceso_encontrado->instrucciones, instruccion_recibida->program_counter);
 
-			log_debug(logger, "Instruccion proxima: %s", instruccion_proxima->instruccion);
+			log_debug(logger, "Instruccion proxima a enviar: %s", instruccion_proxima->instruccion);
 			log_debug(logger, "Cantidad de argumentos: %d", instruccion_proxima->cantidad_argumentos);
 			log_debug(logger, "Argumento 1: %s", instruccion_proxima->argumento_1);
 			log_debug(logger, "Argumento 2: %s", instruccion_proxima->argumento_2);
@@ -109,7 +115,7 @@ void *atender_cpu()
 			log_debug(logger, "Argumento 4: %s", instruccion_proxima->argumento_4);
 			log_debug(logger, "Argumento 5: %s", instruccion_proxima->argumento_5);
 
-			/*
+			/* Estructura t_memoria_cpu_instruccion
 			typedef struct
 			{
 				uint32_t size_instruccion;	  // Tamaño de la instruccion
@@ -157,6 +163,53 @@ void *atender_cpu()
 
 			break;
 			}
+		case ELIMINAR_PROCESO:
+			{
+			t_cpu_memoria_instruccion *instruccion_recibida = deserializar_t_cpu_memoria_instruccion(paquete->buffer);
+
+			log_debug(logger, "Deserializado del stream:");
+			log_debug(logger, "Instruccion recibida para eliminar:");
+			log_debug(logger, "PID: %d", instruccion_recibida->pid);
+			log_debug(logger, "Program counter: %d", instruccion_recibida->program_counter);
+
+			t_proceso *proceso_encontrado = obtener_proceso(instruccion_recibida->pid);
+
+			log_info(logger,"Se comienza a buscar el proceso solicitado por CPU en la lista de procesos globales.");
+			log_debug(logger, "Proceso encontrado:");
+			log_debug(logger, "PID: %d", proceso_encontrado->pid);
+			log_debug(logger, "PC: %d", proceso_encontrado->pc);
+			log_debug(logger, "Cantidad de instrucciones: %d", list_size(proceso_encontrado->instrucciones));
+
+			// Lo guardo para el log del final
+			uint32_t pid = proceso_encontrado->pid;
+
+			if(list_is_empty(proceso_encontrado->instrucciones)){
+				log_error(logger, "No se encontraron instrucciones para el proceso con PID %d", proceso_encontrado->pid);
+				break;
+			}
+
+			/* TODO: Eliminar cada instruccion del proceso, no solo la lista de instrucciones, posible memory leak.
+
+			Adentro de cada proceso, hay una lista de instrucciones, cada instruccion es un struct t_memoria_cpu_instruccion
+			y cada instruccion tiene argumentos que son char*, por lo que hay que liberar la memoria de cada argumento
+			y luego liberar la memoria de cada instruccion, y luego liberar la memoria de la lista de instrucciones. 
+			Esto ultimo viene nativo con list_destroy_and_destroy_elements(lista_procesos, free);
+
+			*/
+
+			// Esto libera la memoria de la lista de instrucciones
+			list_remove_and_destroy_element(lista_procesos, atoi(dictionary_get(diccionario_procesos, string_itoa(proceso_encontrado->pid))), free);
+
+			// Elimino el proceso del diccionario de procesos
+			dictionary_remove(diccionario_procesos, string_itoa(proceso_encontrado->pid));
+
+			log_info(logger, "Se elimino el proceso con PID %d de la lista de procesos globales", pid);
+
+			// Libero la instruccion recibida
+			free(instruccion_recibida);
+
+			break;
+			}
 		default:
 		{	
 			eliminar_paquete(paquete);
@@ -187,16 +240,7 @@ void *atender_kernel()
 
 		t_paquete *paquete = recibir_paquete(logger, socket_kernel);
 		
-		log_debug(logger, "Deserializado del paquete:");
-		log_debug(logger, "Codigo de operacion: %d", paquete->codigo_operacion);
-		
-		if(paquete->codigo_operacion != TERMINAR)
-		{
-		log_debug(logger, "Size del buffer en paquete: %d", paquete->size_buffer);
-		log_debug(logger, "Deserializado del buffer:");
-		log_debug(logger, "Size del stream: %d", paquete->buffer->size);
-		log_debug(logger, "Offset del stream: %d", paquete->buffer->offset);
-		}
+		revisar_paquete(paquete,logger,kernel_orden_apagado,"Kernel");
 		
 		switch (paquete->codigo_operacion)
 		{
@@ -229,22 +273,14 @@ void *atender_kernel()
 				// Guardo el proceso en la lista de procesos
 				int resultado_agregar_proceso = list_add(lista_procesos, proceso);
 
-				// Creo un diccionario de indices por PID
+				// Añado el proceso al diccionario de procesos, mapeando el PID a la posición en la lista de procesos
 				dictionary_put(diccionario_procesos, string_itoa(proceso->pid), (void*)string_itoa(list_size(lista_procesos) - 1));
 
 				if(resultado_agregar_proceso == 0)
 					log_debug(logger, "Se agrego el proceso a la lista de procesos global");
 				else
 					perror("No se pudo agregar el proceso a la lista de procesos");
-				
-				// t_proceso *proceso_encontrado = obtener_proceso(dato->pid);
-
-				// log_debug(logger, "Proceso encontrado en lista de procesos global:");
-				// log_debug(logger, "PID: %d", proceso_encontrado->pid);
-				// log_debug(logger, "PC: %d", proceso_encontrado->pc);
-				// log_debug(logger, "Cantidad de instrucciones: %d", list_size(proceso_encontrado->instrucciones));
-
-				free(proceso);
+			
 				free(path_completo);
 				free(dato->path_instrucciones);
 				free(dato);
@@ -305,6 +341,8 @@ void *atender_io(void *args)
 	{
 		log_debug(logger, "Esperando paquete de I/O en socket %d", socket_cliente);
 		t_paquete *paquete = recibir_paquete(logger, socket_cliente);
+
+		revisar_paquete(paquete,logger,kernel_orden_apagado,"I/O");
 
 		switch (paquete->codigo_operacion)
 		{

@@ -4,7 +4,6 @@
 
 int main()
 {
-
 	logger = iniciar_logger("cpu", LOG_LEVEL_DEBUG);
 	config = iniciar_config(logger);
 	cpu = cpu_inicializar(config);
@@ -31,15 +30,30 @@ int main()
 	pthread_create(&thread_conectar_kernel_interrupt, NULL, conectar_kernel_interrupt, NULL);
 	pthread_join(thread_conectar_kernel_interrupt, NULL);
 
-	// sleep(5);
+	/* Ejemplo de envio de instruccion a Memoria
 
-	// t_paquete *paquete = crear_paquete(PROXIMA_INSTRUCCION);
+	sleep(15);
 
+	t_paquete *paquete = crear_paquete(PROXIMA_INSTRUCCION);
+	t_cpu_memoria_instruccion instruccion;
+	
+	instruccion.pid = 1;
+	instruccion.program_counter = 0;
+
+	actualizar_buffer(paquete, sizeof(uint32_t) + sizeof(uint32_t));
+	
+	serializar_uint32_t(instruccion.program_counter, paquete);
+	
+	serializar_uint32_t(instruccion.pid, paquete);
+	
 	// Envio la instruccion a Memoria
-	// enviar_paquete(paquete, socket_memoria);
+	enviar_paquete(paquete, socket_memoria);
+
+	log_debug(logger,"Paquete enviado a Memoria");
 
 	// Libero la memoria del paquete de instruccion
-	// eliminar_paquete(paquete);
+	eliminar_paquete(paquete);
+	*/
 
 	pthread_create(&thread_atender_kernel_interrupt, NULL, atender_kernel_interrupt, NULL);
 	pthread_join(thread_atender_kernel_interrupt, NULL);
@@ -67,13 +81,7 @@ void *atender_memoria()
 		log_info(logger, "Esperando paquete de Memoria en socket %d", socket_memoria);
 		t_paquete *paquete = recibir_paquete(logger, socket_memoria);
 
-		log_debug(logger, "Deserializado del paquete:");
-		log_debug(logger, "Codigo de operacion: %d", paquete->codigo_operacion);
-		log_debug(logger, "Size del buffer en paquete: %d", paquete->size_buffer);
-
-		log_debug(logger, "Deserializado del buffer:");
-		log_debug(logger, "Size del stream: %d", paquete->buffer->size);
-		log_debug(logger, "Offset del stream: %d", paquete->buffer->offset);
+		revisar_paquete(paquete,logger,kernel_orden_apagado,"Memoria");
 
 		switch (paquete->codigo_operacion)
 		{
@@ -122,6 +130,7 @@ void *atender_kernel_dispatch()
 	{
 		log_info(logger, "Esperando paquete de Kernel Dispatch en socket %d", socket_kernel_dispatch);
 		t_paquete *paquete = recibir_paquete(logger, socket_kernel_dispatch);
+		revisar_paquete(paquete,logger,kernel_orden_apagado,"Dispatch");
 
 		switch (paquete->codigo_operacion)
 		{
@@ -158,6 +167,8 @@ void *atender_kernel_interrupt()
 	{
 		log_info(logger, "Esperando paquete de Kernel Interrupt en socket %d", socket_kernel_interrupt);
 		t_paquete *paquete = recibir_paquete(logger, socket_kernel_interrupt);
+
+		revisar_paquete(paquete,logger,kernel_orden_apagado,"Interrupt");
 
 		switch (paquete->codigo_operacion)
 		{

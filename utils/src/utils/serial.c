@@ -107,26 +107,32 @@ t_paquete *recibir_paquete(t_log *logger, int socket_cliente)
 	recv(socket_cliente, &(paquete->codigo_operacion), sizeof(op_code), MSG_WAITALL);
 	recv(socket_cliente, &(paquete->size_buffer), sizeof(uint32_t), MSG_WAITALL);
 	paquete->buffer = recibir_buffer(socket_cliente);
-	if (paquete->buffer->stream == NULL || paquete->buffer == NULL || paquete == NULL)
-	{
-		log_error(logger, "Error al recibir el paquete. Se hallo NULL.");
+	return paquete;
+}
 
-		if (paquete->buffer->stream != NULL)
+void revisar_paquete(t_paquete *paquete, t_log *logger, int flag, char *modulo)
+{
+	// Si el paquete es distinto de TERMINAR y flag es 1, entonces se loguea porque indica que se recibio un paquete de un modulo.
+	if (paquete->codigo_operacion != TERMINAR && flag == 1)
+	{
+		log_debug(logger, "Paquete recibido de modulo %s\n", modulo);
+		log_debug(logger, "Deserializado del paquete:");
+		log_info(logger, "Codigo de operacion: %d", paquete->codigo_operacion);
+		log_debug(logger, "Size del buffer en paquete: %d", paquete->size_buffer);
+		log_debug(logger, "Deserializado del buffer:");
+		log_debug(logger, "Size del stream: %d", paquete->buffer->size);
+		log_debug(logger, "Offset del stream: %d", paquete->buffer->offset);
+
+		if (paquete->size_buffer != paquete->buffer->size + (2 * sizeof(uint32_t)))
 		{
-			free(paquete->buffer->stream);
+			log_warning(logger, "Error en el tamaño del buffer. Se esperaba %d y se recibio %ld", paquete->size_buffer, paquete->buffer->size + (2 * sizeof(uint32_t)));
 		}
-		if (paquete->buffer != NULL)
+
+		if (paquete->buffer->offset != paquete->buffer->size)
 		{
-			free(paquete->buffer);
-		}
-		if (paquete != NULL)
-		{
-			free(paquete);
-			return NULL;
+			log_warning(logger, "Error en el offset del buffer. Se esperaba %d y se recibio %d. Esto indica que serializaste mal", paquete->buffer->size, paquete->buffer->offset);
 		}
 	}
-
-	return paquete;
 }
 
 int recibir_operacion(int socket_cliente)

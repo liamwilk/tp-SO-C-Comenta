@@ -16,6 +16,7 @@ typedef enum
 	DESCONECTAR,
 	PROXIMA_INSTRUCCION,
 	RECIBIR_UNA_INSTRUCCION,
+	ELIMINAR_PROCESO,
 	MEMORIA_INICIAR_PROCESO,
 	TERMINAR
 } op_code;
@@ -187,5 +188,18 @@ void serializar_char(char *valor, t_paquete *paquete);
  * En este caso, el size seria sizeof(uint32_t) + strlen(path_instrucciones) + 1 + sizeof(uint32_t) + sizeof(uint32_t)
  */
 void actualizar_buffer(t_paquete *paquete, uint32_t size);
+
+/**
+ * @brief Revisar un paquete.
+ *
+ * Esta función se encarga de revisar un paquete y realizar las acciones necesarias
+ * según el contenido del paquete. Recibe como parámetros un puntero al paquete a revisar
+ * y un puntero al logger donde se registrarán los eventos.
+ *
+ * @param paquete Puntero al paquete a revisar.
+ * @param logger Puntero al logger donde se registrarán los eventos.
+ * @param flag Flag que indica si se debe revisar el tamaño del buffer.
+ */
+void revisar_paquete(t_paquete *paquete, t_log *logger, int flag, char *modulo);
 
 #endif
