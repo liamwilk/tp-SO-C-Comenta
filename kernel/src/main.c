@@ -40,7 +40,7 @@ int main()
 	pthread_create(&thread_atender_consola, NULL, atender_consola, NULL);
 	pthread_join(thread_atender_consola, NULL);
 
-	log_warning(logger, "El Usuario solicito el apagado del sistema operativo.");
+	log_info(logger, "El Usuario solicito el apagado del sistema operativo.");
 
 	log_destroy(logger);
 	config_destroy(config);
@@ -51,7 +51,7 @@ int main()
 void *atender_consola()
 {
 	consola_iniciar(logger, &kernel, &estados, &kernel_orden_apagado);
-	return NULL;
+	pthread_exit(0);
 };
 
 void *conectar_io()
@@ -85,11 +85,13 @@ void *atender_io(void *args)
 	{
 		log_info(logger, "Esperando paquete de I/O en socket %d", socket_cliente);
 		t_paquete *paquete = recibir_paquete(logger, socket_cliente);
-
 		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
-			// placeholder
+			revisar_paquete(paquete, logger, kernel_orden_apagado, "I/O");
+			/*
+			La logica
+			*/
 			break;
 		default:
 			liberar_conexion(socket_cliente);
@@ -126,7 +128,10 @@ void *atender_memoria()
 		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
-			// placeholder para despues
+			revisar_paquete(paquete, logger, kernel_orden_apagado, "Memoria");
+			/*
+			La logica
+			*/
 			break;
 		default:
 			liberar_conexion(socket);
@@ -162,6 +167,7 @@ void *atender_cpu_dispatch()
 		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
+			revisar_paquete(paquete, logger, kernel_orden_apagado, "Dispatch");
 			// Placeholder
 			break;
 		default:
@@ -197,6 +203,7 @@ void *atender_cpu_interrupt()
 		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
+			revisar_paquete(paquete, logger, kernel_orden_apagado, "Interrupt");
 			// Placeholder
 			break;
 		default:

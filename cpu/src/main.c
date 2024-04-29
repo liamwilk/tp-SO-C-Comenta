@@ -4,7 +4,6 @@
 
 int main()
 {
-
 	logger = iniciar_logger("cpu", LOG_LEVEL_DEBUG);
 	config = iniciar_config(logger);
 	cpu = cpu_inicializar(config);
@@ -31,29 +30,37 @@ int main()
 	pthread_create(&thread_conectar_kernel_interrupt, NULL, conectar_kernel_interrupt, NULL);
 	pthread_join(thread_conectar_kernel_interrupt, NULL);
 
-	/*
-	Hasta que pongamos semaforos, necesito este sleep para darle tiempo a Memoria que reciba el path de instrucciones de
-	Kernel y las suba a la cola de instrucciones. Si lo saco, llega la instruccion DAME_PROXIMA_INSTRUCCION antes de que
-	memoria haya subido las instrucciones a la cola, y da error.
-	TODO: Acá hay que sincronizar con semáforos.
+	/* Ejemplo de envio de instruccion a Memoria
+
+	
 	*/
 
-	// sleep(5);
+	sleep(15);
 
-	// t_paquete *paquete = crear_paquete(DAME_PROXIMA_INSTRUCCION);
-	// char *path = "vacio";
-	// agregar_a_paquete(paquete, path, strlen(path) + 1);
+	t_paquete *paquete = crear_paquete(PROXIMA_INSTRUCCION);
+	t_cpu_memoria_instruccion instruccion;
+	
+	instruccion.pid = 1;
+	instruccion.program_counter = 0;
 
-	// Envio la instruccion a CPU
-	// enviar_paquete(paquete, socket_memoria);
+	actualizar_buffer(paquete, sizeof(uint32_t) + sizeof(uint32_t));
+	
+	serializar_uint32_t(instruccion.program_counter, paquete);
+	
+	serializar_uint32_t(instruccion.pid, paquete);
+	
+	// Envio la instruccion a Memoria
+	enviar_paquete(paquete, socket_memoria);
+
+	log_debug(logger,"Paquete enviado a Memoria");
 
 	// Libero la memoria del paquete de instruccion
-	// eliminar_paquete(paquete);
+	eliminar_paquete(paquete);
 
 	pthread_create(&thread_atender_kernel_interrupt, NULL, atender_kernel_interrupt, NULL);
 	pthread_join(thread_atender_kernel_interrupt, NULL);
 
-	log_warning(logger, "Kernel solicito el apagado del sistema operativo.");
+	log_info(logger, "Kernel solicito el apagado del sistema operativo.");
 
 	log_destroy(logger);
 	config_destroy(config);
@@ -75,10 +82,10 @@ void *atender_memoria()
 	{
 		log_info(logger, "Esperando paquete de Memoria en socket %d", socket_memoria);
 		t_paquete *paquete = recibir_paquete(logger, socket_memoria);
-
 		switch (paquete->codigo_operacion)
 		{
-		case RECIBIR_UNA_INSTRUCCION:
+		case PROXIMA_INSTRUCCION:
+			revisar_paquete(paquete,logger,kernel_orden_apagado,"Memoria");
 			t_memoria_cpu_instruccion *dato = deserializar_t_memoria_cpu_instruccion(paquete->buffer);
 
 			log_debug(logger, "Instruccion recibida de Memoria: %s", dato->instruccion);
@@ -103,9 +110,7 @@ void *atender_memoria()
 			pthread_exit(0);
 			break;
 		}
-		free(paquete->buffer->stream);
-		free(paquete->buffer);
-		free(paquete);
+		eliminar_paquete(paquete);
 	}
 
 	pthread_exit(0);
@@ -125,9 +130,14 @@ void *atender_kernel_dispatch()
 	{
 		log_info(logger, "Esperando paquete de Kernel Dispatch en socket %d", socket_kernel_dispatch);
 		t_paquete *paquete = recibir_paquete(logger, socket_kernel_dispatch);
-
 		switch (paquete->codigo_operacion)
 		{
+		case MENSAJE:
+			revisar_paquete(paquete,logger,kernel_orden_apagado,"Dispatch");
+			/*
+			La logica
+			*/
+			break;
 		case TERMINAR:
 			kernel_orden_apagado = 0;
 			liberar_conexion(socket_kernel_dispatch);
@@ -162,10 +172,16 @@ void *atender_kernel_interrupt()
 		log_info(logger, "Esperando paquete de Kernel Interrupt en socket %d", socket_kernel_interrupt);
 		t_paquete *paquete = recibir_paquete(logger, socket_kernel_interrupt);
 
+		
+
 		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
-			// placeholder
+			revisar_paquete(paquete,logger,kernel_orden_apagado,"Interrupt");
+			/*
+			La logica
+			*/
+			break;
 		default:
 			liberar_conexion(socket_kernel_interrupt);
 			liberar_conexion(socket_server_interrupt);
