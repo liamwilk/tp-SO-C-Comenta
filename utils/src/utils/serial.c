@@ -112,8 +112,7 @@ t_paquete *recibir_paquete(t_log *logger, int socket_cliente)
 
 void revisar_paquete(t_paquete *paquete, t_log *logger, int flag, char *modulo)
 {
-	// Si el paquete es distinto de TERMINAR y flag es 1, entonces se loguea porque indica que se recibio un paquete de un modulo.
-	if (paquete->codigo_operacion != TERMINAR && flag == 1)
+	if (flag != 0)
 	{
 		log_debug(logger, "Paquete recibido de modulo %s\n", modulo);
 		log_debug(logger, "Deserializado del paquete:");

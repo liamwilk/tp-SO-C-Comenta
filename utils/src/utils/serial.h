@@ -199,6 +199,7 @@ void actualizar_buffer(t_paquete *paquete, uint32_t size);
  * @param paquete Puntero al paquete a revisar.
  * @param logger Puntero al logger donde se registrarán los eventos.
  * @param flag Flag que indica si se debe revisar el tamaño del buffer.
+ * @param modulo Nombre del módulo que está revisando el paquete.
  */
 void revisar_paquete(t_paquete *paquete, t_log *logger, int flag, char *modulo);
 

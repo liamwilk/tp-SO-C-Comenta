@@ -66,17 +66,15 @@ void *atender_cpu()
 	{
 		log_debug(logger, "Esperando paquete de CPU en socket %d", socket_cpu);
 		t_paquete *paquete = recibir_paquete(logger, socket_cpu);
-		
-		revisar_paquete(paquete,logger,kernel_orden_apagado,"CPU");
+
+		// Simulo el retardo de acceso a memoria en milisegundos
+		sleep(memoria.retardoRespuesta/1000);
 
 		switch (paquete->codigo_operacion)
 		{
 		case PROXIMA_INSTRUCCION:
 			{
-			
-			// Simulo el retardo de acceso a memoria en milisegundos
-			sleep(memoria.retardoRespuesta/1000);
-
+			revisar_paquete(paquete,logger,kernel_orden_apagado,"CPU");
 			// Creo el paquete
 			t_paquete *paquete_instruccion = crear_paquete(PROXIMA_INSTRUCCION);
 
@@ -165,6 +163,8 @@ void *atender_cpu()
 			}
 		case ELIMINAR_PROCESO:
 			{
+			revisar_paquete(paquete,logger,kernel_orden_apagado,"CPU");
+			
 			t_cpu_memoria_instruccion *instruccion_recibida = deserializar_t_cpu_memoria_instruccion(paquete->buffer);
 
 			log_debug(logger, "Deserializado del stream:");
@@ -240,12 +240,11 @@ void *atender_kernel()
 
 		t_paquete *paquete = recibir_paquete(logger, socket_kernel);
 		
-		revisar_paquete(paquete,logger,kernel_orden_apagado,"Kernel");
-		
 		switch (paquete->codigo_operacion)
 		{
 			case MEMORIA_INICIAR_PROCESO:
 				{
+				revisar_paquete(paquete,logger,kernel_orden_apagado,"Kernel");
 				t_kernel_memoria *dato = deserializar_t_kernel_memoria(paquete->buffer);
 				
 				log_debug(logger, "Deserializado del stream:");
@@ -341,12 +340,11 @@ void *atender_io(void *args)
 	{
 		log_debug(logger, "Esperando paquete de I/O en socket %d", socket_cliente);
 		t_paquete *paquete = recibir_paquete(logger, socket_cliente);
-
-		revisar_paquete(paquete,logger,kernel_orden_apagado,"I/O");
-
+		
 		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
+			revisar_paquete(paquete,logger,kernel_orden_apagado,"I/O");
 			// placeholder
 			break;
 		default:

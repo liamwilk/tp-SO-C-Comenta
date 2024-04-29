@@ -85,13 +85,13 @@ void *atender_io(void *args)
 	{
 		log_info(logger, "Esperando paquete de I/O en socket %d", socket_cliente);
 		t_paquete *paquete = recibir_paquete(logger, socket_cliente);
-
-		revisar_paquete(paquete, logger, kernel_orden_apagado, "I/O");
-
 		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
-			// placeholder
+			revisar_paquete(paquete, logger, kernel_orden_apagado, "I/O");
+			/*
+			La logica
+			*/
 			break;
 		default:
 			liberar_conexion(socket_cliente);
@@ -125,12 +125,13 @@ void *atender_memoria()
 		log_info(logger, "Esperando paquete de Memoria en socket %d", socket);
 		t_paquete *paquete = recibir_paquete(logger, socket);
 
-		revisar_paquete(paquete, logger, kernel_orden_apagado, "Memoria");
-
 		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
-			// placeholder para despues
+			revisar_paquete(paquete, logger, kernel_orden_apagado, "Memoria");
+			/*
+			La logica
+			*/
 			break;
 		default:
 			liberar_conexion(socket);
@@ -163,11 +164,10 @@ void *atender_cpu_dispatch()
 		log_info(logger, "Esperando paquete de CPU Dispatch en socket %d", socket);
 		t_paquete *paquete = recibir_paquete(logger, socket);
 
-		revisar_paquete(paquete, logger, kernel_orden_apagado, "Dispatch");
-
 		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
+			revisar_paquete(paquete, logger, kernel_orden_apagado, "Dispatch");
 			// Placeholder
 			break;
 		default:
@@ -200,11 +200,10 @@ void *atender_cpu_interrupt()
 		log_info(logger, "Esperando paquete de CPU Interrupt en socket %d", socket);
 		t_paquete *paquete = recibir_paquete(logger, socket);
 
-		revisar_paquete(paquete, logger, kernel_orden_apagado, "Interrupt");
-
 		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
+			revisar_paquete(paquete, logger, kernel_orden_apagado, "Interrupt");
 			// Placeholder
 			break;
 		default:

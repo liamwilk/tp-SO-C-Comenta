@@ -32,6 +32,9 @@ int main()
 
 	/* Ejemplo de envio de instruccion a Memoria
 
+	
+	*/
+
 	sleep(15);
 
 	t_paquete *paquete = crear_paquete(PROXIMA_INSTRUCCION);
@@ -53,7 +56,6 @@ int main()
 
 	// Libero la memoria del paquete de instruccion
 	eliminar_paquete(paquete);
-	*/
 
 	pthread_create(&thread_atender_kernel_interrupt, NULL, atender_kernel_interrupt, NULL);
 	pthread_join(thread_atender_kernel_interrupt, NULL);
@@ -80,12 +82,10 @@ void *atender_memoria()
 	{
 		log_info(logger, "Esperando paquete de Memoria en socket %d", socket_memoria);
 		t_paquete *paquete = recibir_paquete(logger, socket_memoria);
-
-		revisar_paquete(paquete,logger,kernel_orden_apagado,"Memoria");
-
 		switch (paquete->codigo_operacion)
 		{
 		case PROXIMA_INSTRUCCION:
+			revisar_paquete(paquete,logger,kernel_orden_apagado,"Memoria");
 			t_memoria_cpu_instruccion *dato = deserializar_t_memoria_cpu_instruccion(paquete->buffer);
 
 			log_debug(logger, "Instruccion recibida de Memoria: %s", dato->instruccion);
@@ -130,10 +130,14 @@ void *atender_kernel_dispatch()
 	{
 		log_info(logger, "Esperando paquete de Kernel Dispatch en socket %d", socket_kernel_dispatch);
 		t_paquete *paquete = recibir_paquete(logger, socket_kernel_dispatch);
-		revisar_paquete(paquete,logger,kernel_orden_apagado,"Dispatch");
-
 		switch (paquete->codigo_operacion)
 		{
+		case MENSAJE:
+			revisar_paquete(paquete,logger,kernel_orden_apagado,"Dispatch");
+			/*
+			La logica
+			*/
+			break;
 		case TERMINAR:
 			kernel_orden_apagado = 0;
 			liberar_conexion(socket_kernel_dispatch);
@@ -168,12 +172,16 @@ void *atender_kernel_interrupt()
 		log_info(logger, "Esperando paquete de Kernel Interrupt en socket %d", socket_kernel_interrupt);
 		t_paquete *paquete = recibir_paquete(logger, socket_kernel_interrupt);
 
-		revisar_paquete(paquete,logger,kernel_orden_apagado,"Interrupt");
+		
 
 		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
-			// placeholder
+			revisar_paquete(paquete,logger,kernel_orden_apagado,"Interrupt");
+			/*
+			La logica
+			*/
+			break;
 		default:
 			liberar_conexion(socket_kernel_interrupt);
 			liberar_conexion(socket_server_interrupt);
