@@ -143,6 +143,26 @@ void *atender_kernel_dispatch()
 			liberar_conexion(socket_kernel_dispatch);
 			liberar_conexion(socket_server_dispatch);
 			break;
+		case RECIBIR_PCB:
+			
+			t_pcb *pcb = deserializar_t_pcb(paquete->buffer);
+			log_debug(logger, "PCB recibido de Kernel Dispatch");
+			log_debug(logger, "PID: %d", pcb->pid);
+			log_debug(logger, "Program Counter: %d", pcb->program_counter);
+			log_debug(logger, "Quantum: %d", pcb->quantum);
+			log_debug(logger, "PC: %d", pcb->registros_cpu->pc);
+			log_debug(logger, "EAX: %d", pcb->registros_cpu->eax);
+			log_debug(logger, "EBX: %d", pcb->registros_cpu->ebx);
+			log_debug(logger, "ECX: %d", pcb->registros_cpu->ecx);
+			log_debug(logger, "AX: %d", pcb->registros_cpu->ax);
+			log_debug(logger, "BX: %d", pcb->registros_cpu->bx);
+			log_debug(logger, "CX: %d", pcb->registros_cpu->cx);
+			log_debug(logger, "DX: %d", pcb->registros_cpu->dx);
+			
+			free(pcb->registros_cpu);
+			free(pcb);
+
+			break;
 		default:
 			liberar_conexion(socket_kernel_dispatch);
 			liberar_conexion(socket_server_dispatch);
@@ -261,4 +281,47 @@ t_memoria_cpu_instruccion *deserializar_t_memoria_cpu_instruccion(t_buffer *buff
 	stream += dato->size_argumento_5 * sizeof(char);
 
 	return dato;
+}
+
+t_pcb *deserializar_t_pcb(t_buffer *buffer)
+{
+	t_pcb *pcb = malloc(sizeof(t_pcb));
+	pcb->registros_cpu = malloc(sizeof(t_registros_cpu));
+
+	void *stream = buffer->stream;
+
+	memcpy(&(pcb->pid), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+
+	memcpy(&(pcb->program_counter), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+
+	memcpy(&(pcb->quantum), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+
+	memcpy(&(pcb->registros_cpu->pc), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+
+	memcpy(&(pcb->registros_cpu->eax), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+
+	memcpy(&(pcb->registros_cpu->ebx), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+
+	memcpy(&(pcb->registros_cpu->ecx), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+
+	memcpy(&(pcb->registros_cpu->ax), stream, sizeof(uint8_t));
+	stream += sizeof(uint8_t);
+
+	memcpy(&(pcb->registros_cpu->bx), stream, sizeof(uint8_t));
+	stream += sizeof(uint8_t);
+
+	memcpy(&(pcb->registros_cpu->cx), stream, sizeof(uint8_t));
+	stream += sizeof(uint8_t);
+
+	memcpy(&(pcb->registros_cpu->dx), stream, sizeof(uint8_t));
+	stream += sizeof(uint8_t);
+
+	return pcb;
 }

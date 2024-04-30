@@ -17,6 +17,7 @@
 #include <utils/conexiones.h>
 #include <utils/configs.h>
 #include <utils/serial.h>
+#include <utils/procesos.h>
 
 t_cpu cpu;
 t_log* logger;
@@ -31,6 +32,8 @@ void* conectar_kernel_interrupt();
 void* conectar_memoria();
 
 t_memoria_cpu_instruccion* deserializar_t_memoria_cpu_instruccion(t_buffer* buffer);
+
+t_pcb *deserializar_t_pcb(t_buffer *buffer);
 
 int socket_kernel_dispatch;
 int socket_kernel_interrupt;
