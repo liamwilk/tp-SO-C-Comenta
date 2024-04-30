@@ -146,10 +146,28 @@ int recibir_operacion(int socket_cliente)
 	}
 }
 
+void serializar_uint64_t(uint64_t valor, t_paquete *paquete)
+{
+	memcpy(paquete->buffer->stream + paquete->buffer->offset, &valor, sizeof(uint64_t));
+	paquete->buffer->offset += sizeof(uint64_t);
+}
+
 void serializar_uint32_t(uint32_t valor, t_paquete *paquete)
 {
 	memcpy(paquete->buffer->stream + paquete->buffer->offset, &valor, sizeof(uint32_t));
 	paquete->buffer->offset += sizeof(uint32_t);
+}
+
+void serializar_uint16_t(uint16_t valor, t_paquete *paquete)
+{
+	memcpy(paquete->buffer->stream + paquete->buffer->offset, &valor, sizeof(uint16_t));
+	paquete->buffer->offset += sizeof(uint16_t);
+}
+
+void serializar_uint8_t(uint8_t valor, t_paquete *paquete)
+{
+	memcpy(paquete->buffer->stream + paquete->buffer->offset, &valor, sizeof(uint8_t));
+	paquete->buffer->offset += sizeof(uint8_t);
 }
 
 void serializar_char(char *valor, t_paquete *paquete)
@@ -167,12 +185,6 @@ void actualizar_buffer(t_paquete *paquete, uint32_t size)
 	// Reservo el espacio necesario para el stream
 	paquete->buffer->stream = malloc(paquete->buffer->size);
 }
-
-// void deserializar_char(char **valor, t_paquete *paquete)
-// {
-// 	*valor = malloc(paquete->buffer->size - paquete->buffer->offset);
-// 	memcpy(*valor, paquete->buffer->stream + paquete->buffer->offset, paquete->buffer->size - paquete->buffer->offset);
-// }
 
 void deserializar_char(void **flujo, char **destino_del_dato, uint32_t size_del_dato)
 {

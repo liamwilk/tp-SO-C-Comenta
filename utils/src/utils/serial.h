@@ -158,12 +158,36 @@ int recibir_operacion(int socket_cliente);
 t_paquete *recibir_paquete(t_log *logger, int socket_cliente);
 
 /**
+ * @fn    serializar_uint8_t
+ * @brief Serializa un uint8_t en el paquete
+ * @param valor El valor a serializar
+ * @param paquete El puntero al paquete donde se serializara
+ */
+void serializar_uint8_t(uint8_t valor, t_paquete *paquete);
+
+/**
+ * @fn    serializar_uint16_t
+ * @brief Serializa un uint16_t en el paquete
+ * @param valor El valor a serializar
+ * @param paquete El puntero al paquete donde se serializara
+ */
+void serializar_uint16_t(uint16_t valor, t_paquete *paquete);
+
+/**
  * @fn    serializar_uint32_t
  * @brief Serializa un uint32_t en el paquete
  * @param valor El valor a serializar
  * @param paquete El puntero al paquete donde se serializara
  */
 void serializar_uint32_t(uint32_t valor, t_paquete *paquete);
+
+/**
+ * @fn    serializar_uint64_t
+ * @brief Serializa un uint64_t en el paquete
+ * @param valor El valor a serializar
+ * @param paquete El puntero al paquete donde se serializara
+ */
+void serializar_uint64_t(uint64_t valor, t_paquete *paquete);
 
 /**
  * @fn    serializar_char
