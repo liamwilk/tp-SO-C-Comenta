@@ -535,33 +535,23 @@ t_proceso *obtener_proceso(uint32_t pid)
 
 t_kernel_memoria *deserializar_t_kernel_memoria(t_buffer *buffer)
 {
-	t_kernel_memoria *dato = malloc(sizeof(t_kernel_memoria));
-	void *stream = buffer->stream;
+    t_kernel_memoria *dato = malloc(sizeof(t_kernel_memoria));
+    void *stream = buffer->stream;
 
-	memcpy(&(dato->size_path), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
+    deserializar_uint32_t(&stream, &(dato->size_path));
+    deserializar_char(&stream, &(dato->path_instrucciones), dato->size_path);
+    deserializar_uint32_t(&stream, &(dato->program_counter));
+    deserializar_uint32_t(&stream, &(dato->pid));
 
-	dato->path_instrucciones = malloc(dato->size_path);
-	memcpy(dato->path_instrucciones, stream, dato->size_path);
-	stream += dato->size_path * sizeof(char);
-
-	memcpy(&(dato->program_counter), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
-
-	memcpy(&(dato->pid), stream, sizeof(uint32_t));
-	return dato;
+    return dato;
 }
 
 t_cpu_memoria_instruccion *deserializar_t_cpu_memoria_instruccion(t_buffer *buffer)
 {
 	t_cpu_memoria_instruccion *dato = malloc(sizeof(t_cpu_memoria_instruccion));
 	void *stream = buffer->stream;
-
-	memcpy(&(dato->program_counter), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
-
-	memcpy(&(dato->pid), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
-
+	
+	deserializar_uint32_t(&stream, &(dato->program_counter));
+	deserializar_uint32_t(&stream, &(dato->pid));
 	return dato;
 }

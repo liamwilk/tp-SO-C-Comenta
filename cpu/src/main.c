@@ -216,110 +216,160 @@ void *atender_kernel_interrupt()
 
 t_memoria_cpu_instruccion *deserializar_t_memoria_cpu_instruccion(t_buffer *buffer)
 {
-
+	// Pido memoria para la estructura
 	t_memoria_cpu_instruccion *dato = malloc(sizeof(t_memoria_cpu_instruccion));
 	void *stream = buffer->stream;
 
 	// Deserializo el tamaño de la instruccion
-	memcpy(&(dato->size_instruccion), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
+
+	deserializar_uint32_t(stream, &(dato->size_instruccion));
+
+	// memcpy(&(dato->size_instruccion), stream, sizeof(uint32_t));
+	// stream += sizeof(uint32_t);
+
+	deserializar_char(stream, &(dato->instruccion), dato->size_instruccion);
 
 	// Deserializo la instruccion
-	dato->instruccion = malloc(dato->size_instruccion);
-	memcpy(dato->instruccion, stream, dato->size_instruccion);
-	stream += dato->size_instruccion * sizeof(char);
+	// dato->instruccion = malloc(dato->size_instruccion);
+	// memcpy(dato->instruccion, stream, dato->size_instruccion);
+	// stream += dato->size_instruccion * sizeof(char);
+
+	deserializar_uint32_t(stream, &(dato->cantidad_argumentos));
 
 	// Deserializo la cantidad de argumentos
-	memcpy(&(dato->cantidad_argumentos), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
+	// memcpy(&(dato->cantidad_argumentos), stream, sizeof(uint32_t));
+	// stream += sizeof(uint32_t);
+
+	deserializar_uint32_t(stream, &(dato->size_argumento_1));
 
 	// Deserializo el tamaño del argumento 1
-	memcpy(&(dato->size_argumento_1), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
+	// memcpy(&(dato->size_argumento_1), stream, sizeof(uint32_t));
+	// stream += sizeof(uint32_t);	
+
+	deserializar_char(stream, &(dato->argumento_1), dato->size_argumento_1);
 
 	// Deserializo el argumento 1
-	dato->argumento_1 = malloc(dato->size_argumento_1);
-	memcpy(dato->argumento_1, stream, dato->size_argumento_1);
-	stream += dato->size_argumento_1 * sizeof(char);
+	// dato->argumento_1 = malloc(dato->size_argumento_1);
+	// memcpy(dato->argumento_1, stream, dato->size_argumento_1);
+	// stream += dato->size_argumento_1 * sizeof(char);
 
-	// Deserializo el tamaño del argumento 2
-	memcpy(&(dato->size_argumento_2), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
+	deserializar_uint32_t(stream, &(dato->size_argumento_2));
 
-	// Deserializo el argumento 2
-	dato->argumento_2 = malloc(dato->size_argumento_2);
-	memcpy(dato->argumento_2, stream, dato->size_argumento_2);
-	stream += dato->size_argumento_2 * sizeof(char);
+	// // Deserializo el tamaño del argumento 2
+	// memcpy(&(dato->size_argumento_2), stream, sizeof(uint32_t));
+	// stream += sizeof(uint32_t);
 
-	// Deserializo el tamaño del argumento 3
-	memcpy(&(dato->size_argumento_3), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
+	deserializar_char(stream, &(dato->argumento_2), dato->size_argumento_2);
+
+	// // Deserializo el argumento 2
+	// dato->argumento_2 = malloc(dato->size_argumento_2);
+	// memcpy(dato->argumento_2, stream, dato->size_argumento_2);
+	// stream += dato->size_argumento_2 * sizeof(char);
+
+	deserializar_uint32_t(stream, &(dato->size_argumento_3));
+
+	// // Deserializo el tamaño del argumento 3
+	// memcpy(&(dato->size_argumento_3), stream, sizeof(uint32_t));
+	// stream += sizeof(uint32_t);
+
+	deserializar_char(stream, &(dato->argumento_3), dato->size_argumento_3);
 
 	// Deserializo el argumento 3
-	dato->argumento_3 = malloc(dato->size_argumento_3);
-	memcpy(dato->argumento_3, stream, dato->size_argumento_3);
-	stream += dato->size_argumento_3 * sizeof(char);
+	// dato->argumento_3 = malloc(dato->size_argumento_3);
+	// memcpy(dato->argumento_3, stream, dato->size_argumento_3);
+	// stream += dato->size_argumento_3 * sizeof(char);
 
-	// Deserializo el tamaño del argumento 4
-	memcpy(&(dato->size_argumento_4), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
+	deserializar_uint32_t(stream, &(dato->size_argumento_4));
 
-	// Deserializo el argumento 4
-	dato->argumento_4 = malloc(dato->size_argumento_4);
-	memcpy(dato->argumento_4, stream, dato->size_argumento_4);
-	stream += dato->size_argumento_4 * sizeof(char);
+	// // Deserializo el tamaño del argumento 4
+	// memcpy(&(dato->size_argumento_4), stream, sizeof(uint32_t));
+	// stream += sizeof(uint32_t);
 
-	// Deserializo el tamaño del argumento 5
-	memcpy(&(dato->size_argumento_5), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
+	deserializar_char(stream, &(dato->argumento_4), dato->size_argumento_4);
+
+	// // Deserializo el argumento 4
+	// dato->argumento_4 = malloc(dato->size_argumento_4);
+	// memcpy(dato->argumento_4, stream, dato->size_argumento_4);
+	// stream += dato->size_argumento_4 * sizeof(char);
+
+	deserializar_uint32_t(stream, &(dato->size_argumento_5));
+
+	// // Deserializo el tamaño del argumento 5
+	// memcpy(&(dato->size_argumento_5), stream, sizeof(uint32_t));
+	// stream += sizeof(uint32_t);
+
+	deserializar_char(stream, &(dato->argumento_5), dato->size_argumento_5);
 
 	// Deserializo el argumento 5
-	dato->argumento_5 = malloc(dato->size_argumento_5);
-	memcpy(dato->argumento_5, stream, dato->size_argumento_5);
-	stream += dato->size_argumento_5 * sizeof(char);
+	// dato->argumento_5 = malloc(dato->size_argumento_5);
+	// memcpy(dato->argumento_5, stream, dato->size_argumento_5);
+	// stream += dato->size_argumento_5 * sizeof(char);
 
 	return dato;
 }
 
 t_pcb *deserializar_t_pcb(t_buffer *buffer)
-{
+{	
+	// Pido memoria para las estructuras
 	t_pcb *pcb = malloc(sizeof(t_pcb));
 	pcb->registros_cpu = malloc(sizeof(t_registros_cpu));
 
 	void *stream = buffer->stream;
 
-	memcpy(&(pcb->pid), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
+	deserializar_uint32_t(stream, &(pcb->pid));
 
-	memcpy(&(pcb->program_counter), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
+	// memcpy(&(pcb->pid), stream, sizeof(uint32_t));
+	// stream += sizeof(uint32_t);
 
-	memcpy(&(pcb->quantum), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
+	deserializar_uint32_t(stream, &(pcb->program_counter));
 
-	memcpy(&(pcb->registros_cpu->pc), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
+	// memcpy(&(pcb->program_counter), stream, sizeof(uint32_t));
+	// stream += sizeof(uint32_t);
 
-	memcpy(&(pcb->registros_cpu->eax), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
+	deserializar_uint32_t(stream, &(pcb->quantum));
 
-	memcpy(&(pcb->registros_cpu->ebx), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
+	// memcpy(&(pcb->quantum), stream, sizeof(uint32_t));
+	// stream += sizeof(uint32_t);
 
-	memcpy(&(pcb->registros_cpu->ecx), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
+	deserializar_uint32_t(stream, &(pcb->registros_cpu->pc));
 
-	memcpy(&(pcb->registros_cpu->ax), stream, sizeof(uint8_t));
-	stream += sizeof(uint8_t);
+	// memcpy(&(pcb->registros_cpu->pc), stream, sizeof(uint32_t));
+	// stream += sizeof(uint32_t);
 
-	memcpy(&(pcb->registros_cpu->bx), stream, sizeof(uint8_t));
-	stream += sizeof(uint8_t);
+	deserializar_uint32_t(stream, &(pcb->registros_cpu->eax));
 
-	memcpy(&(pcb->registros_cpu->cx), stream, sizeof(uint8_t));
-	stream += sizeof(uint8_t);
+	// memcpy(&(pcb->registros_cpu->eax), stream, sizeof(uint32_t));
+	// stream += sizeof(uint32_t);
 
-	memcpy(&(pcb->registros_cpu->dx), stream, sizeof(uint8_t));
-	stream += sizeof(uint8_t);
+	deserializar_uint32_t(stream, &(pcb->registros_cpu->ebx));
+
+	// memcpy(&(pcb->registros_cpu->ebx), stream, sizeof(uint32_t));
+	// stream += sizeof(uint32_t);
+
+	deserializar_uint32_t(stream, &(pcb->registros_cpu->ecx));
+
+	// memcpy(&(pcb->registros_cpu->ecx), stream, sizeof(uint32_t));
+	// stream += sizeof(uint32_t);
+
+	deserializar_uint8_t(stream, &(pcb->registros_cpu->ax));
+
+	// memcpy(&(pcb->registros_cpu->ax), stream, sizeof(uint8_t));
+	// stream += sizeof(uint8_t);
+
+	deserializar_uint8_t(stream, &(pcb->registros_cpu->bx));
+
+	// memcpy(&(pcb->registros_cpu->bx), stream, sizeof(uint8_t));
+	// stream += sizeof(uint8_t);
+
+	deserializar_uint8_t(stream, &(pcb->registros_cpu->cx));
+
+	// memcpy(&(pcb->registros_cpu->cx), stream, sizeof(uint8_t));
+	// stream += sizeof(uint8_t);
+
+	deserializar_uint8_t(stream, &(pcb->registros_cpu->dx));
+
+	// memcpy(&(pcb->registros_cpu->dx), stream, sizeof(uint8_t));
+	// stream += sizeof(uint8_t);
 
 	return pcb;
 }

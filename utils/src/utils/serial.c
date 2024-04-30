@@ -167,3 +167,40 @@ void actualizar_buffer(t_paquete *paquete, uint32_t size)
 	// Reservo el espacio necesario para el stream
 	paquete->buffer->stream = malloc(paquete->buffer->size);
 }
+
+// void deserializar_char(char **valor, t_paquete *paquete)
+// {
+// 	*valor = malloc(paquete->buffer->size - paquete->buffer->offset);
+// 	memcpy(*valor, paquete->buffer->stream + paquete->buffer->offset, paquete->buffer->size - paquete->buffer->offset);
+// }
+
+void deserializar_char(void **flujo, char **destino_del_dato, uint32_t size_del_dato)
+{
+	*destino_del_dato = malloc(size_del_dato);
+	memcpy(*destino_del_dato, *flujo, size_del_dato);
+	*flujo += size_del_dato * sizeof(char);
+}
+
+void deserializar_uint8_t(void **flujo, uint8_t *destino_del_dato)
+{
+	memcpy(destino_del_dato, *flujo, sizeof(uint8_t));
+	*flujo += sizeof(uint8_t);
+}
+
+void deserializar_uint16_t(void **flujo, uint16_t *destino_del_dato)
+{
+	memcpy(destino_del_dato, *flujo, sizeof(uint16_t));
+	*flujo += sizeof(uint16_t);
+}
+
+void deserializar_uint32_t(void **flujo, uint32_t *destino_del_dato)
+{
+	memcpy(destino_del_dato, *flujo, sizeof(uint32_t));
+	*flujo += sizeof(uint32_t);
+}
+
+void deserializar_uint64_t(void **flujo, uint64_t *destino_del_dato)
+{
+	memcpy(destino_del_dato, *flujo, sizeof(uint64_t));
+	*flujo += sizeof(uint64_t);
+}

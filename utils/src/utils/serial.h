@@ -205,4 +205,55 @@ void actualizar_buffer(t_paquete *paquete, uint32_t size);
  */
 void revisar_paquete(t_paquete *paquete, t_log *logger, int flag, char *modulo);
 
+/**
+ * @brief deserializar_uint32_t
+ *
+ * Esta función se encarga de deserializar un uint32_t de un flujo de datos.
+ *
+ * @param flujo Puntero a punteor al flujo de datos.
+ * @param destino_del_dato Puntero al destino donde se guardará el dato deserializado.
+ */
+void deserializar_uint32_t(void **flujo, uint32_t *destino_del_dato);
+
+/**
+ * @brief deserializar_char
+ *
+ * Esta función se encarga de deserializar un char de un flujo de datos.
+ *
+ * @param flujo Puntero a punteor al flujo de datos.
+ * @param destino_del_dato Puntero al destino donde se guardará el dato deserializado.
+ * @param size_del_dato Tamaño del dato a deserializar.
+ */
+void deserializar_char(void **flujo, char **destino_del_dato, uint32_t size_del_dato);
+
+/**
+ * @brief deserializar_uint64_t
+ *
+ * Esta función se encarga de deserializar un uint64_t de un flujo de datos.
+ *
+ * @param flujo Puntero a punteor al flujo de datos.
+ * @param destino_del_dato Puntero al destino donde se guardará el dato deserializado.
+ */
+void deserializar_uint64_t(void **flujo, uint64_t *destino_del_dato);
+
+/**
+ * @brief deserializar_uint16_t
+ *
+ * Esta función se encarga de deserializar un uint16_t de un flujo de datos.
+ *
+ * @param flujo Puntero a punteor al flujo de datos.
+ * @param destino_del_dato Puntero al destino donde se guardará el dato deserializado.
+ */
+void deserializar_uint16_t(void **flujo, uint16_t *destino_del_dato);
+
+/**
+ * @brief deserializar_uint8_t
+ *
+ * Esta función se encarga de deserializar un uint8_t de un flujo de datos.
+ *
+ * @param flujo Puntero a punteor al flujo de datos.
+ * @param destino_del_dato Puntero al destino donde se guardará el dato deserializado.
+ */
+void deserializar_uint8_t(void **flujo, uint8_t *destino_del_dato);
+
 #endif
