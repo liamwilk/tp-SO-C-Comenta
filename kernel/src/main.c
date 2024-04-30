@@ -230,8 +230,10 @@ void *atender_io(void *args)
 		t_paquete* paquete = recibir_paquete(logger,socket_cliente);
 
 		switch(paquete->codigo_operacion){
-			case MENSAJE:
-				// placeholder
+			case IO_IDENTIFICADOR:
+				// Placeholder
+				log_info(logger,"I/O se identifico");
+
 				break;
 			default:
 				liberar_conexion(socket_cliente);

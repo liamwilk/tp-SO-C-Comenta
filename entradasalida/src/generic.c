@@ -6,7 +6,8 @@ void* procesar_entradasalida_gen(t_entradasalida entradasalida, t_log *logger)
     // No seria necesario crear otro thread para atender la conexion con el kernel.
 
     int socket_kernel = crear_conexion(logger,entradasalida.ipKernel,entradasalida.puertoKernel);
-	// handshake(logger,socket_kernel,1,"Kernel");
+	handshake(logger,socket_kernel,1,"Kernel");
+    
     char* nombre_modulo = "placeholder";
     identificar_modulo(nombre_modulo, socket_kernel);
 
