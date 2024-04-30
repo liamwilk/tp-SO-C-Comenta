@@ -31,7 +31,7 @@ int main()
 	// Inicio server Kernel
 
 	kernel.sockets.server = iniciar_servidor(logger, kernel.puertoEscucha);
-	log_info(logger, "Servidor listo para recibir clientes en socket %d.", kernel.sockets.server);
+	log_debug(logger, "Servidor listo para recibir clientes en socket %d.", kernel.sockets.server);
 	estados = kernel_inicializar_estados(&estados);
 
 	pthread_create(&thread_conectar_io, NULL, conectar_io, NULL);
@@ -79,11 +79,11 @@ void *conectar_io()
 void *atender_io(void *args)
 {
 	int socket_cliente = *(int *)args;
-	log_info(logger, "I/O conectado en socket %d", socket_cliente);
+	log_debug(logger, "I/O conectado en socket %d", socket_cliente);
 	free(args);
 	do
 	{
-		log_info(logger, "Esperando paquete de I/O en socket %d", socket_cliente);
+		log_debug(logger, "Esperando paquete de I/O en socket %d", socket_cliente);
 		t_paquete *paquete = recibir_paquete(logger, socket_cliente);
 		switch (paquete->codigo_operacion)
 		{
@@ -113,7 +113,7 @@ void *conectar_memoria()
 	int socket = crear_conexion(logger, kernel.ipMemoria, kernel.puertoMemoria);
 	kernel_sockets_agregar(&kernel, MEMORIA, socket);
 	handshake(logger, socket, 1, "Memoria");
-	log_info(logger, "Conectado a Memoria en socket %d", socket);
+	log_debug(logger, "Conectado a Memoria en socket %d", socket);
 	pthread_exit(0);
 }
 
@@ -122,7 +122,7 @@ void *atender_memoria()
 	int socket = kernel.sockets.memoria;
 	while (kernel_orden_apagado)
 	{
-		log_info(logger, "Esperando paquete de Memoria en socket %d", socket);
+		log_debug(logger, "Esperando paquete de Memoria en socket %d", socket);
 		t_paquete *paquete = recibir_paquete(logger, socket);
 
 		switch (paquete->codigo_operacion)
@@ -152,7 +152,7 @@ void *conectar_cpu_dispatch()
 	int socket = crear_conexion(logger, kernel.ipCpu, kernel.puertoCpuDispatch);
 	kernel_sockets_agregar(&kernel, CPU_DISPATCH, socket);
 	handshake(logger, socket, 1, "CPU Dispatch");
-	log_info(logger, "Conectado a CPU por Dispatch en socket %d", socket);
+	log_debug(logger, "Conectado a CPU por Dispatch en socket %d", socket);
 	pthread_exit(0);
 }
 
@@ -161,7 +161,7 @@ void *atender_cpu_dispatch()
 	int socket = kernel.sockets.cpu_dispatch;
 	while (kernel_orden_apagado)
 	{
-		log_info(logger, "Esperando paquete de CPU Dispatch en socket %d", socket);
+		log_debug(logger, "Esperando paquete de CPU Dispatch en socket %d", socket);
 		t_paquete *paquete = recibir_paquete(logger, socket);
 
 		switch (paquete->codigo_operacion)
@@ -188,7 +188,7 @@ void *conectar_cpu_interrupt()
 	int socket = crear_conexion(logger, kernel.ipCpu, kernel.puertoCpuInterrupt);
 	kernel_sockets_agregar(&kernel, CPU_INTERRUPT, socket);
 	handshake(logger, socket, 1, "CPU Interrupt");
-	log_info(logger, "Conectado a CPU por Interrupt en socket %d", socket);
+	log_debug(logger, "Conectado a CPU por Interrupt en socket %d", socket);
 	pthread_exit(0);
 }
 
@@ -197,7 +197,7 @@ void *atender_cpu_interrupt()
 	int socket = kernel.sockets.cpu_interrupt;
 	while (kernel_orden_apagado)
 	{
-		log_info(logger, "Esperando paquete de CPU Interrupt en socket %d", socket);
+		log_debug(logger, "Esperando paquete de CPU Interrupt en socket %d", socket);
 		t_paquete *paquete = recibir_paquete(logger, socket);
 
 		switch (paquete->codigo_operacion)

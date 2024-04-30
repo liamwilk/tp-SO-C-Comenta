@@ -21,7 +21,6 @@ int crear_conexion(t_log *logger_error, char *ip, int puerto)
     if (connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen) == -1)
     {
         log_error(logger_error, "No se pudo conectar el socket cliente al servidor puerto %d!", puerto);
-        perror("No se pudo conectar el socket cliente al servidor!");
         exit(1);
     }
 
@@ -71,7 +70,7 @@ int esperar_cliente(t_log *logger_info, int socket_servidor)
 {
     // Aceptamos un nuevo cliente
     int socket_cliente = accept(socket_servidor, NULL, NULL);
-    log_info(logger_info, "Se conecto un cliente!");
+    log_debug(logger_info, "Se conecto un modulo en socket %d", socket_cliente);
 
     return socket_cliente;
 }

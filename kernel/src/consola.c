@@ -24,6 +24,21 @@ operacion obtener_operacion(char *funcion)
 
 void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados, int *flag)
 {
+    printf("              _                 _ _ _   _____ _____\n");
+    printf("             | |               | (_) | |  _  /  ___|\n");
+    printf(" _ __ ___  __| | ___  _ __   __| |_| |_| | | \\ `--. \n");
+    printf("| '__/ _ \\/ _` |/ _ \\| '_ \\ / _` | | __| | | |`--. \\\n");
+    printf("| | |  __/ (_| | (_) | | | | (_| | | |_\\ \\_/ /\\__/ /\n");
+    printf("|_|  \\___|\\__,_|\\___/|_| |_|\\__,_|_|\\__|\\___/\\____/ \n");
+    printf("\nComandos disponibles: \n");
+    printf("EJECUTAR_SCRIPT <path>\n");
+    printf("INICIAR_PROCESO <path>\n");
+    printf("FINALIZAR_PROCESO <PID>\n");
+    printf("DETENER_PLANIFICACION\n");
+    printf("INICIAR_PLANIFICACION\n");
+    printf("MULTIPROGRAMACION <grado>\n");
+    printf("PROCESO_ESTADO <PID>\n");
+    printf("FINALIZAR\n");
     char *linea;
     while (*flag)
     {

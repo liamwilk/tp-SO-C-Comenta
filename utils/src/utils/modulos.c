@@ -22,6 +22,7 @@ void cpu_log(t_cpu cpu, t_log *logger)
     log_info(logger, "PUERTO_MEMORIA: %d", cpu.puertoEscuchaInterrupt);
     log_info(logger, "CANTIDAD_ENTRADAS_TLB: %d", cpu.cantidadEntradasTlb);
     log_info(logger, "ALGORITMO_TLB: %s", cpu.algoritmoTlb);
+    printf("\n");
 };
 
 /*--------EntradaSalida--------*/
@@ -52,6 +53,7 @@ void entradasalida_log(t_entradasalida entradasalida, t_log *logger)
     log_info(logger, "PUERTO_MEMORIA: %d", entradasalida.puertoMemoria);
     log_info(logger, "TIEMPO_UNIDAD_TRABAJO: %d", entradasalida.tiempoUnidadDeTrabajo);
     log_info(logger, "TIPO_INTERFAZ: %s", entradasalida.tipoInterfaz);
+    printf("\n");
 };
 
 /*--------MEMORIA--------*/
@@ -73,4 +75,5 @@ void memoria_log(t_memoria memoria, t_log *logger)
     log_info(logger, "TAM_PAGINA: %d", memoria.tamPagina);
     log_info(logger, "PATH_INSTRUCCIONES: %s", memoria.pathInstrucciones);
     log_info(logger, "RETARDO_RESPUESTA: %d", memoria.retardoRespuesta);
+    printf("\n");
 };

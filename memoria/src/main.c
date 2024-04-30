@@ -56,7 +56,7 @@ void *conectar_cpu()
 {
 	socket_cpu = esperar_cliente(logger, socket_server_memoria);
 	esperar_handshake(socket_cpu);
-	log_info(logger, "CPU conectado en socket %d", socket_cpu);
+	log_debug(logger, "CPU conectado en socket %d", socket_cpu);
 	pthread_exit(0);
 }
 
@@ -228,7 +228,7 @@ void *conectar_kernel()
 {
 	socket_kernel = esperar_cliente(logger, socket_server_memoria);
 	esperar_handshake(socket_kernel);
-	log_info(logger, "Kernel conectado en socket %d", socket_kernel);
+	log_debug(logger, "Kernel conectado en socket %d", socket_kernel);
 	pthread_exit(0);
 }
 

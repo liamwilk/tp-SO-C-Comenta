@@ -31,6 +31,7 @@ void kernel_log(t_kernel kernel, t_log *logger)
     log_info(logger, "RECURSOS: %s", kernel.recursos);
     log_info(logger, "INSTANCIAS_RECURSOS: %s", kernel.instanciasRecursos);
     log_info(logger, "GRADO_MULTIPROGRAMACION: %d", kernel.gradoMultiprogramacion);
+    printf("\n");
 }
 
 t_kernel_sockets kernel_sockets_agregar(t_kernel *kernel, KERNEL_SOCKETS type, int socket)
