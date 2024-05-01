@@ -17,3 +17,5 @@ obj/
 
 # Config files
 *.config
+
+module.config
