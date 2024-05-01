@@ -33,7 +33,7 @@ void* conectar_memoria(){
 		pthread_exit(0);
 	}
 
-	handshake_code resultado = crear_handshake(logger,socket_memoria,MEMORIA_ENTRADA_SALIDA, "Memoria");
+	t_handshake resultado = crear_handshake(logger,socket_memoria,MEMORIA_ENTRADA_SALIDA, "Memoria");
 
 	if(resultado != CORRECTO){
 		liberar_conexion(socket_memoria);
@@ -51,7 +51,7 @@ void* conectar_kernel(){
 		pthread_exit(0);
 	}
 
-	handshake_code resultado = crear_handshake(logger,socket_kernel,KERNEL_ENTRADA_SALIDA, "Kernel");
+	t_handshake resultado = crear_handshake(logger,socket_kernel,KERNEL_ENTRADA_SALIDA, "Kernel");
 
 	if(resultado != CORRECTO){
 		liberar_conexion(socket_kernel);

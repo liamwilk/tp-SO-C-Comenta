@@ -17,11 +17,12 @@ typedef enum
 	PROXIMA_INSTRUCCION,
 	RECIBIR_UNA_INSTRUCCION,
 	ELIMINAR_PROCESO,
-	MEMORIA_INICIAR_PROCESO,
+	KERNEL_MEMORIA_NUEVO_PROCESO,
+	MEMORIA_KERNEL_NUEVO_PROCESO,
 	RECIBIR_PATH_INSTRUCCIONES,
 	RECIBIR_PCB,
 	TERMINAR
-} op_code;
+} t_op_code;
 
 typedef struct
 {
@@ -32,9 +33,9 @@ typedef struct
 
 typedef struct
 {
-	op_code codigo_operacion; // Header
-	uint32_t size_buffer;	  // Tamaño del buffer
-	t_buffer *buffer;		  // Payload (puede ser un mensaje, un paquete, etc)
+	t_op_code codigo_operacion; // Header
+	uint32_t size_buffer;		// Tamaño del buffer
+	t_buffer *buffer;			// Payload (puede ser un mensaje, un paquete, etc)
 } t_paquete;
 
 typedef struct
@@ -66,19 +67,26 @@ typedef struct
 	char *path_instrucciones; // Path de las instrucciones
 	uint32_t program_counter; // Program counter
 	uint32_t pid;			  // PID
-} t_kernel_memoria;
+} t_kernel_memoria_proceso;
+
+typedef struct
+{
+	uint32_t pid;					// PID
+	uint32_t cantidad_instruccions; // Cantidad de instrucciones
+	bool leido;						// Flag que indica si el proceso fue leido
+} t_memoria_kernel_proceso;
 
 /**
  * @fn    *crear_paquete
  * @brief Crea un paquete, y le asigna un buffer.
- * @param codigo_de_operacion op_code que va a tener el paquete.
+ * @param codigo_de_operacion t_op_code que va a tener el paquete.
  */
-t_paquete *crear_paquete(op_code codigo_de_operacion);
+t_paquete *crear_paquete(t_op_code codigo_de_operacion);
 
 /**
  * @fn    *serializar_paquete
  * @brief Implementacion de la serializacion de un paquete
- * @param paquete Paquete con buffer y su op_code
+ * @param paquete Paquete con buffer y su t_op_code
  * @param bytes
  */
 void *serializar_paquete(t_paquete *paquete, uint32_t bytes);
@@ -86,7 +94,7 @@ void *serializar_paquete(t_paquete *paquete, uint32_t bytes);
 /**
  * @fn    enviar_mensaje
  * @brief Envia un mensaje `mensaje` al modulo conectado
- * @param mensaje Paquete con buffer y su op_code
+ * @param mensaje Paquete con buffer y su t_op_code
  * @param socket_cliente
  */
 void enviar_mensaje(char *mensaje, int socket_cliente);
@@ -158,6 +166,16 @@ int recibir_operacion(int socket_cliente);
 t_paquete *recibir_paquete(t_log *logger, int socket_cliente);
 
 /**
+ * @fn    serializar_bool
+ * @brief Serializa un bool en el paquete
+ * @param valor El valor a serializar
+ * @param paquete El puntero al paquete donde se serializara
+ */
+void serializar_bool(bool valor, t_paquete *paquete);
+
+void deserializar_bool(void **flujo, bool *destino_del_dato);
+
+/**
  * @fn    serializar_uint8_t
  * @brief Serializa un uint8_t en el paquete
  * @param valor El valor a serializar
@@ -204,7 +222,7 @@ void serializar_char(char *valor, t_paquete *paquete);
  * @param size El tamaño total del stream. Es decir, el tamaño total de lo que contiene nuestro struct que queremos enviar.
  *
  * Ejemplo:
- * struct t_kernel_memoria {
+ * struct t_kernel_memoria_proceso {
  * 	uint32_t size_path;
  * 	char* path_instrucciones;
  * 	uint32_t program_counter;
@@ -282,20 +300,26 @@ void deserializar_uint8_t(void **flujo, uint8_t *destino_del_dato);
 
 /**
  * @fn    serializar_op_code
- * @brief Serializa un op_code en el paquete
+ * @brief Serializa un t_op_code en el paquete
  * @param valor El valor a serializar
  * @param paquete El puntero al paquete donde se serializara
  */
-void serializar_op_code(op_code valor, t_paquete *paquete);
+void serializar_op_code(t_op_code valor, t_paquete *paquete);
 
 /**
  * @brief deserializar_op_code
  *
- * Esta función se encarga de deserializar un op_code de un flujo de datos.
+ * Esta función se encarga de deserializar un t_op_code de un flujo de datos.
  *
  * @param flujo Puntero a punteor al flujo de datos.
  * @param destino_del_dato Puntero al destino donde se guardará el dato deserializado.
  */
-void deserializar_op_code(void **flujo, op_code *destino_del_dato);
+void deserializar_op_code(void **flujo, t_op_code *destino_del_dato);
+
+void serializar_t_kernel_memoria_proceso(t_paquete **paquete, t_kernel_memoria_proceso *proceso);
+
+void serializar_t_memoria_kernel_proceso(t_paquete **paquete, t_memoria_kernel_proceso *proceso);
+
+t_memoria_kernel_proceso *deserializar_t_memoria_kernel_proceso(t_buffer *buffer);
 
 #endif

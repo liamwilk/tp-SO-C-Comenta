@@ -61,7 +61,7 @@ void *esperar_cpu()
 		pthread_exit(0);
 	}
 
-	handshake_code resultado = esperar_handshake(logger, socket_cpu, MEMORIA_CPU, "CPU");
+	t_handshake resultado = esperar_handshake(logger, socket_cpu, MEMORIA_CPU, "CPU");
 
 	if (resultado != CORRECTO)
 	{
@@ -80,16 +80,14 @@ void *atender_cpu()
 		log_debug(logger, "Esperando paquete de CPU en socket %d", socket_cpu);
 		t_paquete *paquete = recibir_paquete(logger, socket_cpu);
 
-		// Simulo el retardo de acceso a memoria en milisegundos
-		sleep(memoria.retardoRespuesta/1000);
-
 		switch (paquete->codigo_operacion)
 		{
 		case PROXIMA_INSTRUCCION:
 			{
 			revisar_paquete(paquete,logger,kernel_orden_apagado,"CPU");
-			// Creo el paquete
-			t_paquete *paquete_instruccion = crear_paquete(PROXIMA_INSTRUCCION);
+
+			// Simulo el retardo de acceso a memoria en milisegundos
+			sleep(memoria.retardoRespuesta/1000);
 
 			t_cpu_memoria_instruccion *instruccion_recibida = deserializar_t_cpu_memoria_instruccion(paquete->buffer);
 
@@ -97,15 +95,20 @@ void *atender_cpu()
 			log_debug(logger, "Instruccion recibida de CPU:");
 			log_debug(logger, "PID: %d", instruccion_recibida->pid);
 			log_debug(logger, "Program counter: %d", instruccion_recibida->program_counter);
-			
-			/* TODO: Armar caso donde CPU me pide que elimine el proceso de la lista de procesos que finalizo de ejecutar todas las instrucciones
-			Este proceso no lo elimino al final porque está guardado en la lista de procesos
-			Lo elimino cuando CPU me avise que este PID termino de ejecutar todas las instrucciones
-			*/
 
 			t_proceso *proceso_encontrado = obtener_proceso(instruccion_recibida->pid);
 			
 			log_info(logger,"Se comienza a buscar el proceso solicitado por CPU en la lista de procesos globales.");
+
+			if (proceso_encontrado == NULL)
+			{
+				log_error(logger, "No se encontro el proceso con PID %d", instruccion_recibida->pid);
+
+				// TODO: Informar a CPU que ese proceso no existe en Memoria
+
+				break;
+			}
+
 			log_debug(logger, "Proceso encontrado:");
 			log_debug(logger, "PID: %d", proceso_encontrado->pid);
 			log_debug(logger, "PC: %d", proceso_encontrado->pc);
@@ -113,12 +116,15 @@ void *atender_cpu()
 
 			if(list_is_empty(proceso_encontrado->instrucciones)){
 				log_error(logger, "No se encontraron instrucciones para el proceso con PID %d", proceso_encontrado->pid);
+				
+				// TODO: Informar a CPU que ese proceso no tiene instrucciones en Memoria. Sería raro igual, no debería pasar jamas pero igualmente voy a controlar este error.
+
 				break;
 			}
 
 			t_memoria_cpu_instruccion *instruccion_proxima = list_get(proceso_encontrado->instrucciones, instruccion_recibida->program_counter);
 
-			log_debug(logger, "Instruccion proxima a enviar: %s", instruccion_proxima->instruccion);
+			log_debug(logger, "Instruccion proxima a enviar a CPU: %s", instruccion_proxima->instruccion);
 			log_debug(logger, "Cantidad de argumentos: %d", instruccion_proxima->cantidad_argumentos);
 			log_debug(logger, "Argumento 1: %s", instruccion_proxima->argumento_1);
 			log_debug(logger, "Argumento 2: %s", instruccion_proxima->argumento_2);
@@ -126,50 +132,13 @@ void *atender_cpu()
 			log_debug(logger, "Argumento 4: %s", instruccion_proxima->argumento_4);
 			log_debug(logger, "Argumento 5: %s", instruccion_proxima->argumento_5);
 
-			/* Estructura t_memoria_cpu_instruccion
-			typedef struct
-			{
-				uint32_t size_instruccion;	  // Tamaño de la instruccion
-				char *instruccion;			  // Instruccion
-				uint32_t cantidad_argumentos; // Cantidad de argumentos
-				uint32_t size_argumento_1;	  // Tamaño del argumento
-				char *argumento_1;			  // Size del argumento
-				uint32_t size_argumento_2;	  // Tamaño del argumento
-				char *argumento_2;			  // Size del argumento
-				uint32_t size_argumento_3;	  // Tamaño del argumento
-				char *argumento_3;			  // Size del argumento
-				uint32_t size_argumento_4;	  // Tamaño del argumento
-				char *argumento_4;			  // Size del argumento
-				uint32_t size_argumento_5;	  // Tamaño del argumento
-				char *argumento_5;			  // Size del argumento
-			} t_memoria_cpu_instruccion;
-			*/
-
-			// Actualizo el buffer del paquete
-			actualizar_buffer(paquete_instruccion, sizeof(uint32_t) * 7 + instruccion_proxima->size_instruccion + instruccion_proxima->size_argumento_1 + instruccion_proxima->size_argumento_2 + instruccion_proxima->size_argumento_3 + instruccion_proxima->size_argumento_4 + instruccion_proxima->size_argumento_5);
-
-			// Serializo la instruccion
-			serializar_uint32_t(instruccion_proxima->size_instruccion, paquete_instruccion);
-			serializar_char(instruccion_proxima->instruccion, paquete_instruccion);
-			serializar_uint32_t(instruccion_proxima->cantidad_argumentos, paquete_instruccion);
-			serializar_uint32_t(instruccion_proxima->size_argumento_1, paquete_instruccion);
-			serializar_char(instruccion_proxima->argumento_1, paquete_instruccion);
-			serializar_uint32_t(instruccion_proxima->size_argumento_2, paquete_instruccion);
-			serializar_char(instruccion_proxima->argumento_2, paquete_instruccion);
-			serializar_uint32_t(instruccion_proxima->size_argumento_3, paquete_instruccion);
-			serializar_char(instruccion_proxima->argumento_3, paquete_instruccion);
-			serializar_uint32_t(instruccion_proxima->size_argumento_4, paquete_instruccion);
-			serializar_char(instruccion_proxima->argumento_4, paquete_instruccion);
-			serializar_uint32_t(instruccion_proxima->size_argumento_5, paquete_instruccion);
-			serializar_char(instruccion_proxima->argumento_5, paquete_instruccion);
-
-			// Envio la instruccion a CPU
+			t_paquete *paquete_instruccion = crear_paquete(PROXIMA_INSTRUCCION);
+			serializar_t_memoria_cpu_instruccion(&paquete_instruccion, instruccion_proxima);
 			enviar_paquete(paquete_instruccion, socket_cpu);
 
-			// Libero la instruccion recibida
-			free(instruccion_recibida);
+			log_info(logger, "Instruccion con PID %d enviada a CPU", instruccion_recibida->pid);
 
-			// Luego elimino el paquete que le envie a CPU
+			free(instruccion_recibida);
 			eliminar_paquete(paquete_instruccion);
 
 			break;
@@ -246,7 +215,7 @@ void *esperar_kernel()
 		pthread_exit(0);
 	}
 
-	handshake_code resultado = esperar_handshake(logger, socket_kernel, MEMORIA_KERNEL, "Kernel");
+	t_handshake resultado = esperar_handshake(logger, socket_kernel, MEMORIA_KERNEL, "Kernel");
 
 	if (resultado != CORRECTO)
 	{
@@ -268,10 +237,10 @@ void *atender_kernel()
 		
 		switch (paquete->codigo_operacion)
 		{
-			case MEMORIA_INICIAR_PROCESO:
+			case KERNEL_MEMORIA_NUEVO_PROCESO:
 				{
 				revisar_paquete(paquete,logger,kernel_orden_apagado,"Kernel");
-				t_kernel_memoria *dato = deserializar_t_kernel_memoria(paquete->buffer);
+				t_kernel_memoria_proceso *dato = deserializar_t_kernel_memoria(paquete->buffer);
 				
 				log_debug(logger, "Deserializado del stream:");
 				log_debug(logger, "Tamaño del path_instrucciones: %d", dato->size_path);
@@ -290,11 +259,23 @@ void *atender_kernel()
 				// Leo las instrucciones del archivo y las guardo en la lista de instrucciones del proceso
 				proceso->instrucciones = memoria_leer_instrucciones(path_completo);
 
-				if (proceso->instrucciones != NULL)
+				if (proceso->instrucciones != NULL){
 					log_debug(logger, "Se leyeron las instrucciones correctamente");
-				else
+				}
+				else{
 					perror("No se pudieron leer las instrucciones");
-
+					
+					// Le aviso a Kernel que no pude leer las instrucciones para ese PID
+					t_paquete *respuesta_paquete = crear_paquete(MEMORIA_KERNEL_NUEVO_PROCESO);
+					t_memoria_kernel_proceso* respuesta_proceso = malloc(sizeof(t_memoria_kernel_proceso));
+					respuesta_proceso->pid = dato->pid;
+					respuesta_proceso->cantidad_instruccions = 0;
+					respuesta_proceso->leido = false;
+					
+					free(respuesta_proceso);
+					eliminar_paquete(respuesta_paquete);
+					break;
+				}
 				// Guardo el proceso en la lista de procesos
 				int resultado_agregar_proceso = list_add(lista_procesos, proceso);
 
@@ -306,10 +287,24 @@ void *atender_kernel()
 				else
 					perror("No se pudo agregar el proceso a la lista de procesos");
 			
+
+				// Le aviso a Kernel que ya lei las instrucciones para ese PID
+				t_paquete *respuesta_paquete = crear_paquete(MEMORIA_KERNEL_NUEVO_PROCESO);
+
+				t_memoria_kernel_proceso* respuesta_proceso = malloc(sizeof(t_memoria_kernel_proceso));
+				respuesta_proceso->pid = dato->pid;
+				respuesta_proceso->cantidad_instruccions = list_size(proceso->instrucciones);
+				respuesta_proceso->leido = true;
+
+				serializar_t_memoria_kernel_proceso(&respuesta_paquete, respuesta_proceso);
+				enviar_paquete(respuesta_paquete, socket_kernel);
+
 				free(path_completo);
 				free(dato->path_instrucciones);
 				free(dato);
 
+				free(respuesta_proceso);
+				eliminar_paquete(respuesta_paquete);
 				break;
 				}
 			case TERMINAR:
@@ -345,7 +340,7 @@ void *esperar_entrada_salida()
 			break;
 		}
 
-		handshake_code resultado = esperar_handshake(logger, socket_cliente, MEMORIA_ENTRADA_SALIDA, "Entrada/Salida");
+		t_handshake resultado = esperar_handshake(logger, socket_cliente, MEMORIA_ENTRADA_SALIDA, "Entrada/Salida");
 
 		if (resultado != CORRECTO)
 		{
@@ -564,27 +559,4 @@ t_proceso *obtener_proceso(uint32_t pid)
 	proceso = list_get(lista_procesos, index);
 
 	return proceso;
-}
-
-t_kernel_memoria *deserializar_t_kernel_memoria(t_buffer *buffer)
-{
-    t_kernel_memoria *dato = malloc(sizeof(t_kernel_memoria));
-    void *stream = buffer->stream;
-
-    deserializar_uint32_t(&stream, &(dato->size_path));
-    deserializar_char(&stream, &(dato->path_instrucciones), dato->size_path);
-    deserializar_uint32_t(&stream, &(dato->program_counter));
-    deserializar_uint32_t(&stream, &(dato->pid));
-
-    return dato;
-}
-
-t_cpu_memoria_instruccion *deserializar_t_cpu_memoria_instruccion(t_buffer *buffer)
-{
-	t_cpu_memoria_instruccion *dato = malloc(sizeof(t_cpu_memoria_instruccion));
-	void *stream = buffer->stream;
-	
-	deserializar_uint32_t(&stream, &(dato->program_counter));
-	deserializar_uint32_t(&stream, &(dato->pid));
-	return dato;
 }
