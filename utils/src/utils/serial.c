@@ -170,6 +170,12 @@ void serializar_uint8_t(uint8_t valor, t_paquete *paquete)
 	paquete->buffer->offset += sizeof(uint8_t);
 }
 
+void serializar_op_code(op_code valor, t_paquete *paquete)
+{
+	memcpy(paquete->buffer->stream + paquete->buffer->offset, &valor, sizeof(op_code));
+	paquete->buffer->offset += sizeof(op_code);
+}
+
 void serializar_char(char *valor, t_paquete *paquete)
 {
 	memcpy(paquete->buffer->stream + paquete->buffer->offset, valor, strlen(valor) + 1);
@@ -191,6 +197,12 @@ void deserializar_char(void **flujo, char **destino_del_dato, uint32_t size_del_
 	*destino_del_dato = malloc(size_del_dato);
 	memcpy(*destino_del_dato, *flujo, size_del_dato);
 	*flujo += size_del_dato * sizeof(char);
+}
+
+void deserializar_op_code(void **flujo, op_code *destino_del_dato)
+{
+	memcpy(destino_del_dato, *flujo, sizeof(op_code));
+	*flujo += sizeof(op_code);
 }
 
 void deserializar_uint8_t(void **flujo, uint8_t *destino_del_dato)

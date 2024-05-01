@@ -280,4 +280,22 @@ void deserializar_uint16_t(void **flujo, uint16_t *destino_del_dato);
  */
 void deserializar_uint8_t(void **flujo, uint8_t *destino_del_dato);
 
+/**
+ * @fn    serializar_op_code
+ * @brief Serializa un op_code en el paquete
+ * @param valor El valor a serializar
+ * @param paquete El puntero al paquete donde se serializara
+ */
+void serializar_op_code(op_code valor, t_paquete *paquete);
+
+/**
+ * @brief deserializar_op_code
+ *
+ * Esta función se encarga de deserializar un op_code de un flujo de datos.
+ *
+ * @param flujo Puntero a punteor al flujo de datos.
+ * @param destino_del_dato Puntero al destino donde se guardará el dato deserializado.
+ */
+void deserializar_op_code(void **flujo, op_code *destino_del_dato);
+
 #endif
