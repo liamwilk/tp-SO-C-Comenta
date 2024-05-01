@@ -97,6 +97,8 @@ diagrama_estados kernel_inicializar_estados(diagrama_estados *estados);
  */
 t_pcb *kernel_nuevo_proceso(t_kernel *kernel, t_queue *new, t_log *logger, char *instrucciones);
 
+void kernel_enviar_pcb_cpu(t_kernel *kernel, t_pcb *pcb, KERNEL_SOCKETS cpu);
+
 /** FUNCIONES DE CONSOLA**/
 
 void kernel_finalizar(t_kernel *kernel, int *flag);

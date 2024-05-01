@@ -1,5 +1,7 @@
 #include "hilos.h"
 
+/*----CONSOLA INTERACTIVA----*/
+
 void *hilos_atender_consola(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
@@ -7,39 +9,20 @@ void *hilos_atender_consola(void *args)
     pthread_exit(0);
 };
 
-void *hilos_memoria_inicializar(hilos_args *args, pthread_t thread_conectar_memoria, pthread_t thread_atender_memoria)
-{
-    /*----MEMORIA----*/
-    pthread_create(&thread_conectar_memoria, NULL, hilos_conectar_memoria, args);
-    pthread_join(thread_conectar_memoria, NULL);
-    pthread_create(&thread_atender_memoria, NULL, hilos_atender_memoria, args);
-    pthread_detach(thread_atender_memoria);
-}
-
-void *hilos_cpu_inicializar(hilos_args *args, pthread_t thread_conectar_cpu_dispatch, pthread_t thread_atender_cpu_dispatch, pthread_t thread_conectar_cpu_interrupt, pthread_t thread_atender_cpu_interrupt)
-{
-    /*----CPU----*/
-    pthread_create(&thread_conectar_cpu_dispatch, NULL, hilos_conectar_cpu_dispatch, args);
-    pthread_join(thread_conectar_cpu_dispatch, NULL);
-    pthread_create(&thread_atender_cpu_dispatch, NULL, hilos_atender_cpu_dispatch, args);
-    pthread_detach(thread_atender_cpu_dispatch);
-
-    pthread_create(&thread_conectar_cpu_interrupt, NULL, hilos_conectar_cpu_interrupt, args);
-    pthread_join(thread_conectar_cpu_interrupt, NULL);
-    pthread_create(&thread_atender_cpu_interrupt, NULL, hilos_atender_cpu_interrupt, args);
-    pthread_detach(thread_atender_cpu_interrupt);
-}
-
-void *hilos_io_inicializar(hilos_args *args, pthread_t thread_esperar_entrada_salida)
-{
-    pthread_create(&thread_esperar_entrada_salida, NULL, hilos_esperar_entradasalida, args);
-    pthread_detach(thread_esperar_entrada_salida);
-};
-
 void *hilos_consola_inicializar(hilos_args *args, pthread_t thread_atender_consola)
 {
     pthread_create(&thread_atender_consola, NULL, hilos_atender_consola, args);
     pthread_join(thread_atender_consola, NULL);
+}
+
+/*----MEMORIA----*/
+
+void *hilos_memoria_inicializar(hilos_args *args, pthread_t thread_conectar_memoria, pthread_t thread_atender_memoria)
+{
+    pthread_create(&thread_conectar_memoria, NULL, hilos_conectar_memoria, args);
+    pthread_join(thread_conectar_memoria, NULL);
+    pthread_create(&thread_atender_memoria, NULL, hilos_atender_memoria, args);
+    pthread_detach(thread_atender_memoria);
 }
 
 void *hilos_conectar_memoria(void *args)
@@ -96,7 +79,20 @@ void *hilos_atender_memoria(void *args)
 
     pthread_exit(0);
 }
+/*----CPU----*/
 
+void *hilos_cpu_inicializar(hilos_args *args, pthread_t thread_conectar_cpu_dispatch, pthread_t thread_atender_cpu_dispatch, pthread_t thread_conectar_cpu_interrupt, pthread_t thread_atender_cpu_interrupt)
+{
+    pthread_create(&thread_conectar_cpu_dispatch, NULL, hilos_conectar_cpu_dispatch, args);
+    pthread_join(thread_conectar_cpu_dispatch, NULL);
+    pthread_create(&thread_atender_cpu_dispatch, NULL, hilos_atender_cpu_dispatch, args);
+    pthread_detach(thread_atender_cpu_dispatch);
+
+    pthread_create(&thread_conectar_cpu_interrupt, NULL, hilos_conectar_cpu_interrupt, args);
+    pthread_join(thread_conectar_cpu_interrupt, NULL);
+    pthread_create(&thread_atender_cpu_interrupt, NULL, hilos_atender_cpu_interrupt, args);
+    pthread_detach(thread_atender_cpu_interrupt);
+}
 void *hilos_conectar_cpu_dispatch(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
@@ -201,6 +197,14 @@ void *hilos_atender_cpu_interrupt(void *args)
     pthread_exit(0);
 };
 
+/*----IO----*/
+
+void *hilos_io_inicializar(hilos_args *args, pthread_t thread_esperar_entrada_salida)
+{
+    pthread_create(&thread_esperar_entrada_salida, NULL, hilos_esperar_entradasalida, args);
+    pthread_detach(thread_esperar_entrada_salida);
+};
+
 void *hilos_esperar_entradasalida(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
@@ -236,7 +240,6 @@ void *hilos_atender_entradasalida(void *args)
 {
     hilos_io_args *io_args = (hilos_io_args *)args;
     log_debug(io_args->args->logger, "I/O conectado en socket %d", *io_args->socket);
-    free(args);
     do
     {
         log_debug(io_args->args->logger, "Esperando paquete de I/O en socket %d", *io_args->socket);
@@ -250,7 +253,7 @@ void *hilos_atender_entradasalida(void *args)
             */
             break;
         default:
-            liberar_conexion(*io_args->socket);
+            liberar_conexion(io_args->socket);
             pthread_exit(0);
             break;
         }

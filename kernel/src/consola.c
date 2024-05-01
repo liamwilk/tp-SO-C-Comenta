@@ -68,12 +68,12 @@ void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados,
                 log_error(logger, "No se ingreso un path de instrucciones");
                 break;
             }
-            else
-            {
-                char *pathInstrucciones = separar_linea[1];
-                kernel_nuevo_proceso(kernel, estados->new, logger, pathInstrucciones);
-                break;
-            }
+            char *pathInstrucciones = separar_linea[1];
+            kernel_nuevo_proceso(kernel, estados->new, logger, pathInstrucciones);
+            // Enviar pcb  kernel -> cpu_dispatch
+            t_paquete *paquete = crear_paquete(RECIBIR_PCB);
+
+            break;
 
         case FINALIZAR_PROCESO:
             log_info(logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
