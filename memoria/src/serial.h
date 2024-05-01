@@ -44,4 +44,8 @@ t_cpu_memoria_instruccion *deserializar_t_cpu_memoria_instruccion(t_buffer *buff
  */
 void serializar_t_memoria_cpu_instruccion(t_paquete** paquete_instruccion, t_memoria_cpu_instruccion *instruccion);
 
+void serializar_t_memoria_kernel_proceso(t_paquete** paquete, t_memoria_kernel_proceso *proceso);
+
+t_kernel_memoria_finalizar_proceso *deserializar_t_kernel_memoria_finalizar_proceso(t_buffer *buffer);
+
 #endif // SERIAL_H

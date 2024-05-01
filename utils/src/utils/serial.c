@@ -273,3 +273,9 @@ void serializar_t_registros_cpu(t_paquete **paquete, t_registros_cpu *registros)
 	serializar_uint8_t(registros->cx, *paquete);
 	serializar_uint8_t(registros->dx, *paquete);
 }
+
+void serializar_t_kernel_memoria_finalizar_proceso(t_paquete **paquete, t_kernel_memoria_finalizar_proceso *proceso)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t));
+	serializar_uint32_t(proceso->pid, *paquete);
+}

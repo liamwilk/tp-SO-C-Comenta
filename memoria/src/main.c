@@ -143,55 +143,6 @@ void *atender_cpu()
 
 			break;
 			}
-		case ELIMINAR_PROCESO:
-			{
-			revisar_paquete(paquete,logger,kernel_orden_apagado,"CPU");
-			
-			t_cpu_memoria_instruccion *instruccion_recibida = deserializar_t_cpu_memoria_instruccion(paquete->buffer);
-
-			log_debug(logger, "Deserializado del stream:");
-			log_debug(logger, "Instruccion recibida para eliminar:");
-			log_debug(logger, "PID: %d", instruccion_recibida->pid);
-			log_debug(logger, "Program counter: %d", instruccion_recibida->program_counter);
-
-			t_proceso *proceso_encontrado = obtener_proceso(instruccion_recibida->pid);
-
-			log_info(logger,"Se comienza a buscar el proceso solicitado por CPU en la lista de procesos globales.");
-			log_debug(logger, "Proceso encontrado:");
-			log_debug(logger, "PID: %d", proceso_encontrado->pid);
-			log_debug(logger, "PC: %d", proceso_encontrado->pc);
-			log_debug(logger, "Cantidad de instrucciones: %d", list_size(proceso_encontrado->instrucciones));
-
-			// Lo guardo para el log del final
-			uint32_t pid = proceso_encontrado->pid;
-
-			if(list_is_empty(proceso_encontrado->instrucciones)){
-				log_error(logger, "No se encontraron instrucciones para el proceso con PID %d", proceso_encontrado->pid);
-				break;
-			}
-
-			/* TODO: Eliminar cada instruccion del proceso, no solo la lista de instrucciones, posible memory leak.
-
-			Adentro de cada proceso, hay una lista de instrucciones, cada instruccion es un struct t_memoria_cpu_instruccion
-			y cada instruccion tiene argumentos que son char*, por lo que hay que liberar la memoria de cada argumento
-			y luego liberar la memoria de cada instruccion, y luego liberar la memoria de la lista de instrucciones. 
-			Esto ultimo viene nativo con list_destroy_and_destroy_elements(lista_procesos, free);
-
-			*/
-
-			// Esto libera la memoria de la lista de instrucciones
-			list_remove_and_destroy_element(lista_procesos, atoi(dictionary_get(diccionario_procesos, string_itoa(proceso_encontrado->pid))), free);
-
-			// Elimino el proceso del diccionario de procesos
-			dictionary_remove(diccionario_procesos, string_itoa(proceso_encontrado->pid));
-
-			log_info(logger, "Se elimino el proceso con PID %d de la lista de procesos globales", pid);
-
-			// Libero la instruccion recibida
-			free(instruccion_recibida);
-
-			break;
-			}
 		default:
 		{	
 			eliminar_paquete(paquete);
@@ -307,6 +258,67 @@ void *atender_kernel()
 				eliminar_paquete(respuesta_paquete);
 				break;
 				}
+			case KERNEL_MEMORIA_FINALIZAR_PROCESO:
+			{
+				revisar_paquete(paquete,logger,kernel_orden_apagado,"Kernel");
+				t_kernel_memoria_finalizar_proceso *proceso = deserializar_t_kernel_memoria_finalizar_proceso(paquete->buffer);
+
+				log_debug(logger, "Deserializado del stream:");
+				log_debug(logger, "Instruccion recibida para eliminar:");
+				log_debug(logger, "PID: %d", proceso->pid);
+				
+				t_proceso *proceso_encontrado = obtener_proceso(proceso->pid);
+
+				if (proceso_encontrado == NULL)
+				{
+					// Esto es muy raro, no debería pasar jamas pero igualmente voy a controlar este error.
+					// Si Kernel me manda a eliminar un proceso que no existe en Memoria, no hago nada, pero igual
+					// esto no debería suceder porque Kernel siempre debería tener la lista de procesos actualizada.
+					
+					log_error(logger, "No se encontro el proceso con PID %d", proceso->pid);
+					break;
+				}
+
+				log_info(logger,"Se comienza a buscar el proceso solicitado por CPU en la lista de procesos globales.");
+				log_debug(logger, "Proceso encontrado:");
+				log_debug(logger, "PID: %d", proceso_encontrado->pid);
+				log_debug(logger, "PC: %d", proceso_encontrado->pc);
+				log_debug(logger, "Cantidad de instrucciones: %d", list_size(proceso_encontrado->instrucciones));
+
+				// Lo guardo para el log del final
+				uint32_t pid = proceso_encontrado->pid;
+				
+				if(list_is_empty(proceso_encontrado->instrucciones)){
+					// Este caso es muy raro, no debería pasar jamas pero igualmente voy a controlar este error.
+					// TODO: Revisar este caso, no debería pasar jamas.
+					log_error(logger, "No se encontraron instrucciones para el proceso con PID %d", proceso_encontrado->pid);
+					break;
+				}
+
+				/* TODO: Eliminar cada instruccion del proceso, no solo la lista de instrucciones, posible memory leak.
+
+				Adentro de cada proceso, hay una lista de instrucciones, cada instruccion es un struct t_memoria_cpu_instruccion
+				y cada instruccion tiene argumentos que son char*, por lo que hay que liberar la memoria de cada argumento
+				y luego liberar la memoria de cada instruccion, y luego liberar la memoria de la lista de instrucciones. 
+				Esto ultimo viene nativo con list_destroy_and_destroy_elements(lista_procesos, free);
+
+				*/
+
+				// Esto libera la memoria de la lista de instrucciones
+				list_remove_and_destroy_element(lista_procesos, atoi(dictionary_get(diccionario_procesos, string_itoa(proceso_encontrado->pid))), free);
+
+				// Elimino el proceso del diccionario de procesos
+				dictionary_remove_and_destroy(diccionario_procesos, string_itoa(proceso_encontrado->pid), free);
+
+				// Elimino el proceso del diccionario de procesos
+				// dictionary_remove(diccionario_procesos, string_itoa(proceso_encontrado->pid));
+
+				log_info(logger, "Se elimino el proceso con PID <%d> de la lista de procesos globales", pid);
+
+				// Libero la instruccion recibida
+				free(proceso);
+				break;
+			}
 			case TERMINAR:
 			{
 				kernel_orden_apagado = 0;

@@ -19,6 +19,7 @@ typedef enum
 	RECIBIR_UNA_INSTRUCCION,
 	ELIMINAR_PROCESO,
 	KERNEL_MEMORIA_NUEVO_PROCESO,
+	KERNEL_MEMORIA_FINALIZAR_PROCESO,
 	MEMORIA_KERNEL_NUEVO_PROCESO,
 	RECIBIR_PATH_INSTRUCCIONES,
 	RECIBIR_REGISTROS_CPU,
@@ -82,6 +83,11 @@ typedef struct
 	uint32_t cantidad_instruccions; // Cantidad de instrucciones
 	bool leido;						// Flag que indica si el proceso fue leido
 } t_memoria_kernel_proceso;
+
+typedef struct
+{
+	uint32_t pid;
+} t_kernel_memoria_finalizar_proceso;
 
 /**
  * @fn    *crear_paquete
@@ -330,5 +336,7 @@ void serializar_t_memoria_kernel_proceso(t_paquete **paquete, t_memoria_kernel_p
 void serializar_t_registros_cpu(t_paquete **paquete, t_registros_cpu *registros);
 
 t_memoria_kernel_proceso *deserializar_t_memoria_kernel_proceso(t_buffer *buffer);
+
+void serializar_t_kernel_memoria_finalizar_proceso(t_paquete **paquete, t_kernel_memoria_finalizar_proceso *proceso);
 
 #endif

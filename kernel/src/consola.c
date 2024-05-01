@@ -73,27 +73,55 @@ void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados,
             break;
 
         case FINALIZAR_PROCESO:
+        {
             log_info(logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+            uint32_t pid = (uint32_t)atoi(separar_linea[1]);
+
+            /* TODO: Acá hay que verificar si el PID existe antes de enviar el mensaje a memoria para que lo elimine
+
+            Si el PID no existe, se debe informar por consola que el PID no existe y no enviar el mensaje a memoria.
+            Asi tal cual está, cualquier PID que se ingrese, se enviará a memoria para que lo elimine, y si no existe, no se informará nada
+            pero en memoria va a intentar eliminar un proceso que no existe y dar error.
+            */
+
+            t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
+            t_kernel_memoria_finalizar_proceso *proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
+            proceso->pid = pid;
+            serializar_t_kernel_memoria_finalizar_proceso(&paquete, proceso);
+            enviar_paquete(paquete, kernel->sockets.memoria);
+
+            eliminar_paquete(paquete);
+            free(proceso);
             break;
+        }
         case DETENER_PLANIFICACION:
+        {
             log_info(logger, "Se ejecuto script %s", separar_linea[0]);
             break;
+        }
         case INICIAR_PLANIFICACION:
+        {
             log_info(logger, "Se ejecuto script %s", separar_linea[0]);
             proceso_mover_ready(kernel->gradoMultiprogramacion, logger, estados);
             log_debug(logger, "Se movieron los procesos a READY");
             // Planificador a corto plazo (fifo y round robin)
             break;
+        }
         case MULTIPROGRAMACION:
+        {
             log_info(logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
             int grado_multiprogramacion = atoi(separar_linea[1]);
             kernel->gradoMultiprogramacion = grado_multiprogramacion;
             log_info(logger, "GRADO_MULTIPROGRAMACION: %d", kernel->gradoMultiprogramacion);
             break;
+        }
         case PROCESO_ESTADO:
+        {
             log_info(logger, "Se ejecuto script %s", separar_linea[0]);
             break;
+        }
         case FINALIZAR:
+        {
             log_info(logger, "Se ejecuto script %s", separar_linea[0]);
             *flag = 0;
             t_paquete *finalizar = crear_paquete(TERMINAR);
@@ -105,7 +133,9 @@ void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados,
             liberar_conexion(kernel->sockets.server);
             eliminar_paquete(finalizar);
             break;
+        }
         default:
+        {
             printf("\nEl comando ingresado no es válido, por favor, intente nuevamente: \n");
             printf("└─ EJECUTAR_SCRIPT <path>\n");
             printf("└─ INICIAR_PROCESO <path>\n");
@@ -116,6 +146,7 @@ void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados,
             printf("└─ PROCESO_ESTADO <PID>\n");
             printf("└─ FINALIZAR\n");
             break;
+        }
         }
         free(separar_linea);
         free(linea);
