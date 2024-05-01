@@ -16,17 +16,17 @@ int main()
 	socket_server_memoria = iniciar_servidor(logger, memoria.puertoEscucha);
 	log_debug(logger, "Servidor Memoria listo para recibir al cliente en socket %d", socket_server_memoria);
 
-	pthread_create(&thread_conectar_cpu, NULL, conectar_cpu, NULL);
-	pthread_join(thread_conectar_cpu, NULL);
+	pthread_create(&thread_esperar_cpu, NULL, esperar_cpu, NULL);
+	pthread_join(thread_esperar_cpu, NULL);
 
 	pthread_create(&thread_atender_cpu, NULL, atender_cpu, NULL);
 	pthread_detach(thread_atender_cpu);
 
-	pthread_create(&thread_conectar_kernel, NULL, conectar_kernel, NULL);
+	pthread_create(&thread_conectar_kernel, NULL, esperar_kernel, NULL);
 	pthread_join(thread_conectar_kernel, NULL);
 
-	pthread_create(&thread_atender_io, NULL, conectar_io, NULL);
-	pthread_detach(thread_atender_io);
+	pthread_create(&thread_atender_entrada_salida, NULL, esperar_entrada_salida, NULL);
+	pthread_detach(thread_atender_entrada_salida);
 
 	pthread_create(&thread_atender_kernel, NULL, atender_kernel, NULL);
 	pthread_join(thread_atender_kernel, NULL);
@@ -52,9 +52,9 @@ int main()
 	return 0;
 }
 
-void *conectar_cpu()
+void *esperar_cpu()
 {
-	socket_cpu = esperar_cliente(logger, socket_server_memoria);
+	socket_cpu = esperar_conexion(logger, socket_server_memoria);
 	
 	if (socket_cpu == -1)
 	{
@@ -237,9 +237,9 @@ void *atender_cpu()
 	pthread_exit(0);
 }
 
-void *conectar_kernel()
+void *esperar_kernel()
 {
-	socket_kernel = esperar_cliente(logger, socket_server_memoria);
+	socket_kernel = esperar_conexion(logger, socket_server_memoria);
 	
 	if (socket_kernel == -1)
 	{
@@ -334,11 +334,11 @@ void *atender_kernel()
 	pthread_exit(0);
 }
 
-void *conectar_io()
+void *esperar_entrada_salida()
 {
 	while (kernel_orden_apagado)
 	{
-		int socket_cliente = esperar_cliente(logger, socket_server_memoria);
+		int socket_cliente = esperar_conexion(logger, socket_server_memoria);
 
 		if (socket_cliente == -1)
 		{
@@ -356,14 +356,14 @@ void *conectar_io()
 		pthread_t hilo;
 		int *args = malloc(sizeof(int));
 		*args = socket_cliente;
-		pthread_create(&hilo, NULL, atender_io, args);
+		pthread_create(&hilo, NULL, atender_entrada_salida, args);
 		pthread_detach(hilo);
 	}
 
 	pthread_exit(0);
 }
 
-void *atender_io(void *args)
+void *atender_entrada_salida(void *args)
 {
 	int socket_cliente = *(int *)args;
 	log_debug(logger, "I/O conectado en socket %d", socket_cliente);

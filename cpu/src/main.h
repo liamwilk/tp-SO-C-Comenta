@@ -27,8 +27,8 @@ void* atender_kernel_dispatch();
 void* atender_kernel_interrupt();
 void* atender_memoria();
 
-void* conectar_kernel_dispatch();
-void* conectar_kernel_interrupt();
+void* esperar_kernel_dispatch();
+void* esperar_kernel_interrupt();
 void* conectar_memoria();
 
 t_memoria_cpu_instruccion* deserializar_t_memoria_cpu_instruccion(t_buffer* buffer);
@@ -41,7 +41,7 @@ int socket_memoria;
 int socket_server_dispatch;
 int socket_server_interrupt;
 
-pthread_t thread_atender_kernel_dispatch,thread_atender_kernel_interrupt,thread_conectar_memoria,thread_atender_memoria,thread_conectar_kernel_dispatch,thread_conectar_kernel_interrupt;
+pthread_t thread_atender_kernel_dispatch,thread_atender_kernel_interrupt,thread_conectar_memoria,thread_atender_memoria,thread_esperar_kernel_dispatch,thread_esperar_kernel_interrupt;
 
 // Cuando vale 0, es porque el Kernel ordeno a todos los modulos apagarse
 int kernel_orden_apagado = 1;

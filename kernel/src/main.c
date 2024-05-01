@@ -34,8 +34,8 @@ int main()
 	log_debug(logger, "Servidor listo para recibir clientes en socket %d.", kernel.sockets.server);
 	estados = kernel_inicializar_estados(&estados);
 
-	pthread_create(&thread_conectar_io, NULL, conectar_io, NULL);
-	pthread_detach(thread_conectar_io);
+	pthread_create(&thread_esperar_entrada_salida, NULL, esperar_entrada_salida, NULL);
+	pthread_detach(thread_esperar_entrada_salida);
 
 	pthread_create(&thread_atender_consola, NULL, atender_consola, NULL);
 	pthread_join(thread_atender_consola, NULL);
@@ -54,11 +54,11 @@ void *atender_consola()
 	pthread_exit(0);
 };
 
-void *conectar_io()
+void *esperar_entrada_salida()
 {
 	while (kernel_orden_apagado)
 	{
-		int socket_cliente = esperar_cliente(logger, kernel.sockets.server);
+		int socket_cliente = esperar_conexion(logger, kernel.sockets.server);
 
 		if (socket_cliente == -1)
 		{
@@ -76,14 +76,14 @@ void *conectar_io()
 		pthread_t hilo;
 		int *args = malloc(sizeof(int));
 		*args = socket_cliente;
-		pthread_create(&hilo, NULL, atender_io, args);
+		pthread_create(&hilo, NULL, atender_entrada_salida, args);
 		pthread_detach(hilo);
 	}
 
 	pthread_exit(0);
 }
 
-void *atender_io(void *args)
+void *atender_entrada_salida(void *args)
 {
 	int socket_cliente = *(int *)args;
 	log_debug(logger, "I/O conectado en socket %d", socket_cliente);
@@ -126,7 +126,7 @@ void *conectar_memoria()
 
 	kernel_sockets_agregar(&kernel, MEMORIA, socket);
 
-	handshake_code resultado = hacer_handshake(logger, socket, MEMORIA_KERNEL, "Memoria");
+	handshake_code resultado = crear_handshake(logger, socket, MEMORIA_KERNEL, "Memoria");
 
 	if (resultado != CORRECTO)
 	{
@@ -179,7 +179,7 @@ void *conectar_cpu_dispatch()
 
 	kernel_sockets_agregar(&kernel, CPU_DISPATCH, socket);
 
-	handshake_code resultado = hacer_handshake(logger, socket, CPU_DISPATCH_KERNEL, "CPU Dispatch");
+	handshake_code resultado = crear_handshake(logger, socket, CPU_DISPATCH_KERNEL, "CPU Dispatch");
 
 	if (resultado != CORRECTO)
 	{
@@ -229,7 +229,7 @@ void *conectar_cpu_interrupt()
 
 	kernel_sockets_agregar(&kernel, CPU_INTERRUPT, socket);
 
-	handshake_code resultado = hacer_handshake(logger, socket, CPU_INTERRUPT_KERNEL, "CPU Interrupt");
+	handshake_code resultado = crear_handshake(logger, socket, CPU_INTERRUPT_KERNEL, "CPU Interrupt");
 
 	if (resultado != CORRECTO)
 	{

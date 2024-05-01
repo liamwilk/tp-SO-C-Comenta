@@ -33,13 +33,13 @@ t_memoria memoria;
 t_list* lista_procesos;
 t_dictionary* diccionario_procesos;
 
-void* conectar_cpu();
-void* conectar_kernel();
-void* conectar_io();
+void* esperar_cpu();
+void* esperar_kernel();
+void* esperar_entrada_salida();
 
 void* atender_cpu();
 void* atender_kernel();
-void* atender_io(void*);
+void* atender_entrada_salida(void*);
 
 /**
  * @fn    *armar_ruta
@@ -77,7 +77,7 @@ t_cpu_memoria_instruccion *deserializar_t_cpu_memoria_instruccion(t_buffer *buff
  */
 t_proceso *obtener_proceso(uint32_t pid);
 
-pthread_t thread_atender_cpu,thread_atender_kernel,thread_atender_io,thread_conectar_cpu,thread_conectar_kernel;
+pthread_t thread_atender_cpu,thread_atender_kernel,thread_atender_entrada_salida,thread_esperar_cpu,thread_conectar_kernel;
 
 int socket_cpu;
 int socket_kernel;

@@ -1,6 +1,6 @@
 #include "handshake.h"
 
-handshake_code hacer_handshake(t_log *logger, int socket, handshake_code codigo_a_recibir, char *modulo)
+handshake_code crear_handshake(t_log *logger, int socket, handshake_code codigo_a_recibir, char *modulo)
 {
 	handshake_code respuesta;
 

@@ -21,14 +21,14 @@ int main()
 	pthread_create(&thread_atender_memoria, NULL, atender_memoria, NULL);
 	pthread_detach(thread_atender_memoria);
 
-	pthread_create(&thread_conectar_kernel_dispatch, NULL, conectar_kernel_dispatch, NULL);
-	pthread_join(thread_conectar_kernel_dispatch, NULL);
+	pthread_create(&thread_esperar_kernel_dispatch, NULL, esperar_kernel_dispatch, NULL);
+	pthread_join(thread_esperar_kernel_dispatch, NULL);
 
 	pthread_create(&thread_atender_kernel_dispatch, NULL, atender_kernel_dispatch, NULL);
 	pthread_detach(thread_atender_kernel_dispatch);
 
-	pthread_create(&thread_conectar_kernel_interrupt, NULL, conectar_kernel_interrupt, NULL);
-	pthread_join(thread_conectar_kernel_interrupt, NULL);
+	pthread_create(&thread_esperar_kernel_interrupt, NULL, esperar_kernel_interrupt, NULL);
+	pthread_join(thread_esperar_kernel_interrupt, NULL);
 
 	/* Ejemplo de envio de instruccion a Memoria
 	sleep(15);
@@ -75,7 +75,7 @@ void *conectar_memoria()
 		pthread_exit(0);
 	}
 
-	handshake_code resultado = hacer_handshake(logger, socket_memoria, MEMORIA_CPU, "Memoria");
+	handshake_code resultado = crear_handshake(logger, socket_memoria, MEMORIA_CPU, "Memoria");
 
 	if (resultado != CORRECTO)
 	{
@@ -127,9 +127,9 @@ void *atender_memoria()
 	pthread_exit(0);
 }
 
-void *conectar_kernel_dispatch()
+void *esperar_kernel_dispatch()
 {
-	socket_kernel_dispatch = esperar_cliente(logger, socket_server_dispatch);
+	socket_kernel_dispatch = esperar_conexion(logger, socket_server_dispatch);
 	
 	if (socket_kernel_dispatch == -1)
 	{
@@ -201,9 +201,9 @@ void *atender_kernel_dispatch()
 	pthread_exit(0);
 }
 
-void *conectar_kernel_interrupt()
+void *esperar_kernel_interrupt()
 {
-	socket_kernel_interrupt = esperar_cliente(logger, socket_server_interrupt);
+	socket_kernel_interrupt = esperar_conexion(logger, socket_server_interrupt);
 	
 	if (socket_kernel_interrupt == -1)
 	{

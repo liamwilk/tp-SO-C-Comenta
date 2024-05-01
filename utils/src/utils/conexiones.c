@@ -65,7 +65,7 @@ int iniciar_servidor(t_log *logger_trace, int puerto)
     return socket_servidor;
 }
 
-int esperar_cliente(t_log *logger_info, int socket_servidor)
+int esperar_conexion(t_log *logger_info, int socket_servidor)
 {
     int socket_cliente = accept(socket_servidor, NULL, NULL);
 

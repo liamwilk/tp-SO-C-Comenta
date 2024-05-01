@@ -28,7 +28,7 @@ typedef enum
 } handshake_code;
 
 /**
- * @fn hacer_handshake
+ * @fn crear_handshake
  * @brief Realiza el handshake con el servidor
  * @param t_log* logger: logger del modulo
  * @param socket: El socket de conexion
@@ -36,7 +36,7 @@ typedef enum
  * @param modulo: Nombre del modulo que recibe el handshake
  * @return handshake_code
  */
-handshake_code hacer_handshake(t_log *logger, int socket, handshake_code codigo_a_recibir, char *modulo);
+handshake_code crear_handshake(t_log *logger, int socket, handshake_code codigo_a_recibir, char *modulo);
 
 /**
  * @fn esperar_handshake
