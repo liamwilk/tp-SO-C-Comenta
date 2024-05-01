@@ -7,9 +7,9 @@ void *hilos_atender_consola(void *args)
     hilos_args *hiloArgs = (hilos_args *)args;
     consola_iniciar(hiloArgs->logger, hiloArgs->kernel, hiloArgs->estados, hiloArgs->kernel_orden_apagado);
     pthread_exit(0);
-};
+}
 
-void *hilos_consola_inicializar(hilos_args *args, pthread_t thread_atender_consola)
+void hilos_consola_inicializar(hilos_args *args, pthread_t thread_atender_consola)
 {
     pthread_create(&thread_atender_consola, NULL, hilos_atender_consola, args);
     pthread_join(thread_atender_consola, NULL);
@@ -17,7 +17,7 @@ void *hilos_consola_inicializar(hilos_args *args, pthread_t thread_atender_conso
 
 /*----MEMORIA----*/
 
-void *hilos_memoria_inicializar(hilos_args *args, pthread_t thread_conectar_memoria, pthread_t thread_atender_memoria)
+void hilos_memoria_inicializar(hilos_args *args, pthread_t thread_conectar_memoria, pthread_t thread_atender_memoria)
 {
     pthread_create(&thread_conectar_memoria, NULL, hilos_conectar_memoria, args);
     pthread_join(thread_conectar_memoria, NULL);
@@ -37,7 +37,7 @@ void *hilos_conectar_memoria(void *args)
 
     kernel_sockets_agregar(hiloArgs->kernel, MEMORIA, socket);
 
-    handshake_code resultado = crear_handshake(hiloArgs->logger, socket, MEMORIA_KERNEL, "Memoria");
+    t_handshake resultado = crear_handshake(hiloArgs->logger, socket, MEMORIA_KERNEL, "Memoria");
 
     if (resultado != CORRECTO)
     {
@@ -60,12 +60,19 @@ void *hilos_atender_memoria(void *args)
 
         switch (paquete->codigo_operacion)
         {
-        case MENSAJE:
+        case MEMORIA_KERNEL_NUEVO_PROCESO:
+        {
             revisar_paquete(paquete, hiloArgs->logger, *hiloArgs->kernel_orden_apagado, "Memoria");
-            /*
-            La logica
-            */
+            t_memoria_kernel_proceso *proceso = deserializar_t_memoria_kernel_proceso(paquete->buffer);
+
+            log_debug(hiloArgs->logger, "Recibí la respuesta de Memoria acerca de la solicitud de nuevo proceso");
+            log_debug(hiloArgs->logger, "PID: %d", proceso->pid);
+            log_debug(hiloArgs->logger, "Cantidad de instrucciones: %d", proceso->cantidad_instruccions);
+            log_debug(hiloArgs->logger, "Leido (es bool esta): %d", proceso->leido);
+
+            free(proceso);
             break;
+        }
         default:
             liberar_conexion(socket);
             pthread_exit(0);
@@ -81,7 +88,7 @@ void *hilos_atender_memoria(void *args)
 }
 /*----CPU----*/
 
-void *hilos_cpu_inicializar(hilos_args *args, pthread_t thread_conectar_cpu_dispatch, pthread_t thread_atender_cpu_dispatch, pthread_t thread_conectar_cpu_interrupt, pthread_t thread_atender_cpu_interrupt)
+void hilos_cpu_inicializar(hilos_args *args, pthread_t thread_conectar_cpu_dispatch, pthread_t thread_atender_cpu_dispatch, pthread_t thread_conectar_cpu_interrupt, pthread_t thread_atender_cpu_interrupt)
 {
     pthread_create(&thread_conectar_cpu_dispatch, NULL, hilos_conectar_cpu_dispatch, args);
     pthread_join(thread_conectar_cpu_dispatch, NULL);
@@ -93,6 +100,7 @@ void *hilos_cpu_inicializar(hilos_args *args, pthread_t thread_conectar_cpu_disp
     pthread_create(&thread_atender_cpu_interrupt, NULL, hilos_atender_cpu_interrupt, args);
     pthread_detach(thread_atender_cpu_interrupt);
 }
+
 void *hilos_conectar_cpu_dispatch(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
@@ -105,7 +113,7 @@ void *hilos_conectar_cpu_dispatch(void *args)
 
     kernel_sockets_agregar(hiloArgs->kernel, CPU_DISPATCH, socket);
 
-    handshake_code resultado = crear_handshake(hiloArgs->logger, socket, CPU_DISPATCH_KERNEL, "CPU Dispatch");
+    t_handshake resultado = crear_handshake(hiloArgs->logger, socket, CPU_DISPATCH_KERNEL, "CPU Dispatch");
 
     if (resultado != CORRECTO)
     {
@@ -129,7 +137,7 @@ void *hilos_conectar_cpu_interrupt(void *args)
 
     kernel_sockets_agregar(hiloArgs->kernel, CPU_INTERRUPT, socket);
 
-    handshake_code resultado = crear_handshake(hiloArgs->logger, socket, CPU_INTERRUPT_KERNEL, "CPU Interrupt");
+    t_handshake resultado = crear_handshake(hiloArgs->logger, socket, CPU_INTERRUPT_KERNEL, "CPU Interrupt");
 
     if (resultado != CORRECTO)
     {
@@ -199,11 +207,11 @@ void *hilos_atender_cpu_interrupt(void *args)
 
 /*----IO----*/
 
-void *hilos_io_inicializar(hilos_args *args, pthread_t thread_esperar_entrada_salida)
+void hilos_io_inicializar(hilos_args *args, pthread_t thread_esperar_entrada_salida)
 {
     pthread_create(&thread_esperar_entrada_salida, NULL, hilos_esperar_entradasalida, args);
     pthread_detach(thread_esperar_entrada_salida);
-};
+}
 
 void *hilos_esperar_entradasalida(void *args)
 {
@@ -217,7 +225,7 @@ void *hilos_esperar_entradasalida(void *args)
             break;
         }
 
-        handshake_code resultado = esperar_handshake(hiloArgs->logger, socket_cliente, KERNEL_ENTRADA_SALIDA, "Entrada/Salida");
+        t_handshake resultado = esperar_handshake(hiloArgs->logger, socket_cliente, KERNEL_ENTRADA_SALIDA, "Entrada/Salida");
 
         if (resultado != CORRECTO)
         {
@@ -253,7 +261,7 @@ void *hilos_atender_entradasalida(void *args)
             */
             break;
         default:
-            liberar_conexion(io_args->socket);
+            liberar_conexion(*io_args->socket);
             pthread_exit(0);
             break;
         }
