@@ -20,6 +20,9 @@
 #include <commons/collections/queue.h>
 #include <commons/collections/list.h>
 
+// Biblioteca de serializacion exclusiva para Memoria
+#include "serial.h"
+
 typedef struct
 {
 	uint32_t pid;	
@@ -56,19 +59,6 @@ char *armar_ruta(char* ruta1, char* ruta2);
  */
 t_list *memoria_leer_instrucciones(char *path_instrucciones);
 
-/**
- * @fn    *deserializar_t_kernel_memoria
- * @brief Deserializa un buffer en un t_kernel_memoria
- * @param buffer El buffer a deserializar
- */
-t_kernel_memoria *deserializar_t_kernel_memoria(t_buffer* buffer);
-
-/**
- * @fn    *deserializar_t_cpu_memoria_instruccion
- * @brief Deserializa un buffer en un t_cpu_memoria_instruccion
- * @param buffer El buffer a deserializar
- */
-t_cpu_memoria_instruccion *deserializar_t_cpu_memoria_instruccion(t_buffer *buffer);
 
 /**
  * @fn    *obtener_proceso
