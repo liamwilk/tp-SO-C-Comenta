@@ -69,7 +69,20 @@ int main()
 void *conectar_memoria()
 {
 	socket_memoria = crear_conexion(logger, cpu.ipMemoria, cpu.puertoMemoria);
-	handshake(logger, socket_memoria, 1, "Memoria");
+	
+	if (socket_memoria == -1)
+	{
+		pthread_exit(0);
+	}
+
+	handshake_code resultado = hacer_handshake(logger, socket_memoria, MEMORIA_CPU, "Memoria");
+
+	if (resultado != CORRECTO)
+	{
+		liberar_conexion(socket_memoria);
+		pthread_exit(0);
+	}
+
 	log_debug(logger, "Conectado a Memoria en socket %d", socket_memoria);
 	pthread_exit(0);
 }
@@ -117,7 +130,20 @@ void *atender_memoria()
 void *conectar_kernel_dispatch()
 {
 	socket_kernel_dispatch = esperar_cliente(logger, socket_server_dispatch);
-	esperar_handshake(socket_kernel_dispatch);
+	
+	if (socket_kernel_dispatch == -1)
+	{
+		pthread_exit(0);
+	}
+
+	handshake_code resultado = esperar_handshake(logger, socket_kernel_dispatch, CPU_DISPATCH_KERNEL, "Kernel por Dispatch");
+
+	if (resultado != CORRECTO)
+	{
+		liberar_conexion(socket_kernel_dispatch);
+		pthread_exit(0);
+	}
+
 	log_debug(logger, "Kernel conectado por Dispatch en socket %d", socket_kernel_dispatch);
 	pthread_exit(0);
 }
@@ -178,7 +204,20 @@ void *atender_kernel_dispatch()
 void *conectar_kernel_interrupt()
 {
 	socket_kernel_interrupt = esperar_cliente(logger, socket_server_interrupt);
-	esperar_handshake(socket_kernel_interrupt);
+	
+	if (socket_kernel_interrupt == -1)
+	{
+		pthread_exit(0);
+	}
+
+	handshake_code resultado = esperar_handshake(logger, socket_kernel_interrupt, CPU_INTERRUPT_KERNEL, "Kernel por Interrupt");
+
+	if (resultado != CORRECTO)
+	{
+		liberar_conexion(socket_kernel_interrupt);
+		pthread_exit(0);
+	}
+
 	log_debug(logger, "Kernel conectado por Interrupt en socket %d", socket_kernel_interrupt);
 	pthread_exit(0);
 }
@@ -189,8 +228,6 @@ void *atender_kernel_interrupt()
 	{
 		log_debug(logger, "Esperando paquete de Kernel Interrupt en socket %d", socket_kernel_interrupt);
 		t_paquete *paquete = recibir_paquete(logger, socket_kernel_interrupt);
-
-		
 
 		switch (paquete->codigo_operacion)
 		{

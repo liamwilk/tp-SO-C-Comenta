@@ -30,15 +30,21 @@ void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados,
     printf("| '__/ _ \\/ _` |/ _ \\| '_ \\ / _` | | __| | | |`--. \\\n");
     printf("| | |  __/ (_| | (_) | | | | (_| | | |_\\ \\_/ /\\__/ /\n");
     printf("|_|  \\___|\\__,_|\\___/|_| |_|\\__,_|_|\\__|\\___/\\____/ \n");
-    printf("\nComandos disponibles: \n");
-    printf("EJECUTAR_SCRIPT <path>\n");
-    printf("INICIAR_PROCESO <path>\n");
-    printf("FINALIZAR_PROCESO <PID>\n");
-    printf("DETENER_PLANIFICACION\n");
-    printf("INICIAR_PLANIFICACION\n");
-    printf("MULTIPROGRAMACION <grado>\n");
-    printf("PROCESO_ESTADO <PID>\n");
-    printf("FINALIZAR\n");
+    printf("\n");
+    printf("---------------------------------------------------------------\n");
+    printf("Implementación de C-Comenta - www.faq.utnso.com.ar/tp-c-comenta\n");
+    printf("Sistemas Operativos - 1C 2024 - UTN FRBA\n");
+    printf("---------------------------------------------------------------\n");
+    printf("\n");
+    printf("Comandos disponibles: \n");
+    printf("└─ EJECUTAR_SCRIPT <path>\n");
+    printf("└─ INICIAR_PROCESO <path>\n");
+    printf("└─ FINALIZAR_PROCESO <PID>\n");
+    printf("└─ DETENER_PLANIFICACION\n");
+    printf("└─ INICIAR_PLANIFICACION\n");
+    printf("└─ MULTIPROGRAMACION <grado>\n");
+    printf("└─ PROCESO_ESTADO <PID>\n");
+    printf("└─ FINALIZAR\n");
     char *linea;
     while (*flag)
     {
@@ -103,7 +109,15 @@ void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados,
             eliminar_paquete(finalizar);
             break;
         default:
-            log_info(logger, "Comando no reconocido. Intente nuevamente.");
+            printf("\nEl comando ingresado no es válido, por favor, intente nuevamente: \n");
+            printf("└─ EJECUTAR_SCRIPT <path>\n");
+            printf("└─ INICIAR_PROCESO <path>\n");
+            printf("└─ FINALIZAR_PROCESO <PID>\n");
+            printf("└─ DETENER_PLANIFICACION\n");
+            printf("└─ INICIAR_PLANIFICACION\n");
+            printf("└─ MULTIPROGRAMACION <grado>\n");
+            printf("└─ PROCESO_ESTADO <PID>\n");
+            printf("└─ FINALIZAR\n");
             break;
         }
         free(separar_linea);

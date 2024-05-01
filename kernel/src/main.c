@@ -64,7 +64,14 @@ void *conectar_io()
 		{
 			break;
 		}
-		esperar_handshake(socket_cliente);
+
+		handshake_code resultado = esperar_handshake(logger, socket_cliente, KERNEL_ENTRADA_SALIDA, "Entrada/Salida");
+
+		if (resultado != CORRECTO)
+		{
+			liberar_conexion(socket_cliente);
+			break;
+		}
 
 		pthread_t hilo;
 		int *args = malloc(sizeof(int));
@@ -111,8 +118,22 @@ void *atender_io(void *args)
 void *conectar_memoria()
 {
 	int socket = crear_conexion(logger, kernel.ipMemoria, kernel.puertoMemoria);
+
+	if (socket == -1)
+	{
+		pthread_exit(0);
+	}
+
 	kernel_sockets_agregar(&kernel, MEMORIA, socket);
-	handshake(logger, socket, 1, "Memoria");
+
+	handshake_code resultado = hacer_handshake(logger, socket, MEMORIA_KERNEL, "Memoria");
+
+	if (resultado != CORRECTO)
+	{
+		liberar_conexion(socket);
+		pthread_exit(0);
+	}
+
 	log_debug(logger, "Conectado a Memoria en socket %d", socket);
 	pthread_exit(0);
 }
@@ -150,8 +171,22 @@ void *atender_memoria()
 void *conectar_cpu_dispatch()
 {
 	int socket = crear_conexion(logger, kernel.ipCpu, kernel.puertoCpuDispatch);
+
+	if (socket == -1)
+	{
+		pthread_exit(0);
+	}
+
 	kernel_sockets_agregar(&kernel, CPU_DISPATCH, socket);
-	handshake(logger, socket, 1, "CPU Dispatch");
+
+	handshake_code resultado = hacer_handshake(logger, socket, CPU_DISPATCH_KERNEL, "CPU Dispatch");
+
+	if (resultado != CORRECTO)
+	{
+		liberar_conexion(socket);
+		pthread_exit(0);
+	}
+
 	log_debug(logger, "Conectado a CPU por Dispatch en socket %d", socket);
 	pthread_exit(0);
 }
@@ -186,8 +221,22 @@ void *atender_cpu_dispatch()
 void *conectar_cpu_interrupt()
 {
 	int socket = crear_conexion(logger, kernel.ipCpu, kernel.puertoCpuInterrupt);
+
+	if (socket == -1)
+	{
+		pthread_exit(0);
+	}
+
 	kernel_sockets_agregar(&kernel, CPU_INTERRUPT, socket);
-	handshake(logger, socket, 1, "CPU Interrupt");
+
+	handshake_code resultado = hacer_handshake(logger, socket, CPU_INTERRUPT_KERNEL, "CPU Interrupt");
+
+	if (resultado != CORRECTO)
+	{
+		liberar_conexion(socket);
+		pthread_exit(0);
+	}
+
 	log_debug(logger, "Conectado a CPU por Interrupt en socket %d", socket);
 	pthread_exit(0);
 }

@@ -14,23 +14,39 @@
 #include <limits.h>
 #include <utils/modulos.h>
 
-/**
- * @fn handshake
- * @brief Realiza el handshake con el servidor
- * @param t_log* logger: logger del modulo
- * @param conexion: socket de conexion
- * @param envio: mensaje a enviar
- * @param modulo: nombre del modulo
- * @return uint32_t
- */
-uint32_t handshake(t_log *logger, int conexion, uint32_t envio, char *modulo);
+typedef enum
+{ // Nomenclatura: SERVIDOR_CLIENTE
+    CORRECTO,
+    ERROR,
+    MEMORIA_CPU,
+    MEMORIA_KERNEL,
+    MEMORIA_ENTRADA_SALIDA,
+    CPU_DISPATCH_KERNEL,
+    CPU_INTERRUPT_KERNEL,
+    CPU_ENTRADA_SALIDA,
+    KERNEL_ENTRADA_SALIDA
+} handshake_code;
 
 /**
- * @fn    esperar_handshake
- * @brief Espera el handshake del cliente
- * @param nuevoSocket socket de conexion
- * @return int
+ * @fn hacer_handshake
+ * @brief Realiza el handshake con el servidor
+ * @param t_log* logger: logger del modulo
+ * @param socket: El socket de conexion
+ * @param codigo_a_recibir: Codigo de handshake a recibir en el servidor
+ * @param modulo: Nombre del modulo que recibe el handshake
+ * @return handshake_code
  */
-int esperar_handshake(int nuevoSocket);
+handshake_code hacer_handshake(t_log *logger, int socket, handshake_code codigo_a_recibir, char *modulo);
+
+/**
+ * @fn esperar_handshake
+ * @brief Espera el handshake del cliente
+ * @param t_log* logger: logger del modulo
+ * @param socket: El socket de conexion
+ * @param codigo_a_recibir: Codigo de handshake a recibir del cliente
+ * @param modulo: Nombre del modulo que se quiere conectar con el servidor
+ * @return handshake_code
+ */
+handshake_code esperar_handshake(t_log *logger, int socket, handshake_code codigo_esperado, char *modulo);
 
 #endif /* HANDSHAKE_H_ */

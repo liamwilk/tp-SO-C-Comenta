@@ -55,7 +55,20 @@ int main()
 void *conectar_cpu()
 {
 	socket_cpu = esperar_cliente(logger, socket_server_memoria);
-	esperar_handshake(socket_cpu);
+	
+	if (socket_cpu == -1)
+	{
+		pthread_exit(0);
+	}
+
+	handshake_code resultado = esperar_handshake(logger, socket_cpu, MEMORIA_CPU, "CPU");
+
+	if (resultado != CORRECTO)
+	{
+		liberar_conexion(socket_cpu);
+		pthread_exit(0);
+	}
+	
 	log_debug(logger, "CPU conectado en socket %d", socket_cpu);
 	pthread_exit(0);
 }
@@ -227,7 +240,20 @@ void *atender_cpu()
 void *conectar_kernel()
 {
 	socket_kernel = esperar_cliente(logger, socket_server_memoria);
-	esperar_handshake(socket_kernel);
+	
+	if (socket_kernel == -1)
+	{
+		pthread_exit(0);
+	}
+
+	handshake_code resultado = esperar_handshake(logger, socket_kernel, MEMORIA_KERNEL, "Kernel");
+
+	if (resultado != CORRECTO)
+	{
+		liberar_conexion(socket_kernel);
+		pthread_exit(0);
+	}
+
 	log_debug(logger, "Kernel conectado en socket %d", socket_kernel);
 	pthread_exit(0);
 }
@@ -319,7 +345,14 @@ void *conectar_io()
 			break;
 		}
 
-		esperar_handshake(socket_cliente);
+		handshake_code resultado = esperar_handshake(logger, socket_cliente, MEMORIA_ENTRADA_SALIDA, "Entrada/Salida");
+
+		if (resultado != CORRECTO)
+		{
+			liberar_conexion(socket_cliente);
+			break;
+		}
+
 		pthread_t hilo;
 		int *args = malloc(sizeof(int));
 		*args = socket_cliente;
