@@ -9,7 +9,6 @@ void* identificar_modulo(char* nombre, int socket_kernel){
     serializar_char(nombre, identificacion);
 
     enviar_paquete(identificacion, socket_kernel);
-    printf("paquete enviado\n");
     eliminar_paquete(identificacion);
     return NULL;
 }

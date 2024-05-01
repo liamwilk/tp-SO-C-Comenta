@@ -231,10 +231,47 @@ void *atender_io(void *args)
 
 		switch(paquete->codigo_operacion){
 			case IO_IDENTIFICADOR:
-				// Placeholder
-				log_info(logger,"I/O se identifico");
+			{	// TODO: agregar la logica de registrar al nuevo modulo
+				log_debug(logger,"I/O se identifico");
+
+				t_entradasalida_id *id = malloc(sizeof(t_entradasalida_id));
+				void *stream = paquete->buffer->stream;
+
+				memcpy(&(id->tamanio), stream, sizeof(uint32_t));
+				stream += sizeof(uint32_t);
+
+				id->nombre = malloc(id->tamanio);
+				memcpy(id->nombre, stream, id->tamanio);
+				stream += id->tamanio * sizeof(char);
+
+				log_info(logger,"Nombre del modulo conectado: %s", id->nombre);
+
+				// free(id->nombre);
+				free(id);
+				
+
+				// Esto esta para testear si anda
+				t_paquete *orden = crear_paquete(IO_GEN_SLEEP);
+
+				actualizar_buffer(orden, sizeof(uint32_t));
+
+				serializar_uint32_t(5000, orden);
+
+				enviar_paquete(orden, socket_cliente);
 
 				break;
+			}
+			case IO_AVISO_EXIT:
+			{
+				// Logica de io que contesta sobre proceso recibido invalido
+				break;
+			}
+			case IO_GEN_SLEEP_TERMINADO:
+			{
+				log_info(logger, "Se desperto!");
+				// Termino el IO gen sleep
+				break;
+			}
 			default:
 				liberar_conexion(socket_cliente);
 				pthread_exit(0);

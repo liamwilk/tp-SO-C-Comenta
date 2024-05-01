@@ -77,6 +77,12 @@ void cpu_log(t_cpu cpu, t_log *logger);
 
 /*--------Entrada salida--------*/
 
+typedef struct
+{
+    char *nombre;
+    uint32_t tamanio;
+} t_entradasalida_id;
+
 // FUNCIONES DE ENTRADA SALIDA ESTAN EN ENTRADASALIDA/SRC/INIT.H
 
 /*--------Memoria--------*/

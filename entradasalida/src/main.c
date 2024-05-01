@@ -2,10 +2,16 @@
 
 #include "main.h"
 
-int main() {
+// ACLARACION: Hay que pasar por parametro un nombre de modulo (string) cuando se lo levanta por consola.
+
+int main(int argc, char *argv[]) {
     
     logger = iniciar_logger("entradasalida" , LOG_LEVEL_INFO);
     config = iniciar_config(logger);
+
+	// Obtengo el nombre del modulo.
+	char *nombre_modulo = argv[1];
+	log_debug(logger, "Nombre del modulo: %s\n", nombre_modulo);
 
 	t_tipointerfaz tipoInterfaz = determinar_tipo_interfaz(config);
 
@@ -13,7 +19,7 @@ int main() {
 		case GEN:
 			entradasalida = entradasalida_gen_inicializar(config);
 		    entradasalida_gen_log(entradasalida,logger);
-			procesar_entradasalida_gen(entradasalida, logger);
+			procesar_entradasalida_gen(entradasalida, logger, nombre_modulo);
 			break;
 		case STDIN:
 			entradasalida = entradasalida_stdin_inicializar(config);
@@ -34,12 +40,6 @@ int main() {
 			log_error(logger, "Tipo de interfaz desconocida");
 			return 0;
 	}
-
-
-	// TODO: Estaria bueno cambiar esto, para tener el switch antes de las 2 funciones de arriba,
-	// y que ese switch inicialize ese tipo, lo loguee, y mande el hilo a procesar los mensajes que reciba.
-
-	// AKA, Movete todas las funciones y las structs desde modulos.c/.h a un init.c/.h
 
 	log_warning(logger,"Se cierra modulo I/O.");
 
