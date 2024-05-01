@@ -53,7 +53,7 @@ void *hilos_atender_memoria(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
     int socket = hiloArgs->kernel->sockets.memoria;
-    while (hiloArgs->kernel_orden_apagado)
+    while (*(hiloArgs->kernel_orden_apagado))
     {
         log_debug(hiloArgs->logger, "Esperando paquete de Memoria en socket %d", socket);
         t_paquete *paquete = recibir_paquete(hiloArgs->logger, socket);
@@ -68,8 +68,16 @@ void *hilos_atender_memoria(void *args)
             log_debug(hiloArgs->logger, "Recibí la respuesta de Memoria acerca de la solicitud de nuevo proceso");
             log_debug(hiloArgs->logger, "PID: %d", proceso->pid);
             log_debug(hiloArgs->logger, "Cantidad de instrucciones: %d", proceso->cantidad_instruccions);
-            log_debug(hiloArgs->logger, "Leido (es bool esta): %d", proceso->leido);
-
+            log_debug(hiloArgs->logger, "Leido: %d", proceso->leido);
+            if (proceso->leido)
+            {
+                // Enviar a cpu los registros
+                t_paquete *paquete = crear_paquete(RECIBIR_REGISTROS_CPU);
+                // Obtener registros desde la cola de estados
+                t_pcb pcb = proceso_buscar_new(hiloArgs->estados->new, proceso->pid);
+                serializar_t_registros_cpu(&paquete, pcb.registros_cpu);
+                enviar_paquete(paquete, hiloArgs->kernel->sockets.cpu_dispatch);
+            };
             free(proceso);
             break;
         }
@@ -153,7 +161,7 @@ void *hilos_atender_cpu_dispatch(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
     int socket = hiloArgs->kernel->sockets.cpu_dispatch;
-    while (hiloArgs->kernel_orden_apagado)
+    while (*hiloArgs->kernel_orden_apagado)
     {
         log_debug(hiloArgs->logger, "Esperando paquete de CPU Dispatch en socket %d", socket);
         t_paquete *paquete = recibir_paquete(hiloArgs->logger, socket);
@@ -181,7 +189,7 @@ void *hilos_atender_cpu_interrupt(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
     int socket = hiloArgs->kernel->sockets.cpu_interrupt;
-    while (hiloArgs->kernel_orden_apagado)
+    while (*hiloArgs->kernel_orden_apagado)
     {
         log_debug(hiloArgs->logger, "Esperando paquete de CPU Interrupt en socket %d", socket);
         t_paquete *paquete = recibir_paquete(hiloArgs->logger, socket);
@@ -216,7 +224,7 @@ void hilos_io_inicializar(hilos_args *args, pthread_t thread_esperar_entrada_sal
 void *hilos_esperar_entradasalida(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-    while (hiloArgs->kernel_orden_apagado)
+    while (*hiloArgs->kernel_orden_apagado)
     {
         int socket_cliente = esperar_conexion(hiloArgs->logger, hiloArgs->kernel->sockets.server);
 
@@ -236,8 +244,8 @@ void *hilos_esperar_entradasalida(void *args)
         pthread_t hilo;
         hilos_io_args *io_args = malloc(sizeof(hilos_io_args));
         io_args->args = hiloArgs;
-        io_args->socket = &socket_cliente;
-        pthread_create(&hilo, NULL, hilos_atender_entradasalida, args);
+        io_args->socket = socket_cliente;
+        pthread_create(&hilo, NULL, hilos_atender_entradasalida, io_args);
         pthread_detach(hilo);
     }
 
@@ -246,12 +254,13 @@ void *hilos_esperar_entradasalida(void *args)
 
 void *hilos_atender_entradasalida(void *args)
 {
+
     hilos_io_args *io_args = (hilos_io_args *)args;
-    log_debug(io_args->args->logger, "I/O conectado en socket %d", *io_args->socket);
+    log_debug(io_args->args->logger, "I/O conectado en socket %d", io_args->socket);
     do
     {
-        log_debug(io_args->args->logger, "Esperando paquete de I/O en socket %d", *io_args->socket);
-        t_paquete *paquete = recibir_paquete(io_args->args->logger, *io_args->socket);
+        log_debug(io_args->args->logger, "Esperando paquete de I/O en socket %d", io_args->socket);
+        t_paquete *paquete = recibir_paquete(io_args->args->logger, io_args->socket);
         switch (paquete->codigo_operacion)
         {
         case MENSAJE:
@@ -261,7 +270,7 @@ void *hilos_atender_entradasalida(void *args)
             */
             break;
         default:
-            liberar_conexion(*io_args->socket);
+            liberar_conexion(io_args->socket);
             pthread_exit(0);
             break;
         }
@@ -270,7 +279,7 @@ void *hilos_atender_entradasalida(void *args)
         free(paquete->buffer);
         free(paquete);
 
-    } while (io_args->args->kernel_orden_apagado);
+    } while (*io_args->args->kernel_orden_apagado);
 
     pthread_exit(0);
 }

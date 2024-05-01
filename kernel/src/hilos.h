@@ -26,7 +26,7 @@ typedef struct hilos_args
 typedef struct hilos_io_args
 {
     hilos_args *args;
-    int *socket;
+    int socket;
 } hilos_io_args;
 
 /*----ATENDER----*/

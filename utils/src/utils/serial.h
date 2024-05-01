@@ -9,6 +9,7 @@
 #include <string.h>
 #include <commons/log.h>
 #include <commons/collections/list.h>
+
 typedef enum
 {
 	MENSAJE,
@@ -20,7 +21,7 @@ typedef enum
 	KERNEL_MEMORIA_NUEVO_PROCESO,
 	MEMORIA_KERNEL_NUEVO_PROCESO,
 	RECIBIR_PATH_INSTRUCCIONES,
-	RECIBIR_PCB,
+	RECIBIR_REGISTROS_CPU,
 	TERMINAR
 } t_op_code;
 
@@ -54,6 +55,12 @@ typedef struct
 	uint32_t size_argumento_5;	  // Tamaño del argumento
 	char *argumento_5;			  // Size del argumento
 } t_memoria_cpu_instruccion;
+
+typedef struct t_registros_cpu
+{
+	uint32_t pc, eax, ebx, ecx;
+	uint8_t ax, bx, cx, dx;
+} t_registros_cpu;
 
 typedef struct
 {							  // Esto le manda CPU a Memoria, para que Memoria le devuelva a CPU la instruccion asociada al PID y PC
@@ -319,6 +326,8 @@ void deserializar_op_code(void **flujo, t_op_code *destino_del_dato);
 void serializar_t_kernel_memoria_proceso(t_paquete **paquete, t_kernel_memoria_proceso *proceso);
 
 void serializar_t_memoria_kernel_proceso(t_paquete **paquete, t_memoria_kernel_proceso *proceso);
+
+void serializar_t_registros_cpu(t_paquete **paquete, t_registros_cpu *registros);
 
 t_memoria_kernel_proceso *deserializar_t_memoria_kernel_proceso(t_buffer *buffer);
 

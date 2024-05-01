@@ -75,16 +75,17 @@ diagrama_estados kernel_inicializar_estados(diagrama_estados *estados)
 t_pcb *kernel_nuevo_proceso(t_kernel *kernel, t_queue *colaNew, t_log *logger, char *instrucciones)
 {
     t_pcb *nuevaPcb = pcb_crear(logger, kernel->quantum);
-    log_debug(logger, "[PCB] Program Counter: %d", nuevaPcb->program_counter);
+    log_debug(logger, "[PCB] Program Counter: %d", nuevaPcb->registros_cpu->pc);
     log_debug(logger, "[PCB] Quantum: %d", nuevaPcb->quantum);
     log_debug(logger, "[PCB] PID: %d", nuevaPcb->pid);
     log_debug(logger, "[PROCESO] Instrucciones: %s", instrucciones);
 
+    /**----ENVIAR A MEMORIA----**/
     t_kernel_memoria_proceso *proceso = malloc(sizeof(t_kernel_memoria_proceso));
     proceso->path_instrucciones = strdup(instrucciones);
     proceso->pid = nuevaPcb->pid;
     proceso->size_path = strlen(instrucciones) + 1;
-    proceso->program_counter = nuevaPcb->program_counter;
+    proceso->program_counter = nuevaPcb->registros_cpu->pc;
 
     t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_NUEVO_PROCESO);
     serializar_t_kernel_memoria_proceso(&paquete, proceso);

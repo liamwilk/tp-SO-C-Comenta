@@ -70,8 +70,6 @@ void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados,
             }
             char *pathInstrucciones = separar_linea[1];
             kernel_nuevo_proceso(kernel, estados->new, logger, pathInstrucciones);
-            // Enviar pcb  kernel -> cpu_dispatch
-            // t_paquete *paquete = crear_paquete(RECIBIR_PCB);
             break;
 
         case FINALIZAR_PROCESO:

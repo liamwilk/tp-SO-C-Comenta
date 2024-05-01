@@ -35,16 +35,16 @@ int main()
 
 	t_paquete *paquete = crear_paquete(PROXIMA_INSTRUCCION);
 	t_cpu_memoria_instruccion instruccion;
-	
+
 	instruccion.pid = 1;
 	instruccion.program_counter = 0;
 
 	actualizar_buffer(paquete, sizeof(uint32_t) + sizeof(uint32_t));
-	
+
 	serializar_uint32_t(instruccion.program_counter, paquete);
-	
+
 	serializar_uint32_t(instruccion.pid, paquete);
-	
+
 	// Envio la instruccion a Memoria
 	enviar_paquete(paquete, socket_memoria);
 
@@ -63,13 +63,12 @@ int main()
 	config_destroy(config);
 
 	return 0;
-	
 }
 
 void *conectar_memoria()
 {
 	socket_memoria = crear_conexion(logger, cpu.ipMemoria, cpu.puertoMemoria);
-	
+
 	if (socket_memoria == -1)
 	{
 		pthread_exit(0);
@@ -96,7 +95,7 @@ void *atender_memoria()
 		switch (paquete->codigo_operacion)
 		{
 		case PROXIMA_INSTRUCCION:
-			revisar_paquete(paquete,logger,kernel_orden_apagado,"Memoria");
+			revisar_paquete(paquete, logger, kernel_orden_apagado, "Memoria");
 			t_memoria_cpu_instruccion *dato = deserializar_t_memoria_cpu_instruccion(paquete->buffer);
 
 			log_debug(logger, "Instruccion recibida de Memoria: %s", dato->instruccion);
@@ -130,7 +129,7 @@ void *atender_memoria()
 void *esperar_kernel_dispatch()
 {
 	socket_kernel_dispatch = esperar_conexion(logger, socket_server_dispatch);
-	
+
 	if (socket_kernel_dispatch == -1)
 	{
 		pthread_exit(0);
@@ -157,7 +156,7 @@ void *atender_kernel_dispatch()
 		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
-			revisar_paquete(paquete,logger,kernel_orden_apagado,"Dispatch");
+			revisar_paquete(paquete, logger, kernel_orden_apagado, "Dispatch");
 			/*
 			La logica
 			*/
@@ -167,24 +166,21 @@ void *atender_kernel_dispatch()
 			liberar_conexion(socket_kernel_dispatch);
 			liberar_conexion(socket_server_dispatch);
 			break;
-		case RECIBIR_PCB:
-			
-			t_pcb *pcb = deserializar_t_pcb(paquete->buffer);
-			log_debug(logger, "PCB recibido de Kernel Dispatch");
-			log_debug(logger, "PID: %d", pcb->pid);
-			log_debug(logger, "Program Counter: %d", pcb->program_counter);
-			log_debug(logger, "Quantum: %d", pcb->quantum);
-			log_debug(logger, "PC: %d", pcb->registros_cpu->pc);
-			log_debug(logger, "EAX: %d", pcb->registros_cpu->eax);
-			log_debug(logger, "EBX: %d", pcb->registros_cpu->ebx);
-			log_debug(logger, "ECX: %d", pcb->registros_cpu->ecx);
-			log_debug(logger, "AX: %d", pcb->registros_cpu->ax);
-			log_debug(logger, "BX: %d", pcb->registros_cpu->bx);
-			log_debug(logger, "CX: %d", pcb->registros_cpu->cx);
-			log_debug(logger, "DX: %d", pcb->registros_cpu->dx);
-			
-			free(pcb->registros_cpu);
-			free(pcb);
+		case RECIBIR_REGISTROS_CPU:
+
+			t_registros_cpu *registros_cpu = deserializar_t_registros_cpu(paquete->buffer);
+			log_debug(logger, "Registros cpu recibido de Kernel Dispatch");
+			log_debug(logger, "PC: %d", registros_cpu->pc);
+			log_debug(logger, "EAX: %d", registros_cpu->eax);
+			log_debug(logger, "EBX: %d", registros_cpu->ebx);
+			log_debug(logger, "ECX: %d", registros_cpu->ecx);
+			log_debug(logger, "AX: %d", registros_cpu->ax);
+			log_debug(logger, "BX: %d", registros_cpu->bx);
+			log_debug(logger, "CX: %d", registros_cpu->cx);
+			log_debug(logger, "DX: %d", registros_cpu->dx);
+
+			// TODO: Continuar con la logica de recibir registros desde kernel
+			free(registros_cpu);
 
 			break;
 		default:
@@ -204,7 +200,7 @@ void *atender_kernel_dispatch()
 void *esperar_kernel_interrupt()
 {
 	socket_kernel_interrupt = esperar_conexion(logger, socket_server_interrupt);
-	
+
 	if (socket_kernel_interrupt == -1)
 	{
 		pthread_exit(0);
@@ -232,7 +228,7 @@ void *atender_kernel_interrupt()
 		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
-			revisar_paquete(paquete,logger,kernel_orden_apagado,"Interrupt");
+			revisar_paquete(paquete, logger, kernel_orden_apagado, "Interrupt");
 			/*
 			La logica
 			*/
@@ -273,24 +269,20 @@ t_memoria_cpu_instruccion *deserializar_t_memoria_cpu_instruccion(t_buffer *buff
 	return dato;
 }
 
-t_pcb *deserializar_t_pcb(t_buffer *buffer)
-{	
-	t_pcb *pcb = malloc(sizeof(t_pcb));
-	pcb->registros_cpu = malloc(sizeof(t_registros_cpu));
+t_registros_cpu *deserializar_t_registros_cpu(t_buffer *buffer)
+{
+	t_registros_cpu *registros_cpu = malloc(sizeof(t_registros_cpu));
 
 	void *stream = buffer->stream;
 
-	deserializar_uint32_t(&stream, &(pcb->pid));
-	deserializar_uint32_t(&stream, &(pcb->program_counter));
-	deserializar_uint32_t(stream, &(pcb->quantum));
-	deserializar_uint32_t(&stream, &(pcb->registros_cpu->pc));
-	deserializar_uint32_t(&stream, &(pcb->registros_cpu->eax));
-	deserializar_uint32_t(&stream, &(pcb->registros_cpu->ebx));
-	deserializar_uint32_t(&stream, &(pcb->registros_cpu->ecx));
-	deserializar_uint8_t(&stream, &(pcb->registros_cpu->ax));
-	deserializar_uint8_t(&stream, &(pcb->registros_cpu->bx));
-	deserializar_uint8_t(&stream, &(pcb->registros_cpu->cx));
-	deserializar_uint8_t(&stream, &(pcb->registros_cpu->dx));
+	deserializar_uint32_t(&stream, &(registros_cpu->pc));
+	deserializar_uint32_t(&stream, &(registros_cpu->eax));
+	deserializar_uint32_t(&stream, &(registros_cpu->ebx));
+	deserializar_uint32_t(&stream, &(registros_cpu->ecx));
+	deserializar_uint8_t(&stream, &(registros_cpu->ax));
+	deserializar_uint8_t(&stream, &(registros_cpu->bx));
+	deserializar_uint8_t(&stream, &(registros_cpu->cx));
+	deserializar_uint8_t(&stream, &(registros_cpu->dx));
 
-	return pcb;
+	return registros_cpu;
 }

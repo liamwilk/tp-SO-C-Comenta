@@ -16,18 +16,12 @@ typedef struct diagrama_estados
     t_queue *exit;
 } diagrama_estados;
 
-typedef struct t_registros_cpu
-{
-    uint32_t pc, eax, ebx, ecx;
-    uint8_t ax, bx, cx, dx;
-} t_registros_cpu;
-
 typedef struct pcb
 {
     uint32_t pid;
-    uint32_t program_counter;
     uint32_t quantum;
     t_registros_cpu *registros_cpu;
+    bool memoria_aceptado;
 } t_pcb;
 
 extern uint32_t pid;
@@ -66,6 +60,15 @@ uint32_t new_pid();
  * @param pcb El PCB a agregar.
  */
 void proceso_agregar_new(t_queue *new, t_pcb *pcb);
+
+/**
+ * Busca un proceso con el PID dado en la cola "new".
+ *
+ * @param new La cola "new" en la que buscar.
+ * @param pid El PID del proceso a buscar.
+ * @return El PCB (Bloque de Control de Procesos) del proceso encontrado, o NULL si no se encuentra.
+ */
+t_pcb proceso_buscar_new(t_queue *new, int pid);
 
 /**
  * Agrega un PCB a la cola "ready".
