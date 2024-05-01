@@ -22,10 +22,10 @@
 
 /**
  * @fn    *deserializar_t_kernel_memoria
- * @brief Deserializa un buffer en un t_kernel_memoria
+ * @brief Deserializa un buffer en un t_kernel_memoria_proceso
  * @param buffer El buffer a deserializar
  */
-t_kernel_memoria *deserializar_t_kernel_memoria(t_buffer* buffer);
+t_kernel_memoria_proceso *deserializar_t_kernel_memoria(t_buffer* buffer);
 
 /**
  * @fn    *deserializar_t_cpu_memoria_instruccion

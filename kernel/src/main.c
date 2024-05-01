@@ -148,16 +148,25 @@ void *atender_memoria()
 
 		switch (paquete->codigo_operacion)
 		{
-		case MENSAJE:
+		case MEMORIA_KERNEL_NUEVO_PROCESO:
+		{
 			revisar_paquete(paquete, logger, kernel_orden_apagado, "Memoria");
-			/*
-			La logica
-			*/
+			t_memoria_kernel_proceso *proceso = deserializar_t_memoria_kernel_proceso(paquete->buffer);
+
+			log_debug(logger, "Recibí la respuesta de Memoria acerca de la solicitud de nuevo proceso");
+			log_debug(logger, "PID: %d", proceso->pid);
+			log_debug(logger, "Cantidad de instrucciones: %d", proceso->cantidad_instruccions);
+			log_debug(logger, "Leido (es bool esta): %d", proceso->leido);
+
+			free(proceso);
 			break;
+		}
 		default:
+		{
 			liberar_conexion(socket);
 			pthread_exit(0);
 			break;
+		}
 		}
 
 		free(paquete->buffer->stream);

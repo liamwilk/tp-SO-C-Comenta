@@ -170,6 +170,18 @@ void serializar_uint8_t(uint8_t valor, t_paquete *paquete)
 	paquete->buffer->offset += sizeof(uint8_t);
 }
 
+void serializar_bool(bool valor, t_paquete *paquete)
+{
+	memcpy(paquete->buffer->stream + paquete->buffer->offset, &valor, sizeof(bool));
+	paquete->buffer->offset += sizeof(bool);
+}
+
+void deserializar_bool(void **flujo, bool *destino_del_dato)
+{
+	memcpy(destino_del_dato, *flujo, sizeof(bool));
+	*flujo += sizeof(bool);
+}
+
 void serializar_op_code(t_op_code valor, t_paquete *paquete)
 {
 	memcpy(paquete->buffer->stream + paquete->buffer->offset, &valor, sizeof(t_op_code));
@@ -227,4 +239,25 @@ void deserializar_uint64_t(void **flujo, uint64_t *destino_del_dato)
 {
 	memcpy(destino_del_dato, *flujo, sizeof(uint64_t));
 	*flujo += sizeof(uint64_t);
+}
+
+void serializar_t_kernel_memoria_proceso(t_paquete **paquete, t_kernel_memoria_proceso *proceso)
+{
+	actualizar_buffer(*paquete, proceso->size_path + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t));
+	serializar_uint32_t(proceso->size_path, *paquete);
+	serializar_char(proceso->path_instrucciones, *paquete);
+	serializar_uint32_t(proceso->program_counter, *paquete);
+	serializar_uint32_t(proceso->pid, *paquete);
+}
+
+t_memoria_kernel_proceso *deserializar_t_memoria_kernel_proceso(t_buffer *buffer)
+{
+	t_memoria_kernel_proceso *proceso = malloc(sizeof(t_memoria_kernel_proceso));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(proceso->pid));
+	deserializar_uint32_t(&stream, &(proceso->cantidad_instruccions));
+	deserializar_bool(&stream, &(proceso->leido));
+
+	return proceso;
 }

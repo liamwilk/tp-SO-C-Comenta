@@ -1,8 +1,8 @@
 #include "serial.h"
 
-t_kernel_memoria *deserializar_t_kernel_memoria(t_buffer *buffer)
+t_kernel_memoria_proceso *deserializar_t_kernel_memoria(t_buffer *buffer)
 {
-    t_kernel_memoria *dato = malloc(sizeof(t_kernel_memoria));
+    t_kernel_memoria_proceso *dato = malloc(sizeof(t_kernel_memoria_proceso));
     void *stream = buffer->stream;
 
     deserializar_uint32_t(&stream, &(dato->size_path));
@@ -61,4 +61,12 @@ void serializar_t_memoria_cpu_instruccion(t_paquete** paquete_instruccion, t_mem
     serializar_char(instruccion_proxima->argumento_4, *paquete_instruccion);
     serializar_uint32_t(instruccion_proxima->size_argumento_5, *paquete_instruccion);
     serializar_char(instruccion_proxima->argumento_5, *paquete_instruccion);
+}
+
+void serializar_t_memoria_kernel_proceso(t_paquete** paquete, t_memoria_kernel_proceso *proceso)
+{
+    actualizar_buffer(*paquete, sizeof(uint32_t) * 2 + sizeof(bool));
+    serializar_uint32_t(proceso->pid, *paquete);
+    serializar_uint32_t(proceso->cantidad_instruccions, *paquete);
+    serializar_bool(proceso->leido, *paquete);
 }

@@ -132,20 +132,13 @@ void *atender_cpu()
 			log_debug(logger, "Argumento 4: %s", instruccion_proxima->argumento_4);
 			log_debug(logger, "Argumento 5: %s", instruccion_proxima->argumento_5);
 
-			// Creo el paquete
 			t_paquete *paquete_instruccion = crear_paquete(PROXIMA_INSTRUCCION);
-
 			serializar_t_memoria_cpu_instruccion(&paquete_instruccion, instruccion_proxima);
-
-			// Envio la instruccion a CPU
 			enviar_paquete(paquete_instruccion, socket_cpu);
 
 			log_info(logger, "Instruccion con PID %d enviada a CPU", instruccion_recibida->pid);
 
-			// Libero la instruccion recibida
 			free(instruccion_recibida);
-
-			// Luego elimino el paquete que le envie a CPU
 			eliminar_paquete(paquete_instruccion);
 
 			break;
@@ -244,10 +237,10 @@ void *atender_kernel()
 		
 		switch (paquete->codigo_operacion)
 		{
-			case MEMORIA_INICIAR_PROCESO:
+			case KERNEL_MEMORIA_NUEVO_PROCESO:
 				{
 				revisar_paquete(paquete,logger,kernel_orden_apagado,"Kernel");
-				t_kernel_memoria *dato = deserializar_t_kernel_memoria(paquete->buffer);
+				t_kernel_memoria_proceso *dato = deserializar_t_kernel_memoria(paquete->buffer);
 				
 				log_debug(logger, "Deserializado del stream:");
 				log_debug(logger, "Tamaño del path_instrucciones: %d", dato->size_path);
@@ -266,11 +259,23 @@ void *atender_kernel()
 				// Leo las instrucciones del archivo y las guardo en la lista de instrucciones del proceso
 				proceso->instrucciones = memoria_leer_instrucciones(path_completo);
 
-				if (proceso->instrucciones != NULL)
+				if (proceso->instrucciones != NULL){
 					log_debug(logger, "Se leyeron las instrucciones correctamente");
-				else
+				}
+				else{
 					perror("No se pudieron leer las instrucciones");
-
+					
+					// Le aviso a Kernel que no pude leer las instrucciones para ese PID
+					t_paquete *respuesta_paquete = crear_paquete(MEMORIA_KERNEL_NUEVO_PROCESO);
+					t_memoria_kernel_proceso* respuesta_proceso = malloc(sizeof(t_memoria_kernel_proceso));
+					respuesta_proceso->pid = dato->pid;
+					respuesta_proceso->cantidad_instruccions = 0;
+					respuesta_proceso->leido = false;
+					
+					free(respuesta_proceso);
+					eliminar_paquete(respuesta_paquete);
+					break;
+				}
 				// Guardo el proceso en la lista de procesos
 				int resultado_agregar_proceso = list_add(lista_procesos, proceso);
 
@@ -282,10 +287,24 @@ void *atender_kernel()
 				else
 					perror("No se pudo agregar el proceso a la lista de procesos");
 			
+
+				// Le aviso a Kernel que ya lei las instrucciones para ese PID
+				t_paquete *respuesta_paquete = crear_paquete(MEMORIA_KERNEL_NUEVO_PROCESO);
+
+				t_memoria_kernel_proceso* respuesta_proceso = malloc(sizeof(t_memoria_kernel_proceso));
+				respuesta_proceso->pid = dato->pid;
+				respuesta_proceso->cantidad_instruccions = list_size(proceso->instrucciones);
+				respuesta_proceso->leido = true;
+
+				serializar_t_memoria_kernel_proceso(&respuesta_paquete, respuesta_proceso);
+				enviar_paquete(respuesta_paquete, socket_kernel);
+
 				free(path_completo);
 				free(dato->path_instrucciones);
 				free(dato);
 
+				free(respuesta_proceso);
+				eliminar_paquete(respuesta_paquete);
 				break;
 				}
 			case TERMINAR:

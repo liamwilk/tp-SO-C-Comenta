@@ -88,7 +88,7 @@ diagrama_estados kernel_inicializar_estados(diagrama_estados *estados);
 /**
  * @brief Crea un nuevo proceso en el kernel.
  *
- * Esta función se encarga de crear un nuevo proceso en el kernel. Envia el struct t_kernel_memoria al modulo memoria
+ * Esta función se encarga de crear un nuevo proceso en el kernel. Envia el struct t_kernel_memoria_proceso al modulo memoria
  *
  * @param kernel Un puntero a la estructura del kernel.
  * @param new  Un puntero a la cola de new.
