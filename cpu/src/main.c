@@ -75,7 +75,7 @@ void *conectar_memoria()
 		pthread_exit(0);
 	}
 
-	handshake_code resultado = crear_handshake(logger, socket_memoria, MEMORIA_CPU, "Memoria");
+	t_handshake resultado = crear_handshake(logger, socket_memoria, MEMORIA_CPU, "Memoria");
 
 	if (resultado != CORRECTO)
 	{
@@ -136,7 +136,7 @@ void *esperar_kernel_dispatch()
 		pthread_exit(0);
 	}
 
-	handshake_code resultado = esperar_handshake(logger, socket_kernel_dispatch, CPU_DISPATCH_KERNEL, "Kernel por Dispatch");
+	t_handshake resultado = esperar_handshake(logger, socket_kernel_dispatch, CPU_DISPATCH_KERNEL, "Kernel por Dispatch");
 
 	if (resultado != CORRECTO)
 	{
@@ -210,7 +210,7 @@ void *esperar_kernel_interrupt()
 		pthread_exit(0);
 	}
 
-	handshake_code resultado = esperar_handshake(logger, socket_kernel_interrupt, CPU_INTERRUPT_KERNEL, "Kernel por Interrupt");
+	t_handshake resultado = esperar_handshake(logger, socket_kernel_interrupt, CPU_INTERRUPT_KERNEL, "Kernel por Interrupt");
 
 	if (resultado != CORRECTO)
 	{

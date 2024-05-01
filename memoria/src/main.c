@@ -61,7 +61,7 @@ void *esperar_cpu()
 		pthread_exit(0);
 	}
 
-	handshake_code resultado = esperar_handshake(logger, socket_cpu, MEMORIA_CPU, "CPU");
+	t_handshake resultado = esperar_handshake(logger, socket_cpu, MEMORIA_CPU, "CPU");
 
 	if (resultado != CORRECTO)
 	{
@@ -246,7 +246,7 @@ void *esperar_kernel()
 		pthread_exit(0);
 	}
 
-	handshake_code resultado = esperar_handshake(logger, socket_kernel, MEMORIA_KERNEL, "Kernel");
+	t_handshake resultado = esperar_handshake(logger, socket_kernel, MEMORIA_KERNEL, "Kernel");
 
 	if (resultado != CORRECTO)
 	{
@@ -345,7 +345,7 @@ void *esperar_entrada_salida()
 			break;
 		}
 
-		handshake_code resultado = esperar_handshake(logger, socket_cliente, MEMORIA_ENTRADA_SALIDA, "Entrada/Salida");
+		t_handshake resultado = esperar_handshake(logger, socket_cliente, MEMORIA_ENTRADA_SALIDA, "Entrada/Salida");
 
 		if (resultado != CORRECTO)
 		{

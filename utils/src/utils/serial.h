@@ -21,7 +21,7 @@ typedef enum
 	RECIBIR_PATH_INSTRUCCIONES,
 	RECIBIR_PCB,
 	TERMINAR
-} op_code;
+} t_op_code;
 
 typedef struct
 {
@@ -32,9 +32,9 @@ typedef struct
 
 typedef struct
 {
-	op_code codigo_operacion; // Header
-	uint32_t size_buffer;	  // Tamaño del buffer
-	t_buffer *buffer;		  // Payload (puede ser un mensaje, un paquete, etc)
+	t_op_code codigo_operacion; // Header
+	uint32_t size_buffer;		// Tamaño del buffer
+	t_buffer *buffer;			// Payload (puede ser un mensaje, un paquete, etc)
 } t_paquete;
 
 typedef struct
@@ -71,14 +71,14 @@ typedef struct
 /**
  * @fn    *crear_paquete
  * @brief Crea un paquete, y le asigna un buffer.
- * @param codigo_de_operacion op_code que va a tener el paquete.
+ * @param codigo_de_operacion t_op_code que va a tener el paquete.
  */
-t_paquete *crear_paquete(op_code codigo_de_operacion);
+t_paquete *crear_paquete(t_op_code codigo_de_operacion);
 
 /**
  * @fn    *serializar_paquete
  * @brief Implementacion de la serializacion de un paquete
- * @param paquete Paquete con buffer y su op_code
+ * @param paquete Paquete con buffer y su t_op_code
  * @param bytes
  */
 void *serializar_paquete(t_paquete *paquete, uint32_t bytes);
@@ -86,7 +86,7 @@ void *serializar_paquete(t_paquete *paquete, uint32_t bytes);
 /**
  * @fn    enviar_mensaje
  * @brief Envia un mensaje `mensaje` al modulo conectado
- * @param mensaje Paquete con buffer y su op_code
+ * @param mensaje Paquete con buffer y su t_op_code
  * @param socket_cliente
  */
 void enviar_mensaje(char *mensaje, int socket_cliente);
@@ -282,20 +282,20 @@ void deserializar_uint8_t(void **flujo, uint8_t *destino_del_dato);
 
 /**
  * @fn    serializar_op_code
- * @brief Serializa un op_code en el paquete
+ * @brief Serializa un t_op_code en el paquete
  * @param valor El valor a serializar
  * @param paquete El puntero al paquete donde se serializara
  */
-void serializar_op_code(op_code valor, t_paquete *paquete);
+void serializar_op_code(t_op_code valor, t_paquete *paquete);
 
 /**
  * @brief deserializar_op_code
  *
- * Esta función se encarga de deserializar un op_code de un flujo de datos.
+ * Esta función se encarga de deserializar un t_op_code de un flujo de datos.
  *
  * @param flujo Puntero a punteor al flujo de datos.
  * @param destino_del_dato Puntero al destino donde se guardará el dato deserializado.
  */
-void deserializar_op_code(void **flujo, op_code *destino_del_dato);
+void deserializar_op_code(void **flujo, t_op_code *destino_del_dato);
 
 #endif

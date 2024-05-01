@@ -65,7 +65,7 @@ void *esperar_entrada_salida()
 			break;
 		}
 
-		handshake_code resultado = esperar_handshake(logger, socket_cliente, KERNEL_ENTRADA_SALIDA, "Entrada/Salida");
+		t_handshake resultado = esperar_handshake(logger, socket_cliente, KERNEL_ENTRADA_SALIDA, "Entrada/Salida");
 
 		if (resultado != CORRECTO)
 		{
@@ -126,7 +126,7 @@ void *conectar_memoria()
 
 	kernel_sockets_agregar(&kernel, MEMORIA, socket);
 
-	handshake_code resultado = crear_handshake(logger, socket, MEMORIA_KERNEL, "Memoria");
+	t_handshake resultado = crear_handshake(logger, socket, MEMORIA_KERNEL, "Memoria");
 
 	if (resultado != CORRECTO)
 	{
@@ -179,7 +179,7 @@ void *conectar_cpu_dispatch()
 
 	kernel_sockets_agregar(&kernel, CPU_DISPATCH, socket);
 
-	handshake_code resultado = crear_handshake(logger, socket, CPU_DISPATCH_KERNEL, "CPU Dispatch");
+	t_handshake resultado = crear_handshake(logger, socket, CPU_DISPATCH_KERNEL, "CPU Dispatch");
 
 	if (resultado != CORRECTO)
 	{
@@ -229,7 +229,7 @@ void *conectar_cpu_interrupt()
 
 	kernel_sockets_agregar(&kernel, CPU_INTERRUPT, socket);
 
-	handshake_code resultado = crear_handshake(logger, socket, CPU_INTERRUPT_KERNEL, "CPU Interrupt");
+	t_handshake resultado = crear_handshake(logger, socket, CPU_INTERRUPT_KERNEL, "CPU Interrupt");
 
 	if (resultado != CORRECTO)
 	{
