@@ -1,37 +1,44 @@
 #include "handshake.h"
 
-uint32_t handshake(t_log *logger, int conexion, uint32_t envio, char *modulo)
+t_handshake crear_handshake(t_log *logger, int socket_servidor, t_handshake codigo_a_recibir, char *modulo)
 {
-	uint32_t result;
+	t_handshake respuesta;
 
-	send(conexion, &envio, sizeof(uint32_t), 0);
-	recv(conexion, &result, sizeof(uint32_t), MSG_WAITALL);
+	send(socket_servidor, &codigo_a_recibir, sizeof(t_handshake), 0);
+	recv(socket_servidor, &respuesta, sizeof(t_handshake), MSG_WAITALL);
 
-	if (result == 0)
+	if (respuesta == CORRECTO)
 	{
-		log_info(logger, "[%s] Conexion por handshake establecida.", modulo);
+		log_info(logger, "[%s] Conexion por handshake realizada y establecida.", modulo);
 	}
 	else
 	{
-		log_error(logger, "[%s] Error en la conexión.", modulo);
-		return -1;
+		log_error(logger, "[%s] Error al crear handshake.", modulo);
 	}
-	return result;
+
+	return respuesta;
 }
 
-int esperar_handshake(int nuevoSocket)
+t_handshake esperar_handshake(t_log *logger, int socket_cliente, t_handshake codigo_esperado, char *modulo)
 {
-	uint32_t ok = 0;
-	uint32_t error = -1;
-	int respuesta;
-	recv(nuevoSocket, &respuesta, sizeof(uint32_t), MSG_WAITALL);
-	if (respuesta == 1)
+	t_handshake respuesta;
+	t_handshake ok = CORRECTO;
+	t_handshake error = ERROR;
+
+	recv(socket_cliente, &respuesta, sizeof(t_handshake), MSG_WAITALL);
+
+	if (respuesta == codigo_esperado)
 	{
-		send(nuevoSocket, &ok, sizeof(uint32_t), 0);
+		send(socket_cliente, &ok, sizeof(t_handshake), 0);
+		log_info(logger, "[%s] Conexion por handshake recibida y establecida.", modulo);
+		respuesta = ok;
 	}
 	else
 	{
-		send(nuevoSocket, &error, sizeof(uint32_t), 0);
+		send(socket_cliente, &error, sizeof(t_handshake), 0);
+		log_error(logger, "[%s] Error al recibir handshake.", modulo);
+		respuesta = error;
 	}
-	return nuevoSocket;
+
+	return respuesta;
 }

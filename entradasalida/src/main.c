@@ -54,14 +54,36 @@ int main(int argc, char *argv[]) {
 
 void* conectar_memoria(){
 	socket_memoria = crear_conexion(logger,entradasalida.ipMemoria,entradasalida.puertoMemoria);
-	handshake(logger,socket_memoria,1,"Memoria");
+	
+	if(socket_memoria == -1){
+		pthread_exit(0);
+	}
+
+	t_handshake resultado = crear_handshake(logger,socket_memoria,MEMORIA_ENTRADA_SALIDA, "Memoria");
+
+	if(resultado != CORRECTO){
+		liberar_conexion(socket_memoria);
+		pthread_exit(0);
+	}
+
 	log_info(logger,"Conectado a Memoria en socket %d",socket_memoria);
 	pthread_exit(0);
 }
 
 void* conectar_kernel(){
 	socket_kernel = crear_conexion(logger,entradasalida.ipKernel,entradasalida.puertoKernel);
-	handshake(logger,socket_kernel,1,"Kernel");
+	
+	if(socket_kernel == -1){
+		pthread_exit(0);
+	}
+
+	t_handshake resultado = crear_handshake(logger,socket_kernel,KERNEL_ENTRADA_SALIDA, "Kernel");
+
+	if(resultado != CORRECTO){
+		liberar_conexion(socket_kernel);
+		pthread_exit(0);
+	}
+
 	log_info(logger,"Conectado a Kernel en socket %d",socket_kernel);
 	pthread_exit(0);
 }

@@ -11,40 +11,6 @@
 #include <pthread.h>
 #include <limits.h>
 
-/*--------KERNEL--------*/
-
-/*Estructura basica del kernel*/
-typedef struct t_kernel
-{
-    int puertoEscucha;
-    char *ipMemoria;
-    int puertoMemoria;
-    char *ipCpu;
-    int puertoCpuDispatch;
-    int puertoCpuInterrupt;
-    char *algoritmoPlanificador;
-    int quantum;
-    char *recursos;
-    char *instanciasRecursos;
-    int gradoMultiprogramacion;
-} t_kernel;
-
-/**
- * @fn    kernel_inicializar
- * @brief Inicializa el kernel junto con todas sus configuraciones
- * @param config Instancia de module.config
- * @return Kernel: Struct de kernel
- */
-t_kernel kernel_inicializar(t_config *config);
-
-/**
- * @fn    log_kernel
- * @brief Log obligatorios de kernel junto con su configuracion
- * @param kernel Instancia de kernel (kernel_inicializar)
- * @param logger Instancia de t_log
- */
-void kernel_log(t_kernel kernel, t_log *logger);
-
 /*--------CPU--------*/
 
 /*Estructura basica de la CPU*/
