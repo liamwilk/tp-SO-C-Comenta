@@ -7,18 +7,36 @@
 int main(int argc, char *argv[]) {
 	
 	if(argc<3){
-		printf("----------------------------------------------------------------------------------\n");
-		printf("Error: No se ha ingresado el formato correcto.\n");
-		printf("Se espera que se ingrese el nombre del modulo y el path al archivo de configuracion.\n");
-		printf("Ejemplo desde carpeta entradasalida: ./bin/entradasalida \"GEN\" config/gen.config\n");
-		printf("----------------------------------------------------------------------------------\n");
-		printf("\n");
-		printf("Las interfaces disponibles son:\n");
-		printf("└─GEN\n");
-		printf("└─STDIN\n");
-		printf("└─STDOUT\n");
-		printf("└─DIALFS\n");
-		printf("Vuelva a ejecutar el programa con el nombre de la interfaz deseada como parametro.\n");
+
+		if(argc==1){
+			printf("-----------------------------------------------------------------------------------\n");
+			printf("Error: No se ha ingresado el nombre del modulo ni path al archivo de configuración.\n");
+			printf("Ejemplo desde carpeta entradasalida: ./bin/entradasalida \"GEN\" config/gen.config\n");
+			printf("-----------------------------------------------------------------------------------\n");
+			printf("\n");
+			printf("Las interfaces disponibles son:\n");
+			printf("└─GEN\n");
+			printf("└─STDIN\n");
+			printf("└─STDOUT\n");
+			printf("└─DIALFS\n");
+			printf("Vuelva a intentar, por favor.\n");
+		}
+
+		if (argc==2){
+			printf("----------------------------------------------------------------------------------\n");
+			printf("Error: No se ha ingresado el path al archivo de configuración.\n");
+			printf("Ejemplo desde carpeta entradasalida: ./bin/entradasalida \"GEN\" config/gen.config\n");
+			printf("----------------------------------------------------------------------------------\n");
+			printf("\n");
+			printf("Las interfaces disponibles son:\n");
+			printf("└─GEN\n");
+			printf("└─STDIN\n");
+			printf("└─STDOUT\n");
+			printf("└─DIALFS\n");
+			printf("Vuelva a intentar, por favor.\n");
+		}
+
+		
 		return EXIT_FAILURE;
 	}
 
@@ -59,8 +77,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	log_info(logger,"Se cierra el modulo %s",nombre_modulo);
-
-	free(nombre_modulo);
 
     log_destroy(logger);
 	config_destroy(config);
