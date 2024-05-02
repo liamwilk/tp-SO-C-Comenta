@@ -72,3 +72,23 @@ t_pcb proceso_buscar_new(t_queue *new, int pid)
     }
     return *proceso;
 }
+
+t_pcb proceso_buscar_exit(t_queue *exit, int pid)
+{
+    t_queue *cola_aux = queue_create();
+    t_pcb *proceso = malloc(sizeof(t_pcb));
+    while (!queue_is_empty(exit))
+    {
+        t_pcb *proceso_aux = queue_pop(exit);
+        if (proceso_aux->pid == pid)
+        {
+            *proceso = *proceso_aux;
+        }
+        queue_push(cola_aux, proceso_aux);
+    }
+    while (!queue_is_empty(cola_aux))
+    {
+        queue_push(exit, queue_pop(cola_aux));
+    }
+    return *proceso;
+}
