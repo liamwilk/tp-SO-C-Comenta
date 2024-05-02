@@ -73,10 +73,12 @@ void *hilos_atender_memoria(void *args)
             {
                 // Enviar a cpu los registros
                 t_paquete *paquete = crear_paquete(RECIBIR_REGISTROS_CPU);
-                // Obtener registros desde la cola de estados
-                t_pcb pcb = proceso_buscar_new(hiloArgs->estados->new, proceso->pid);
-                serializar_t_registros_cpu(&paquete, pcb.registros_cpu);
+                t_pcb *pcb = proceso_buscar_new(hiloArgs->estados->new, proceso->pid);
+                serializar_t_registros_cpu(&paquete, pcb->pid, pcb->registros_cpu);
                 enviar_paquete(paquete, hiloArgs->kernel->sockets.cpu_dispatch);
+                // Buscar proceso
+                pcb->memoria_aceptado = true;
+                log_debug(hiloArgs->logger, "Proceso PID:<%d> aceptado en memoria", pcb->pid);
             };
             free(proceso);
             break;

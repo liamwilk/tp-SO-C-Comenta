@@ -6,14 +6,45 @@
 #include <utils/modulos.h>
 #include <utils/serial.h>
 #include <commons/collections/queue.h>
+#include <commons/string.h>
+
+typedef struct t_new
+{
+    t_list *cola;
+    t_dictionary *diccionario;
+} t_new;
+
+typedef struct t_ready
+{
+    t_list *cola;
+    t_dictionary *diccionario;
+} t_ready;
+
+typedef struct t_exec
+{
+    t_list *cola;
+    t_dictionary *diccionario;
+} t_exec;
+
+typedef struct t_block
+{
+    t_list *cola;
+    t_dictionary *diccionario;
+} t_block;
+
+typedef struct t_exit
+{
+    t_list *cola;
+    t_dictionary *diccionario;
+} t_exit;
 
 typedef struct diagrama_estados
 {
-    t_queue *new;
-    t_queue *ready;
-    t_queue *exec;
-    t_queue *block;
-    t_queue *exit;
+    t_new *new;
+    t_ready *ready;
+    t_exec *exec;
+    t_block *block;
+    t_exit *exit;
 } diagrama_estados;
 
 typedef struct pcb
@@ -59,7 +90,15 @@ uint32_t new_pid();
  * @param new La cola "new".
  * @param pcb El PCB a agregar.
  */
-void proceso_agregar_new(t_queue *new, t_pcb *pcb);
+void proceso_agregar_new(t_new *new, t_pcb *pcb);
+
+/**
+ * Agrega un PCB a la cola "ready".
+ *
+ * @param ready La cola "ready".
+ * @param pcb El PCB a agregar.
+ */
+void proceso_agregar_ready(t_ready *ready, t_pcb *pcb);
 
 /**
  * Busca un proceso con el PID dado en la cola "new".
@@ -68,15 +107,17 @@ void proceso_agregar_new(t_queue *new, t_pcb *pcb);
  * @param pid El PID del proceso a buscar.
  * @return El PCB (Bloque de Control de Procesos) del proceso encontrado, o NULL si no se encuentra.
  */
-t_pcb proceso_buscar_new(t_queue *new, int pid);
+t_pcb *proceso_buscar_new(t_new *new, int pid);
 
 /**
- * Agrega un PCB a la cola "ready".
+ * Elimina un proceso de la cola "ready".
  *
- * @param ready La cola "ready".
- * @param pcb El PCB a agregar.
+ * Esta función elimina un proceso de la cola "ready" y devuelve un puntero al bloque de control de procesos (PCB) eliminado.
+ *
+ * @param ready La cola "ready" de la cual eliminar el proceso.
+ * @return Un puntero al bloque de control de procesos (PCB) eliminado.
  */
-void proceso_agregar_ready(t_queue *ready, t_pcb *pcb);
+t_pcb *proceso_quitar_ready(t_ready *ready);
 
 /**
  * Elimina un PCB de la cola "new".
@@ -84,15 +125,7 @@ void proceso_agregar_ready(t_queue *ready, t_pcb *pcb);
  * @param new La cola "new".
  * @param pcb El PCB a eliminar.
  */
-void proceso_quitar_new(t_queue *new);
-
-/**
- * Elimina un PCB de la cola "ready".
- *
- * @param ready La cola "ready".
- * @param pcb El PCB a eliminar.
- */
-void proceso_quitar_ready(t_queue *ready);
+t_pcb *proceso_quitar_new(t_new *new);
 
 /**
  * Mueve un proceso al estado "ready" en el kernel.

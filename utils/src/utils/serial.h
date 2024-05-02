@@ -93,6 +93,12 @@ typedef struct
 	uint32_t pid;
 } t_kernel_memoria_finalizar_proceso;
 
+typedef struct t_kernel_cpu_proceso
+{
+	uint32_t pid;
+	t_registros_cpu registros;
+} t_kernel_cpu_proceso;
+
 /**
  * @fn    *crear_paquete
  * @brief Crea un paquete, y le asigna un buffer.
@@ -337,7 +343,7 @@ void serializar_t_kernel_memoria_proceso(t_paquete **paquete, t_kernel_memoria_p
 
 void serializar_t_memoria_kernel_proceso(t_paquete **paquete, t_memoria_kernel_proceso *proceso);
 
-void serializar_t_registros_cpu(t_paquete **paquete, t_registros_cpu *registros);
+void serializar_t_registros_cpu(t_paquete **paquete, uint32_t pid, t_registros_cpu *registros);
 
 t_memoria_kernel_proceso *deserializar_t_memoria_kernel_proceso(t_buffer *buffer);
 

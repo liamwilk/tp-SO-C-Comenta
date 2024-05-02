@@ -33,7 +33,7 @@ void *conectar_memoria();
 
 t_memoria_cpu_instruccion *deserializar_t_memoria_cpu_instruccion(t_buffer *buffer);
 
-t_registros_cpu *deserializar_t_registros_cpu(t_buffer *buffer);
+t_kernel_cpu_proceso *deserializar_t_kernel_cpu_proceso(t_buffer *buffer);
 
 int socket_kernel_dispatch;
 int socket_kernel_interrupt;

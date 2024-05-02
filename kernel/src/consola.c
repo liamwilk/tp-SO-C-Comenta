@@ -104,7 +104,7 @@ void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados,
             log_info(logger, "Se ejecuto script %s", separar_linea[0]);
             proceso_mover_ready(kernel->gradoMultiprogramacion, logger, estados);
             log_debug(logger, "Se movieron los procesos a READY");
-            // Planificador a corto plazo (fifo y round robin)
+            // TODO: Planificador a corto plazo (FIFO y RR)
             break;
         }
         case MULTIPROGRAMACION:

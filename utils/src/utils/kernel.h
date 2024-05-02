@@ -95,7 +95,7 @@ diagrama_estados kernel_inicializar_estados(diagrama_estados *estados);
  * @param logger Un puntero al logger.
  * @param instrucciones Una cadena de caracteres que contiene las instrucciones para el nuevo proceso.
  */
-t_pcb *kernel_nuevo_proceso(t_kernel *kernel, t_queue *new, t_log *logger, char *instrucciones);
+t_pcb *kernel_nuevo_proceso(t_kernel *kernel, t_new *colaNew, t_log *logger, char *instrucciones);
 
 void kernel_enviar_pcb_cpu(t_kernel *kernel, t_pcb *pcb, KERNEL_SOCKETS cpu);
 
