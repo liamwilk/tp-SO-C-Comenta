@@ -23,7 +23,7 @@ int main()
 
 	hilos_consola_inicializar(&args, thread_atender_consola);
 
-	log_warning(logger, "El Usuario solicito el apagado del sistema operativo.");
+	log_info(logger, "El Usuario solicito el apagado del sistema operativo.");
 	log_destroy(logger);
 	config_destroy(config);
 
