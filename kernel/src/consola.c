@@ -22,6 +22,58 @@ operacion obtener_operacion(char *funcion)
     return NUM_FUNCIONES;
 }
 
+t_pcb *buscar_pcb(int pid, diagrama_estados *estados)
+{
+    t_pcb *pcb = NULL;
+    t_pcb *proceso = malloc(sizeof(t_pcb));
+    if (!queue_is_empty(estados->new))
+    {
+        proceso = queue_pop(estados->new);
+        if (proceso->pid == pid)
+        {
+            pcb = proceso;
+            return pcb;
+        }
+    }
+    if (!queue_is_empty(estados->ready))
+    {
+        proceso = queue_pop(estados->ready);
+        if (proceso->pid == pid)
+        {
+            pcb = proceso;
+            return pcb;
+        }
+    }
+    if (!queue_is_empty(estados->exec))
+    {
+        proceso = queue_pop(estados->exec);
+        if (proceso->pid == pid)
+        {
+            pcb = proceso;
+            return pcb;
+        }
+    }
+    if (!queue_is_empty(estados->block))
+    {
+        proceso = queue_pop(estados->block);
+        if (proceso->pid == pid)
+        {
+            pcb = proceso;
+            return pcb;
+        }
+    }
+    if (!queue_is_empty(estados->exit))
+    {
+        proceso = queue_pop(estados->exit);
+        if (proceso->pid == pid)
+        {
+            pcb = proceso;
+            return pcb;
+        }
+    }
+    return pcb;
+}
+
 void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados, int *flag)
 {
     printf("              _                 _ _ _   _____ _____\n");
@@ -77,12 +129,12 @@ void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados,
             log_info(logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
             uint32_t pid = (uint32_t)atoi(separar_linea[1]);
 
-            /* TODO: Acá hay que verificar si el PID existe antes de enviar el mensaje a memoria para que lo elimine
-
-            Si el PID no existe, se debe informar por consola que el PID no existe y no enviar el mensaje a memoria.
-            Asi tal cual está, cualquier PID que se ingrese, se enviará a memoria para que lo elimine, y si no existe, no se informará nada
-            pero en memoria va a intentar eliminar un proceso que no existe y dar error.
-            */
+            t_pcb *busqueda = buscar_pcb(pid, estados);
+            if (busqueda == NULL)
+            {
+                log_error(logger, "El PID <%d> no existe", pid);
+                break;
+            }
 
             t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
             t_kernel_memoria_finalizar_proceso *proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
