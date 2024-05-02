@@ -34,6 +34,6 @@ typedef struct{
     char* nombre;
 } t_entradasalida_identificador;
 
-void* identificar_modulo(char* nombre_modulo, int socket_kernel);
+void identificar_modulo(char* nombre_modulo, int socket_kernel);
 
 #endif

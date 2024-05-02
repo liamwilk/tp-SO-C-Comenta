@@ -5,14 +5,31 @@
 // ACLARACION: Hay que pasar por parametro un nombre de modulo (string) cuando se lo levanta por consola.
 
 int main(int argc, char *argv[]) {
-    
-    logger = iniciar_logger("entradasalida" , LOG_LEVEL_INFO);
-    config = iniciar_config(logger);
+	
+	if(argc<3){
+		printf("----------------------------------------------------------------------------------\n");
+		printf("Error: No se ha ingresado el formato correcto.\n");
+		printf("Se espera que se ingrese el nombre del modulo y el path absoluto del archivo de configuracion.\n");
+		printf("Ejemplo desde carpeta entradasalida: ./bin/entradasalida \"GEN\" config/gen.config\n");
+		printf("----------------------------------------------------------------------------------\n");
+		printf("\n");
+		printf("Las interfaces disponibles son:\n");
+		printf("└─GEN\n");
+		printf("└─STDIN\n");
+		printf("└─STDOUT\n");
+		printf("└─DIALFS\n");
+		printf("Vuelva a ejecutar el programa con el nombre de la interfaz deseada como parametro.\n");
+		return EXIT_FAILURE;
+	}
 
 	// Obtengo el nombre del modulo.
 	char *nombre_modulo = argv[1];
-	log_debug(logger, "Nombre del modulo: %s\n", nombre_modulo);
+	
+	logger = iniciar_logger(nombre_modulo, LOG_LEVEL_INFO);
+	config = iniciar_config_entrada_salida(logger, argv[2]);
 
+	log_debug(logger, "Nombre del modulo inicializado: %s\n", nombre_modulo);
+    
 	t_tipointerfaz tipoInterfaz = determinar_tipo_interfaz(config);
 
 	switch(tipoInterfaz){
@@ -38,18 +55,18 @@ int main(int argc, char *argv[]) {
 			break;
 		default:
 			log_error(logger, "Tipo de interfaz desconocida");
-			return 0;
+			return EXIT_FAILURE;
 	}
 
 	log_warning(logger,"Se cierra modulo I/O.");
 
     log_destroy(logger);
 	config_destroy(config);
-
+	
 	liberar_conexion(socket_memoria);
 	liberar_conexion(socket_kernel);
 
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 void* conectar_memoria(){
@@ -89,33 +106,27 @@ void* conectar_kernel(){
 }
 
 
-void* procesar_entradasalida_stdin(t_entradasalida entradasalida,t_log *logger)
+void procesar_entradasalida_stdin(t_entradasalida entradasalida,t_log *logger)
 {
-
 	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
 	pthread_join(thread_conectar_memoria,NULL);
 	
 	pthread_create(&thread_conectar_kernel,NULL,conectar_kernel,NULL);
 	pthread_join(thread_conectar_kernel,NULL);
-	return NULL;
 }		
-void* procesar_entradasalida_stdout(t_entradasalida entradasalida,t_log *logger)
+void procesar_entradasalida_stdout(t_entradasalida entradasalida,t_log *logger)
 {
-
 	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
 	pthread_join(thread_conectar_memoria,NULL);
 	
 	pthread_create(&thread_conectar_kernel,NULL,conectar_kernel,NULL);
 	pthread_join(thread_conectar_kernel,NULL);
-	return NULL;
 }
-void* procesar_entradasalida_dialfs(t_entradasalida entradasalida,t_log *logger)
+void procesar_entradasalida_dialfs(t_entradasalida entradasalida,t_log *logger)
 {
-
 	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
 	pthread_join(thread_conectar_memoria,NULL);
 	
 	pthread_create(&thread_conectar_kernel,NULL,conectar_kernel,NULL);
 	pthread_join(thread_conectar_kernel,NULL);
-	return NULL;
 }

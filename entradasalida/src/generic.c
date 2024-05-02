@@ -1,12 +1,12 @@
 #include "generic.h"
 
-void *procesar_entradasalida_gen(t_entradasalida entradasalida, t_log *logger, char *nombre_modulo)
+void procesar_entradasalida_gen(t_entradasalida entradasalida, t_log *logger, char *nombre_modulo)
 {
     // La interfaz generica tiene realmente un unico hilo de ejecucion.
     // No seria necesario crear otro thread para atender la conexion con el kernel.
 
     int socket_kernel = crear_conexion(logger, entradasalida.ipKernel, entradasalida.puertoKernel);
-    t_handshake resultado = esperar_handshake(logger, socket_kernel, ENTRADA_SALIDA_KERNEL, "Kernel");
+    t_handshake resultado = crear_handshake(logger, socket_kernel, KERNEL_ENTRADA_SALIDA, "Kernel");
     if (resultado != CORRECTO)
     {
         liberar_conexion(socket_kernel);
@@ -26,6 +26,8 @@ void *procesar_entradasalida_gen(t_entradasalida entradasalida, t_log *logger, c
         {
             liberar_conexion(socket_kernel);
             log_info(logger, "Ejecucion de interfaz generica terminada.");
+            
+            eliminar_paquete(paquete);
             break;
         }
 
@@ -55,11 +57,11 @@ void *procesar_entradasalida_gen(t_entradasalida entradasalida, t_log *logger, c
 
             enviar_paquete(exit, socket_kernel);
             eliminar_paquete(exit);
+            eliminar_paquete(paquete);
             break;
         }
+        eliminar_paquete(paquete);
     }
-
-    return NULL;
 }
 
 uint32_t deserializar_unidades_de_trabajo(t_paquete *paquete)

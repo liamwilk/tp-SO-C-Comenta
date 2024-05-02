@@ -34,8 +34,8 @@ int socket_memoria;
 int socket_kernel;
 
 
-void* procesar_entradasalida_stdin(t_entradasalida entradasalida,t_log *logger);		
-void* procesar_entradasalida_stdout(t_entradasalida entradasalida,t_log *logger);		
-void* procesar_entradasalida_dialfs(t_entradasalida entradasalida,t_log *logger);	
+void procesar_entradasalida_stdin(t_entradasalida entradasalida,t_log *logger);		
+void procesar_entradasalida_stdout(t_entradasalida entradasalida,t_log *logger);		
+void procesar_entradasalida_dialfs(t_entradasalida entradasalida,t_log *logger);	
 
 #endif /* MAIN_H_ */
