@@ -9,7 +9,7 @@ int main(int argc, char *argv[]) {
 	if(argc<3){
 		printf("----------------------------------------------------------------------------------\n");
 		printf("Error: No se ha ingresado el formato correcto.\n");
-		printf("Se espera que se ingrese el nombre del modulo y el path absoluto del archivo de configuracion.\n");
+		printf("Se espera que se ingrese el nombre del modulo y el path al archivo de configuracion.\n");
 		printf("Ejemplo desde carpeta entradasalida: ./bin/entradasalida \"GEN\" config/gen.config\n");
 		printf("----------------------------------------------------------------------------------\n");
 		printf("\n");
@@ -58,7 +58,9 @@ int main(int argc, char *argv[]) {
 			return EXIT_FAILURE;
 	}
 
-	log_warning(logger,"Se cierra modulo I/O.");
+	log_info(logger,"Se cierra el modulo %s",nombre_modulo);
+
+	free(nombre_modulo);
 
     log_destroy(logger);
 	config_destroy(config);
@@ -105,7 +107,6 @@ void* conectar_kernel(){
 	pthread_exit(0);
 }
 
-
 void procesar_entradasalida_stdin(t_entradasalida entradasalida,t_log *logger)
 {
 	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
@@ -114,6 +115,7 @@ void procesar_entradasalida_stdin(t_entradasalida entradasalida,t_log *logger)
 	pthread_create(&thread_conectar_kernel,NULL,conectar_kernel,NULL);
 	pthread_join(thread_conectar_kernel,NULL);
 }		
+
 void procesar_entradasalida_stdout(t_entradasalida entradasalida,t_log *logger)
 {
 	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
@@ -122,6 +124,7 @@ void procesar_entradasalida_stdout(t_entradasalida entradasalida,t_log *logger)
 	pthread_create(&thread_conectar_kernel,NULL,conectar_kernel,NULL);
 	pthread_join(thread_conectar_kernel,NULL);
 }
+
 void procesar_entradasalida_dialfs(t_entradasalida entradasalida,t_log *logger)
 {
 	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
