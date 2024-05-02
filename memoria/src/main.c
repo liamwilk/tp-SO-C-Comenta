@@ -102,10 +102,10 @@ void *atender_cpu()
 
 			if (proceso_encontrado == NULL)
 			{
-				log_error(logger, "No se encontro el proceso con PID %d", instruccion_recibida->pid);
+				log_error(logger, "No se encontro el proceso con PID <%d>", instruccion_recibida->pid);
 
 				// TODO: Informar a CPU que ese proceso no existe en Memoria
-
+				
 				break;
 			}
 
@@ -115,7 +115,7 @@ void *atender_cpu()
 			log_debug(logger, "Cantidad de instrucciones: %d", list_size(proceso_encontrado->instrucciones));
 
 			if(list_is_empty(proceso_encontrado->instrucciones)){
-				log_error(logger, "No se encontraron instrucciones para el proceso con PID %d", proceso_encontrado->pid);
+				log_error(logger, "No se encontraron instrucciones para el proceso con PID <%d>", proceso_encontrado->pid);
 				
 				// TODO: Informar a CPU que ese proceso no tiene instrucciones en Memoria. Sería raro igual, no debería pasar jamas pero igualmente voy a controlar este error.
 
@@ -273,9 +273,7 @@ void *atender_kernel()
 				{
 					// Esto es muy raro, no debería pasar jamas pero igualmente voy a controlar este error.
 					// Si Kernel me manda a eliminar un proceso que no existe en Memoria, no hago nada, pero igual
-					// esto no debería suceder porque Kernel siempre debería tener la lista de procesos actualizada.
-					
-					log_error(logger, "No se encontro el proceso con PID %d", proceso->pid);
+					// esto no debería suceder porque Kernel siempre debería tener la lista de procesos actualizada.s
 					break;
 				}
 
@@ -564,7 +562,7 @@ t_proceso *obtener_proceso(uint32_t pid)
 	if (index_char != NULL) {
 		index = atoi(index_char); 
 	} else {
-		log_error(logger, "No se encontro el proceso con PID %d", pid);
+		log_error(logger, "No se encontro el proceso con PID <%d>", pid);
 		return NULL;
 	}
 	
