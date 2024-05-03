@@ -41,33 +41,15 @@ t_cpu cpu_inicializar(t_config *config);
  */
 void cpu_log(t_cpu cpu, t_log *logger);
 
-typedef struct t_entradasalida
+/*--------Entrada salida--------*/
+
+typedef struct
 {
-    char *ipMemoria;
-    int puertoMemoria;
-    char *ipKernel;
-    int puertoKernel;
-    char *tipoInterfaz;
-    int tiempoUnidadDeTrabajo;
-    char *pathBaseDialFs;
-    int blockSize;
-    int blockCount;
-} t_entradasalida;
+    char *nombre;
+    uint32_t tamanio;
+} t_entradasalida_id;
 
-/**
- * @fn    entradasalida_inicializar
- * @brief Inicializa la entrada-salida junto con todas sus configuraciones
- * @param config Instancia de module.config
- * @return config
- */
-t_entradasalida entradasalida_inicializar(t_config *config);
-
-/**
- * @fn    entradasalida_log
- * @brief Logs necesarios para entrada-salida
- * @param config Instancia de module.config
- */
-void entradasalida_log(t_entradasalida entradasalida, t_log *logger);
+// FUNCIONES DE ENTRADA SALIDA ESTAN EN ENTRADASALIDA/SRC/INIT.H
 
 /*--------Memoria--------*/
 typedef struct t_memoria

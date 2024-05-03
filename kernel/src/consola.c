@@ -22,53 +22,19 @@ operacion obtener_operacion(char *funcion)
     return NUM_FUNCIONES;
 }
 
-t_pcb *buscar_pcb(int pid, diagrama_estados *estados)
+t_pcb *buscar_proceso(diagrama_estados *estados, uint32_t pid)
 {
-    t_pcb *pcb = NULL;
-    t_pcb *proceso = malloc(sizeof(t_pcb));
-    if (!queue_is_empty(estados->new))
+    t_pcb *pcb = proceso_buscar_new(estados->new, pid);
+    if (pcb == NULL)
     {
-        proceso = queue_pop(estados->new);
-        if (proceso->pid == pid)
+        pcb = proceso_buscar_ready(estados->ready, pid);
+        if (pcb == NULL)
         {
-            pcb = proceso;
-            return pcb;
-        }
-    }
-    if (!queue_is_empty(estados->ready))
-    {
-        proceso = queue_pop(estados->ready);
-        if (proceso->pid == pid)
-        {
-            pcb = proceso;
-            return pcb;
-        }
-    }
-    if (!queue_is_empty(estados->exec))
-    {
-        proceso = queue_pop(estados->exec);
-        if (proceso->pid == pid)
-        {
-            pcb = proceso;
-            return pcb;
-        }
-    }
-    if (!queue_is_empty(estados->block))
-    {
-        proceso = queue_pop(estados->block);
-        if (proceso->pid == pid)
-        {
-            pcb = proceso;
-            return pcb;
-        }
-    }
-    if (!queue_is_empty(estados->exit))
-    {
-        proceso = queue_pop(estados->exit);
-        if (proceso->pid == pid)
-        {
-            pcb = proceso;
-            return pcb;
+            pcb = proceso_buscar_exec(estados->exec, pid);
+            if (pcb == NULL)
+            {
+                pcb = proceso_buscar_block(estados->block, pid);
+            }
         }
     }
     return pcb;
@@ -129,8 +95,15 @@ void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados,
             log_info(logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
             uint32_t pid = (uint32_t)atoi(separar_linea[1]);
 
-            t_pcb *busqueda = buscar_pcb(pid, estados);
+            t_pcb *busqueda = buscar_proceso(estados, pid);
             if (busqueda == NULL)
+            {
+                log_error(logger, "El PID <%d> no existe", pid);
+                break;
+            }
+
+            t_pcb *proceso_buscado = buscar_proceso(estados, pid);
+            if (proceso_buscado == NULL)
             {
                 log_error(logger, "El PID <%d> no existe", pid);
                 break;
@@ -156,7 +129,7 @@ void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados,
             log_info(logger, "Se ejecuto script %s", separar_linea[0]);
             proceso_mover_ready(kernel->gradoMultiprogramacion, logger, estados);
             log_debug(logger, "Se movieron los procesos a READY");
-            // Planificador a corto plazo (fifo y round robin)
+            // TODO: Planificador a corto plazo (FIFO y RR)
             break;
         }
         case MULTIPROGRAMACION:

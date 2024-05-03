@@ -26,6 +26,5 @@ int main()
 	log_info(logger, "El Usuario solicito el apagado del sistema operativo.");
 	log_destroy(logger);
 	config_destroy(config);
-
 	return 0;
 }

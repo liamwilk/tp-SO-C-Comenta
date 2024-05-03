@@ -2,28 +2,89 @@
 
 #include "main.h"
 
-int main() {
-    
-    logger = iniciar_logger("entradasalida" , LOG_LEVEL_INFO);
-    config = iniciar_config(logger);
-    entradasalida = entradasalida_inicializar(config);
-    entradasalida_log(entradasalida,logger);
+// ACLARACION: Hay que pasar por parametro un nombre de modulo (string) cuando se lo levanta por consola.
 
-	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
-	pthread_join(thread_conectar_memoria,NULL);
+int main(int argc, char *argv[]) {
 	
-	pthread_create(&thread_conectar_kernel,NULL,conectar_kernel,NULL);
-	pthread_join(thread_conectar_kernel,NULL);
+	if(argc<3){
 
-	log_warning(logger,"Se cierra modulo I/O.");
+		if(argc==1){
+			printf("-----------------------------------------------------------------------------------\n");
+			printf("Error: No se ha ingresado el nombre del modulo ni path al archivo de configuración.\n");
+			printf("Ejemplo desde carpeta entradasalida: ./bin/entradasalida \"GEN\" config/gen.config\n");
+			printf("-----------------------------------------------------------------------------------\n");
+			printf("\n");
+			printf("Las interfaces disponibles son:\n");
+			printf("└─GEN\n");
+			printf("└─STDIN\n");
+			printf("└─STDOUT\n");
+			printf("└─DIALFS\n");
+			printf("Vuelva a intentar, por favor.\n");
+		}
+
+		if (argc==2){
+			printf("----------------------------------------------------------------------------------\n");
+			printf("Error: No se ha ingresado el path al archivo de configuración.\n");
+			printf("Ejemplo desde carpeta entradasalida: ./bin/entradasalida \"GEN\" config/gen.config\n");
+			printf("----------------------------------------------------------------------------------\n");
+			printf("\n");
+			printf("Las interfaces disponibles son:\n");
+			printf("└─GEN\n");
+			printf("└─STDIN\n");
+			printf("└─STDOUT\n");
+			printf("└─DIALFS\n");
+			printf("Vuelva a intentar, por favor.\n");
+		}
+
+		
+		return EXIT_FAILURE;
+	}
+
+	// Obtengo el nombre del modulo.
+	char *nombre_modulo = argv[1];
+	
+	logger = iniciar_logger(nombre_modulo, LOG_LEVEL_INFO);
+	config = iniciar_config_entrada_salida(logger, argv[2]);
+
+	log_debug(logger, "Nombre del modulo inicializado: %s\n", nombre_modulo);
+    
+	t_tipointerfaz tipoInterfaz = determinar_tipo_interfaz(config);
+
+	switch(tipoInterfaz){
+		case GEN:
+			entradasalida = entradasalida_gen_inicializar(config);
+		    entradasalida_gen_log(entradasalida,logger);
+			procesar_entradasalida_gen(entradasalida, logger, nombre_modulo);
+			break;
+		case STDIN:
+			entradasalida = entradasalida_stdin_inicializar(config);
+		    entradasalida_stdin_log(entradasalida,logger);
+			procesar_entradasalida_stdin(entradasalida, logger);		
+			break;
+		case STDOUT:
+			entradasalida = entradasalida_stdout_inicializar(config);
+		    entradasalida_stdout_log(entradasalida,logger);
+			procesar_entradasalida_stdout(entradasalida, logger);
+			break;		
+		case DIALFS:
+			entradasalida = entradasalida_dialfs_inicializar(config);
+		    entradasalida_dialfs_log(entradasalida,logger);		
+			procesar_entradasalida_dialfs(entradasalida, logger);
+			break;
+		default:
+			log_error(logger, "Tipo de interfaz desconocida");
+			return EXIT_FAILURE;
+	}
+
+	log_info(logger,"Se cierra el modulo %s",nombre_modulo);
 
     log_destroy(logger);
 	config_destroy(config);
-
+	
 	liberar_conexion(socket_memoria);
 	liberar_conexion(socket_kernel);
 
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 void* conectar_memoria(){
@@ -60,4 +121,31 @@ void* conectar_kernel(){
 
 	log_info(logger,"Conectado a Kernel en socket %d",socket_kernel);
 	pthread_exit(0);
+}
+
+void procesar_entradasalida_stdin(t_entradasalida entradasalida,t_log *logger)
+{
+	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
+	pthread_join(thread_conectar_memoria,NULL);
+	
+	pthread_create(&thread_conectar_kernel,NULL,conectar_kernel,NULL);
+	pthread_join(thread_conectar_kernel,NULL);
+}		
+
+void procesar_entradasalida_stdout(t_entradasalida entradasalida,t_log *logger)
+{
+	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
+	pthread_join(thread_conectar_memoria,NULL);
+	
+	pthread_create(&thread_conectar_kernel,NULL,conectar_kernel,NULL);
+	pthread_join(thread_conectar_kernel,NULL);
+}
+
+void procesar_entradasalida_dialfs(t_entradasalida entradasalida,t_log *logger)
+{
+	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
+	pthread_join(thread_conectar_memoria,NULL);
+	
+	pthread_create(&thread_conectar_kernel,NULL,conectar_kernel,NULL);
+	pthread_join(thread_conectar_kernel,NULL);
 }

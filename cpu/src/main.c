@@ -168,20 +168,20 @@ void *atender_kernel_dispatch()
 			break;
 		case RECIBIR_REGISTROS_CPU:
 
-			t_registros_cpu *registros_cpu = deserializar_t_registros_cpu(paquete->buffer);
+			t_kernel_cpu_proceso *proceso_cpu = deserializar_t_kernel_cpu_proceso(paquete->buffer);
 			log_debug(logger, "Registros cpu recibido de Kernel Dispatch");
-			log_debug(logger, "PC: %d", registros_cpu->pc);
-			log_debug(logger, "EAX: %d", registros_cpu->eax);
-			log_debug(logger, "EBX: %d", registros_cpu->ebx);
-			log_debug(logger, "ECX: %d", registros_cpu->ecx);
-			log_debug(logger, "AX: %d", registros_cpu->ax);
-			log_debug(logger, "BX: %d", registros_cpu->bx);
-			log_debug(logger, "CX: %d", registros_cpu->cx);
-			log_debug(logger, "DX: %d", registros_cpu->dx);
+			log_debug(logger, "PID: %d", proceso_cpu->pid);
+			log_debug(logger, "PC: %d", proceso_cpu->registros.pc);
+			log_debug(logger, "EAX: %d", proceso_cpu->registros.eax);
+			log_debug(logger, "EBX: %d", proceso_cpu->registros.ebx);
+			log_debug(logger, "ECX: %d", proceso_cpu->registros.ecx);
+			log_debug(logger, "AX: %d", proceso_cpu->registros.ax);
+			log_debug(logger, "BX: %d", proceso_cpu->registros.bx);
+			log_debug(logger, "CX: %d", proceso_cpu->registros.cx);
+			log_debug(logger, "DX: %d", proceso_cpu->registros.dx);
 
 			// TODO: Continuar con la logica de recibir registros desde kernel
-			free(registros_cpu);
-
+			free(proceso_cpu);
 			break;
 		default:
 			liberar_conexion(socket_kernel_dispatch);
@@ -269,20 +269,18 @@ t_memoria_cpu_instruccion *deserializar_t_memoria_cpu_instruccion(t_buffer *buff
 	return dato;
 }
 
-t_registros_cpu *deserializar_t_registros_cpu(t_buffer *buffer)
+t_kernel_cpu_proceso *deserializar_t_kernel_cpu_proceso(t_buffer *buffer)
 {
-	t_registros_cpu *registros_cpu = malloc(sizeof(t_registros_cpu));
-
+	t_kernel_cpu_proceso *proceso = malloc(sizeof(t_kernel_cpu_proceso));
 	void *stream = buffer->stream;
-
-	deserializar_uint32_t(&stream, &(registros_cpu->pc));
-	deserializar_uint32_t(&stream, &(registros_cpu->eax));
-	deserializar_uint32_t(&stream, &(registros_cpu->ebx));
-	deserializar_uint32_t(&stream, &(registros_cpu->ecx));
-	deserializar_uint8_t(&stream, &(registros_cpu->ax));
-	deserializar_uint8_t(&stream, &(registros_cpu->bx));
-	deserializar_uint8_t(&stream, &(registros_cpu->cx));
-	deserializar_uint8_t(&stream, &(registros_cpu->dx));
-
-	return registros_cpu;
+	deserializar_uint32_t(&stream, &(proceso->pid));
+	deserializar_uint32_t(&stream, &(proceso->registros.pc));
+	deserializar_uint32_t(&stream, &(proceso->registros.eax));
+	deserializar_uint32_t(&stream, &(proceso->registros.ebx));
+	deserializar_uint32_t(&stream, &(proceso->registros.ecx));
+	deserializar_uint8_t(&stream, &(proceso->registros.ax));
+	deserializar_uint8_t(&stream, &(proceso->registros.bx));
+	deserializar_uint8_t(&stream, &(proceso->registros.cx));
+	deserializar_uint8_t(&stream, &(proceso->registros.dx));
+	return proceso;
 }

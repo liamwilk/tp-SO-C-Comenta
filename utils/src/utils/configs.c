@@ -2,14 +2,12 @@
 
 t_config *iniciar_config(t_log *logger)
 {
-	t_config *nuevo_config;
-
 	char *current_dir = getcwd(NULL, 0);
 
 	char ruta_completa[PATH_MAX];
 	sprintf(ruta_completa, "%s/module.config", current_dir);
 
-	nuevo_config = config_create(ruta_completa);
+	t_config *nuevo_config = config_create(ruta_completa);
 
 	if (nuevo_config == NULL)
 	{
@@ -18,6 +16,23 @@ t_config *iniciar_config(t_log *logger)
 	}
 
 	free(current_dir);
+	return nuevo_config;
+}
+
+t_config *iniciar_config_entrada_salida(t_log *logger, char *path)
+{
+	char *current_dir = getcwd(NULL, 0);
+
+	char ruta_completa[PATH_MAX];
+	sprintf(ruta_completa, "%s/%s", current_dir, path);
+
+	t_config *nuevo_config = config_create(path);
+
+	if (nuevo_config == NULL)
+	{
+		log_error(logger, "No se pudo crear la config.");
+	}
+
 	return nuevo_config;
 }
 

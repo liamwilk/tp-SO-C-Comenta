@@ -16,22 +16,46 @@ t_pcb *pcb_crear(t_log *logger, int quantum)
     return nuevo_pcb;
 }
 
-void proceso_agregar_new(t_queue *new, t_pcb *pcb) { queue_push(new, pcb); };
-void proceso_agregar_ready(t_queue *ready, t_pcb *pcb) { queue_push(ready, pcb); };
-void proceso_quitar_new(t_queue *new) { queue_pop(new); };
-void proceso_quitar_ready(t_queue *ready) { queue_pop(ready); };
+void proceso_agregar_new(t_new *new, t_pcb *pcb)
+{
+    list_add(new->cola, pcb);
+    // Añado el proceso al diccionario de procesos, mapeando el PID a la posición en la lista de procesos
+    dictionary_put(new->diccionario, string_itoa(pcb->pid), (void *)string_itoa(list_size(new->cola) - 1));
+};
+
+void proceso_agregar_ready(t_ready *ready, t_pcb *pcb)
+{
+    list_add(ready->cola, pcb);
+    // Añado el proceso al diccionario de procesos, mapeando el PID a la posición en la lista de procesos
+    dictionary_put(ready->diccionario, string_itoa(pcb->pid), (void *)string_itoa(list_size(ready->cola) - 1));
+};
+t_pcb *proceso_quitar_new(t_new *new)
+{
+    t_pcb *elem = list_get(new->cola, 0);
+    list_remove(new->cola, 0);
+    dictionary_remove(new->diccionario, string_itoa(elem->pid));
+    return elem;
+};
+
+t_pcb *proceso_quitar_ready(t_ready *ready)
+{
+    t_pcb *elem = list_get(ready->cola, 0);
+    list_remove(ready->cola, 0);
+    dictionary_remove(ready->diccionario, string_itoa(elem->pid));
+    return elem;
+};
 
 void proceso_mover_ready(int gradoMultiprogramacion, t_log *logger, diagrama_estados *estados)
 {
 
-    int cant_en_new = queue_size(estados->new);
-    int cant_en_ready = queue_size(estados->ready);
+    int cant_en_new = list_size(estados->new->cola);
+    int cant_en_ready = list_size(estados->ready->cola);
 
     if (cant_en_ready < gradoMultiprogramacion)
     {
         while (cant_en_ready < gradoMultiprogramacion && cant_en_new > 0)
         {
-            t_pcb *proceso = queue_pop(estados->new);
+            t_pcb *proceso = proceso_quitar_new(estados->new);
             if (proceso->memoria_aceptado == false)
             {
                 log_warning(logger, "No se puede mover el proceso PID: <%d> a ready, ya que no fue aceptado por memoria", proceso->pid);
@@ -53,42 +77,67 @@ void proceso_mover_ready(int gradoMultiprogramacion, t_log *logger, diagrama_est
     }
 };
 
-t_pcb proceso_buscar_new(t_queue *new, int pid)
+t_pcb *proceso_buscar_new(t_new *new, int pid)
 {
-    t_queue *cola_aux = queue_create();
-    t_pcb *proceso = malloc(sizeof(t_pcb));
-    while (!queue_is_empty(new))
+    // Se utiliza el diccionario para obtener la posición del proceso en la lista
+    char *pid_str = string_itoa(pid);
+    char *pos_str = dictionary_get(new->diccionario, pid_str);
+    if (pos_str == NULL)
     {
-        t_pcb *proceso_aux = queue_pop(new);
-        if (proceso_aux->pid == pid)
-        {
-            *proceso = *proceso_aux;
-        }
-        queue_push(cola_aux, proceso_aux);
+        return NULL;
     }
-    while (!queue_is_empty(cola_aux))
-    {
-        queue_push(new, queue_pop(cola_aux));
-    }
-    return *proceso;
+    int pos = atoi(pos_str);
+    return list_get(new->cola, pos);
 }
 
-t_pcb proceso_buscar_exit(t_queue *exit, int pid)
+t_pcb *proceso_buscar_ready(t_ready *ready, int pid)
 {
-    t_queue *cola_aux = queue_create();
-    t_pcb *proceso = malloc(sizeof(t_pcb));
-    while (!queue_is_empty(exit))
+    // Se utiliza el diccionario para obtener la posición del proceso en la lista
+    char *pid_str = string_itoa(pid);
+    char *pos_str = dictionary_get(ready->diccionario, pid_str);
+    if (pos_str == NULL)
     {
-        t_pcb *proceso_aux = queue_pop(exit);
-        if (proceso_aux->pid == pid)
-        {
-            *proceso = *proceso_aux;
-        }
-        queue_push(cola_aux, proceso_aux);
+        return NULL;
     }
-    while (!queue_is_empty(cola_aux))
+    int pos = atoi(pos_str);
+    return list_get(ready->cola, pos);
+}
+
+t_pcb *proceso_buscar_exec(t_exec *exec, int pid)
+{
+    // Se utiliza el diccionario para obtener la posición del proceso en la lista
+    char *pid_str = string_itoa(pid);
+    char *pos_str = dictionary_get(exec->diccionario, pid_str);
+    if (pos_str == NULL)
     {
-        queue_push(exit, queue_pop(cola_aux));
+        return NULL;
     }
-    return *proceso;
+    int pos = atoi(pos_str);
+    return list_get(exec->cola, pos);
+}
+
+t_pcb *proceso_buscar_block(t_block *block, int pid)
+{
+    // Se utiliza el diccionario para obtener la posición del proceso en la lista
+    char *pid_str = string_itoa(pid);
+    char *pos_str = dictionary_get(block->diccionario, pid_str);
+    if (pos_str == NULL)
+    {
+        return NULL;
+    }
+    int pos = atoi(pos_str);
+    return list_get(block->cola, pos);
+}
+
+t_pcb *proceso_buscar_exit(t_exit *exit, int pid)
+{
+    // Se utiliza el diccionario para obtener la posición del proceso en la lista
+    char *pid_str = string_itoa(pid);
+    char *pos_str = dictionary_get(exit->diccionario, pid_str);
+    if (pos_str == NULL)
+    {
+        return NULL;
+    }
+    int pos = atoi(pos_str);
+    return list_get(exit->cola, pos);
 }

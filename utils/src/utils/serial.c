@@ -262,9 +262,10 @@ t_memoria_kernel_proceso *deserializar_t_memoria_kernel_proceso(t_buffer *buffer
 	return proceso;
 }
 
-void serializar_t_registros_cpu(t_paquete **paquete, t_registros_cpu *registros)
+void serializar_t_registros_cpu(t_paquete **paquete, uint32_t pid, t_registros_cpu *registros)
 {
-	actualizar_buffer(*paquete, sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint8_t));
+	actualizar_buffer(*paquete, sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint8_t));
+	serializar_uint32_t(pid, *paquete);
 	serializar_uint32_t(registros->pc, *paquete);
 	serializar_uint32_t(registros->eax, *paquete);
 	serializar_uint32_t(registros->ebx, *paquete);

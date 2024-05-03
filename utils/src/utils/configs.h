@@ -16,13 +16,15 @@
  */
 t_config *iniciar_config(t_log *logger);
 
+t_config *iniciar_config_entrada_salida(t_log *logger, char *path);
+
 /**
  * @fn    iniciar_logger
  * @brief Inicializacion del logger
  * @param nombreDelModulo Es el nombre que le vas a dar al modulo que queres loguear
- * @param nivel Es el nivel que le asignas al logger 
+ * @param nivel Es el nivel que le asignas al logger
  */
-t_log *iniciar_logger(char *nombreDelModulo , t_log_level nivel);
+t_log *iniciar_logger(char *nombreDelModulo, t_log_level nivel);
 
 /**
  * @fn    terminar_programa
