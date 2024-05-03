@@ -89,3 +89,55 @@ t_pcb *proceso_buscar_new(t_new *new, int pid)
     int pos = atoi(pos_str);
     return list_get(new->cola, pos);
 }
+
+t_pcb *proceso_buscar_ready(t_ready *ready, int pid)
+{
+    // Se utiliza el diccionario para obtener la posición del proceso en la lista
+    char *pid_str = string_itoa(pid);
+    char *pos_str = dictionary_get(ready->diccionario, pid_str);
+    if (pos_str == NULL)
+    {
+        return NULL;
+    }
+    int pos = atoi(pos_str);
+    return list_get(ready->cola, pos);
+}
+
+t_pcb *proceso_buscar_exec(t_exec *exec, int pid)
+{
+    // Se utiliza el diccionario para obtener la posición del proceso en la lista
+    char *pid_str = string_itoa(pid);
+    char *pos_str = dictionary_get(exec->diccionario, pid_str);
+    if (pos_str == NULL)
+    {
+        return NULL;
+    }
+    int pos = atoi(pos_str);
+    return list_get(exec->cola, pos);
+}
+
+t_pcb *proceso_buscar_block(t_block *block, int pid)
+{
+    // Se utiliza el diccionario para obtener la posición del proceso en la lista
+    char *pid_str = string_itoa(pid);
+    char *pos_str = dictionary_get(block->diccionario, pid_str);
+    if (pos_str == NULL)
+    {
+        return NULL;
+    }
+    int pos = atoi(pos_str);
+    return list_get(block->cola, pos);
+}
+
+t_pcb *proceso_buscar_exit(t_exit *exit, int pid)
+{
+    // Se utiliza el diccionario para obtener la posición del proceso en la lista
+    char *pid_str = string_itoa(pid);
+    char *pos_str = dictionary_get(exit->diccionario, pid_str);
+    if (pos_str == NULL)
+    {
+        return NULL;
+    }
+    int pos = atoi(pos_str);
+    return list_get(exit->cola, pos);
+}

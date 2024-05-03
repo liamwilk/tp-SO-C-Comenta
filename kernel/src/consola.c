@@ -22,6 +22,24 @@ operacion obtener_operacion(char *funcion)
     return NUM_FUNCIONES;
 }
 
+t_pcb *buscar_proceso(diagrama_estados *estados, uint32_t pid)
+{
+    t_pcb *pcb = proceso_buscar_new(estados->new, pid);
+    if (pcb == NULL)
+    {
+        pcb = proceso_buscar_ready(estados->ready, pid);
+        if (pcb == NULL)
+        {
+            pcb = proceso_buscar_exec(estados->exec, pid);
+            if (pcb == NULL)
+            {
+                pcb = proceso_buscar_block(estados->block, pid);
+            }
+        }
+    }
+    return pcb;
+}
+
 void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados, int *flag)
 {
     printf("              _                 _ _ _   _____ _____\n");
@@ -83,6 +101,13 @@ void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados,
             Asi tal cual está, cualquier PID que se ingrese, se enviará a memoria para que lo elimine, y si no existe, no se informará nada
             pero en memoria va a intentar eliminar un proceso que no existe y dar error.
             */
+
+            t_pcb *proceso_buscado = buscar_proceso(estados, pid);
+            if (proceso_buscado == NULL)
+            {
+                log_error(logger, "El PID <%d> no existe", pid);
+                break;
+            }
 
             t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
             t_kernel_memoria_finalizar_proceso *proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));

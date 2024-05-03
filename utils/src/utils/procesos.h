@@ -136,4 +136,49 @@ t_pcb *proceso_quitar_new(t_new *new);
  */
 void proceso_mover_ready(int gradoMultiprogramacion, t_log *logger, diagrama_estados *estados);
 
-#endif /* PROCESOS_H_ */
+/**
+ * Busca un proceso en estado "new" en la lista de procesos y devuelve su PCB.
+ *
+ * @param new Puntero al proceso "new" a buscar.
+ * @param pid Identificador del proceso a buscar.
+ * @return Puntero al PCB del proceso encontrado, o NULL si no se encuentra.
+ */
+t_pcb *proceso_buscar_new(t_new *new, int pid);
+
+/**
+ *  Busca un proceso con el PID dado en la cola de listos.
+ *
+ * @param ready La cola de listos en la que buscar.
+ * @param pid El PID del proceso a buscar.
+ * @return Un puntero al PCB del proceso encontrado, o NULL si no se encuentra.
+ */
+t_pcb *proceso_buscar_ready(t_ready *ready, int pid);
+
+/**
+ * Busca un proceso con el PID dado en la cola de ejecución.
+ *
+ * @param exec La cola de ejecución en la que buscar.
+ * @param pid El PID del proceso a buscar.
+ * @return Un puntero al PCB del proceso encontrado, o NULL si no se encuentra.
+ */
+t_pcb *proceso_buscar_exec(t_exec *exec, int pid);
+
+/**
+ * Busca un proceso con el PID dado en la cola de bloqueados.
+ *
+ * @param block La cola de bloqueados en la que buscar.
+ * @param pid El PID del proceso a buscar.
+ * @return Un puntero al PCB del proceso encontrado, o NULL si no se encuentra.
+ */
+t_pcb *proceso_buscar_block(t_block *block, int pid);
+
+/**
+ * Busca un proceso con el PID dado en la cola de finalizados.
+ *
+ * @param exit La cola de finalizados en la que buscar.
+ * @param pid El PID del proceso a buscar.
+ * @return Un puntero al PCB del proceso encontrado, o NULL si no se encuentra.
+ */
+t_pcb *proceso_buscar_exit(t_exit *exit, int pid);
+
+#endif
