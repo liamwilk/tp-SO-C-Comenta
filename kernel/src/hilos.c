@@ -53,10 +53,17 @@ void *hilos_atender_memoria(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
     int socket = hiloArgs->kernel->sockets.memoria;
+
     while (*(hiloArgs->kernel_orden_apagado))
     {
         log_debug(hiloArgs->logger, "Esperando paquete de Memoria en socket %d", socket);
         t_paquete *paquete = recibir_paquete(hiloArgs->logger, socket);
+
+        if (paquete == NULL)
+        {
+            log_error(hiloArgs->logger, "Memoria se desconecto del socket %d.", socket);
+            break;
+        }
 
         switch (paquete->codigo_operacion)
         {
@@ -84,16 +91,15 @@ void *hilos_atender_memoria(void *args)
             break;
         }
         default:
+        {
+            log_warning(hiloArgs->logger, "[Memoria] Se recibio un codigo de operacion desconocido. Cierro hilo");
             liberar_conexion(socket);
+            free(args);
             pthread_exit(0);
-            break;
         }
-
-        free(paquete->buffer->stream);
-        free(paquete->buffer);
-        free(paquete);
+        }
+        eliminar_paquete(paquete);
     }
-
     pthread_exit(0);
 }
 /*----CPU----*/
@@ -168,6 +174,12 @@ void *hilos_atender_cpu_dispatch(void *args)
         log_debug(hiloArgs->logger, "Esperando paquete de CPU Dispatch en socket %d", socket);
         t_paquete *paquete = recibir_paquete(hiloArgs->logger, socket);
 
+        if (paquete == NULL)
+        {
+            log_error(hiloArgs->logger, "CPU Dispatch se desconecto del socket %d.", socket);
+            break;
+        }
+
         switch (paquete->codigo_operacion)
         {
         case MENSAJE:
@@ -175,13 +187,14 @@ void *hilos_atender_cpu_dispatch(void *args)
             // Placeholder
             break;
         default:
+        {
+            log_warning(hiloArgs->logger, "[CPU Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
             liberar_conexion(socket);
+            free(args);
             pthread_exit(0);
-            break;
         }
-        free(paquete->buffer->stream);
-        free(paquete->buffer);
-        free(paquete);
+        }
+        eliminar_paquete(paquete);
     }
 
     pthread_exit(0);
@@ -191,10 +204,17 @@ void *hilos_atender_cpu_interrupt(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
     int socket = hiloArgs->kernel->sockets.cpu_interrupt;
+
     while (*hiloArgs->kernel_orden_apagado)
     {
         log_debug(hiloArgs->logger, "Esperando paquete de CPU Interrupt en socket %d", socket);
         t_paquete *paquete = recibir_paquete(hiloArgs->logger, socket);
+
+        if (paquete == NULL)
+        {
+            log_error(hiloArgs->logger, "CPU Interrupt se desconecto del socket %d.", socket);
+            break;
+        }
 
         switch (paquete->codigo_operacion)
         {
@@ -203,13 +223,14 @@ void *hilos_atender_cpu_interrupt(void *args)
             // Placeholder
             break;
         default:
+        {
+            log_warning(hiloArgs->logger, "[CPU Interrupt] Se recibio un codigo de operacion desconocido. Cierro hilo");
             liberar_conexion(socket);
+            free(args);
             pthread_exit(0);
-            break;
         }
-        free(paquete->buffer->stream);
-        free(paquete->buffer);
-        free(paquete);
+        }
+        eliminar_paquete(paquete);
     }
 
     pthread_exit(0);
@@ -219,26 +240,29 @@ void *hilos_atender_cpu_interrupt(void *args)
 
 void hilos_io_inicializar(hilos_args *args, pthread_t thread_esperar_entrada_salida)
 {
-    pthread_create(&thread_esperar_entrada_salida, NULL, hilos_esperar_entradasalida, args);
+    pthread_create(&thread_esperar_entrada_salida, NULL, hilos_esperar_entrada_salida, args);
     pthread_detach(thread_esperar_entrada_salida);
 }
 
-void *hilos_esperar_entradasalida(void *args)
+void *hilos_esperar_entrada_salida(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
+
     while (*hiloArgs->kernel_orden_apagado)
     {
         int socket_cliente = esperar_conexion(hiloArgs->logger, hiloArgs->kernel->sockets.server);
 
         if (socket_cliente == -1)
         {
+            log_error(hiloArgs->logger, "Error al esperar conexion de modulo de Entrada/Salida");
             break;
         }
 
-        t_handshake resultado = esperar_handshake(hiloArgs->logger, socket_cliente, KERNEL_ENTRADA_SALIDA, "Entrada/Salida");
+        t_handshake modulo = esperar_handshake_entrada_salida(hiloArgs->logger, socket_cliente);
 
-        if (resultado != CORRECTO)
+        if (modulo == ERROR)
         {
+            log_error(hiloArgs->logger, "Error al recibir handshake de modulo de Entrada/Salida");
             liberar_conexion(socket_cliente);
             break;
         }
@@ -247,41 +271,207 @@ void *hilos_esperar_entradasalida(void *args)
         hilos_io_args *io_args = malloc(sizeof(hilos_io_args));
         io_args->args = hiloArgs;
         io_args->socket = socket_cliente;
-        pthread_create(&hilo, NULL, hilos_atender_entradasalida, io_args);
-        pthread_detach(hilo);
-    }
 
+        switch (modulo)
+        {
+        case KERNEL_ENTRADA_SALIDA_GENERIC:
+            log_debug(hiloArgs->logger, "Se conecto un modulo generico de entrada/salida");
+            pthread_create(&hilo, NULL, hilos_atender_entrada_salida_generic, io_args);
+            pthread_detach(hilo);
+            break;
+        case KERNEL_ENTRADA_SALIDA_STDIN:
+            log_debug(hiloArgs->logger, "Se conecto un modulo de entrada/salida STDIN");
+            pthread_create(&hilo, NULL, hilos_atender_entrada_salida_stdin, io_args);
+            pthread_detach(hilo);
+            break;
+        case KERNEL_ENTRADA_SALIDA_STDOUT:
+            log_debug(hiloArgs->logger, "Se conecto un modulo de entrada/salida STDOUT");
+            pthread_create(&hilo, NULL, hilos_atender_entrada_salida_stdout, io_args);
+            pthread_detach(hilo);
+            break;
+        case KERNEL_ENTRADA_SALIDA_DIALFS:
+            log_debug(hiloArgs->logger, "Se conecto un modulo de entrada/salida DIALFS");
+            pthread_create(&hilo, NULL, hilos_atender_entrada_salida_dialfs, io_args);
+            pthread_detach(hilo);
+            break;
+        default:
+            log_error(hiloArgs->logger, "Se conecto un modulo de entrada/salida desconocido");
+            liberar_conexion(socket_cliente);
+            free(io_args);
+            break;
+        }
+    }
     pthread_exit(0);
 };
 
-void *hilos_atender_entradasalida(void *args)
+void *hilos_atender_entrada_salida_generic(void *args)
 {
+    char *modulo = "I/O Generic";
 
     hilos_io_args *io_args = (hilos_io_args *)args;
-    log_debug(io_args->args->logger, "I/O conectado en socket %d", io_args->socket);
-    do
+    log_debug(io_args->args->logger, "%s conectado en socket %d", modulo, io_args->socket);
+
+    while (*io_args->args->kernel_orden_apagado)
     {
-        log_debug(io_args->args->logger, "Esperando paquete de I/O en socket %d", io_args->socket);
+        log_debug(io_args->args->logger, "Esperando paquete de %s en socket %d", modulo, io_args->socket);
         t_paquete *paquete = recibir_paquete(io_args->args->logger, io_args->socket);
+
+        if (paquete == NULL)
+        {
+            log_error(io_args->args->logger, "%s se desconecto del socket %d.", modulo, io_args->socket);
+            break;
+        }
+
         switch (paquete->codigo_operacion)
         {
         case MENSAJE:
-            revisar_paquete(paquete, io_args->args->logger, *io_args->args->kernel_orden_apagado, "I/O");
+        {
+            revisar_paquete(paquete, io_args->args->logger, *io_args->args->kernel_orden_apagado, modulo);
             /*
             La logica
             */
             break;
+        }
         default:
+        {
+            log_warning(io_args->args->logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo);
             liberar_conexion(io_args->socket);
+            free(io_args);
             pthread_exit(0);
+        }
+        }
+        eliminar_paquete(paquete);
+    }
+
+    free(io_args);
+    pthread_exit(0);
+}
+
+void *hilos_atender_entrada_salida_stdin(void *args)
+{
+    char *modulo = "I/O STDIN";
+
+    hilos_io_args *io_args = (hilos_io_args *)args;
+    log_debug(io_args->args->logger, "%s conectado en socket %d", modulo, io_args->socket);
+
+    while (*io_args->args->kernel_orden_apagado)
+    {
+        log_debug(io_args->args->logger, "Esperando paquete de %s en socket %d", modulo, io_args->socket);
+        t_paquete *paquete = recibir_paquete(io_args->args->logger, io_args->socket);
+
+        if (paquete == NULL)
+        {
+            log_error(io_args->args->logger, "%s se desconecto del socket %d.", modulo, io_args->socket);
             break;
         }
 
-        free(paquete->buffer->stream);
-        free(paquete->buffer);
-        free(paquete);
+        switch (paquete->codigo_operacion)
+        {
+        case MENSAJE:
+        {
+            revisar_paquete(paquete, io_args->args->logger, *io_args->args->kernel_orden_apagado, modulo);
+            /*
+            La logica
+            */
+            break;
+        }
+        default:
+        {
+            log_warning(io_args->args->logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo);
+            liberar_conexion(io_args->socket);
+            free(io_args);
+            pthread_exit(0);
+        }
+        }
+        eliminar_paquete(paquete);
+    }
 
-    } while (*io_args->args->kernel_orden_apagado);
+    free(io_args);
+    pthread_exit(0);
+}
 
+void *hilos_atender_entrada_salida_stdout(void *args)
+{
+    char *modulo = "I/O STDOUT";
+
+    hilos_io_args *io_args = (hilos_io_args *)args;
+    log_debug(io_args->args->logger, "%s conectado en socket %d", modulo, io_args->socket);
+
+    while (*io_args->args->kernel_orden_apagado)
+    {
+        log_debug(io_args->args->logger, "Esperando paquete de %s en socket %d", modulo, io_args->socket);
+        t_paquete *paquete = recibir_paquete(io_args->args->logger, io_args->socket);
+
+        if (paquete == NULL)
+        {
+            log_error(io_args->args->logger, "%s se desconecto del socket %d.", modulo, io_args->socket);
+            break;
+        }
+
+        switch (paquete->codigo_operacion)
+        {
+        case MENSAJE:
+        {
+            revisar_paquete(paquete, io_args->args->logger, *io_args->args->kernel_orden_apagado, modulo);
+            /*
+            La logica
+            */
+            break;
+        }
+        default:
+        {
+            log_warning(io_args->args->logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo);
+            liberar_conexion(io_args->socket);
+            free(io_args);
+            pthread_exit(0);
+        }
+        }
+        eliminar_paquete(paquete);
+    }
+
+    free(io_args);
+    pthread_exit(0);
+}
+
+void *hilos_atender_entrada_salida_dialfs(void *args)
+{
+    char *modulo = "I/O DialFS";
+
+    hilos_io_args *io_args = (hilos_io_args *)args;
+    log_debug(io_args->args->logger, "%s conectado en socket %d", modulo, io_args->socket);
+
+    while (*io_args->args->kernel_orden_apagado)
+    {
+        log_debug(io_args->args->logger, "Esperando paquete de %s en socket %d", modulo, io_args->socket);
+        t_paquete *paquete = recibir_paquete(io_args->args->logger, io_args->socket);
+
+        if (paquete == NULL)
+        {
+            log_error(io_args->args->logger, "%s se desconecto del socket %d.", modulo, io_args->socket);
+            break;
+        }
+
+        switch (paquete->codigo_operacion)
+        {
+        case MENSAJE:
+        {
+            revisar_paquete(paquete, io_args->args->logger, *io_args->args->kernel_orden_apagado, modulo);
+            /*
+            La logica
+            */
+            break;
+        }
+        default:
+        {
+            log_warning(io_args->args->logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo);
+            liberar_conexion(io_args->socket);
+            free(io_args);
+            pthread_exit(0);
+        }
+        }
+        eliminar_paquete(paquete);
+    }
+
+    free(io_args);
     pthread_exit(0);
 }

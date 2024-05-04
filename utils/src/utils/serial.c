@@ -87,11 +87,25 @@ t_buffer *recibir_buffer(int socket_cliente)
 	uint32_t size;
 	uint32_t offset;
 
-	recv(socket_cliente, &size, sizeof(uint32_t), MSG_WAITALL);
-	recv(socket_cliente, &offset, sizeof(uint32_t), MSG_WAITALL);
+	if (recv(socket_cliente, &size, sizeof(uint32_t), MSG_WAITALL) <= 0)
+	{
+		close(socket_cliente);
+		return NULL;
+	}
+
+	if (recv(socket_cliente, &offset, sizeof(uint32_t), MSG_WAITALL) <= 0)
+	{
+		close(socket_cliente);
+		return NULL;
+	}
 
 	void *stream = malloc(size);
-	recv(socket_cliente, stream, size, MSG_WAITALL);
+
+	if (recv(socket_cliente, stream, size, MSG_WAITALL) <= 0)
+	{
+		close(socket_cliente);
+		return NULL;
+	}
 
 	t_buffer *buffer = malloc(sizeof(t_buffer));
 	buffer->size = size;
@@ -103,10 +117,33 @@ t_buffer *recibir_buffer(int socket_cliente)
 
 t_paquete *recibir_paquete(t_log *logger, int socket_cliente)
 {
+
 	t_paquete *paquete = malloc(sizeof(t_paquete));
-	recv(socket_cliente, &(paquete->codigo_operacion), sizeof(t_op_code), MSG_WAITALL);
-	recv(socket_cliente, &(paquete->size_buffer), sizeof(uint32_t), MSG_WAITALL);
+
+	if (recv(socket_cliente, &(paquete->codigo_operacion), sizeof(t_op_code), MSG_WAITALL) <= 0)
+	{
+		log_error(logger, "Error al recibir el codigo de operacion");
+		close(socket_cliente);
+		free(paquete);
+		return NULL;
+	}
+
+	if (recv(socket_cliente, &(paquete->size_buffer), sizeof(uint32_t), MSG_WAITALL) <= 0)
+	{
+		log_error(logger, "Error al recibir el tamaño del buffer");
+		close(socket_cliente);
+		return NULL;
+	}
+
 	paquete->buffer = recibir_buffer(socket_cliente);
+
+	if (paquete->buffer == NULL)
+	{
+		log_error(logger, "Error al recibir el buffer");
+		close(socket_cliente);
+		return NULL;
+	}
+
 	return paquete;
 }
 

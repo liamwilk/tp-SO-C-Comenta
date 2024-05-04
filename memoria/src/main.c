@@ -80,6 +80,12 @@ void *atender_cpu()
 		log_debug(logger, "Esperando paquete de CPU en socket %d", socket_cpu);
 		t_paquete *paquete = recibir_paquete(logger, socket_cpu);
 
+		if (paquete == NULL)
+        {
+            log_error(logger, "CPU se desconecto del socket %d.", socket_cpu);
+			break;
+        }
+
 		switch (paquete->codigo_operacion)
 		{
 		case PROXIMA_INSTRUCCION:
@@ -145,10 +151,10 @@ void *atender_cpu()
 			}
 		default:
 		{	
+			log_warning(logger, "[CPU] Se recibio un codigo de operacion desconocido. Cierro hilo");
 			eliminar_paquete(paquete);
 			liberar_conexion(socket_cpu);
 			pthread_exit(0);
-			break;
 		}
 		}
 		eliminar_paquete(paquete);
@@ -186,6 +192,12 @@ void *atender_kernel()
 
 		t_paquete *paquete = recibir_paquete(logger, socket_kernel);
 		
+		if (paquete == NULL)
+        {
+            log_error(logger, "Kernel se desconecto del socket %d.", socket_kernel);
+			break;
+        }
+
 		switch (paquete->codigo_operacion)
 		{
 			case KERNEL_MEMORIA_NUEVO_PROCESO:
@@ -327,10 +339,10 @@ void *atender_kernel()
 			}
 			default:
 			{
+				log_warning(logger, "[Kernel] Se recibio un codigo de operacion desconocido. Cierro hilo");
 				eliminar_paquete(paquete);
-				liberar_conexion(socket_kernel);
+				liberar_conexion(socket_cpu);
 				pthread_exit(0);
-				break;
 			}
 			
 		}
@@ -374,11 +386,17 @@ void *atender_entrada_salida(void *args)
 	log_debug(logger, "I/O conectado en socket %d", socket_cliente);
 	free(args);
 
-	do
+	while (kernel_orden_apagado)
 	{
 		log_debug(logger, "Esperando paquete de I/O en socket %d", socket_cliente);
 		t_paquete *paquete = recibir_paquete(logger, socket_cliente);
 		
+		if (paquete == NULL)
+        {
+            log_error(logger, "I/O se desconecto del socket %d.", socket_cliente);
+			break;
+        }
+
 		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
@@ -386,15 +404,17 @@ void *atender_entrada_salida(void *args)
 			// placeholder
 			break;
 		default:
-			liberar_conexion(socket_cliente);
-			pthread_exit(0);
-			break;
+			{
+				log_warning(logger, "[Kernel] Se recibio un codigo de operacion desconocido. Cierro hilo");
+				eliminar_paquete(paquete);
+				liberar_conexion(socket_cliente);
+				pthread_exit(0);
+			}
 		}
-		free(paquete->buffer->stream);
-		free(paquete->buffer);
-		free(paquete);
-	} while (kernel_orden_apagado);
-
+		eliminar_paquete(paquete);
+	}
+	
+	free(args);
 	pthread_exit(0);
 }
 

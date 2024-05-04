@@ -32,10 +32,13 @@ void* conectar_memoria();
 
 int socket_memoria;
 int socket_kernel;
-
+char *nombre_modulo;
 
 void procesar_entradasalida_stdin(t_entradasalida entradasalida,t_log *logger);		
 void procesar_entradasalida_stdout(t_entradasalida entradasalida,t_log *logger);		
 void procesar_entradasalida_dialfs(t_entradasalida entradasalida,t_log *logger);	
+
+void* atender_entrada_salida_generic();
+uint32_t deserializar_unidades_de_trabajo(t_buffer *buffer);
 
 #endif /* MAIN_H_ */

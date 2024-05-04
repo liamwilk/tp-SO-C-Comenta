@@ -25,6 +25,10 @@ typedef enum
     CPU_INTERRUPT_KERNEL,
     CPU_ENTRADA_SALIDA,
     KERNEL_ENTRADA_SALIDA,
+    KERNEL_ENTRADA_SALIDA_GENERIC,
+    KERNEL_ENTRADA_SALIDA_STDIN,
+    KERNEL_ENTRADA_SALIDA_STDOUT,
+    KERNEL_ENTRADA_SALIDA_DIALFS,
     ENTRADA_SALIDA_KERNEL
 } t_handshake;
 
@@ -49,5 +53,7 @@ t_handshake crear_handshake(t_log *logger, int socket_servidor, t_handshake codi
  * @return t_handshake
  */
 t_handshake esperar_handshake(t_log *logger, int socket_cliente, t_handshake codigo_esperado, char *modulo);
+
+t_handshake esperar_handshake_entrada_salida(t_log *logger, int socket_cliente);
 
 #endif /* HANDSHAKE_H_ */
