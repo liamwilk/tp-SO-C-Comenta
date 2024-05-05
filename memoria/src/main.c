@@ -7,7 +7,7 @@ int main()
 	config = iniciar_config(logger);
 	memoria = memoria_inicializar(config);
 	memoria_log(memoria, logger);
-	
+
 	lista_procesos = list_create();
 	diccionario_procesos = dictionary_create();
 
@@ -30,8 +30,6 @@ int main()
 
 	pthread_create(&thread_atender_kernel, NULL, atender_kernel, NULL);
 	pthread_join(thread_atender_kernel, NULL);
-
-	log_info(logger, "Kernel solicito el apagado del sistema operativo.");
 
 	if(!list_is_empty(lista_procesos))
 	{	
@@ -75,17 +73,19 @@ void *esperar_cpu()
 
 void *atender_cpu()
 {
-	while (kernel_orden_apagado)
+	while(1)
 	{
+		pthread_testcancel();
+
 		log_debug(logger, "Esperando paquete de CPU en socket %d", socket_cpu);
 		t_paquete *paquete = recibir_paquete(logger, socket_cpu);
 
-		if (paquete == NULL)
-        {
-            log_error(logger, "CPU se desconecto del socket %d.", socket_cpu);
+		if(paquete == NULL)
+		{	
+			log_warning(logger, "CPU se desconecto del socket %d.", socket_cpu);
 			break;
-        }
-
+		}
+		
 		switch (paquete->codigo_operacion)
 		{
 		case PROXIMA_INSTRUCCION:
@@ -108,10 +108,8 @@ void *atender_cpu()
 
 			if (proceso_encontrado == NULL)
 			{
-				log_error(logger, "No se encontro el proceso con PID <%d>", instruccion_recibida->pid);
-
-				// TODO: Informar a CPU que ese proceso no existe en Memoria
-				
+				log_warning(logger, "No se encontro el proceso con PID <%d>", instruccion_recibida->pid);
+				free(instruccion_recibida);
 				break;
 			}
 
@@ -121,10 +119,9 @@ void *atender_cpu()
 			log_debug(logger, "Cantidad de instrucciones: %d", list_size(proceso_encontrado->instrucciones));
 
 			if(list_is_empty(proceso_encontrado->instrucciones)){
-				log_error(logger, "No se encontraron instrucciones para el proceso con PID <%d>", proceso_encontrado->pid);
-				
-				// TODO: Informar a CPU que ese proceso no tiene instrucciones en Memoria. Sería raro igual, no debería pasar jamas pero igualmente voy a controlar este error.
-
+				log_warning(logger, "No se encontraron instrucciones para el proceso con PID <%d>", proceso_encontrado->pid);
+				free(instruccion_recibida);
+				free(proceso_encontrado);
 				break;
 			}
 
@@ -145,8 +142,9 @@ void *atender_cpu()
 			log_info(logger, "Instruccion con PID %d enviada a CPU", instruccion_recibida->pid);
 
 			free(instruccion_recibida);
+			free(instruccion_proxima);
+			free(proceso_encontrado);
 			eliminar_paquete(paquete_instruccion);
-
 			break;
 			}
 		default:
@@ -159,7 +157,6 @@ void *atender_cpu()
 		}
 		eliminar_paquete(paquete);
 	}
-
 	pthread_exit(0);
 }
 
@@ -186,19 +183,20 @@ void *esperar_kernel()
 
 void *atender_kernel()
 {
-	while (kernel_orden_apagado)
+	while(1)
 	{
+		pthread_testcancel();
+
 		log_debug(logger, "Esperando paquete de Kernel en socket %d", socket_kernel);
 
 		t_paquete *paquete = recibir_paquete(logger, socket_kernel);
 		
-		if (paquete == NULL)
-        {
-            log_error(logger, "Kernel se desconecto del socket. %d.", socket_kernel);
-			kernel_orden_apagado = 0;
+		if(paquete == NULL)
+		{	
+			log_warning(logger, "Memoria se desconecto del socket %d.", socket_kernel);
 			break;
-        }
-
+		}
+		
 		switch (paquete->codigo_operacion)
 		{
 			case KERNEL_MEMORIA_NUEVO_PROCESO:
@@ -227,7 +225,7 @@ void *atender_kernel()
 					log_debug(logger, "Se leyeron las instrucciones correctamente");
 				}
 				else{
-					perror("No se pudieron leer las instrucciones");
+					log_error(logger,"No se pudieron leer las instrucciones.");
 					
 					// Le aviso a Kernel que no pude leer las instrucciones para ese PID
 					t_paquete *respuesta_paquete = crear_paquete(MEMORIA_KERNEL_NUEVO_PROCESO);
@@ -236,6 +234,10 @@ void *atender_kernel()
 					respuesta_proceso->cantidad_instruccions = 0;
 					respuesta_proceso->leido = false;
 					
+					free(dato->path_instrucciones);
+					free(dato);
+					free(proceso);
+					free(path_completo);
 					free(respuesta_proceso);
 					eliminar_paquete(respuesta_paquete);
 					break;
@@ -243,14 +245,20 @@ void *atender_kernel()
 				// Guardo el proceso en la lista de procesos
 				int resultado_agregar_proceso = list_add(lista_procesos, proceso);
 
+				if(resultado_agregar_proceso == 0){
+					log_debug(logger, "Se agrego el proceso a la lista de procesos global");
+				}
+				else{
+					log_error(logger,"No se pudo agregar el proceso a la lista de procesos");
+					free(dato->path_instrucciones);
+					free(dato);
+					free(proceso);
+					free(path_completo);
+					break;
+				}
+
 				// Añado el proceso al diccionario de procesos, mapeando el PID a la posición en la lista de procesos
 				dictionary_put(diccionario_procesos, string_itoa(proceso->pid), (void*)string_itoa(list_size(lista_procesos) - 1));
-
-				if(resultado_agregar_proceso == 0)
-					log_debug(logger, "Se agrego el proceso a la lista de procesos global");
-				else
-					perror("No se pudo agregar el proceso a la lista de procesos");
-			
 
 				// Le aviso a Kernel que ya lei las instrucciones para ese PID
 				t_paquete *respuesta_paquete = crear_paquete(MEMORIA_KERNEL_NUEVO_PROCESO);
@@ -266,7 +274,6 @@ void *atender_kernel()
 				free(path_completo);
 				free(dato->path_instrucciones);
 				free(dato);
-
 				free(respuesta_proceso);
 				eliminar_paquete(respuesta_paquete);
 				break;
@@ -280,17 +287,17 @@ void *atender_kernel()
 				log_debug(logger, "Instruccion recibida para eliminar:");
 				log_debug(logger, "PID: %d", proceso->pid);
 				
+				log_info(logger,"Se comienza a buscar el proceso solicitado por CPU en la lista de procesos globales.\n");
+
 				t_proceso *proceso_encontrado = obtener_proceso(proceso->pid);
 
 				if (proceso_encontrado == NULL)
 				{
-					// Esto es muy raro, no debería pasar jamas pero igualmente voy a controlar este error.
-					// Si Kernel me manda a eliminar un proceso que no existe en Memoria, no hago nada, pero igual
-					// esto no debería suceder porque Kernel siempre debería tener la lista de procesos actualizada.s
+					log_warning(logger, "No se pudo recuperar el proceso con PID <%d> porque no existe en Memoria.\n", proceso->pid);
+					free(proceso);
 					break;
 				}
-
-				log_info(logger,"Se comienza a buscar el proceso solicitado por CPU en la lista de procesos globales.");
+				
 				log_debug(logger, "Proceso encontrado:");
 				log_debug(logger, "PID: %d", proceso_encontrado->pid);
 				log_debug(logger, "PC: %d", proceso_encontrado->pc);
@@ -298,44 +305,77 @@ void *atender_kernel()
 
 				// Lo guardo para el log del final
 				uint32_t pid = proceso_encontrado->pid;
-				
+
+				// Caso borde, no debería pasar nunca
 				if(list_is_empty(proceso_encontrado->instrucciones)){
-					// Este caso es muy raro, no debería pasar jamas pero igualmente voy a controlar este error.
-					// TODO: Revisar este caso, no debería pasar jamas.
-					log_error(logger, "No se encontraron instrucciones para el proceso con PID %d", proceso_encontrado->pid);
+					log_warning(logger, "No se encontraron instrucciones para el proceso con PID <%d>\n", proceso_encontrado->pid);
+					free(proceso);
+					free(proceso_encontrado);
 					break;
 				}
 
-				/* TODO: Eliminar cada instruccion del proceso, no solo la lista de instrucciones, posible memory leak.
+				// Libero la memoria de las instrucciones del proceso
+				for(int i = 0; i < list_size(proceso_encontrado->instrucciones); i++)
+				{
+					t_memoria_cpu_instruccion* instruccion = list_get(proceso_encontrado->instrucciones, i);
+					
+					log_debug(logger, "Instruccion a liberar: %s", instruccion->instruccion);
+					log_debug(logger, "Argumento 1 a liberar: %s", instruccion->argumento_1);
+					log_debug(logger, "Argumento 2 a liberar: %s", instruccion->argumento_2);
+					log_debug(logger, "Argumento 3 a liberar: %s", instruccion->argumento_3);
+					log_debug(logger, "Argumento 4 a liberar: %s", instruccion->argumento_4);
+					log_debug(logger, "Argumento 5 a liberar: %s\n", instruccion->argumento_5);
+					
+					free(instruccion->argumento_1);
+					free(instruccion->argumento_2);
+					free(instruccion->argumento_3);
+					free(instruccion->argumento_4);
+					free(instruccion->argumento_5);
+					free(instruccion->instruccion);
+					free(instruccion);
+				}
 
-				Adentro de cada proceso, hay una lista de instrucciones, cada instruccion es un struct t_memoria_cpu_instruccion
-				y cada instruccion tiene argumentos que son char*, por lo que hay que liberar la memoria de cada argumento
-				y luego liberar la memoria de cada instruccion, y luego liberar la memoria de la lista de instrucciones. 
-				Esto ultimo viene nativo con list_destroy_and_destroy_elements(lista_procesos, free);
+				char* pid_char = string_itoa(proceso_encontrado->pid);
 
-				*/
-
-				// Esto libera la memoria de la lista de instrucciones
-				list_remove_and_destroy_element(lista_procesos, atoi(dictionary_get(diccionario_procesos, string_itoa(proceso_encontrado->pid))), free);
+				// Libero el t_proceso de la lista de procesos, ya habiendo liberado las instrucciones
+				list_remove_and_destroy_element(lista_procesos, atoi(dictionary_get(diccionario_procesos, pid_char)), free);
 
 				// Elimino el proceso del diccionario de procesos
-				dictionary_remove_and_destroy(diccionario_procesos, string_itoa(proceso_encontrado->pid), free);
+				dictionary_remove_and_destroy(diccionario_procesos, pid_char, free);
 
-				// Elimino el proceso del diccionario de procesos
-				// dictionary_remove(diccionario_procesos, string_itoa(proceso_encontrado->pid));
+				free(pid_char);
 
-				log_info(logger, "Se elimino el proceso con PID <%d> de la lista de procesos globales", pid);
+				log_info(logger, "Se elimino el proceso con PID <%d> de Memoria.\n", pid);
 
-				// Libero la instruccion recibida
 				free(proceso);
 				break;
 			}
 			case TERMINAR:
 			{
-				kernel_orden_apagado = 0;
-				liberar_conexion(socket_kernel);
+				pthread_cancel(thread_atender_cpu);
+				pthread_cancel(thread_atender_entrada_salida);
+
+				if(socket_entrada_salida_stdin != 0){
+					pthread_cancel(thread_atender_entrada_salida_stdin);
+					liberar_conexion(socket_entrada_salida_stdin);
+				}
+				
+				if(socket_entrada_salida_stdout != 0){
+					pthread_cancel(thread_atender_entrada_salida_stdout);
+					liberar_conexion(socket_entrada_salida_stdout);
+				}
+				
+				if(socket_entrada_salida_dialfs != 0){
+					pthread_cancel(thread_atender_entrada_salida_dialfs);
+					liberar_conexion(socket_entrada_salida_dialfs);
+				}
+			
+				pthread_cancel(thread_atender_kernel);
+				
 				liberar_conexion(socket_cpu);
 				liberar_conexion(socket_server_memoria);
+				liberar_conexion(socket_kernel);
+
 				break;
 			}
 			default:
@@ -373,7 +413,6 @@ void *esperar_entrada_salida()
             break;
         }
 
-		pthread_t hilo;
 		int *args = malloc(sizeof(int));
 		*args = socket_cliente;
 
@@ -381,18 +420,18 @@ void *esperar_entrada_salida()
         {
         case MEMORIA_ENTRADA_SALIDA_STDIN:
             log_debug(logger, "Se conecto un modulo de entrada/salida STDIN");
-            pthread_create(&hilo, NULL, atender_entrada_salida_stdin, args);
-            pthread_detach(hilo);
+            pthread_create(&thread_atender_entrada_salida_stdin, NULL, atender_entrada_salida_stdin, args);
+            pthread_detach(thread_atender_entrada_salida_stdin);
             break;
         case MEMORIA_ENTRADA_SALIDA_STDOUT:
             log_debug(logger, "Se conecto un modulo de entrada/salida STDOUT");
-            pthread_create(&hilo, NULL, atender_entrada_salida_stdout, args);
-            pthread_detach(hilo);
+            pthread_create(&thread_atender_entrada_salida_stdout, NULL, atender_entrada_salida_stdout, args);
+            pthread_detach(thread_atender_entrada_salida_stdout);
             break;
         case MEMORIA_ENTRADA_SALIDA_DIALFS:
             log_debug(logger, "Se conecto un modulo de entrada/salida DIALFS");
-            pthread_create(&hilo, NULL, atender_entrada_salida_dialfs, args);
-            pthread_detach(hilo);
+            pthread_create(&thread_atender_entrada_salida_dialfs, NULL, atender_entrada_salida_dialfs, args);
+            pthread_detach(thread_atender_entrada_salida_dialfs);
             break;
         default:
             log_error(logger, "Se conecto un modulo de entrada/salida desconocido. Desconectando...");
@@ -409,19 +448,21 @@ void *atender_entrada_salida_stdin(void *args)
 {
 	char *modulo = "I/O STDIN";
 
-	int socket_cliente = *(int *)args;
-	log_debug(logger, "%s conectado en socket %d", modulo, socket_cliente);
+	socket_entrada_salida_stdin = *(int *)args;
+	log_debug(logger, "%s conectado en socket %d", modulo, socket_entrada_salida_stdin);
 
-	while (kernel_orden_apagado)
+	while(1)
 	{
-		log_debug(logger, "Esperando paquete de %s en socket %d",modulo,socket_cliente);
-		t_paquete *paquete = recibir_paquete(logger, socket_cliente);
+		pthread_testcancel();
+
+		log_debug(logger, "Esperando paquete de %s en socket %d",modulo,socket_entrada_salida_stdin);
+		t_paquete *paquete = recibir_paquete(logger, socket_entrada_salida_stdin);
 		
-		if (paquete == NULL)
-        {
-            log_error(logger, "%s se desconecto del socket %d.",modulo, socket_cliente);
+		if(paquete == NULL)
+		{	
+			log_warning(logger, "I/O STDIN se desconecto del socket %d.", socket_entrada_salida_stdin);
 			break;
-        }
+		}
 
 		switch (paquete->codigo_operacion)
 		{
@@ -432,7 +473,7 @@ void *atender_entrada_salida_stdin(void *args)
 		default:
 			{
 				log_warning(logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo",modulo);
-				liberar_conexion(socket_cliente);
+				liberar_conexion(socket_entrada_salida_stdin);
 				eliminar_paquete(paquete);
 				free(args);
 				pthread_exit(0);
@@ -449,19 +490,21 @@ void *atender_entrada_salida_stdout(void *args)
 {
 	char *modulo = "I/O STDOUT";
 
-	int socket_cliente = *(int *)args;
-	log_debug(logger, "%s conectado en socket %d", modulo, socket_cliente);
+	socket_entrada_salida_stdout = *(int *)args;
+	log_debug(logger, "%s conectado en socket %d", modulo, socket_entrada_salida_stdout);
 
-	while (kernel_orden_apagado)
-	{
-		log_debug(logger, "Esperando paquete de %s en socket %d",modulo,socket_cliente);
-		t_paquete *paquete = recibir_paquete(logger, socket_cliente);
+	while(1)
+	{	
+		pthread_testcancel();
+		log_debug(logger, "Esperando paquete de %s en socket %d",modulo,socket_entrada_salida_stdout);
+		t_paquete *paquete = recibir_paquete(logger, socket_entrada_salida_stdout);
 		
-		if (paquete == NULL)
-        {
-            log_error(logger, "%s se desconecto del socket %d.",modulo, socket_cliente);
+		
+		if(paquete == NULL)
+		{	
+			log_warning(logger, "I/O STDOUT se desconecto del socket %d.", socket_entrada_salida_stdout);
 			break;
-        }
+		}
 
 		switch (paquete->codigo_operacion)
 		{
@@ -472,7 +515,7 @@ void *atender_entrada_salida_stdout(void *args)
 		default:
 			{
 				log_warning(logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo",modulo);
-				liberar_conexion(socket_cliente);
+				liberar_conexion(socket_entrada_salida_stdout);
 				eliminar_paquete(paquete);
 				free(args);
 				pthread_exit(0);
@@ -489,20 +532,23 @@ void *atender_entrada_salida_dialfs(void *args)
 {
 	char *modulo = "I/O DialFS";
 
-	int socket_cliente = *(int *)args;
-	log_debug(logger, "%s conectado en socket %d", modulo, socket_cliente);
+	socket_entrada_salida_dialfs = *(int *)args;
+	log_debug(logger, "%s conectado en socket %d", modulo, socket_entrada_salida_dialfs);
 
-	while (kernel_orden_apagado)
+	while(1)
 	{
-		log_debug(logger, "Esperando paquete de %s en socket %d",modulo,socket_cliente);
-		t_paquete *paquete = recibir_paquete(logger, socket_cliente);
-		
-		if (paquete == NULL)
-        {
-            log_error(logger, "%s se desconecto del socket %d.",modulo, socket_cliente);
-			break;
-        }
+		pthread_testcancel();
 
+		log_debug(logger, "Esperando paquete de %s en socket %d",modulo,socket_entrada_salida_dialfs);
+		t_paquete *paquete = recibir_paquete(logger, socket_entrada_salida_dialfs);
+		
+		
+		if(paquete == NULL)
+		{	
+			log_warning(logger, "Memoria se desconecto del socket %d.", socket_entrada_salida_dialfs);
+			break;
+		}
+		
 		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
@@ -512,7 +558,7 @@ void *atender_entrada_salida_dialfs(void *args)
 		default:
 			{
 				log_warning(logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo",modulo);
-				liberar_conexion(socket_cliente);
+				liberar_conexion(socket_entrada_salida_dialfs);
 				eliminar_paquete(paquete);
 				free(args);
 				pthread_exit(0);
@@ -520,7 +566,7 @@ void *atender_entrada_salida_dialfs(void *args)
 		}
 		eliminar_paquete(paquete);
 	}
-	
+
 	free(args);
 	pthread_exit(0);
 }
@@ -680,20 +726,18 @@ t_list *memoria_leer_instrucciones(char *pathInstrucciones)
 }
 
 t_proceso *obtener_proceso(uint32_t pid)
-{
-	t_proceso *proceso = malloc(sizeof(t_proceso));
-
-	int index;
-	char* index_char = (char*)dictionary_get(diccionario_procesos, string_itoa(pid));
+{	
+	char* pid_char_proceso = string_itoa(pid);
+	void* intermedio = dictionary_get(diccionario_procesos, pid_char_proceso);
 	
-	if (index_char != NULL) {
-		index = atoi(index_char); 
-	} else {
+	if (intermedio == NULL) {
 		log_error(logger, "No se encontro el proceso con PID <%d>", pid);
 		return NULL;
 	}
-	
-	proceso = list_get(lista_procesos, index);
 
-	return proceso;
+	free(pid_char_proceso);
+
+	int index = atoi((char*)intermedio);
+
+	return list_get(lista_procesos, index);
 }
