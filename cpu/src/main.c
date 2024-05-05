@@ -33,7 +33,7 @@ int main()
 	/* Ejemplo de envio de instruccion a Memoria
 	sleep(15);
 
-	t_paquete *paquete = crear_paquete(PROXIMA_INSTRUCCION);
+	t_paquete *paquete = crear_paquete(CPU_MEMORIA_PROXIMA_INSTRUCCION);
 	t_cpu_memoria_instruccion instruccion;
 
 	instruccion.pid = 1;
@@ -101,7 +101,7 @@ void *atender_memoria()
 	
 		switch (paquete->codigo_operacion)
 		{
-		case PROXIMA_INSTRUCCION:
+		case MEMORIA_CPU_PROXIMA_INSTRUCCION:
 		{
 			revisar_paquete(paquete, logger, kernel_orden_apagado, "Memoria");
 			t_memoria_cpu_instruccion *dato = deserializar_t_memoria_cpu_instruccion(paquete->buffer);
@@ -177,7 +177,7 @@ void *atender_kernel_dispatch()
 		
 		switch (paquete->codigo_operacion)
 		{
-		case MENSAJE:
+		case PLACEHOLDER:
 			revisar_paquete(paquete, logger, kernel_orden_apagado, "Kernel Dispatch");
 			/*
 			La logica
@@ -197,7 +197,7 @@ void *atender_kernel_dispatch()
 			
 
 			break;
-		case RECIBIR_REGISTROS_CPU:
+		case KERNEL_CPU_ENVIAR_REGISTROS:
 
 			t_kernel_cpu_proceso *proceso_cpu = deserializar_t_kernel_cpu_proceso(paquete->buffer);
 			log_debug(logger, "Registros cpu recibido de Kernel Dispatch");
@@ -265,7 +265,7 @@ void *atender_kernel_interrupt()
 		
 		switch (paquete->codigo_operacion)
 		{
-		case MENSAJE:
+		case PLACEHOLDER:
 			revisar_paquete(paquete, logger, kernel_orden_apagado, "Interrupt");
 			/*
 			La logica

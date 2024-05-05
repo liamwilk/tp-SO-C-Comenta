@@ -215,18 +215,18 @@ void *atender_kernel_generic()
 
 		switch (paquete->codigo_operacion)
 		{
-			case IO_GEN_SLEEP:
+			case KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP:
             {   
                 revisar_paquete(paquete, logger, 1, nombre_modulo);
 
                 t_kernel_entrada_salida_unidad_de_trabajo* unidades = deserializar_t_kernel_entrada_salida_unidad_de_trabajo(paquete->buffer);
 
-                log_info(logger, "PID : <%u> - Operacion a realizar: IO_GEN_SLEEP", process_getpid());
+                log_info(logger, "PID : <%u> - Operacion a realizar: KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP", process_getpid());
                                 
                 log_debug(logger, "Durmiendo %d unidades de trabajo", unidades->unidad_de_trabajo);
                 usleep(unidades->unidad_de_trabajo * entradasalida.tiempoUnidadDeTrabajo);
 
-                t_paquete *aviso_sleep = crear_paquete(IO_GEN_SLEEP_TERMINADO);
+                t_paquete *aviso_sleep = crear_paquete(ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP);
 				
 				t_entrada_salida_kernel_unidad_de_trabajo* unidad = malloc(sizeof(t_entrada_salida_kernel_unidad_de_trabajo));
 				unidad->terminado = true;
@@ -241,9 +241,9 @@ void *atender_kernel_generic()
                 eliminar_paquete(aviso_sleep);
                 break;
             }
-			case DESCONECTAR:
+			case TERMINAR:
 			{
-				log_info(logger, "Se recibio la señal de desconexión. Cierro hilo");
+				log_info(logger, "Se recibio la señal de desconexión de Kernel. Cierro hilo");
 				pthread_cancel(thread_atender_kernel_generic);
 				liberar_conexion(socket_kernel_generic);
 				break;

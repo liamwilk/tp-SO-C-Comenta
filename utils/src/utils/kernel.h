@@ -116,6 +116,6 @@ void kernel_enviar_pcb_cpu(t_kernel *kernel, t_pcb *pcb, KERNEL_SOCKETS cpu);
 
 /** FUNCIONES DE CONSOLA**/
 
-void kernel_finalizar(t_kernel *kernel, int *flag);
+void kernel_finalizar(t_kernel *kernel);
 
 #endif /* KERNEL_H */

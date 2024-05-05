@@ -85,7 +85,7 @@ void *hilos_atender_memoria(void *args)
             if (proceso->leido)
             {
                 // Enviar a cpu los registros
-                t_paquete *paquete = crear_paquete(RECIBIR_REGISTROS_CPU);
+                t_paquete *paquete = crear_paquete(KERNEL_CPU_ENVIAR_REGISTROS);
                 t_pcb *pcb = proceso_buscar_new(hiloArgs->estados->new, proceso->pid);
                 serializar_t_registros_cpu(&paquete, pcb->pid, pcb->registros_cpu);
                 enviar_paquete(paquete, hiloArgs->kernel->sockets.cpu_dispatch);
@@ -190,7 +190,7 @@ void *hilos_atender_cpu_dispatch(void *args)
 
         switch (paquete->codigo_operacion)
         {
-        case MENSAJE:
+        case PLACEHOLDER:
             revisar_paquete(paquete, hiloArgs->logger, *hiloArgs->kernel_orden_apagado, "Dispatch");
             // Placeholder
             break;
@@ -227,7 +227,7 @@ void *hilos_atender_cpu_interrupt(void *args)
 
         switch (paquete->codigo_operacion)
         {
-        case MENSAJE:
+        case PLACEHOLDER:
             revisar_paquete(paquete, hiloArgs->logger, *hiloArgs->kernel_orden_apagado, "Interrupt");
             // Placeholder
             break;
@@ -337,7 +337,7 @@ void *hilos_atender_entrada_salida_generic(void *args)
 
         switch (paquete->codigo_operacion)
         {
-        case IO_GEN_SLEEP_TERMINADO:
+        case ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP:
         {
             revisar_paquete(paquete, io_args->args->logger, *io_args->args->kernel_orden_apagado, modulo);
             t_entrada_salida_kernel_unidad_de_trabajo *unidad = deserializar_t_entrada_salida_kernel_unidad_de_trabajo(paquete->buffer);
@@ -387,7 +387,7 @@ void *hilos_atender_entrada_salida_stdin(void *args)
 
         switch (paquete->codigo_operacion)
         {
-        case MENSAJE:
+        case PLACEHOLDER:
         {
             revisar_paquete(paquete, io_args->args->logger, *io_args->args->kernel_orden_apagado, modulo);
             /*
@@ -434,7 +434,7 @@ void *hilos_atender_entrada_salida_stdout(void *args)
 
         switch (paquete->codigo_operacion)
         {
-        case MENSAJE:
+        case PLACEHOLDER:
         {
             revisar_paquete(paquete, io_args->args->logger, *io_args->args->kernel_orden_apagado, modulo);
             /*
@@ -480,7 +480,7 @@ void *hilos_atender_entrada_salida_dialfs(void *args)
 
         switch (paquete->codigo_operacion)
         {
-        case MENSAJE:
+        case PLACEHOLDER:
         {
             revisar_paquete(paquete, io_args->args->logger, *io_args->args->kernel_orden_apagado, modulo);
             /*

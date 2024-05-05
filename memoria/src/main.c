@@ -88,7 +88,7 @@ void *atender_cpu()
 		
 		switch (paquete->codigo_operacion)
 		{
-		case PROXIMA_INSTRUCCION:
+		case CPU_MEMORIA_PROXIMA_INSTRUCCION:
 			{
 			revisar_paquete(paquete,logger,kernel_orden_apagado,"CPU");
 
@@ -135,7 +135,7 @@ void *atender_cpu()
 			log_debug(logger, "Argumento 4: %s", instruccion_proxima->argumento_4);
 			log_debug(logger, "Argumento 5: %s", instruccion_proxima->argumento_5);
 
-			t_paquete *paquete_instruccion = crear_paquete(PROXIMA_INSTRUCCION);
+			t_paquete *paquete_instruccion = crear_paquete(MEMORIA_CPU_PROXIMA_INSTRUCCION);
 			serializar_t_memoria_cpu_instruccion(&paquete_instruccion, instruccion_proxima);
 			enviar_paquete(paquete_instruccion, socket_cpu);
 
@@ -466,7 +466,7 @@ void *atender_entrada_salida_stdin(void *args)
 
 		switch (paquete->codigo_operacion)
 		{
-		case MENSAJE:
+		case PLACEHOLDER:
 			revisar_paquete(paquete,logger,kernel_orden_apagado,"I/O");
 			// placeholder
 			break;
@@ -508,7 +508,7 @@ void *atender_entrada_salida_stdout(void *args)
 
 		switch (paquete->codigo_operacion)
 		{
-		case MENSAJE:
+		case PLACEHOLDER:
 			revisar_paquete(paquete,logger,kernel_orden_apagado,"I/O");
 			// placeholder
 			break;
@@ -551,7 +551,7 @@ void *atender_entrada_salida_dialfs(void *args)
 		
 		switch (paquete->codigo_operacion)
 		{
-		case MENSAJE:
+		case PLACEHOLDER:
 			revisar_paquete(paquete,logger,kernel_orden_apagado,"I/O");
 			// placeholder
 			break;

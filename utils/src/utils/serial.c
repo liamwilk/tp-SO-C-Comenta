@@ -19,26 +19,6 @@ void *serializar_paquete(t_paquete *paquete, uint32_t bytes)
 	return buffer;
 };
 
-void enviar_mensaje(char *mensaje, int socket_cliente)
-{
-	t_paquete *paquete = malloc(sizeof(t_paquete));
-
-	paquete->codigo_operacion = MENSAJE;
-	paquete->buffer = malloc(sizeof(t_buffer));
-	paquete->buffer->size = strlen(mensaje) + 1;
-	paquete->buffer->stream = malloc(paquete->buffer->size);
-	memcpy(paquete->buffer->stream, mensaje, paquete->buffer->size);
-
-	int bytes = paquete->buffer->size + 2 * sizeof(int);
-
-	void *a_enviar = serializar_paquete(paquete, bytes);
-
-	send(socket_cliente, a_enviar, bytes, 0);
-
-	free(a_enviar);
-	eliminar_paquete(paquete);
-};
-
 void crear_buffer(t_paquete *paquete)
 {
 	paquete->buffer = malloc(sizeof(t_buffer));
@@ -56,16 +36,6 @@ t_paquete *crear_paquete(t_op_code codigo_de_operacion)
 
 	return paquete;
 };
-
-void agregar_a_paquete(t_paquete *paquete, void *valor, int tamanio)
-{
-	paquete->buffer->stream = realloc(paquete->buffer->stream, paquete->buffer->size + tamanio + sizeof(int));
-
-	memcpy(paquete->buffer->stream + paquete->buffer->size, &tamanio, sizeof(int));
-	memcpy(paquete->buffer->stream + paquete->buffer->size + sizeof(int), valor, tamanio);
-
-	paquete->buffer->size += tamanio + sizeof(int);
-}
 
 void enviar_paquete(t_paquete *paquete, int socket_cliente)
 {
@@ -356,6 +326,16 @@ t_entrada_salida_kernel_unidad_de_trabajo *deserializar_t_entrada_salida_kernel_
 	return unidad;
 }
 
+t_entrada_salida_kernel_finalizar *deserializar_t_entrada_salida_kernel_finalizar(t_buffer *buffer)
+{
+	t_entrada_salida_kernel_finalizar *unidad = malloc(sizeof(t_entrada_salida_kernel_finalizar));
+	void *stream = buffer->stream;
+
+	deserializar_bool(&stream, &(unidad->terminado));
+
+	return unidad;
+}
+
 void serializar_t_registros_cpu(t_paquete **paquete, uint32_t pid, t_registros_cpu *registros)
 {
 	actualizar_buffer(*paquete, sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint8_t));
@@ -382,6 +362,12 @@ void serializar_t_kernel_entrada_salida_unidad_de_trabajo(t_paquete **paquete, t
 }
 
 void serializar_t_entrada_salida_kernel_unidad_de_trabajo(t_paquete **paquete, t_entrada_salida_kernel_unidad_de_trabajo *unidad)
+{
+	actualizar_buffer(*paquete, sizeof(bool));
+	serializar_bool(unidad->terminado, *paquete);
+}
+
+void serializar_t_entrada_salida_kernel_finalizar(t_paquete **paquete, t_entrada_salida_kernel_finalizar *unidad)
 {
 	actualizar_buffer(*paquete, sizeof(bool));
 	serializar_bool(unidad->terminado, *paquete);
