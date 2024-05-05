@@ -194,7 +194,8 @@ void *atender_kernel()
 		
 		if (paquete == NULL)
         {
-            log_error(logger, "Kernel se desconecto del socket %d.", socket_kernel);
+            log_error(logger, "Kernel se desconecto del socket. %d.", socket_kernel);
+			kernel_orden_apagado = 0;
 			break;
         }
 

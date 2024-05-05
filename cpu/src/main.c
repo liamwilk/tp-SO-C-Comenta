@@ -168,6 +168,7 @@ void *atender_kernel_dispatch()
 
 		if (paquete == NULL)
         {
+			kernel_orden_apagado = 0;
             log_error(logger, "Kernel Dispatch se desconecto del socket %d.", socket_kernel_dispatch);
 			break;
         }

@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <string.h>
+#include <errno.h>
 #include <commons/log.h>
 #include <commons/collections/list.h>
 
@@ -27,7 +28,7 @@ typedef enum
 	IO_GEN_SLEEP,
 	IO_GEN_SLEEP_TERMINADO,
 	IO_AVISO_EXIT,
-	IO_IDENTIFICADOR
+	IO_IDENTIFICADOR,
 } t_op_code;
 
 typedef struct

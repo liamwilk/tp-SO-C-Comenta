@@ -86,23 +86,53 @@ t_buffer *recibir_buffer(int socket_cliente)
 {
 	uint32_t size;
 	uint32_t offset;
+	ssize_t bytes_recibidos;
 
-	if (recv(socket_cliente, &size, sizeof(uint32_t), MSG_WAITALL) <= 0)
+	bytes_recibidos = recv(socket_cliente, &size, sizeof(uint32_t), MSG_WAITALL);
+
+	if (bytes_recibidos == -1)
 	{
+		printf("Error al recibir el buffer por socket %d dentro de recibir_buffer, paso 1.\n", socket_cliente);
+		close(socket_cliente);
+		return NULL;
+	}
+	else if (bytes_recibidos == 0)
+	{
+		printf("Conexion por socket %d cerrada en el otro extremo.\n", socket_cliente);
 		close(socket_cliente);
 		return NULL;
 	}
 
-	if (recv(socket_cliente, &offset, sizeof(uint32_t), MSG_WAITALL) <= 0)
+	bytes_recibidos = recv(socket_cliente, &offset, sizeof(uint32_t), MSG_WAITALL) == -1;
+
+	if (bytes_recibidos == -1)
 	{
+		printf("Error al recibir el buffer por socket %d dentro de recibir_buffer, paso 2.\n", socket_cliente);
+		close(socket_cliente);
+		return NULL;
+	}
+	else if (bytes_recibidos == 0)
+	{
+		printf("Conexion por socket %d cerrada en el otro extremo.\n", socket_cliente);
 		close(socket_cliente);
 		return NULL;
 	}
 
 	void *stream = malloc(size);
 
-	if (recv(socket_cliente, stream, size, MSG_WAITALL) <= 0)
+	bytes_recibidos = recv(socket_cliente, stream, size, MSG_WAITALL);
+
+	if (bytes_recibidos == -1)
 	{
+		free(stream);
+		printf("Error al recibir el buffer por socket %d dentro de recibir_buffer, paso 3.\n", socket_cliente);
+		close(socket_cliente);
+		return NULL;
+	}
+	else if (bytes_recibidos == 0)
+	{
+		free(stream);
+		printf("Conexion por socket %d cerrada en el otro extremo.\n", socket_cliente);
 		close(socket_cliente);
 		return NULL;
 	}
@@ -120,27 +150,50 @@ t_paquete *recibir_paquete(t_log *logger, int socket_cliente)
 
 	t_paquete *paquete = malloc(sizeof(t_paquete));
 
-	if (recv(socket_cliente, &(paquete->codigo_operacion), sizeof(t_op_code), MSG_WAITALL) <= 0)
+	ssize_t bytes_recibidos;
+
+	bytes_recibidos = recv(socket_cliente, &(paquete->codigo_operacion), sizeof(t_op_code), MSG_WAITALL);
+
+	if (bytes_recibidos == -1)
 	{
-		log_error(logger, "Error al recibir el codigo de operacion");
-		close(socket_cliente);
+		log_error(logger, "Error al recibir el codigo de operacion: %s por socket %d en recibir_paquete, paso 1.", strerror(errno), socket_cliente);
 		free(paquete);
+		close(socket_cliente);
+		return NULL;
+	}
+	else if (bytes_recibidos == 0)
+	{
+		log_error(logger, "Conexion por socket %d cerrada en el otro extremo", socket_cliente);
+		free(paquete);
+		close(socket_cliente);
 		return NULL;
 	}
 
-	if (recv(socket_cliente, &(paquete->size_buffer), sizeof(uint32_t), MSG_WAITALL) <= 0)
+	bytes_recibidos = recv(socket_cliente, &(paquete->size_buffer), sizeof(uint32_t), MSG_WAITALL) == -1;
+
+	if (bytes_recibidos == -1)
 	{
-		log_error(logger, "Error al recibir el tamaño del buffer");
+		log_error(logger, "Error al recibir el codigo de operacion: %s por socket %d en recibir_paquete, paso 2.", strerror(errno), socket_cliente);
+		free(paquete);
 		close(socket_cliente);
 		return NULL;
 	}
+	else if (bytes_recibidos == 0)
+	{
+		log_error(logger, "Conexion por socket %d cerrada en el otro extremo", socket_cliente);
+		free(paquete);
+		close(socket_cliente);
+		return NULL;
+	}
+
+	// Lo guardo porque recibir_buffer me lo cierra si da error y quiero mostrarlo en el log
+	int socket = socket_cliente;
 
 	paquete->buffer = recibir_buffer(socket_cliente);
 
 	if (paquete->buffer == NULL)
 	{
-		log_error(logger, "Error al recibir el buffer");
-		close(socket_cliente);
+		log_error(logger, "Error al recibir el buffer. Se cierra la conexion por socket %d", socket);
 		return NULL;
 	}
 
