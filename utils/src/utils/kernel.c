@@ -111,16 +111,50 @@ t_pcb *kernel_nuevo_proceso(t_kernel *kernel, t_new *colaNew, t_log *logger, cha
 
 /** FUNCIONES DE CONSOLA**/
 
-void kernel_finalizar(t_kernel *kernel, int *flag)
+void kernel_finalizar(t_kernel *kernel)
 {
     t_paquete *finalizar = crear_paquete(TERMINAR);
-    char *path = "N/A";
-    *flag = 0;
-    agregar_a_paquete(finalizar, path, strlen(path) + 1);
+    t_entrada_salida_kernel_finalizar *finalizar_kernel = malloc(sizeof(t_entrada_salida_kernel_finalizar));
+    finalizar_kernel->terminado = true;
+    actualizar_buffer(finalizar, sizeof(bool));
+    serializar_t_entrada_salida_kernel_finalizar(&finalizar, finalizar_kernel);
+
     enviar_paquete(finalizar, kernel->sockets.cpu_dispatch);
     enviar_paquete(finalizar, kernel->sockets.memoria);
+
+    if (kernel->sockets.entrada_salida != 0)
+    {
+        pthread_cancel(kernel->threads.thread_atender_entrada_salida);
+        liberar_conexion(kernel->sockets.entrada_salida);
+    }
+    if (kernel->sockets.entrada_salida_generic != 0)
+    {
+        pthread_cancel(kernel->threads.thread_atender_entrada_salida_generic);
+        liberar_conexion(kernel->sockets.entrada_salida_stdin);
+    }
+
+    if (kernel->sockets.entrada_salida_stdin != 0)
+    {
+        pthread_cancel(kernel->threads.thread_atender_entrada_salida_stdin);
+        liberar_conexion(kernel->sockets.entrada_salida_stdin);
+    }
+
+    if (kernel->sockets.entrada_salida_stdout != 0)
+    {
+        pthread_cancel(kernel->threads.thread_atender_entrada_salida_stdout);
+        liberar_conexion(kernel->sockets.entrada_salida_stdout);
+    }
+
+    if (kernel->sockets.entrada_salida_dialfs != 0)
+    {
+        pthread_cancel(kernel->threads.thread_atender_entrada_salida_dialfs);
+        liberar_conexion(kernel->sockets.entrada_salida_dialfs);
+    }
+
     liberar_conexion(kernel->sockets.cpu_dispatch);
     liberar_conexion(kernel->sockets.cpu_interrupt);
     liberar_conexion(kernel->sockets.memoria);
     liberar_conexion(kernel->sockets.server);
+
+    eliminar_paquete(finalizar);
 };

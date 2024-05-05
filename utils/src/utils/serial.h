@@ -13,22 +13,16 @@
 
 typedef enum
 {
-	MENSAJE,
-	PAQUETE,
-	DESCONECTAR,
-	PROXIMA_INSTRUCCION,
-	RECIBIR_UNA_INSTRUCCION,
-	ELIMINAR_PROCESO,
+	TERMINAR,
+	CPU_MEMORIA_PROXIMA_INSTRUCCION,
+	MEMORIA_CPU_PROXIMA_INSTRUCCION,
 	KERNEL_MEMORIA_NUEVO_PROCESO,
 	KERNEL_MEMORIA_FINALIZAR_PROCESO,
 	MEMORIA_KERNEL_NUEVO_PROCESO,
-	RECIBIR_PATH_INSTRUCCIONES,
-	RECIBIR_REGISTROS_CPU,
-	TERMINAR,
-	IO_GEN_SLEEP,
-	IO_GEN_SLEEP_TERMINADO,
-	IO_AVISO_EXIT,
-	IO_IDENTIFICADOR,
+	KERNEL_CPU_ENVIAR_REGISTROS,
+	KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP,
+	ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP,
+	PLACEHOLDER
 } t_op_code;
 
 typedef struct
@@ -103,6 +97,11 @@ typedef struct
 {
 	bool terminado;
 } t_entrada_salida_kernel_unidad_de_trabajo;
+
+typedef struct
+{
+	bool terminado;
+} t_entrada_salida_kernel_finalizar;
 
 typedef struct
 {
@@ -366,5 +365,9 @@ t_kernel_entrada_salida_unidad_de_trabajo *deserializar_t_kernel_entrada_salida_
 
 void serializar_t_entrada_salida_kernel_unidad_de_trabajo(t_paquete **paquete, t_entrada_salida_kernel_unidad_de_trabajo *unidad);
 t_entrada_salida_kernel_unidad_de_trabajo *deserializar_t_entrada_salida_kernel_unidad_de_trabajo(t_buffer *buffer);
+
+t_entrada_salida_kernel_finalizar *deserializar_t_entrada_salida_kernel_finalizar(t_buffer *buffer);
+
+void serializar_t_entrada_salida_kernel_finalizar(t_paquete **paquete, t_entrada_salida_kernel_finalizar *unidad);
 
 #endif
