@@ -29,7 +29,7 @@ void *atender_memoria();
 
 void *esperar_kernel_dispatch();
 void *esperar_kernel_interrupt();
-void *conectar_memoria();
+void *conectar_memoria_stdin();
 
 t_memoria_cpu_instruccion *deserializar_t_memoria_cpu_instruccion(t_buffer *buffer);
 

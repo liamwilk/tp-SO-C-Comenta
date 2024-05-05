@@ -18,7 +18,7 @@ t_tipointerfaz determinar_tipo_interfaz(t_config* config){
 	return -1;
 };
 
-t_entradasalida entradasalida_gen_inicializar(t_config *config)
+t_entradasalida entradasalida_generic_inicializar(t_config *config)
 {
     t_entradasalida ret;
     
@@ -75,7 +75,7 @@ t_entradasalida entradasalida_dialfs_inicializar(t_config *config)
     return ret;
 }
 
-void entradasalida_gen_log(t_entradasalida entradasalida, t_log *logger)
+void entradasalida_generic_log(t_entradasalida entradasalida, t_log *logger)
 {
     log_info(logger, "TIPO_INTERFAZ: GEN");
     log_info(logger, "TIEMPO_UNIDAD_TRABAJO: %d", entradasalida.tiempoUnidadDeTrabajo);

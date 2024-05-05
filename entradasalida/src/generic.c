@@ -46,7 +46,7 @@
 //             {   
 //                 revisar_paquete(paquete, logger, seguir_ejecutando, nombre_modulo);
 
-//                 uint32_t unidades_de_trabajo = deserializar_unidades_de_trabajo(paquete->buffer);
+//                 uint32_t unidades_de_trabajo = deserializar_t_kernel_entrada_salida_unidad_de_trabajo(paquete->buffer);
 
 //                 log_info(logger, "PID : <%u> - Operacion a realizar: IO_GEN_SLEEP", process_getpid());
                                 
@@ -71,7 +71,7 @@
 //     }
 // }
 
-// uint32_t deserializar_unidades_de_trabajo(t_buffer *buffer)
+// uint32_t deserializar_t_kernel_entrada_salida_unidad_de_trabajo(t_buffer *buffer)
 // {
 //     uint32_t dato;
 // 	void *stream = buffer->stream;

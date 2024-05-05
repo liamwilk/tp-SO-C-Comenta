@@ -15,7 +15,7 @@ int main()
 	socket_server_interrupt = iniciar_servidor(logger, cpu.puertoEscuchaInterrupt);
 	log_debug(logger, "Servidor Interrupt listo para recibir al cliente en socket %d", socket_server_interrupt);
 
-	pthread_create(&thread_conectar_memoria, NULL, conectar_memoria, NULL);
+	pthread_create(&thread_conectar_memoria, NULL, conectar_memoria_stdin, NULL);
 	pthread_join(thread_conectar_memoria, NULL);
 
 	pthread_create(&thread_atender_memoria, NULL, atender_memoria, NULL);
@@ -65,7 +65,7 @@ int main()
 	return 0;
 }
 
-void *conectar_memoria()
+void *conectar_memoria_stdin()
 {
 	socket_memoria = crear_conexion(logger, cpu.ipMemoria, cpu.puertoMemoria);
 

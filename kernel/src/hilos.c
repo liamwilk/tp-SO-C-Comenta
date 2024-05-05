@@ -309,6 +309,9 @@ void *hilos_atender_entrada_salida_generic(void *args)
     char *modulo = "I/O Generic";
 
     hilos_io_args *io_args = (hilos_io_args *)args;
+
+    io_args->args->kernel->sockets.entrada_salida_generic = io_args->socket;
+
     log_debug(io_args->args->logger, "%s conectado en socket %d", modulo, io_args->socket);
 
     while (*io_args->args->kernel_orden_apagado)
@@ -324,18 +327,22 @@ void *hilos_atender_entrada_salida_generic(void *args)
 
         switch (paquete->codigo_operacion)
         {
-        case MENSAJE:
+        case IO_GEN_SLEEP_TERMINADO:
         {
             revisar_paquete(paquete, io_args->args->logger, *io_args->args->kernel_orden_apagado, modulo);
-            /*
-            La logica
-            */
+            t_entrada_salida_kernel_unidad_de_trabajo *unidad = deserializar_t_entrada_salida_kernel_unidad_de_trabajo(paquete->buffer);
+
+            // Este mensaje es solo de efecto, no contiene ningun buffer de datos
+            log_debug(io_args->args->logger, "Se recibio un mensaje de %s con la respuesta a sleep:  %d", modulo, unidad->terminado);
+
+            free(unidad);
             break;
         }
         default:
         {
             log_warning(io_args->args->logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo);
             liberar_conexion(io_args->socket);
+            eliminar_paquete(paquete);
             free(io_args);
             pthread_exit(0);
         }
@@ -352,6 +359,9 @@ void *hilos_atender_entrada_salida_stdin(void *args)
     char *modulo = "I/O STDIN";
 
     hilos_io_args *io_args = (hilos_io_args *)args;
+
+    io_args->args->kernel->sockets.entrada_salida_stdin = io_args->socket;
+
     log_debug(io_args->args->logger, "%s conectado en socket %d", modulo, io_args->socket);
 
     while (*io_args->args->kernel_orden_apagado)
@@ -395,6 +405,9 @@ void *hilos_atender_entrada_salida_stdout(void *args)
     char *modulo = "I/O STDOUT";
 
     hilos_io_args *io_args = (hilos_io_args *)args;
+
+    io_args->args->kernel->sockets.entrada_salida_stdout = io_args->socket;
+
     log_debug(io_args->args->logger, "%s conectado en socket %d", modulo, io_args->socket);
 
     while (*io_args->args->kernel_orden_apagado)
@@ -438,6 +451,9 @@ void *hilos_atender_entrada_salida_dialfs(void *args)
     char *modulo = "I/O DialFS";
 
     hilos_io_args *io_args = (hilos_io_args *)args;
+
+    io_args->args->kernel->sockets.entrada_salida_dialfs = io_args->socket;
+
     log_debug(io_args->args->logger, "%s conectado en socket %d", modulo, io_args->socket);
 
     while (*io_args->args->kernel_orden_apagado)

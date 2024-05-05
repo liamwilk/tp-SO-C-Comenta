@@ -22,6 +22,10 @@ typedef struct t_kernel_sockets
     int cpu_dispatch;
     int cpu_interrupt;
     int server;
+    int entrada_salida_generic;
+    int entrada_salida_stdin;
+    int entrada_salida_stdout;
+    int entrada_salida_dialfs;
 } t_kernel_sockets;
 
 typedef enum KERNEL_SOCKETS
@@ -29,7 +33,11 @@ typedef enum KERNEL_SOCKETS
     MEMORIA,
     CPU_DISPATCH,
     CPU_INTERRUPT,
-    SERVER
+    SERVER,
+    ENTRADA_SALIDA_GENERIC,
+    ENTRADA_SALIDA_STDIN,
+    ENTRADA_SALIDA_STDOUT,
+    ENTRADA_SALIDA_DIALFS
 } KERNEL_SOCKETS;
 
 typedef struct t_kernel

@@ -42,7 +42,9 @@ void* esperar_entrada_salida();
 
 void* atender_cpu();
 void* atender_kernel();
-void* atender_entrada_salida(void*);
+void* atender_entrada_salida_stdin(void*);
+void* atender_entrada_salida_stdout(void*);
+void* atender_entrada_salida_dialfs(void*);
 
 /**
  * @fn    *armar_ruta
