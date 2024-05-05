@@ -15,7 +15,7 @@ int main()
 	socket_server_interrupt = iniciar_servidor(logger, cpu.puertoEscuchaInterrupt);
 	log_debug(logger, "Servidor Interrupt listo para recibir al cliente en socket %d", socket_server_interrupt);
 
-	pthread_create(&thread_conectar_memoria, NULL, conectar_memoria_stdin, NULL);
+	pthread_create(&thread_conectar_memoria, NULL, conectar_memoria, NULL);
 	pthread_join(thread_conectar_memoria, NULL);
 
 	pthread_create(&thread_atender_memoria, NULL, atender_memoria, NULL);
@@ -57,15 +57,13 @@ int main()
 	pthread_create(&thread_atender_kernel_interrupt, NULL, atender_kernel_interrupt, NULL);
 	pthread_join(thread_atender_kernel_interrupt, NULL);
 
-	log_info(logger, "Kernel solicito el apagado del sistema operativo.");
-
 	log_destroy(logger);
 	config_destroy(config);
 
 	return 0;
 }
 
-void *conectar_memoria_stdin()
+void *conectar_memoria()
 {
 	socket_memoria = crear_conexion(logger, cpu.ipMemoria, cpu.puertoMemoria);
 
@@ -87,18 +85,20 @@ void *conectar_memoria_stdin()
 }
 
 void *atender_memoria()
-{
-	while (kernel_orden_apagado)
+{	
+	while(1)
 	{
+		pthread_testcancel();
+
 		log_debug(logger, "Esperando paquete de Memoria en socket %d", socket_memoria);
 		t_paquete *paquete = recibir_paquete(logger, socket_memoria);
-
-		if (paquete == NULL)
-        {
-            log_error(logger, "Memoria se desconecto del socket %d.", socket_memoria);
+		
+		if(paquete == NULL)
+		{	
+			log_warning(logger, "Memoria se desconecto del socket %d.", socket_memoria);
 			break;
-        }
-
+		}
+	
 		switch (paquete->codigo_operacion)
 		{
 		case PROXIMA_INSTRUCCION:
@@ -134,7 +134,7 @@ void *atender_memoria()
 		}
 		eliminar_paquete(paquete);
 	}
-
+	
 	pthread_exit(0);
 }
 
@@ -156,35 +156,46 @@ void *esperar_kernel_dispatch()
 	}
 
 	log_debug(logger, "Kernel conectado por Dispatch en socket %d", socket_kernel_dispatch);
+	liberar_conexion(socket_server_dispatch);
 	pthread_exit(0);
 }
 
 void *atender_kernel_dispatch()
 {
-	while (kernel_orden_apagado)
-	{
+	while (1)
+	{	
+		pthread_testcancel();
+
 		log_debug(logger, "Esperando paquete de Kernel Dispatch en socket %d", socket_kernel_dispatch);
 		t_paquete *paquete = recibir_paquete(logger, socket_kernel_dispatch);
 
-		if (paquete == NULL)
-        {
-			kernel_orden_apagado = 0;
-            log_error(logger, "Kernel Dispatch se desconecto del socket %d.", socket_kernel_dispatch);
+		if(paquete == NULL)
+		{	
+			log_warning(logger, "Kernel Dispatch se desconecto del socket %d.", socket_kernel_dispatch);
 			break;
-        }
-
+		}
+		
 		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
-			revisar_paquete(paquete, logger, kernel_orden_apagado, "Dispatch");
+			revisar_paquete(paquete, logger, kernel_orden_apagado, "Kernel Dispatch");
 			/*
 			La logica
 			*/
 			break;
 		case TERMINAR:
-			kernel_orden_apagado = 0;
+			
+			revisar_paquete(paquete, logger, kernel_orden_apagado, "Kernel Dispatch");
+			
+			pthread_cancel(thread_atender_memoria);
+			pthread_cancel(thread_atender_kernel_interrupt);
+			pthread_cancel(thread_atender_kernel_dispatch);
+			
+			liberar_conexion(socket_memoria);
 			liberar_conexion(socket_kernel_dispatch);
-			liberar_conexion(socket_server_dispatch);
+			liberar_conexion(socket_kernel_interrupt);
+			
+
 			break;
 		case RECIBIR_REGISTROS_CPU:
 
@@ -204,7 +215,7 @@ void *atender_kernel_dispatch()
 			free(proceso_cpu);
 			break;
 		default:
-			{	
+			{
 			log_warning(logger, "[Kernel Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
 			eliminar_paquete(paquete);
 			liberar_conexion(socket_kernel_dispatch);
@@ -213,7 +224,6 @@ void *atender_kernel_dispatch()
 		}
 		eliminar_paquete(paquete);
 	}
-
 	pthread_exit(0);
 }
 
@@ -235,22 +245,24 @@ void *esperar_kernel_interrupt()
 	}
 
 	log_debug(logger, "Kernel conectado por Interrupt en socket %d", socket_kernel_interrupt);
+	liberar_conexion(socket_server_interrupt);
 	pthread_exit(0);
 }
 
 void *atender_kernel_interrupt()
-{
-	while (kernel_orden_apagado)
+{	
+	while(1)
 	{
+		pthread_testcancel();
 		log_debug(logger, "Esperando paquete de Kernel Interrupt en socket %d", socket_kernel_interrupt);
 		t_paquete *paquete = recibir_paquete(logger, socket_kernel_interrupt);
-
-		if (paquete == NULL)
-        {
-            log_error(logger, "Kernel Interrupt se desconecto del socket %d.", socket_kernel_interrupt);
+		
+		if(paquete == NULL)
+		{	
+			log_warning(logger, "Kernel Interrupt se desconecto del socket %d.", socket_kernel_interrupt);
 			break;
-        }
-
+		}
+		
 		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
@@ -269,7 +281,6 @@ void *atender_kernel_interrupt()
 		}
 		eliminar_paquete(paquete);
 	}
-
 	pthread_exit(0);
 }
 

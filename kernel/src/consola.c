@@ -174,14 +174,52 @@ void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados,
         {
             log_info(logger, "Se ejecuto script %s", separar_linea[0]);
             *flag = 0;
+
             t_paquete *finalizar = crear_paquete(TERMINAR);
+            t_entrada_salida_kernel_unidad_de_trabajo *finalizar_kernel = malloc(sizeof(t_entrada_salida_kernel_unidad_de_trabajo));
+            finalizar_kernel->terminado = true;
+            actualizar_buffer(finalizar, sizeof(bool));
+            serializar_t_entrada_salida_kernel_unidad_de_trabajo(&finalizar, finalizar_kernel);
+
             enviar_paquete(finalizar, kernel->sockets.cpu_dispatch);
             enviar_paquete(finalizar, kernel->sockets.memoria);
+
+            if (kernel->sockets.entrada_salida != 0)
+            {
+                pthread_cancel(kernel->threads.thread_atender_entrada_salida);
+                liberar_conexion(kernel->sockets.entrada_salida);
+            }
+            if (kernel->sockets.entrada_salida_generic != 0)
+            {
+                pthread_cancel(kernel->threads.thread_atender_entrada_salida_generic);
+                liberar_conexion(kernel->sockets.entrada_salida_stdin);
+            }
+
+            if (kernel->sockets.entrada_salida_stdin != 0)
+            {
+                pthread_cancel(kernel->threads.thread_atender_entrada_salida_stdin);
+                liberar_conexion(kernel->sockets.entrada_salida_stdin);
+            }
+
+            if (kernel->sockets.entrada_salida_stdout != 0)
+            {
+                pthread_cancel(kernel->threads.thread_atender_entrada_salida_stdout);
+                liberar_conexion(kernel->sockets.entrada_salida_stdout);
+            }
+
+            if (kernel->sockets.entrada_salida_dialfs != 0)
+            {
+                pthread_cancel(kernel->threads.thread_atender_entrada_salida_dialfs);
+                liberar_conexion(kernel->sockets.entrada_salida_dialfs);
+            }
+
             liberar_conexion(kernel->sockets.cpu_dispatch);
             liberar_conexion(kernel->sockets.cpu_interrupt);
             liberar_conexion(kernel->sockets.memoria);
             liberar_conexion(kernel->sockets.server);
+
             eliminar_paquete(finalizar);
+
             break;
         }
         default:

@@ -199,16 +199,17 @@ void* conectar_kernel_generic(){
 
 void *atender_kernel_generic()
 {
-	int flag = 1;
-	while (flag)
+	while (1)
 	{
+		pthread_testcancel();
+		
 		log_debug(logger, "Esperando paquete de Kernel en socket %d", socket_kernel_generic);
 
 		t_paquete *paquete = recibir_paquete(logger, socket_kernel_generic);
 		
 		if (paquete == NULL)
         {
-            log_error(logger, "Kernel se desconecto del socket. %d.", socket_kernel_generic);
+            log_info(logger, "Kernel se desconecto del socket %d.", socket_kernel_generic);
 			break;
         }
 
@@ -242,8 +243,8 @@ void *atender_kernel_generic()
             }
 			case DESCONECTAR:
 			{
-				flag = 0;
 				log_info(logger, "Se recibio la señal de desconexión. Cierro hilo");
+				pthread_cancel(thread_atender_kernel_generic);
 				liberar_conexion(socket_kernel_generic);
 				break;
 			}

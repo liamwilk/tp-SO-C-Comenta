@@ -19,7 +19,6 @@
 #include <utils/serial.h>
 #include <commons/collections/queue.h>
 #include <commons/collections/list.h>
-
 // Biblioteca de serializacion exclusiva para Memoria
 #include "serial.h"
 
@@ -71,9 +70,14 @@ t_proceso *obtener_proceso(uint32_t pid);
 
 pthread_t thread_atender_cpu,thread_atender_kernel,thread_atender_entrada_salida,thread_esperar_cpu,thread_conectar_kernel;
 
+pthread_t thread_atender_entrada_salida_stdin,thread_atender_entrada_salida_stdout,thread_atender_entrada_salida_dialfs;
+
 int socket_cpu;
 int socket_kernel;
 int socket_server_memoria;
+int socket_entrada_salida_stdin = 0;
+int socket_entrada_salida_stdout = 0;
+int socket_entrada_salida_dialfs = 0;
 
 // Cuando vale 0, es porque el Kernel ordeno a todos los modulos apagarse
 int kernel_orden_apagado = 1;

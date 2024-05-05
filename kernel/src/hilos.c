@@ -59,9 +59,15 @@ void *hilos_atender_memoria(void *args)
         log_debug(hiloArgs->logger, "Esperando paquete de Memoria en socket %d", socket);
         t_paquete *paquete = recibir_paquete(hiloArgs->logger, socket);
 
-        if (paquete == NULL)
+        if (paquete == NULL && *(hiloArgs->kernel_orden_apagado) == 1)
         {
-            log_error(hiloArgs->logger, "Memoria se desconecto del socket %d.", socket);
+            log_info(hiloArgs->logger, "Memoria se desconecto del socket %d.", socket);
+            liberar_conexion(socket);
+            break;
+        }
+        else if (paquete == NULL && *(hiloArgs->kernel_orden_apagado) == 0)
+        {
+            log_warning(hiloArgs->logger, "Kernel ordeno el apagado del sistema operativo. Memoria desconectado del socket %d.", socket);
             break;
         }
 
@@ -169,14 +175,16 @@ void *hilos_atender_cpu_dispatch(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
     int socket = hiloArgs->kernel->sockets.cpu_dispatch;
-    while (*hiloArgs->kernel_orden_apagado)
+    while (1)
     {
+        pthread_testcancel();
+
         log_debug(hiloArgs->logger, "Esperando paquete de CPU Dispatch en socket %d", socket);
         t_paquete *paquete = recibir_paquete(hiloArgs->logger, socket);
 
         if (paquete == NULL)
         {
-            log_error(hiloArgs->logger, "CPU Dispatch se desconecto del socket %d.", socket);
+            log_info(hiloArgs->logger, "CPU Dispatch se desconecto del socket %d.", socket);
             break;
         }
 
@@ -196,7 +204,6 @@ void *hilos_atender_cpu_dispatch(void *args)
         }
         eliminar_paquete(paquete);
     }
-
     pthread_exit(0);
 };
 
@@ -205,14 +212,16 @@ void *hilos_atender_cpu_interrupt(void *args)
     hilos_args *hiloArgs = (hilos_args *)args;
     int socket = hiloArgs->kernel->sockets.cpu_interrupt;
 
-    while (*hiloArgs->kernel_orden_apagado)
+    while (1)
     {
+        pthread_testcancel();
+
         log_debug(hiloArgs->logger, "Esperando paquete de CPU Interrupt en socket %d", socket);
         t_paquete *paquete = recibir_paquete(hiloArgs->logger, socket);
 
         if (paquete == NULL)
         {
-            log_error(hiloArgs->logger, "CPU Interrupt se desconecto del socket %d.", socket);
+            log_info(hiloArgs->logger, "CPU Interrupt se desconecto del socket %d.", socket);
             break;
         }
 
@@ -232,7 +241,6 @@ void *hilos_atender_cpu_interrupt(void *args)
         }
         eliminar_paquete(paquete);
     }
-
     pthread_exit(0);
 };
 
@@ -248,8 +256,10 @@ void *hilos_esperar_entrada_salida(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
 
-    while (*hiloArgs->kernel_orden_apagado)
+    while (1)
     {
+        pthread_testcancel();
+
         int socket_cliente = esperar_conexion(hiloArgs->logger, hiloArgs->kernel->sockets.server);
 
         if (socket_cliente == -1)
@@ -267,7 +277,6 @@ void *hilos_esperar_entrada_salida(void *args)
             break;
         }
 
-        pthread_t hilo;
         hilos_io_args *io_args = malloc(sizeof(hilos_io_args));
         io_args->args = hiloArgs;
         io_args->socket = socket_cliente;
@@ -276,23 +285,23 @@ void *hilos_esperar_entrada_salida(void *args)
         {
         case KERNEL_ENTRADA_SALIDA_GENERIC:
             log_debug(hiloArgs->logger, "Se conecto un modulo generico de entrada/salida");
-            pthread_create(&hilo, NULL, hilos_atender_entrada_salida_generic, io_args);
-            pthread_detach(hilo);
+            pthread_create(&hiloArgs->kernel->threads.thread_atender_entrada_salida_generic, NULL, hilos_atender_entrada_salida_generic, io_args);
+            pthread_detach(hiloArgs->kernel->threads.thread_atender_entrada_salida_generic);
             break;
         case KERNEL_ENTRADA_SALIDA_STDIN:
             log_debug(hiloArgs->logger, "Se conecto un modulo de entrada/salida STDIN");
-            pthread_create(&hilo, NULL, hilos_atender_entrada_salida_stdin, io_args);
-            pthread_detach(hilo);
+            pthread_create(&hiloArgs->kernel->threads.thread_atender_entrada_salida_stdin, NULL, hilos_atender_entrada_salida_stdin, io_args);
+            pthread_detach(hiloArgs->kernel->threads.thread_atender_entrada_salida_stdin);
             break;
         case KERNEL_ENTRADA_SALIDA_STDOUT:
             log_debug(hiloArgs->logger, "Se conecto un modulo de entrada/salida STDOUT");
-            pthread_create(&hilo, NULL, hilos_atender_entrada_salida_stdout, io_args);
-            pthread_detach(hilo);
+            pthread_create(&hiloArgs->kernel->threads.thread_atender_entrada_salida_stdout, NULL, hilos_atender_entrada_salida_stdout, io_args);
+            pthread_detach(hiloArgs->kernel->threads.thread_atender_entrada_salida_stdout);
             break;
         case KERNEL_ENTRADA_SALIDA_DIALFS:
             log_debug(hiloArgs->logger, "Se conecto un modulo de entrada/salida DIALFS");
-            pthread_create(&hilo, NULL, hilos_atender_entrada_salida_dialfs, io_args);
-            pthread_detach(hilo);
+            pthread_create(&hiloArgs->kernel->threads.thread_atender_entrada_salida_dialfs, NULL, hilos_atender_entrada_salida_dialfs, io_args);
+            pthread_detach(hiloArgs->kernel->threads.thread_atender_entrada_salida_dialfs);
             break;
         default:
             log_error(hiloArgs->logger, "Se conecto un modulo de entrada/salida desconocido");
@@ -314,14 +323,15 @@ void *hilos_atender_entrada_salida_generic(void *args)
 
     log_debug(io_args->args->logger, "%s conectado en socket %d", modulo, io_args->socket);
 
-    while (*io_args->args->kernel_orden_apagado)
+    while (1)
     {
+        pthread_testcancel();
         log_debug(io_args->args->logger, "Esperando paquete de %s en socket %d", modulo, io_args->socket);
         t_paquete *paquete = recibir_paquete(io_args->args->logger, io_args->socket);
 
         if (paquete == NULL)
         {
-            log_error(io_args->args->logger, "%s se desconecto del socket %d.", modulo, io_args->socket);
+            log_info(io_args->args->logger, "%s se desconecto del socket %d.", modulo, io_args->socket);
             break;
         }
 
@@ -349,7 +359,6 @@ void *hilos_atender_entrada_salida_generic(void *args)
         }
         eliminar_paquete(paquete);
     }
-
     free(io_args);
     pthread_exit(0);
 }
@@ -364,14 +373,15 @@ void *hilos_atender_entrada_salida_stdin(void *args)
 
     log_debug(io_args->args->logger, "%s conectado en socket %d", modulo, io_args->socket);
 
-    while (*io_args->args->kernel_orden_apagado)
+    while (1)
     {
+        pthread_testcancel();
         log_debug(io_args->args->logger, "Esperando paquete de %s en socket %d", modulo, io_args->socket);
         t_paquete *paquete = recibir_paquete(io_args->args->logger, io_args->socket);
 
         if (paquete == NULL)
         {
-            log_error(io_args->args->logger, "%s se desconecto del socket %d.", modulo, io_args->socket);
+            log_info(io_args->args->logger, "%s se desconecto del socket %d.", modulo, io_args->socket);
             break;
         }
 
@@ -410,14 +420,15 @@ void *hilos_atender_entrada_salida_stdout(void *args)
 
     log_debug(io_args->args->logger, "%s conectado en socket %d", modulo, io_args->socket);
 
-    while (*io_args->args->kernel_orden_apagado)
+    while (1)
     {
+        pthread_testcancel();
         log_debug(io_args->args->logger, "Esperando paquete de %s en socket %d", modulo, io_args->socket);
         t_paquete *paquete = recibir_paquete(io_args->args->logger, io_args->socket);
 
         if (paquete == NULL)
         {
-            log_error(io_args->args->logger, "%s se desconecto del socket %d.", modulo, io_args->socket);
+            log_info(io_args->args->logger, "%s se desconecto del socket %d.", modulo, io_args->socket);
             break;
         }
 
@@ -441,7 +452,6 @@ void *hilos_atender_entrada_salida_stdout(void *args)
         }
         eliminar_paquete(paquete);
     }
-
     free(io_args);
     pthread_exit(0);
 }
@@ -456,14 +466,15 @@ void *hilos_atender_entrada_salida_dialfs(void *args)
 
     log_debug(io_args->args->logger, "%s conectado en socket %d", modulo, io_args->socket);
 
-    while (*io_args->args->kernel_orden_apagado)
+    while (1)
     {
+        pthread_testcancel();
         log_debug(io_args->args->logger, "Esperando paquete de %s en socket %d", modulo, io_args->socket);
         t_paquete *paquete = recibir_paquete(io_args->args->logger, io_args->socket);
 
         if (paquete == NULL)
         {
-            log_error(io_args->args->logger, "%s se desconecto del socket %d.", modulo, io_args->socket);
+            log_info(io_args->args->logger, "%s se desconecto del socket %d.", modulo, io_args->socket);
             break;
         }
 

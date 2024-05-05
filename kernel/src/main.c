@@ -10,6 +10,12 @@ int main()
 	kernel_log(kernel, logger);
 	hilos_args args = {logger, &kernel, &estados, &kernel_orden_apagado};
 
+	args.kernel->sockets.entrada_salida_generic = 0;
+	args.kernel->sockets.entrada_salida_stdin = 0;
+	args.kernel->sockets.entrada_salida_stdout = 0;
+	args.kernel->sockets.entrada_salida_dialfs = 0;
+	args.kernel->sockets.entrada_salida = 0;
+
 	/*----HILOS----*/
 
 	hilos_memoria_inicializar(&args, thread_conectar_memoria, thread_atender_memoria);
@@ -19,7 +25,7 @@ int main()
 	kernel.sockets.server = iniciar_servidor(logger, kernel.puertoEscucha);
 	log_debug(logger, "Servidor listo para recibir clientes en socket %d.", kernel.sockets.server);
 
-	hilos_io_inicializar(&args, thread_esperar_entrada_salida);
+	hilos_io_inicializar(&args, args.kernel->threads.thread_atender_entrada_salida);
 
 	hilos_consola_inicializar(&args, thread_atender_consola);
 

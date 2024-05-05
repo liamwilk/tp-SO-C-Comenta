@@ -104,7 +104,7 @@ typedef struct
 	bool terminado;
 } t_entrada_salida_kernel_unidad_de_trabajo;
 
-typedef struct t_kernel_cpu_proceso
+typedef struct
 {
 	uint32_t pid;
 	t_registros_cpu registros;

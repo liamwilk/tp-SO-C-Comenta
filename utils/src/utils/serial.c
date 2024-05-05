@@ -92,28 +92,24 @@ t_buffer *recibir_buffer(t_log *logger, int socket_cliente)
 
 	if (bytes_recibidos == -1)
 	{
-		log_error(logger, "El cliente se desconecto del socket %d mientras recibia el tamaño del stream.\n", socket_cliente);
-		close(socket_cliente);
+		log_warning(logger, "El cliente se desconecto del socket %d mientras recibia el tamaño del stream.", socket_cliente);
 		return NULL;
 	}
 	else if (bytes_recibidos == 0)
 	{
-		log_error(logger, "Conexion por socket %d cerrada en el otro extremo.\n", socket_cliente);
-		close(socket_cliente);
+		log_warning(logger, "Conexion por socket %d cerrada en el otro extremo mientras recibia el tamaño del stream.", socket_cliente);
 		return NULL;
 	}
 
 	bytes_recibidos = recv(socket_cliente, &offset, sizeof(uint32_t), MSG_WAITALL);
 	if (bytes_recibidos == -1)
 	{
-		log_error(logger, "El cliente se desconecto del socket %d mientras recibia el offset del stream.\n", socket_cliente);
-		close(socket_cliente);
+		log_warning(logger, "El cliente se desconecto del socket %d mientras recibia el offset del stream.", socket_cliente);
 		return NULL;
 	}
 	else if (bytes_recibidos == 0)
 	{
-		log_error(logger, "Conexion por socket %d cerrada en el otro extremo.\n", socket_cliente);
-		close(socket_cliente);
+		log_warning(logger, "Conexion por socket %d cerrada en el otro extremo mientras recibia el offset del stream.", socket_cliente);
 		return NULL;
 	}
 
@@ -124,14 +120,14 @@ t_buffer *recibir_buffer(t_log *logger, int socket_cliente)
 	if (bytes_recibidos == -1)
 	{
 		free(stream);
-		log_error(logger, "El cliente se desconecto del socket %d mientras recibia el stream.\n", socket_cliente);
+		log_warning(logger, "El cliente se desconecto del socket %d mientras recibia el stream.", socket_cliente);
 		close(socket_cliente);
 		return NULL;
 	}
 	else if (bytes_recibidos == 0)
 	{
 		free(stream);
-		log_error(logger, "Conexion por socket %d cerrada en el otro extremo.\n", socket_cliente);
+		log_warning(logger, "Conexion por socket %d cerrada en el otro extremo.", socket_cliente);
 		close(socket_cliente);
 		return NULL;
 	}
@@ -153,32 +149,28 @@ t_paquete *recibir_paquete(t_log *logger, int socket_cliente)
 	bytes_recibidos = recv(socket_cliente, &(paquete->codigo_operacion), sizeof(t_op_code), MSG_WAITALL);
 	if (bytes_recibidos == -1)
 	{
-		log_error(logger, "El cliente se desconecto del socket %d mientras recibia el codigo de operacion.\n", socket_cliente);
+		log_warning(logger, "El cliente se desconecto del socket %d mientras recibia el codigo de operacion.", socket_cliente);
 		free(paquete);
-		close(socket_cliente);
 		return NULL;
 	}
 	else if (bytes_recibidos == 0)
 	{
-		log_error(logger, "Conexion por socket %d cerrada en el otro extremo", socket_cliente);
+		log_warning(logger, "Conexion por socket %d cerrada en el otro extremo mientras recibia el codigo de operacion.", socket_cliente);
 		free(paquete);
-		close(socket_cliente);
 		return NULL;
 	}
 
 	bytes_recibidos = recv(socket_cliente, &(paquete->size_buffer), sizeof(uint32_t), MSG_WAITALL);
 	if (bytes_recibidos == -1)
 	{
-		log_error(logger, "El cliente se desconecto del socket %d mientras recibia el tamaño total del buffer.\n", socket_cliente);
+		log_warning(logger, "El cliente se desconecto del socket %d mientras recibia el tamaño total del buffer.", socket_cliente);
 		free(paquete);
-		close(socket_cliente);
 		return NULL;
 	}
 	else if (bytes_recibidos == 0)
 	{
-		log_error(logger, "Conexion por socket %d cerrada en el otro extremo", socket_cliente);
+		log_warning(logger, "Conexion por socket %d cerrada en el otro extremo mientras recibia el tamaño total del buffer.", socket_cliente);
 		free(paquete);
-		close(socket_cliente);
 		return NULL;
 	}
 

@@ -22,6 +22,7 @@ typedef struct t_kernel_sockets
     int cpu_dispatch;
     int cpu_interrupt;
     int server;
+    int entrada_salida;
     int entrada_salida_generic;
     int entrada_salida_stdin;
     int entrada_salida_stdout;
@@ -40,6 +41,11 @@ typedef enum KERNEL_SOCKETS
     ENTRADA_SALIDA_DIALFS
 } KERNEL_SOCKETS;
 
+typedef struct
+{
+    pthread_t thread_atender_entrada_salida_generic, thread_atender_entrada_salida_stdin, thread_atender_entrada_salida_stdout, thread_atender_entrada_salida_dialfs, thread_atender_entrada_salida;
+} t_kernel_threads;
+
 typedef struct t_kernel
 {
     int puertoEscucha;
@@ -54,6 +60,7 @@ typedef struct t_kernel
     char *instanciasRecursos;
     int gradoMultiprogramacion;
     t_kernel_sockets sockets;
+    t_kernel_threads threads;
 } t_kernel;
 
 /**
