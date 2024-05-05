@@ -31,18 +31,8 @@ int main()
 	pthread_create(&thread_atender_kernel, NULL, atender_kernel, NULL);
 	pthread_join(thread_atender_kernel, NULL);
 
-	if(!list_is_empty(lista_procesos))
-	{	
-		log_debug(logger, "Eliminando procesos almacenados en lista de procesos.");
-		// TODO: Liberar memoria de las instrucciones, no solo de la lista, posible memory leak.
-		list_destroy_and_destroy_elements(lista_procesos, free);
-	}
-
-	if(!dictionary_is_empty(diccionario_procesos))
-	{
-		log_debug(logger, "Eliminando diccionario de procesos.");
-		dictionary_clean_and_destroy_elements(diccionario_procesos,free);
-	}
+	eliminar_procesos(lista_procesos);
+	dictionary_clean_and_destroy_elements(diccionario_procesos, free);
 
 	config_destroy(config);
 	log_destroy(logger);
@@ -314,26 +304,8 @@ void *atender_kernel()
 					break;
 				}
 
-				// Libero la memoria de las instrucciones del proceso
-				for(int i = 0; i < list_size(proceso_encontrado->instrucciones); i++)
-				{
-					t_memoria_cpu_instruccion* instruccion = list_get(proceso_encontrado->instrucciones, i);
-					
-					log_debug(logger, "Instruccion a liberar: %s", instruccion->instruccion);
-					log_debug(logger, "Argumento 1 a liberar: %s", instruccion->argumento_1);
-					log_debug(logger, "Argumento 2 a liberar: %s", instruccion->argumento_2);
-					log_debug(logger, "Argumento 3 a liberar: %s", instruccion->argumento_3);
-					log_debug(logger, "Argumento 4 a liberar: %s", instruccion->argumento_4);
-					log_debug(logger, "Argumento 5 a liberar: %s\n", instruccion->argumento_5);
-					
-					free(instruccion->argumento_1);
-					free(instruccion->argumento_2);
-					free(instruccion->argumento_3);
-					free(instruccion->argumento_4);
-					free(instruccion->argumento_5);
-					free(instruccion->instruccion);
-					free(instruccion);
-				}
+				// Remuevo cada instruccion y luego la lista de instrucciones en si misma
+				eliminar_instrucciones(proceso_encontrado->instrucciones);
 
 				char* pid_char = string_itoa(proceso_encontrado->pid);
 
@@ -343,10 +315,9 @@ void *atender_kernel()
 				// Elimino el proceso del diccionario de procesos
 				dictionary_remove_and_destroy(diccionario_procesos, pid_char, free);
 
-				free(pid_char);
-
 				log_info(logger, "Se elimino el proceso con PID <%d> de Memoria.\n", pid);
 
+				free(pid_char);
 				free(proceso);
 				break;
 			}
@@ -740,4 +711,34 @@ t_proceso *obtener_proceso(uint32_t pid)
 	int index = atoi((char*)intermedio);
 
 	return list_get(lista_procesos, index);
+}
+
+void eliminar_procesos(t_list *lista_procesos) {
+	while (!list_is_empty(lista_procesos)) {
+		t_proceso *proceso = list_remove(lista_procesos, 0);
+		eliminar_instrucciones(proceso->instrucciones);
+		free(proceso);
+	}
+}
+
+void eliminar_instrucciones(t_list *lista_instrucciones) {
+		for (int i = 0; i < list_size(lista_instrucciones); i++) {
+			t_memoria_cpu_instruccion *instruccion = list_remove(lista_instrucciones, 0);
+			
+			log_debug(logger, "Instruccion a liberar: %s", instruccion->instruccion);
+			log_debug(logger, "Argumento 1 a liberar: %s", instruccion->argumento_1);
+			log_debug(logger, "Argumento 2 a liberar: %s", instruccion->argumento_2);
+			log_debug(logger, "Argumento 3 a liberar: %s", instruccion->argumento_3);
+			log_debug(logger, "Argumento 4 a liberar: %s", instruccion->argumento_4);
+			log_debug(logger, "Argumento 5 a liberar: %s", instruccion->argumento_5);
+			
+			free(instruccion->argumento_1);
+			free(instruccion->argumento_2);
+			free(instruccion->argumento_3);
+			free(instruccion->argumento_4);
+			free(instruccion->argumento_5);
+			free(instruccion->instruccion);
+			free(instruccion);
+		}
+		list_destroy(lista_instrucciones);
 }
