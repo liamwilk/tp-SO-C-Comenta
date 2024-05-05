@@ -68,6 +68,9 @@ t_list *memoria_leer_instrucciones(char *path_instrucciones);
  */
 t_proceso *obtener_proceso(uint32_t pid);
 
+void eliminar_procesos(t_list *lista_procesos);
+void eliminar_instrucciones(t_list *lista_instrucciones);
+
 pthread_t thread_atender_cpu,thread_atender_kernel,thread_atender_entrada_salida,thread_esperar_cpu,thread_conectar_kernel;
 
 pthread_t thread_atender_entrada_salida_stdin,thread_atender_entrada_salida_stdout,thread_atender_entrada_salida_dialfs;
