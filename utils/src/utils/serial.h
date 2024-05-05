@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <string.h>
+#include <errno.h>
 #include <commons/log.h>
 #include <commons/collections/list.h>
 
@@ -27,7 +28,7 @@ typedef enum
 	IO_GEN_SLEEP,
 	IO_GEN_SLEEP_TERMINADO,
 	IO_AVISO_EXIT,
-	IO_IDENTIFICADOR
+	IO_IDENTIFICADOR,
 } t_op_code;
 
 typedef struct
@@ -92,6 +93,16 @@ typedef struct
 {
 	uint32_t pid;
 } t_kernel_memoria_finalizar_proceso;
+
+typedef struct
+{
+	uint32_t unidad_de_trabajo;
+} t_kernel_entrada_salida_unidad_de_trabajo;
+
+typedef struct
+{
+	bool terminado;
+} t_entrada_salida_kernel_unidad_de_trabajo;
 
 typedef struct t_kernel_cpu_proceso
 {
@@ -162,7 +173,7 @@ void eliminar_paquete(t_paquete *paquete);
  * @brief Recibe el buffer entrante
  * @param socket_cliente Socket desde el cual proviene el buffer
  */
-t_buffer *recibir_buffer(int socket_cliente);
+t_buffer *recibir_buffer(t_log *logger, int socket_cliente);
 
 /**
  *
@@ -348,5 +359,12 @@ void serializar_t_registros_cpu(t_paquete **paquete, uint32_t pid, t_registros_c
 t_memoria_kernel_proceso *deserializar_t_memoria_kernel_proceso(t_buffer *buffer);
 
 void serializar_t_kernel_memoria_finalizar_proceso(t_paquete **paquete, t_kernel_memoria_finalizar_proceso *proceso);
+
+void serializar_t_kernel_entrada_salida_unidad_de_trabajo(t_paquete **paquete, t_kernel_entrada_salida_unidad_de_trabajo *unidad);
+
+t_kernel_entrada_salida_unidad_de_trabajo *deserializar_t_kernel_entrada_salida_unidad_de_trabajo(t_buffer *buffer);
+
+void serializar_t_entrada_salida_kernel_unidad_de_trabajo(t_paquete **paquete, t_entrada_salida_kernel_unidad_de_trabajo *unidad);
+t_entrada_salida_kernel_unidad_de_trabajo *deserializar_t_entrada_salida_kernel_unidad_de_trabajo(t_buffer *buffer);
 
 #endif

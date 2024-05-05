@@ -18,12 +18,12 @@ t_tipointerfaz determinar_tipo_interfaz(t_config* config);
 /*-------Inicializacion-------*/
 
 /**
- * @fn    entradasalida_gen_inicializar
+ * @fn    entradasalida_generic_inicializar
  * @brief Inicializa la entrada-salida generica junto con todas sus configuraciones
  * @param config Instancia de module.config
  * @return config
  */
-t_entradasalida entradasalida_gen_inicializar(t_config *config);
+t_entradasalida entradasalida_generic_inicializar(t_config *config);
 
 /**
  * @fn    entradasalida_stdin_inicializar
@@ -52,11 +52,11 @@ t_entradasalida entradasalida_dialfs_inicializar(t_config *config);
 /*-------Logueo-------*/
 
 /**
- * @fn    entradasalida_gen_log
+ * @fn    entradasalida_generic_log
  * @brief Logs necesarios para entrada-salida generica
  * @param config Instancia de module.config
  */
-void entradasalida_gen_log(t_entradasalida entradasalida, t_log *logger);
+void entradasalida_generic_log(t_entradasalida entradasalida, t_log *logger);
 
 /**
  * @fn    entradasalida_stdin_log

@@ -8,7 +8,7 @@
 #include <utils/serial.h>
 #include "common.h"
 
-void procesar_entradasalida_gen(t_entradasalida entradasalida, t_log *logger, char *nombre_modulo);
-uint32_t deserializar_unidades_de_trabajo(t_paquete *paquete);
+// void atender_entrada_salida_generic(t_entradasalida entradasalida, t_log *logger, char *nombre_modulo);
+// uint32_t deserializar_t_kernel_entrada_salida_unidad_de_trabajo(t_buffer *buffer);
 
 #endif

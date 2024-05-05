@@ -25,17 +25,32 @@ t_log* logger;
 t_config* config;
 t_entradasalida entradasalida;
 
-pthread_t thread_conectar_kernel,thread_conectar_memoria;
+pthread_t thread_conectar_kernel_generic,thread_atender_kernel_generic;
+pthread_t thread_conectar_memoria_stdin,thread_atender_memoria_stdin;
+pthread_t thread_conectar_kernel_stdin,thread_atender_kernel_stdin;
 
-void* conectar_kernel();
-void* conectar_memoria();
+void* conectar_kernel_stdin();
+void* conectar_memoria_stdin();
+
+void* conectar_kernel_generic();
+void* atender_kernel_generic();
+
+void* atender_kernel_stdin();
+void* atender_memoria_stdin();
+
 
 int socket_memoria;
-int socket_kernel;
+int socket_kernel_generic;
+int socket_kernel_stdin;
+int socket_kernel_stdout;
+int socket_kernel_dialfs;
+char *nombre_modulo;
 
+void procesar_entradasalida_generic();	
+void procesar_entradasalida_stdin();
+void procesar_entradasalida_stdout();
+void procesar_entradasalida_dialfs();	
 
-void procesar_entradasalida_stdin(t_entradasalida entradasalida,t_log *logger);		
-void procesar_entradasalida_stdout(t_entradasalida entradasalida,t_log *logger);		
-void procesar_entradasalida_dialfs(t_entradasalida entradasalida,t_log *logger);	
+void* atender_entrada_salida_generic();
 
 #endif /* MAIN_H_ */

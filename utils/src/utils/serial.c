@@ -82,16 +82,59 @@ void eliminar_paquete(t_paquete *paquete)
 	free(paquete);
 };
 
-t_buffer *recibir_buffer(int socket_cliente)
+t_buffer *recibir_buffer(t_log *logger, int socket_cliente)
 {
 	uint32_t size;
 	uint32_t offset;
+	ssize_t bytes_recibidos;
 
-	recv(socket_cliente, &size, sizeof(uint32_t), MSG_WAITALL);
-	recv(socket_cliente, &offset, sizeof(uint32_t), MSG_WAITALL);
+	bytes_recibidos = recv(socket_cliente, &size, sizeof(uint32_t), MSG_WAITALL);
+
+	if (bytes_recibidos == -1)
+	{
+		log_error(logger, "El cliente se desconecto del socket %d mientras recibia el tamaño del stream.\n", socket_cliente);
+		close(socket_cliente);
+		return NULL;
+	}
+	else if (bytes_recibidos == 0)
+	{
+		log_error(logger, "Conexion por socket %d cerrada en el otro extremo.\n", socket_cliente);
+		close(socket_cliente);
+		return NULL;
+	}
+
+	bytes_recibidos = recv(socket_cliente, &offset, sizeof(uint32_t), MSG_WAITALL);
+	if (bytes_recibidos == -1)
+	{
+		log_error(logger, "El cliente se desconecto del socket %d mientras recibia el offset del stream.\n", socket_cliente);
+		close(socket_cliente);
+		return NULL;
+	}
+	else if (bytes_recibidos == 0)
+	{
+		log_error(logger, "Conexion por socket %d cerrada en el otro extremo.\n", socket_cliente);
+		close(socket_cliente);
+		return NULL;
+	}
 
 	void *stream = malloc(size);
-	recv(socket_cliente, stream, size, MSG_WAITALL);
+
+	bytes_recibidos = recv(socket_cliente, stream, size, MSG_WAITALL);
+
+	if (bytes_recibidos == -1)
+	{
+		free(stream);
+		log_error(logger, "El cliente se desconecto del socket %d mientras recibia el stream.\n", socket_cliente);
+		close(socket_cliente);
+		return NULL;
+	}
+	else if (bytes_recibidos == 0)
+	{
+		free(stream);
+		log_error(logger, "Conexion por socket %d cerrada en el otro extremo.\n", socket_cliente);
+		close(socket_cliente);
+		return NULL;
+	}
 
 	t_buffer *buffer = malloc(sizeof(t_buffer));
 	buffer->size = size;
@@ -104,9 +147,48 @@ t_buffer *recibir_buffer(int socket_cliente)
 t_paquete *recibir_paquete(t_log *logger, int socket_cliente)
 {
 	t_paquete *paquete = malloc(sizeof(t_paquete));
-	recv(socket_cliente, &(paquete->codigo_operacion), sizeof(t_op_code), MSG_WAITALL);
-	recv(socket_cliente, &(paquete->size_buffer), sizeof(uint32_t), MSG_WAITALL);
-	paquete->buffer = recibir_buffer(socket_cliente);
+
+	ssize_t bytes_recibidos;
+
+	bytes_recibidos = recv(socket_cliente, &(paquete->codigo_operacion), sizeof(t_op_code), MSG_WAITALL);
+	if (bytes_recibidos == -1)
+	{
+		log_error(logger, "El cliente se desconecto del socket %d mientras recibia el codigo de operacion.\n", socket_cliente);
+		free(paquete);
+		close(socket_cliente);
+		return NULL;
+	}
+	else if (bytes_recibidos == 0)
+	{
+		log_error(logger, "Conexion por socket %d cerrada en el otro extremo", socket_cliente);
+		free(paquete);
+		close(socket_cliente);
+		return NULL;
+	}
+
+	bytes_recibidos = recv(socket_cliente, &(paquete->size_buffer), sizeof(uint32_t), MSG_WAITALL);
+	if (bytes_recibidos == -1)
+	{
+		log_error(logger, "El cliente se desconecto del socket %d mientras recibia el tamaño total del buffer.\n", socket_cliente);
+		free(paquete);
+		close(socket_cliente);
+		return NULL;
+	}
+	else if (bytes_recibidos == 0)
+	{
+		log_error(logger, "Conexion por socket %d cerrada en el otro extremo", socket_cliente);
+		free(paquete);
+		close(socket_cliente);
+		return NULL;
+	}
+
+	paquete->buffer = recibir_buffer(logger, socket_cliente);
+
+	if (paquete->buffer == NULL)
+	{
+		return NULL;
+	}
+
 	return paquete;
 }
 
@@ -262,6 +344,26 @@ t_memoria_kernel_proceso *deserializar_t_memoria_kernel_proceso(t_buffer *buffer
 	return proceso;
 }
 
+t_kernel_entrada_salida_unidad_de_trabajo *deserializar_t_kernel_entrada_salida_unidad_de_trabajo(t_buffer *buffer)
+{
+	t_kernel_entrada_salida_unidad_de_trabajo *unidad = malloc(sizeof(t_kernel_entrada_salida_unidad_de_trabajo));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(unidad->unidad_de_trabajo));
+
+	return unidad;
+}
+
+t_entrada_salida_kernel_unidad_de_trabajo *deserializar_t_entrada_salida_kernel_unidad_de_trabajo(t_buffer *buffer)
+{
+	t_entrada_salida_kernel_unidad_de_trabajo *unidad = malloc(sizeof(t_entrada_salida_kernel_unidad_de_trabajo));
+	void *stream = buffer->stream;
+
+	deserializar_bool(&stream, &(unidad->terminado));
+
+	return unidad;
+}
+
 void serializar_t_registros_cpu(t_paquete **paquete, uint32_t pid, t_registros_cpu *registros)
 {
 	actualizar_buffer(*paquete, sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint8_t));
@@ -279,4 +381,16 @@ void serializar_t_kernel_memoria_finalizar_proceso(t_paquete **paquete, t_kernel
 {
 	actualizar_buffer(*paquete, sizeof(uint32_t));
 	serializar_uint32_t(proceso->pid, *paquete);
+}
+
+void serializar_t_kernel_entrada_salida_unidad_de_trabajo(t_paquete **paquete, t_kernel_entrada_salida_unidad_de_trabajo *unidad)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t));
+	serializar_uint32_t(unidad->unidad_de_trabajo, *paquete);
+}
+
+void serializar_t_entrada_salida_kernel_unidad_de_trabajo(t_paquete **paquete, t_entrada_salida_kernel_unidad_de_trabajo *unidad)
+{
+	actualizar_buffer(*paquete, sizeof(bool));
+	serializar_bool(unidad->terminado, *paquete);
 }

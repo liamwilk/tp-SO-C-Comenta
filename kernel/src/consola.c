@@ -80,7 +80,7 @@ void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados,
             log_info(logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
             break;
         case INICIAR_PROCESO:
-            log_warning(logger, "Se ejecuto SCRIPT %s con argumento %s", separar_linea[0], separar_linea[1]);
+            log_info(logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
             if (!separar_linea[1])
             {
                 log_error(logger, "No se ingreso un path de instrucciones");
@@ -122,6 +122,31 @@ void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados,
         case DETENER_PLANIFICACION:
         {
             log_info(logger, "Se ejecuto script %s", separar_linea[0]);
+
+            // Hardcodeo una prueba para IO Generic acá, luego hay que ubicarla donde vaya.
+
+            if (kernel->sockets.entrada_salida_generic == 0)
+            {
+                log_error(logger, "No se pudo enviar el paquete a IO Generic porque aun no se conecto.");
+                break;
+            }
+
+            log_debug(logger, "Se envia un sleep de 10 segundos a IO Generic");
+            t_paquete *paquete = crear_paquete(IO_GEN_SLEEP);
+
+            t_kernel_entrada_salida_unidad_de_trabajo *unidad = malloc(sizeof(t_kernel_entrada_salida_unidad_de_trabajo));
+            unidad->unidad_de_trabajo = 10;
+
+            serializar_t_kernel_entrada_salida_unidad_de_trabajo(&paquete, unidad);
+
+            log_debug(logger, "Socket IO Generic: %d\n", kernel->sockets.entrada_salida_generic);
+
+            enviar_paquete(paquete, kernel->sockets.entrada_salida_generic);
+            log_debug(logger, "Se envio el paquete a IO Generic");
+
+            eliminar_paquete(paquete);
+            free(unidad);
+
             break;
         }
         case INICIAR_PLANIFICACION:

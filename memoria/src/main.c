@@ -80,6 +80,12 @@ void *atender_cpu()
 		log_debug(logger, "Esperando paquete de CPU en socket %d", socket_cpu);
 		t_paquete *paquete = recibir_paquete(logger, socket_cpu);
 
+		if (paquete == NULL)
+        {
+            log_error(logger, "CPU se desconecto del socket %d.", socket_cpu);
+			break;
+        }
+
 		switch (paquete->codigo_operacion)
 		{
 		case PROXIMA_INSTRUCCION:
@@ -145,10 +151,10 @@ void *atender_cpu()
 			}
 		default:
 		{	
+			log_warning(logger, "[CPU] Se recibio un codigo de operacion desconocido. Cierro hilo");
 			eliminar_paquete(paquete);
 			liberar_conexion(socket_cpu);
 			pthread_exit(0);
-			break;
 		}
 		}
 		eliminar_paquete(paquete);
@@ -186,6 +192,13 @@ void *atender_kernel()
 
 		t_paquete *paquete = recibir_paquete(logger, socket_kernel);
 		
+		if (paquete == NULL)
+        {
+            log_error(logger, "Kernel se desconecto del socket. %d.", socket_kernel);
+			kernel_orden_apagado = 0;
+			break;
+        }
+
 		switch (paquete->codigo_operacion)
 		{
 			case KERNEL_MEMORIA_NUEVO_PROCESO:
@@ -327,10 +340,10 @@ void *atender_kernel()
 			}
 			default:
 			{
+				log_warning(logger, "[Kernel] Se recibio un codigo de operacion desconocido. Cierro hilo");
 				eliminar_paquete(paquete);
-				liberar_conexion(socket_kernel);
+				liberar_conexion(socket_cpu);
 				pthread_exit(0);
-				break;
 			}
 			
 		}
@@ -347,38 +360,69 @@ void *esperar_entrada_salida()
 
 		if (socket_cliente == -1)
 		{
+            log_error(logger, "Error al esperar conexion de modulo de Entrada/Salida");
 			break;
 		}
 
-		t_handshake resultado = esperar_handshake(logger, socket_cliente, MEMORIA_ENTRADA_SALIDA, "Entrada/Salida");
+		t_handshake modulo = esperar_handshake_entrada_salida(logger, socket_cliente);
 
-		if (resultado != CORRECTO)
-		{
-			liberar_conexion(socket_cliente);
-			break;
-		}
+        if (modulo == ERROR)
+        {
+            log_error(logger, "Error al recibir handshake de modulo de Entrada/Salida");
+            liberar_conexion(socket_cliente);
+            break;
+        }
 
 		pthread_t hilo;
 		int *args = malloc(sizeof(int));
 		*args = socket_cliente;
-		pthread_create(&hilo, NULL, atender_entrada_salida, args);
-		pthread_detach(hilo);
+
+		switch (modulo)
+        {
+        case MEMORIA_ENTRADA_SALIDA_STDIN:
+            log_debug(logger, "Se conecto un modulo de entrada/salida STDIN");
+            pthread_create(&hilo, NULL, atender_entrada_salida_stdin, args);
+            pthread_detach(hilo);
+            break;
+        case MEMORIA_ENTRADA_SALIDA_STDOUT:
+            log_debug(logger, "Se conecto un modulo de entrada/salida STDOUT");
+            pthread_create(&hilo, NULL, atender_entrada_salida_stdout, args);
+            pthread_detach(hilo);
+            break;
+        case MEMORIA_ENTRADA_SALIDA_DIALFS:
+            log_debug(logger, "Se conecto un modulo de entrada/salida DIALFS");
+            pthread_create(&hilo, NULL, atender_entrada_salida_dialfs, args);
+            pthread_detach(hilo);
+            break;
+        default:
+            log_error(logger, "Se conecto un modulo de entrada/salida desconocido. Desconectando...");
+            liberar_conexion(socket_cliente);
+            free(args);
+            break;
+        }
 	}
 
 	pthread_exit(0);
 }
 
-void *atender_entrada_salida(void *args)
+void *atender_entrada_salida_stdin(void *args)
 {
-	int socket_cliente = *(int *)args;
-	log_debug(logger, "I/O conectado en socket %d", socket_cliente);
-	free(args);
+	char *modulo = "I/O STDIN";
 
-	do
+	int socket_cliente = *(int *)args;
+	log_debug(logger, "%s conectado en socket %d", modulo, socket_cliente);
+
+	while (kernel_orden_apagado)
 	{
-		log_debug(logger, "Esperando paquete de I/O en socket %d", socket_cliente);
+		log_debug(logger, "Esperando paquete de %s en socket %d",modulo,socket_cliente);
 		t_paquete *paquete = recibir_paquete(logger, socket_cliente);
 		
+		if (paquete == NULL)
+        {
+            log_error(logger, "%s se desconecto del socket %d.",modulo, socket_cliente);
+			break;
+        }
+
 		switch (paquete->codigo_operacion)
 		{
 		case MENSAJE:
@@ -386,15 +430,98 @@ void *atender_entrada_salida(void *args)
 			// placeholder
 			break;
 		default:
-			liberar_conexion(socket_cliente);
-			pthread_exit(0);
-			break;
+			{
+				log_warning(logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo",modulo);
+				liberar_conexion(socket_cliente);
+				eliminar_paquete(paquete);
+				free(args);
+				pthread_exit(0);
+			}
 		}
-		free(paquete->buffer->stream);
-		free(paquete->buffer);
-		free(paquete);
-	} while (kernel_orden_apagado);
+		eliminar_paquete(paquete);
+	}
+	
+	free(args);
+	pthread_exit(0);
+}
 
+void *atender_entrada_salida_stdout(void *args)
+{
+	char *modulo = "I/O STDOUT";
+
+	int socket_cliente = *(int *)args;
+	log_debug(logger, "%s conectado en socket %d", modulo, socket_cliente);
+
+	while (kernel_orden_apagado)
+	{
+		log_debug(logger, "Esperando paquete de %s en socket %d",modulo,socket_cliente);
+		t_paquete *paquete = recibir_paquete(logger, socket_cliente);
+		
+		if (paquete == NULL)
+        {
+            log_error(logger, "%s se desconecto del socket %d.",modulo, socket_cliente);
+			break;
+        }
+
+		switch (paquete->codigo_operacion)
+		{
+		case MENSAJE:
+			revisar_paquete(paquete,logger,kernel_orden_apagado,"I/O");
+			// placeholder
+			break;
+		default:
+			{
+				log_warning(logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo",modulo);
+				liberar_conexion(socket_cliente);
+				eliminar_paquete(paquete);
+				free(args);
+				pthread_exit(0);
+			}
+		}
+		eliminar_paquete(paquete);
+	}
+	
+	free(args);
+	pthread_exit(0);
+}
+
+void *atender_entrada_salida_dialfs(void *args)
+{
+	char *modulo = "I/O DialFS";
+
+	int socket_cliente = *(int *)args;
+	log_debug(logger, "%s conectado en socket %d", modulo, socket_cliente);
+
+	while (kernel_orden_apagado)
+	{
+		log_debug(logger, "Esperando paquete de %s en socket %d",modulo,socket_cliente);
+		t_paquete *paquete = recibir_paquete(logger, socket_cliente);
+		
+		if (paquete == NULL)
+        {
+            log_error(logger, "%s se desconecto del socket %d.",modulo, socket_cliente);
+			break;
+        }
+
+		switch (paquete->codigo_operacion)
+		{
+		case MENSAJE:
+			revisar_paquete(paquete,logger,kernel_orden_apagado,"I/O");
+			// placeholder
+			break;
+		default:
+			{
+				log_warning(logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo",modulo);
+				liberar_conexion(socket_cliente);
+				eliminar_paquete(paquete);
+				free(args);
+				pthread_exit(0);
+			}
+		}
+		eliminar_paquete(paquete);
+	}
+	
+	free(args);
 	pthread_exit(0);
 }
 
