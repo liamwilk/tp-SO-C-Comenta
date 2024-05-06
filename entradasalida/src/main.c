@@ -83,7 +83,7 @@ void* conectar_memoria_stdin(){
 	t_handshake resultado = crear_handshake(logger,socket_memoria,MEMORIA_ENTRADA_SALIDA_STDIN, "Memoria");
 
 	if(resultado != CORRECTO){
-		liberar_conexion(socket_memoria);
+		liberar_conexion(&socket_memoria);
 		pthread_exit(0);
 	}
 
@@ -101,7 +101,7 @@ void* conectar_kernel_stdin(){
 	t_handshake resultado = crear_handshake(logger,socket_kernel_stdin,KERNEL_ENTRADA_SALIDA_STDIN, "Kernel");
 
 	if(resultado != CORRECTO){
-		liberar_conexion(socket_kernel_stdin);
+		liberar_conexion(&socket_kernel_stdin);
 		pthread_exit(0);
 	}
 
@@ -189,7 +189,7 @@ void* conectar_kernel_generic(){
 	t_handshake resultado = crear_handshake(logger,socket_kernel_generic,KERNEL_ENTRADA_SALIDA_GENERIC, "Kernel");
 
 	if(resultado != CORRECTO){
-		liberar_conexion(socket_kernel_generic);
+		liberar_conexion(&socket_kernel_generic);
 		pthread_exit(0);
 	}
 
@@ -245,14 +245,14 @@ void *atender_kernel_generic()
 			{
 				log_info(logger, "Se recibio la señal de desconexión de Kernel. Cierro hilo");
 				pthread_cancel(thread_atender_kernel_generic);
-				liberar_conexion(socket_kernel_generic);
+				liberar_conexion(&socket_kernel_generic);
 				break;
 			}
 			default:
 			{
 				log_warning(logger, "[Kernel] Se recibio un codigo de operacion desconocido. Cierro hilo");
 				eliminar_paquete(paquete);
-				liberar_conexion(socket_kernel_generic);
+				liberar_conexion(&socket_kernel_generic);
 				pthread_exit(0);
 			}
 			

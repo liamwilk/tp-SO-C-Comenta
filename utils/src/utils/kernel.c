@@ -126,36 +126,36 @@ void kernel_finalizar(t_kernel *kernel)
     if (kernel->sockets.entrada_salida > 0)
     {
         pthread_cancel(kernel->threads.thread_atender_entrada_salida);
-        liberar_conexion(kernel->sockets.entrada_salida);
+        liberar_conexion(&kernel->sockets.entrada_salida);
     }
     if (kernel->sockets.entrada_salida_generic > 0)
     {
         pthread_cancel(kernel->threads.thread_atender_entrada_salida_generic);
-        liberar_conexion(kernel->sockets.entrada_salida_stdin);
+        liberar_conexion(&kernel->sockets.entrada_salida_stdin);
     }
 
     if (kernel->sockets.entrada_salida_stdin > 0)
     {
         pthread_cancel(kernel->threads.thread_atender_entrada_salida_stdin);
-        liberar_conexion(kernel->sockets.entrada_salida_stdin);
+        liberar_conexion(&kernel->sockets.entrada_salida_stdin);
     }
 
     if (kernel->sockets.entrada_salida_stdout > 0)
     {
         pthread_cancel(kernel->threads.thread_atender_entrada_salida_stdout);
-        liberar_conexion(kernel->sockets.entrada_salida_stdout);
+        liberar_conexion(&kernel->sockets.entrada_salida_stdout);
     }
 
     if (kernel->sockets.entrada_salida_dialfs > 0)
     {
         pthread_cancel(kernel->threads.thread_atender_entrada_salida_dialfs);
-        liberar_conexion(kernel->sockets.entrada_salida_dialfs);
+        liberar_conexion(&kernel->sockets.entrada_salida_dialfs);
     }
 
-    liberar_conexion(kernel->sockets.cpu_dispatch);
-    liberar_conexion(kernel->sockets.cpu_interrupt);
-    liberar_conexion(kernel->sockets.memoria);
-    liberar_conexion(kernel->sockets.server);
+    liberar_conexion(&kernel->sockets.cpu_dispatch);
+    liberar_conexion(&kernel->sockets.cpu_interrupt);
+    liberar_conexion(&kernel->sockets.memoria);
+    liberar_conexion(&kernel->sockets.server);
 
     eliminar_paquete(finalizar);
 };
