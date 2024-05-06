@@ -80,7 +80,7 @@ void *hilos_atender_memoria(void *args)
 
             log_debug(hiloArgs->logger, "Recibí la respuesta de Memoria acerca de la solicitud de nuevo proceso");
             log_debug(hiloArgs->logger, "PID: %d", proceso->pid);
-            log_debug(hiloArgs->logger, "Cantidad de instrucciones: %d", proceso->cantidad_instruccions);
+            log_debug(hiloArgs->logger, "Cantidad de instrucciones: %d", proceso->cantidad_instrucciones);
             log_debug(hiloArgs->logger, "Leido: %d", proceso->leido);
             if (proceso->leido)
             {
@@ -92,6 +92,14 @@ void *hilos_atender_memoria(void *args)
                 // Buscar proceso
                 pcb->memoria_aceptado = true;
                 log_debug(hiloArgs->logger, "Proceso PID:<%d> aceptado en memoria", pcb->pid);
+                log_info(hiloArgs->logger, "Se crea el proceso <%d> en NEW", pcb->pid);
+            }
+            else
+            {
+                log_error(hiloArgs->logger, "Proceso PID:<%d> rechazado en memoria", proceso->pid);
+                // Eliminar proceso de la cola de new
+                proceso_eliminar_new(hiloArgs->estados->new, proceso->pid);
+                log_warning(hiloArgs->logger, "Proceso PID:<%d> eliminado de kernel", proceso->pid);
             };
             free(proceso);
             break;

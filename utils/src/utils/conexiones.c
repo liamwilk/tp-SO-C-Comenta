@@ -77,4 +77,5 @@ int esperar_conexion(t_log *logger_info, int socket_servidor)
 void liberar_conexion(int socket_cliente)
 {
     close(socket_cliente);
+    socket_cliente = -1;
 }

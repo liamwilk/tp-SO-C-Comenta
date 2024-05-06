@@ -24,8 +24,6 @@ void proceso_agregar_new(t_new *new, t_pcb *pcb)
     char *pos_char = string_itoa(list_size(new->cola) - 1);
     // No hace falta castearlo a void*, ese tipo acepta cualquier tipo de puntero (para el pos_char)
     dictionary_put(new->diccionario, pid_char, pos_char);
-    free(pid_char);
-    free(pos_char);
 };
 
 void proceso_agregar_ready(t_ready *ready, t_pcb *pcb)
@@ -35,8 +33,6 @@ void proceso_agregar_ready(t_ready *ready, t_pcb *pcb)
     char *pid_char = string_itoa(pcb->pid);
     char *pos_char = string_itoa(list_size(ready->cola) - 1);
     dictionary_put(ready->diccionario, pid_char, pos_char);
-    free(pid_char);
-    free(pos_char);
 };
 t_pcb *proceso_quitar_new(t_new *new)
 {
@@ -140,6 +136,22 @@ t_pcb *proceso_buscar_block(t_block *block, int pid)
     }
     int pos = atoi(pos_str);
     return list_get(block->cola, pos);
+}
+int proceso_eliminar_new(t_new *new, uint32_t processPID)
+{
+    t_pcb *pcb = proceso_buscar_new(new, processPID);
+    if (pcb == NULL)
+    {
+        return 0;
+    }
+    char *pid_str = string_itoa(processPID);
+    char *pos_str = dictionary_get(new->diccionario, pid_str);
+    int pos = atoi(pos_str);
+    void *proceso = list_remove(new->cola, pos);
+    free(proceso);
+    dictionary_remove(new->diccionario, pid_str);
+    pid -= 1;
+    return 1;
 }
 
 t_pcb *proceso_buscar_exit(t_exit *exit, int pid)

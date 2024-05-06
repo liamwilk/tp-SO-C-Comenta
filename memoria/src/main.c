@@ -209,28 +209,35 @@ void *atender_kernel()
 
 				// Leo las instrucciones del archivo y las guardo en la lista de instrucciones del proceso
 				proceso->instrucciones = memoria_leer_instrucciones(path_completo);
-
-				if (proceso->instrucciones != NULL){
-					log_debug(logger, "Se leyeron las instrucciones correctamente");
-				}
-				else{
-					log_error(logger,"No se pudieron leer las instrucciones.");
-					
-					// Le aviso a Kernel que no pude leer las instrucciones para ese PID
+				
+				// Le aviso a Kernel que no pude leer las instrucciones para ese PID
+				if (proceso->instrucciones == NULL){
+			
 					t_paquete *respuesta_paquete = crear_paquete(MEMORIA_KERNEL_NUEVO_PROCESO);
+					
 					t_memoria_kernel_proceso* respuesta_proceso = malloc(sizeof(t_memoria_kernel_proceso));
 					respuesta_proceso->pid = dato->pid;
-					respuesta_proceso->cantidad_instruccions = 0;
+					respuesta_proceso->cantidad_instrucciones = 0;
 					respuesta_proceso->leido = false;
+					
+					serializar_t_memoria_kernel_proceso(&respuesta_paquete, respuesta_proceso);
+
+					enviar_paquete(respuesta_paquete, socket_kernel);
+
+					log_error(logger,"No se pudieron leer las instrucciones.");
 					
 					free(dato->path_instrucciones);
 					free(dato);
 					free(proceso);
 					free(path_completo);
 					free(respuesta_proceso);
+
 					eliminar_paquete(respuesta_paquete);
 					break;
 				}
+
+				log_debug(logger, "Se leyeron las instrucciones correctamente");
+
 				// Guardo el proceso en la lista de procesos
 				int index = list_add(lista_procesos, proceso);
 				
@@ -251,7 +258,7 @@ void *atender_kernel()
 
 				t_memoria_kernel_proceso* respuesta_proceso = malloc(sizeof(t_memoria_kernel_proceso));
 				respuesta_proceso->pid = dato->pid;
-				respuesta_proceso->cantidad_instruccions = list_size(proceso->instrucciones);
+				respuesta_proceso->cantidad_instrucciones = list_size(proceso->instrucciones);
 				respuesta_proceso->leido = true;
 
 				serializar_t_memoria_kernel_proceso(&respuesta_paquete, respuesta_proceso);
@@ -261,7 +268,9 @@ void *atender_kernel()
 				free(dato->path_instrucciones);
 				free(dato);
 				free(respuesta_proceso);
+
 				eliminar_paquete(respuesta_paquete);
+				
 				break;
 				}
 			case KERNEL_MEMORIA_FINALIZAR_PROCESO:
@@ -555,7 +564,6 @@ t_list *memoria_leer_instrucciones(char *pathInstrucciones)
 	FILE *file = fopen(pathInstrucciones, "r");
 	if (file == NULL)
 	{
-		perror("No se pudo abrir el archivo de instrucciones en el path");
 		return NULL;
 	}
 

@@ -58,6 +58,6 @@ void serializar_t_memoria_kernel_proceso(t_paquete** paquete, t_memoria_kernel_p
 {
     actualizar_buffer(*paquete, sizeof(uint32_t) * 2 + sizeof(bool));
     serializar_uint32_t(proceso->pid, *paquete);
-    serializar_uint32_t(proceso->cantidad_instruccions, *paquete);
+    serializar_uint32_t(proceso->cantidad_instrucciones, *paquete);
     serializar_bool(proceso->leido, *paquete);
 }
