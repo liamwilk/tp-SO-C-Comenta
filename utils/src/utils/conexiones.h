@@ -12,6 +12,6 @@
 int iniciar_servidor(t_log *logger_trace, int puerto);
 int esperar_conexion(t_log *logger_info, int socket_servidor);
 int crear_conexion(t_log *logger_error, char *ip, int puerto);
-void liberar_conexion(int socket_cliente);
+void liberar_conexion(int *socket_cliente);
 
 #endif

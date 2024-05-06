@@ -41,7 +41,7 @@ void *hilos_conectar_memoria(void *args)
 
     if (resultado != CORRECTO)
     {
-        liberar_conexion(socket);
+        liberar_conexion(&socket);
         pthread_exit(0);
     }
 
@@ -62,7 +62,7 @@ void *hilos_atender_memoria(void *args)
         if (paquete == NULL && *(hiloArgs->kernel_orden_apagado) == 1)
         {
             log_info(hiloArgs->logger, "Memoria se desconecto del socket %d.", socket);
-            liberar_conexion(socket);
+            liberar_conexion(&socket);
             break;
         }
         else if (paquete == NULL && *(hiloArgs->kernel_orden_apagado) == 0)
@@ -107,7 +107,7 @@ void *hilos_atender_memoria(void *args)
         default:
         {
             log_warning(hiloArgs->logger, "[Memoria] Se recibio un codigo de operacion desconocido. Cierro hilo");
-            liberar_conexion(socket);
+            liberar_conexion(&socket);
             free(args);
             pthread_exit(0);
         }
@@ -147,7 +147,7 @@ void *hilos_conectar_cpu_dispatch(void *args)
 
     if (resultado != CORRECTO)
     {
-        liberar_conexion(socket);
+        liberar_conexion(&socket);
         pthread_exit(0);
     }
 
@@ -171,7 +171,7 @@ void *hilos_conectar_cpu_interrupt(void *args)
 
     if (resultado != CORRECTO)
     {
-        liberar_conexion(socket);
+        liberar_conexion(&socket);
         pthread_exit(0);
     }
 
@@ -205,7 +205,7 @@ void *hilos_atender_cpu_dispatch(void *args)
         default:
         {
             log_warning(hiloArgs->logger, "[CPU Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
-            liberar_conexion(socket);
+            liberar_conexion(&socket);
             free(args);
             pthread_exit(0);
         }
@@ -242,7 +242,7 @@ void *hilos_atender_cpu_interrupt(void *args)
         default:
         {
             log_warning(hiloArgs->logger, "[CPU Interrupt] Se recibio un codigo de operacion desconocido. Cierro hilo");
-            liberar_conexion(socket);
+            liberar_conexion(&socket);
             free(args);
             pthread_exit(0);
         }
@@ -281,7 +281,7 @@ void *hilos_esperar_entrada_salida(void *args)
         if (modulo == ERROR)
         {
             log_error(hiloArgs->logger, "Error al recibir handshake de modulo de Entrada/Salida");
-            liberar_conexion(socket_cliente);
+            liberar_conexion(&socket_cliente);
             break;
         }
 
@@ -313,7 +313,7 @@ void *hilos_esperar_entrada_salida(void *args)
             break;
         default:
             log_error(hiloArgs->logger, "Se conecto un modulo de entrada/salida desconocido");
-            liberar_conexion(socket_cliente);
+            liberar_conexion(&socket_cliente);
             free(io_args);
             break;
         }
@@ -359,7 +359,7 @@ void *hilos_atender_entrada_salida_generic(void *args)
         default:
         {
             log_warning(io_args->args->logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo);
-            liberar_conexion(io_args->socket);
+            liberar_conexion(&io_args->socket);
             eliminar_paquete(paquete);
             free(io_args);
             pthread_exit(0);
@@ -406,7 +406,7 @@ void *hilos_atender_entrada_salida_stdin(void *args)
         default:
         {
             log_warning(io_args->args->logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo);
-            liberar_conexion(io_args->socket);
+            liberar_conexion(&io_args->socket);
             free(io_args);
             pthread_exit(0);
         }
@@ -453,7 +453,7 @@ void *hilos_atender_entrada_salida_stdout(void *args)
         default:
         {
             log_warning(io_args->args->logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo);
-            liberar_conexion(io_args->socket);
+            liberar_conexion(&io_args->socket);
             free(io_args);
             pthread_exit(0);
         }
@@ -499,7 +499,7 @@ void *hilos_atender_entrada_salida_dialfs(void *args)
         default:
         {
             log_warning(io_args->args->logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo);
-            liberar_conexion(io_args->socket);
+            liberar_conexion(&io_args->socket);
             free(io_args);
             pthread_exit(0);
         }

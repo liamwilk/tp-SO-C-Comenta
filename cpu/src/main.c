@@ -76,7 +76,7 @@ void *conectar_memoria()
 
 	if (resultado != CORRECTO)
 	{
-		liberar_conexion(socket_memoria);
+		liberar_conexion(&socket_memoria);
 		pthread_exit(0);
 	}
 
@@ -128,7 +128,7 @@ void *atender_memoria()
 			{	
 			log_warning(logger, "[Memoria] Se recibio un codigo de operacion desconocido. Cierro hilo");
 			eliminar_paquete(paquete);
-			liberar_conexion(socket_memoria);
+			liberar_conexion(&socket_memoria);
 			pthread_exit(0);
 		}
 		}
@@ -151,12 +151,12 @@ void *esperar_kernel_dispatch()
 
 	if (resultado != CORRECTO)
 	{
-		liberar_conexion(socket_kernel_dispatch);
+		liberar_conexion(&socket_kernel_dispatch);
 		pthread_exit(0);
 	}
 
 	log_debug(logger, "Kernel conectado por Dispatch en socket %d", socket_kernel_dispatch);
-	liberar_conexion(socket_server_dispatch);
+	liberar_conexion(&socket_server_dispatch);
 	pthread_exit(0);
 }
 
@@ -191,9 +191,9 @@ void *atender_kernel_dispatch()
 			pthread_cancel(thread_atender_kernel_interrupt);
 			pthread_cancel(thread_atender_kernel_dispatch);
 			
-			liberar_conexion(socket_memoria);
-			liberar_conexion(socket_kernel_dispatch);
-			liberar_conexion(socket_kernel_interrupt);
+			liberar_conexion(&socket_memoria);
+			liberar_conexion(&socket_kernel_dispatch);
+			liberar_conexion(&socket_kernel_interrupt);
 			
 
 			break;
@@ -218,7 +218,7 @@ void *atender_kernel_dispatch()
 			{
 			log_warning(logger, "[Kernel Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
 			eliminar_paquete(paquete);
-			liberar_conexion(socket_kernel_dispatch);
+			liberar_conexion(&socket_kernel_dispatch);
 			pthread_exit(0);
 			}
 		}
@@ -240,12 +240,12 @@ void *esperar_kernel_interrupt()
 
 	if (resultado != CORRECTO)
 	{
-		liberar_conexion(socket_kernel_interrupt);
+		liberar_conexion(&socket_kernel_interrupt);
 		pthread_exit(0);
 	}
 
 	log_debug(logger, "Kernel conectado por Interrupt en socket %d", socket_kernel_interrupt);
-	liberar_conexion(socket_server_interrupt);
+	liberar_conexion(&socket_server_interrupt);
 	pthread_exit(0);
 }
 
@@ -275,7 +275,7 @@ void *atender_kernel_interrupt()
 			{	
 			log_warning(logger, "[Kernel Interrupt] Se recibio un codigo de operacion desconocido. Cierro hilo");
 			eliminar_paquete(paquete);
-			liberar_conexion(socket_kernel_interrupt);
+			liberar_conexion(&socket_kernel_interrupt);
 			pthread_exit(0);
 		}
 		}

@@ -53,7 +53,7 @@ void *esperar_cpu()
 
 	if (resultado != CORRECTO)
 	{
-		liberar_conexion(socket_cpu);
+		liberar_conexion(&socket_cpu);
 		pthread_exit(0);
 	}
 	
@@ -140,7 +140,7 @@ void *atender_cpu()
 		{	
 			log_warning(logger, "[CPU] Se recibio un codigo de operacion desconocido. Cierro hilo");
 			eliminar_paquete(paquete);
-			liberar_conexion(socket_cpu);
+			liberar_conexion(&socket_cpu);
 			pthread_exit(0);
 		}
 		}
@@ -162,7 +162,7 @@ void *esperar_kernel()
 
 	if (resultado != CORRECTO)
 	{
-		liberar_conexion(socket_kernel);
+		liberar_conexion(&socket_kernel);
 		pthread_exit(0);
 	}
 
@@ -327,29 +327,31 @@ void *atender_kernel()
 			}
 			case TERMINAR:
 			{
+				revisar_paquete(paquete,logger,kernel_orden_apagado,"Kernel");
+				
 				pthread_cancel(thread_atender_cpu);
 				pthread_cancel(thread_atender_entrada_salida);
 
 				if(socket_entrada_salida_stdin != 0){
 					pthread_cancel(thread_atender_entrada_salida_stdin);
-					liberar_conexion(socket_entrada_salida_stdin);
+					liberar_conexion(&socket_entrada_salida_stdin);
 				}
 				
 				if(socket_entrada_salida_stdout != 0){
 					pthread_cancel(thread_atender_entrada_salida_stdout);
-					liberar_conexion(socket_entrada_salida_stdout);
+					liberar_conexion(&socket_entrada_salida_stdout);
 				}
 				
 				if(socket_entrada_salida_dialfs != 0){
 					pthread_cancel(thread_atender_entrada_salida_dialfs);
-					liberar_conexion(socket_entrada_salida_dialfs);
+					liberar_conexion(&socket_entrada_salida_dialfs);
 				}
 			
 				pthread_cancel(thread_atender_kernel);
 				
-				liberar_conexion(socket_cpu);
-				liberar_conexion(socket_server_memoria);
-				liberar_conexion(socket_kernel);
+				liberar_conexion(&socket_cpu);
+				liberar_conexion(&socket_server_memoria);
+				liberar_conexion(&socket_kernel);
 
 				break;
 			}
@@ -357,7 +359,7 @@ void *atender_kernel()
 			{
 				log_warning(logger, "[Kernel] Se recibio un codigo de operacion desconocido. Cierro hilo");
 				eliminar_paquete(paquete);
-				liberar_conexion(socket_cpu);
+				liberar_conexion(&socket_cpu);
 				pthread_exit(0);
 			}
 			
@@ -384,7 +386,7 @@ void *esperar_entrada_salida()
         if (modulo == ERROR)
         {
             log_error(logger, "Error al recibir handshake de modulo de Entrada/Salida");
-            liberar_conexion(socket_cliente);
+            liberar_conexion(&socket_cliente);
             break;
         }
 
@@ -410,7 +412,7 @@ void *esperar_entrada_salida()
             break;
         default:
             log_error(logger, "Se conecto un modulo de entrada/salida desconocido. Desconectando...");
-            liberar_conexion(socket_cliente);
+            liberar_conexion(&socket_cliente);
             free(args);
             break;
         }
@@ -448,7 +450,7 @@ void *atender_entrada_salida_stdin(void *args)
 		default:
 			{
 				log_warning(logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo",modulo);
-				liberar_conexion(socket_entrada_salida_stdin);
+				liberar_conexion(&socket_entrada_salida_stdin);
 				eliminar_paquete(paquete);
 				free(args);
 				pthread_exit(0);
@@ -490,7 +492,7 @@ void *atender_entrada_salida_stdout(void *args)
 		default:
 			{
 				log_warning(logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo",modulo);
-				liberar_conexion(socket_entrada_salida_stdout);
+				liberar_conexion(&socket_entrada_salida_stdout);
 				eliminar_paquete(paquete);
 				free(args);
 				pthread_exit(0);
@@ -533,7 +535,7 @@ void *atender_entrada_salida_dialfs(void *args)
 		default:
 			{
 				log_warning(logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo",modulo);
-				liberar_conexion(socket_entrada_salida_dialfs);
+				liberar_conexion(&socket_entrada_salida_dialfs);
 				eliminar_paquete(paquete);
 				free(args);
 				pthread_exit(0);
