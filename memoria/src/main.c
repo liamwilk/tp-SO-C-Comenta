@@ -133,7 +133,6 @@ void *atender_cpu()
 
 			free(instruccion_recibida);
 			free(instruccion_proxima);
-			free(proceso_encontrado);
 			eliminar_paquete(paquete_instruccion);
 			break;
 			}
