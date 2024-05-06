@@ -20,20 +20,31 @@ void proceso_agregar_new(t_new *new, t_pcb *pcb)
 {
     list_add(new->cola, pcb);
     // Añado el proceso al diccionario de procesos, mapeando el PID a la posición en la lista de procesos
-    dictionary_put(new->diccionario, string_itoa(pcb->pid), (void *)string_itoa(list_size(new->cola) - 1));
+    char *pid_char = string_itoa(pcb->pid);
+    char *pos_char = string_itoa(list_size(new->cola) - 1);
+    // No hace falta castearlo a void*, ese tipo acepta cualquier tipo de puntero (para el pos_char)
+    dictionary_put(new->diccionario, pid_char, pos_char);
+    free(pid_char);
+    free(pos_char);
 };
 
 void proceso_agregar_ready(t_ready *ready, t_pcb *pcb)
 {
     list_add(ready->cola, pcb);
     // Añado el proceso al diccionario de procesos, mapeando el PID a la posición en la lista de procesos
-    dictionary_put(ready->diccionario, string_itoa(pcb->pid), (void *)string_itoa(list_size(ready->cola) - 1));
+    char *pid_char = string_itoa(pcb->pid);
+    char *pos_char = string_itoa(list_size(ready->cola) - 1);
+    dictionary_put(ready->diccionario, pid_char, pos_char);
+    free(pid_char);
+    free(pos_char);
 };
 t_pcb *proceso_quitar_new(t_new *new)
 {
     t_pcb *elem = list_get(new->cola, 0);
     list_remove(new->cola, 0);
-    dictionary_remove(new->diccionario, string_itoa(elem->pid));
+    char *pid_char = string_itoa(elem->pid);
+    dictionary_remove(new->diccionario, pid_char);
+    free(pid_char);
     return elem;
 };
 
@@ -41,7 +52,9 @@ t_pcb *proceso_quitar_ready(t_ready *ready)
 {
     t_pcb *elem = list_get(ready->cola, 0);
     list_remove(ready->cola, 0);
-    dictionary_remove(ready->diccionario, string_itoa(elem->pid));
+    char *pid_char = string_itoa(elem->pid);
+    dictionary_remove(ready->diccionario, pid_char);
+    free(pid_char);
     return elem;
 };
 
