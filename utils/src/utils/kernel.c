@@ -101,11 +101,10 @@ t_pcb *kernel_nuevo_proceso(t_kernel *kernel, t_new *colaNew, t_log *logger, cha
     serializar_t_kernel_memoria_proceso(&paquete, proceso);
     enviar_paquete(paquete, kernel->sockets.memoria);
 
-    proceso_agregar_new(colaNew, nuevaPcb);
-
     eliminar_paquete(paquete);
     free(proceso);
-    log_info(logger, "Se crea el proceso <%d> en NEW", nuevaPcb->pid);
+    proceso_agregar_new(colaNew, nuevaPcb);
+
     return nuevaPcb;
 }
 
@@ -122,30 +121,32 @@ void kernel_finalizar(t_kernel *kernel)
     enviar_paquete(finalizar, kernel->sockets.cpu_dispatch);
     enviar_paquete(finalizar, kernel->sockets.memoria);
 
-    if (kernel->sockets.entrada_salida != 0)
+    // >0 significa que está conectado en el socket
+
+    if (kernel->sockets.entrada_salida > 0)
     {
         pthread_cancel(kernel->threads.thread_atender_entrada_salida);
         liberar_conexion(kernel->sockets.entrada_salida);
     }
-    if (kernel->sockets.entrada_salida_generic != 0)
+    if (kernel->sockets.entrada_salida_generic > 0)
     {
         pthread_cancel(kernel->threads.thread_atender_entrada_salida_generic);
         liberar_conexion(kernel->sockets.entrada_salida_stdin);
     }
 
-    if (kernel->sockets.entrada_salida_stdin != 0)
+    if (kernel->sockets.entrada_salida_stdin > 0)
     {
         pthread_cancel(kernel->threads.thread_atender_entrada_salida_stdin);
         liberar_conexion(kernel->sockets.entrada_salida_stdin);
     }
 
-    if (kernel->sockets.entrada_salida_stdout != 0)
+    if (kernel->sockets.entrada_salida_stdout > 0)
     {
         pthread_cancel(kernel->threads.thread_atender_entrada_salida_stdout);
         liberar_conexion(kernel->sockets.entrada_salida_stdout);
     }
 
-    if (kernel->sockets.entrada_salida_dialfs != 0)
+    if (kernel->sockets.entrada_salida_dialfs > 0)
     {
         pthread_cancel(kernel->threads.thread_atender_entrada_salida_dialfs);
         liberar_conexion(kernel->sockets.entrada_salida_dialfs);

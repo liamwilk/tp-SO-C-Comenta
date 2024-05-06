@@ -3,6 +3,7 @@
 #include <commons/log.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <utils/modulos.h>
 #include <utils/serial.h>
 #include <commons/collections/queue.h>
@@ -120,7 +121,7 @@ t_pcb *proceso_buscar_new(t_new *new, int pid);
 t_pcb *proceso_quitar_ready(t_ready *ready);
 
 /**
- * Elimina un PCB de la cola "new".
+ * Quita un proceso de la cola de new sin eliminar su estructura
  *
  * @param new La cola "new".
  * @param pcb El PCB a eliminar.
@@ -144,6 +145,15 @@ void proceso_mover_ready(int gradoMultiprogramacion, t_log *logger, diagrama_est
  * @return Puntero al PCB del proceso encontrado, o NULL si no se encuentra.
  */
 t_pcb *proceso_buscar_new(t_new *new, int pid);
+
+/**
+ * @brief Elimina un proceso de la cola de new y libera el recurso de memoria
+ *
+ * @param new El proceso nuevo a eliminar.
+ * @param pid El ID del proceso nuevo.
+ * @return true si el proceso nuevo se eliminó correctamente, false en caso contrario.
+ */
+int proceso_eliminar_new(t_new *new, uint32_t processPID);
 
 /**
  *  Busca un proceso con el PID dado en la cola de listos.

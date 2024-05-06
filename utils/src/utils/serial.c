@@ -300,7 +300,7 @@ t_memoria_kernel_proceso *deserializar_t_memoria_kernel_proceso(t_buffer *buffer
 	void *stream = buffer->stream;
 
 	deserializar_uint32_t(&stream, &(proceso->pid));
-	deserializar_uint32_t(&stream, &(proceso->cantidad_instruccions));
+	deserializar_uint32_t(&stream, &(proceso->cantidad_instrucciones));
 	deserializar_bool(&stream, &(proceso->leido));
 
 	return proceso;

@@ -78,9 +78,9 @@ typedef struct
 
 typedef struct
 {
-	uint32_t pid;					// PID
-	uint32_t cantidad_instruccions; // Cantidad de instrucciones
-	bool leido;						// Flag que indica si el proceso fue leido
+	uint32_t pid;					 // PID
+	uint32_t cantidad_instrucciones; // Cantidad de instrucciones
+	bool leido;						 // Flag que indica si el proceso fue leido
 } t_memoria_kernel_proceso;
 
 typedef struct
