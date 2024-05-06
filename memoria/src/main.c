@@ -236,8 +236,13 @@ void *atender_kernel()
 				
 				log_debug(logger, "Se agrego el proceso a la lista de procesos global");
 
+				char* index_char = string_itoa(index);
+
 				// Añado el proceso al diccionario de procesos, mapeando el PID a el indice en la lista de procesos
-				dictionary_put(diccionario_procesos, string_itoa(proceso->pid), string_itoa(index));
+				dictionary_put(diccionario_procesos, string_itoa(proceso->pid), index_char);
+
+				// string_itoa muy por debajo hace strdup, por lo que puedo liberar el char* original
+				free(index_char);
 
 				// Le aviso a Kernel que ya lei las instrucciones para ese PID
 				t_paquete *respuesta_paquete = crear_paquete(MEMORIA_KERNEL_NUEVO_PROCESO);
