@@ -232,22 +232,12 @@ void *atender_kernel()
 					break;
 				}
 				// Guardo el proceso en la lista de procesos
-				int resultado_agregar_proceso = list_add(lista_procesos, proceso);
+				int index = list_add(lista_procesos, proceso);
+				
+				log_debug(logger, "Se agrego el proceso a la lista de procesos global");
 
-				if(resultado_agregar_proceso == 0){
-					log_debug(logger, "Se agrego el proceso a la lista de procesos global");
-				}
-				else{
-					log_error(logger,"No se pudo agregar el proceso a la lista de procesos");
-					free(dato->path_instrucciones);
-					free(dato);
-					free(proceso);
-					free(path_completo);
-					break;
-				}
-
-				// Añado el proceso al diccionario de procesos, mapeando el PID a la posición en la lista de procesos
-				dictionary_put(diccionario_procesos, string_itoa(proceso->pid), (void*)string_itoa(list_size(lista_procesos) - 1));
+				// Añado el proceso al diccionario de procesos, mapeando el PID a el indice en la lista de procesos
+				dictionary_put(diccionario_procesos, string_itoa(proceso->pid), string_itoa(index));
 
 				// Le aviso a Kernel que ya lei las instrucciones para ese PID
 				t_paquete *respuesta_paquete = crear_paquete(MEMORIA_KERNEL_NUEVO_PROCESO);
@@ -276,13 +266,13 @@ void *atender_kernel()
 				log_debug(logger, "Instruccion recibida para eliminar:");
 				log_debug(logger, "PID: %d", proceso->pid);
 				
-				log_info(logger,"Se comienza a buscar el proceso solicitado por CPU en la lista de procesos globales.\n");
+				log_info(logger,"Se comienza a buscar el proceso solicitado por CPU en la lista de procesos globales.");
 
 				t_proceso *proceso_encontrado = obtener_proceso(proceso->pid);
 
 				if (proceso_encontrado == NULL)
 				{
-					log_warning(logger, "No se pudo recuperar el proceso con PID <%d> porque no existe en Memoria.\n", proceso->pid);
+					log_warning(logger, "No se pudo recuperar el proceso con PID <%d> porque no existe en Memoria.", proceso->pid);
 					free(proceso);
 					break;
 				}
@@ -297,9 +287,8 @@ void *atender_kernel()
 
 				// Caso borde, no debería pasar nunca
 				if(list_is_empty(proceso_encontrado->instrucciones)){
-					log_warning(logger, "No se encontraron instrucciones para el proceso con PID <%d>\n", proceso_encontrado->pid);
+					log_warning(logger, "No se encontraron instrucciones para el proceso con PID <%d>", proceso_encontrado->pid);
 					free(proceso);
-					free(proceso_encontrado);
 					break;
 				}
 
@@ -697,19 +686,17 @@ t_list *memoria_leer_instrucciones(char *pathInstrucciones)
 
 t_proceso *obtener_proceso(uint32_t pid)
 {	
-	char* pid_char_proceso = string_itoa(pid);
-	void* intermedio = dictionary_get(diccionario_procesos, pid_char_proceso);
+	char* pid_char = string_itoa(pid);
+	char* indice = dictionary_get(diccionario_procesos, pid_char);
 	
-	if (intermedio == NULL) {
-		log_error(logger, "No se encontro el proceso con PID <%d>", pid);
+	if (indice == NULL) {
+		log_error(logger, "No se encontro el proceso con PID <%s>", pid_char);
 		return NULL;
 	}
 
-	free(pid_char_proceso);
+	free(pid_char);
 
-	int index = atoi((char*)intermedio);
-
-	return list_get(lista_procesos, index);
+	return list_get(lista_procesos, atoi(indice));
 }
 
 void eliminar_procesos(t_list *lista_procesos) {
