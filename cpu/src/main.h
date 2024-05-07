@@ -43,7 +43,4 @@ int socket_server_interrupt;
 
 pthread_t thread_atender_kernel_dispatch, thread_atender_kernel_interrupt, thread_conectar_memoria, thread_atender_memoria, thread_esperar_kernel_dispatch, thread_esperar_kernel_interrupt;
 
-// Cuando vale 0, es porque el Kernel ordeno a todos los modulos apagarse
-int kernel_orden_apagado = 1;
-
 #endif /* MAIN_H_ */

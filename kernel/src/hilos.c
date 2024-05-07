@@ -54,28 +54,24 @@ void *hilos_atender_memoria(void *args)
     hilos_args *hiloArgs = (hilos_args *)args;
     int socket = hiloArgs->kernel->sockets.memoria;
 
-    while (*(hiloArgs->kernel_orden_apagado))
+    while (1)
     {
+        pthread_testcancel();
+
         log_debug(hiloArgs->logger, "Esperando paquete de Memoria en socket %d", socket);
         t_paquete *paquete = recibir_paquete(hiloArgs->logger, socket);
 
-        if (paquete == NULL && *(hiloArgs->kernel_orden_apagado) == 1)
+        if (paquete == NULL)
         {
             log_info(hiloArgs->logger, "Memoria se desconecto del socket %d.", socket);
-            liberar_conexion(&socket);
             break;
         }
-        else if (paquete == NULL && *(hiloArgs->kernel_orden_apagado) == 0)
-        {
-            log_warning(hiloArgs->logger, "Kernel ordeno el apagado del sistema operativo. Memoria desconectado del socket %d.", socket);
-            break;
-        }
+        revisar_paquete(paquete, hiloArgs->logger, "Memoria");
 
         switch (paquete->codigo_operacion)
         {
         case MEMORIA_KERNEL_NUEVO_PROCESO:
         {
-            revisar_paquete(paquete, hiloArgs->logger, *hiloArgs->kernel_orden_apagado, "Memoria");
             t_memoria_kernel_proceso *proceso = deserializar_t_memoria_kernel_proceso(paquete->buffer);
 
             log_debug(hiloArgs->logger, "Recibí la respuesta de Memoria acerca de la solicitud de nuevo proceso");
@@ -195,11 +191,11 @@ void *hilos_atender_cpu_dispatch(void *args)
             log_info(hiloArgs->logger, "CPU Dispatch se desconecto del socket %d.", socket);
             break;
         }
+        revisar_paquete(paquete, hiloArgs->logger, "CPU Dispatch");
 
         switch (paquete->codigo_operacion)
         {
         case PLACEHOLDER:
-            revisar_paquete(paquete, hiloArgs->logger, *hiloArgs->kernel_orden_apagado, "Dispatch");
             // Placeholder
             break;
         default:
@@ -232,11 +228,10 @@ void *hilos_atender_cpu_interrupt(void *args)
             log_info(hiloArgs->logger, "CPU Interrupt se desconecto del socket %d.", socket);
             break;
         }
-
+        revisar_paquete(paquete, hiloArgs->logger, "Interrupt");
         switch (paquete->codigo_operacion)
         {
         case PLACEHOLDER:
-            revisar_paquete(paquete, hiloArgs->logger, *hiloArgs->kernel_orden_apagado, "Interrupt");
             // Placeholder
             break;
         default:
@@ -342,12 +337,12 @@ void *hilos_atender_entrada_salida_generic(void *args)
             log_info(io_args->args->logger, "%s se desconecto del socket %d.", modulo, io_args->socket);
             break;
         }
+        revisar_paquete(paquete, io_args->args->logger, modulo);
 
         switch (paquete->codigo_operacion)
         {
         case ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP:
         {
-            revisar_paquete(paquete, io_args->args->logger, *io_args->args->kernel_orden_apagado, modulo);
             t_entrada_salida_kernel_unidad_de_trabajo *unidad = deserializar_t_entrada_salida_kernel_unidad_de_trabajo(paquete->buffer);
 
             // Este mensaje es solo de efecto, no contiene ningun buffer de datos
@@ -393,11 +388,12 @@ void *hilos_atender_entrada_salida_stdin(void *args)
             break;
         }
 
+        revisar_paquete(paquete, io_args->args->logger, modulo);
+
         switch (paquete->codigo_operacion)
         {
         case PLACEHOLDER:
         {
-            revisar_paquete(paquete, io_args->args->logger, *io_args->args->kernel_orden_apagado, modulo);
             /*
             La logica
             */
@@ -440,11 +436,12 @@ void *hilos_atender_entrada_salida_stdout(void *args)
             break;
         }
 
+        revisar_paquete(paquete, io_args->args->logger, modulo);
+
         switch (paquete->codigo_operacion)
         {
         case PLACEHOLDER:
         {
-            revisar_paquete(paquete, io_args->args->logger, *io_args->args->kernel_orden_apagado, modulo);
             /*
             La logica
             */
@@ -486,11 +483,12 @@ void *hilos_atender_entrada_salida_dialfs(void *args)
             break;
         }
 
+        revisar_paquete(paquete, io_args->args->logger, modulo);
+
         switch (paquete->codigo_operacion)
         {
         case PLACEHOLDER:
         {
-            revisar_paquete(paquete, io_args->args->logger, *io_args->args->kernel_orden_apagado, modulo);
             /*
             La logica
             */

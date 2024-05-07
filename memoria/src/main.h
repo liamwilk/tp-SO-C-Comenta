@@ -54,11 +54,11 @@ void* atender_entrada_salida_dialfs(void*);
 char *armar_ruta(char* ruta1, char* ruta2);
 
 /**
- * @fn    *memoria_leer_instrucciones
+ * @fn    *leer_instrucciones
  * @brief Lee las instrucciones de un archivo y retorna una lista con las instrucciones leidas
  * @param path_instrucciones Ruta absoluta del archivo de instrucciones
  */
-t_list *memoria_leer_instrucciones(char *path_instrucciones);
+t_list *leer_instrucciones(char *path_instrucciones);
 
 
 /**
@@ -70,6 +70,7 @@ t_proceso *obtener_proceso(uint32_t pid);
 
 void eliminar_procesos(t_list *lista_procesos);
 void eliminar_instrucciones(t_list *lista_instrucciones);
+void inicializar_argumentos(t_memoria_cpu_instruccion* instruccion);
 
 pthread_t thread_atender_cpu,thread_atender_kernel,thread_atender_entrada_salida,thread_esperar_cpu,thread_conectar_kernel;
 
@@ -81,8 +82,5 @@ int socket_server_memoria;
 int socket_entrada_salida_stdin = 0;
 int socket_entrada_salida_stdout = 0;
 int socket_entrada_salida_dialfs = 0;
-
-// Cuando vale 0, es porque el Kernel ordeno a todos los modulos apagarse
-int kernel_orden_apagado = 1;
 
 #endif /* MAIN_H_ */
