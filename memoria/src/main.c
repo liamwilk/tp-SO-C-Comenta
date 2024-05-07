@@ -63,89 +63,7 @@ void *esperar_cpu()
 
 void *atender_cpu()
 {
-	while(1)
-	{
-		pthread_testcancel();
-
-		log_debug(logger, "Esperando paquete de CPU en socket %d", socket_cpu);
-		t_paquete *paquete = recibir_paquete(logger, socket_cpu);
-
-		if(paquete == NULL)
-		{	
-			log_warning(logger, "CPU se desconecto del socket %d.", socket_cpu);
-			break;
-		}
-		
-		revisar_paquete(paquete,logger,"CPU");
-
-		switch (paquete->codigo_operacion)
-		{
-		case CPU_MEMORIA_PROXIMA_INSTRUCCION:
-			{
-			
-			// Simulo el retardo de acceso a memoria en milisegundos
-			sleep(memoria.retardoRespuesta/1000);
-
-			t_cpu_memoria_instruccion *instruccion_recibida = deserializar_t_cpu_memoria_instruccion(paquete->buffer);
-
-			log_debug(logger, "Deserializado del stream:");
-			log_debug(logger, "Instruccion recibida de CPU:");
-			log_debug(logger, "PID: %d", instruccion_recibida->pid);
-			log_debug(logger, "Program counter: %d", instruccion_recibida->program_counter);
-
-			log_info(logger,"Se comienza a buscar el proceso solicitado por CPU en la lista de procesos globales.");
-
-			t_proceso *proceso_encontrado = obtener_proceso(instruccion_recibida->pid);
-			
-			if (proceso_encontrado == NULL)
-			{
-				log_warning(logger, "No se encontro el proceso con PID <%d>", instruccion_recibida->pid);
-				free(instruccion_recibida);
-				break;
-			}
-
-			log_debug(logger, "Proceso encontrado:");
-			log_debug(logger, "PID: %d", proceso_encontrado->pid);
-			log_debug(logger, "PC: %d", proceso_encontrado->pc);
-			log_debug(logger, "Cantidad de instrucciones: %d", list_size(proceso_encontrado->instrucciones));
-
-			// Actualizo la instruccion solicitada en el PC del proceso para saber cual fue la ultima solicitada por CPU
-			proceso_encontrado->pc = instruccion_recibida->program_counter;
-
-			if(list_is_empty(proceso_encontrado->instrucciones)){
-				log_warning(logger, "No se encontraron instrucciones para el proceso con PID <%d>", proceso_encontrado->pid);
-				free(instruccion_recibida);
-				free(proceso_encontrado);
-				break;
-			}
-
-			t_memoria_cpu_instruccion *instruccion_proxima = list_get(proceso_encontrado->instrucciones, instruccion_recibida->program_counter);
-			
-			for(int i=0;i<instruccion_proxima->cantidad_elementos;i++){
-				log_debug(logger, "Instruccion en posicion %d: %s", i, instruccion_proxima->array[i]);
-			}
-			
-			t_paquete *paquete_instruccion = crear_paquete(MEMORIA_CPU_PROXIMA_INSTRUCCION);
-			serializar_t_memoria_cpu_instruccion(&paquete_instruccion, instruccion_proxima);
-			enviar_paquete(paquete_instruccion, socket_cpu);
-
-			log_info(logger, "Instruccion con PID %d enviada a CPU", instruccion_recibida->pid);
-
-			free(instruccion_recibida);
-			free(instruccion_proxima);
-			eliminar_paquete(paquete_instruccion);
-			break;
-			}
-		default:
-		{	
-			log_warning(logger, "[CPU] Se recibio un codigo de operacion desconocido. Cierro hilo");
-			eliminar_paquete(paquete);
-			liberar_conexion(&socket_cpu);
-			pthread_exit(0);
-		}
-		}
-		eliminar_paquete(paquete);
-	}
+	hilo_ejecutar(logger, socket_cpu, "CPU", switch_case_cpu);
 	pthread_exit(0);
 }
 
@@ -173,194 +91,7 @@ void *esperar_kernel()
 
 void *atender_kernel()
 {
-	while(1)
-	{
-		pthread_testcancel();
-
-		log_debug(logger, "Esperando paquete de Kernel en socket %d", socket_kernel);
-
-		t_paquete *paquete = recibir_paquete(logger, socket_kernel);
-		
-		if(paquete == NULL)
-		{	
-			log_warning(logger, "Memoria se desconecto del socket %d.", socket_kernel);
-			break;
-		}
-		
-		revisar_paquete(paquete,logger,"Kernel");
-		
-		switch (paquete->codigo_operacion)
-		{
-			case KERNEL_MEMORIA_NUEVO_PROCESO:
-			{
-				t_kernel_memoria_proceso *dato = deserializar_t_kernel_memoria(paquete->buffer);
-				
-				log_debug(logger, "Deserializado del stream:");
-				log_debug(logger, "Tamaño del path_instrucciones: %d", dato->size_path);
-				log_debug(logger, "Path de instrucciones: %s", dato->path_instrucciones);
-				log_debug(logger, "Program counter: %d", dato->program_counter);
-				log_debug(logger, "PID: %d", dato->pid);
-				
-				char *path_completo = armar_ruta(memoria.pathInstrucciones, dato->path_instrucciones);
-
-				log_debug(logger, "Path completo de instrucciones: %s", path_completo);
-				
-				t_proceso *proceso = malloc(sizeof(t_proceso));
-				proceso->pc = dato->program_counter;
-				proceso->pid = dato->pid;
-
-				// Leo las instrucciones del archivo y las guardo en la lista de instrucciones del proceso
-				proceso->instrucciones = leer_instrucciones(path_completo);
-				
-				// Le aviso a Kernel que no pude leer las instrucciones para ese PID
-				if (proceso->instrucciones == NULL){
-			
-					t_paquete *respuesta_paquete = crear_paquete(MEMORIA_KERNEL_NUEVO_PROCESO);
-					
-					t_memoria_kernel_proceso* respuesta_proceso = malloc(sizeof(t_memoria_kernel_proceso));
-					respuesta_proceso->pid = dato->pid;
-					respuesta_proceso->cantidad_instrucciones = 0;
-					respuesta_proceso->leido = false;
-					
-					serializar_t_memoria_kernel_proceso(&respuesta_paquete, respuesta_proceso);
-
-					enviar_paquete(respuesta_paquete, socket_kernel);
-
-					log_error(logger,"No se pudieron leer las instrucciones.");
-					
-					free(dato->path_instrucciones);
-					free(dato);
-					free(proceso);
-					free(path_completo);
-					free(respuesta_proceso);
-
-					eliminar_paquete(respuesta_paquete);
-					break;
-				}
-
-				log_debug(logger, "Se leyeron las instrucciones correctamente");
-
-				// Guardo el proceso en la lista de procesos
-				int index = list_add(lista_procesos, proceso);
-				
-				log_debug(logger, "Se agrego el proceso a la lista de procesos global");
-
-				char* index_char = string_itoa(index);
-				char* pid_char = string_itoa((int)proceso->pid);
-
-				// Añado el proceso al diccionario de procesos, mapeando el PID a el indice en la lista de procesos
-				dictionary_put(diccionario_procesos, pid_char, index_char);
-
-				// Le aviso a Kernel que ya lei las instrucciones para ese PID
-				t_paquete *respuesta_paquete = crear_paquete(MEMORIA_KERNEL_NUEVO_PROCESO);
-
-				t_memoria_kernel_proceso* respuesta_proceso = malloc(sizeof(t_memoria_kernel_proceso));
-				respuesta_proceso->pid = dato->pid;
-				respuesta_proceso->cantidad_instrucciones = list_size(proceso->instrucciones);
-				respuesta_proceso->leido = true;
-
-				serializar_t_memoria_kernel_proceso(&respuesta_paquete, respuesta_proceso);
-				enviar_paquete(respuesta_paquete, socket_kernel);
-
-				free(path_completo);
-				free(dato->path_instrucciones);
-				free(dato);
-				free(respuesta_proceso);
-
-				eliminar_paquete(respuesta_paquete);
-				
-				break;
-			}
-			case KERNEL_MEMORIA_FINALIZAR_PROCESO:
-			{
-				t_kernel_memoria_finalizar_proceso *proceso = deserializar_t_kernel_memoria_finalizar_proceso(paquete->buffer);
-
-				log_debug(logger, "Deserializado del stream:");
-				log_debug(logger, "Instruccion recibida para eliminar:");
-				log_debug(logger, "PID: %d", proceso->pid);
-				
-				log_info(logger,"Se comienza a buscar el proceso solicitado por CPU en la lista de procesos globales.");
-
-				t_proceso *proceso_encontrado = obtener_proceso(proceso->pid);
-
-				if (proceso_encontrado == NULL)
-				{
-					log_warning(logger, "No se pudo recuperar el proceso con PID <%d> porque no existe en Memoria.", proceso->pid);
-					free(proceso);
-					break;
-				}
-				
-				log_debug(logger, "Proceso encontrado:");
-				log_debug(logger, "PID: %d", proceso_encontrado->pid);
-				log_debug(logger, "PC: %d", proceso_encontrado->pc);
-				log_debug(logger, "Cantidad de instrucciones: %d", list_size(proceso_encontrado->instrucciones));
-
-				// Lo guardo para el log del final
-				uint32_t pid = proceso_encontrado->pid;
-
-				// Caso borde, no debería pasar nunca
-				if(list_is_empty(proceso_encontrado->instrucciones)){
-					log_warning(logger, "No se encontraron instrucciones para el proceso con PID <%d>", proceso_encontrado->pid);
-					free(proceso);
-					break;
-				}
-
-				// Remuevo cada instruccion y luego la lista de instrucciones en si misma
-				eliminar_instrucciones(proceso_encontrado->instrucciones);
-
-				char* pid_char = string_itoa(proceso_encontrado->pid);
-
-				// Elimino el proceso del diccionario de procesos
-				dictionary_remove_and_destroy(diccionario_procesos, pid_char, free);
-
-				log_info(logger, "Se elimino el proceso con PID <%d> de Memoria.\n", pid);
-
-				free(proceso_encontrado);
-				proceso_encontrado = NULL;
-
-				free(pid_char);
-				free(proceso);
-				break;
-			}
-			case FINALIZAR_SISTEMA:
-			{
-				pthread_cancel(thread_atender_cpu);
-				pthread_cancel(thread_atender_entrada_salida);
-
-				if(socket_entrada_salida_stdin != 0){
-					pthread_cancel(thread_atender_entrada_salida_stdin);
-					liberar_conexion(&socket_entrada_salida_stdin);
-				}
-				
-				if(socket_entrada_salida_stdout != 0){
-					pthread_cancel(thread_atender_entrada_salida_stdout);
-					liberar_conexion(&socket_entrada_salida_stdout);
-				}
-				
-				if(socket_entrada_salida_dialfs != 0){
-					pthread_cancel(thread_atender_entrada_salida_dialfs);
-					liberar_conexion(&socket_entrada_salida_dialfs);
-				}
-			
-				pthread_cancel(thread_atender_kernel);
-				
-				liberar_conexion(&socket_cpu);
-				liberar_conexion(&socket_server_memoria);
-				liberar_conexion(&socket_kernel);
-
-				break;
-			}
-			default:
-			{
-				log_warning(logger, "[Kernel] Se recibio un codigo de operacion desconocido. Cierro hilo");
-				eliminar_paquete(paquete);
-				liberar_conexion(&socket_cpu);
-				pthread_exit(0);
-			}
-			
-		}
-		eliminar_paquete(paquete);
-	}
+	hilo_ejecutar(logger, socket_kernel, "Kernel", switch_case_kernel);
 	pthread_exit(0);
 }
 
@@ -423,37 +154,7 @@ void *atender_entrada_salida_stdin(void *args)
 	socket_entrada_salida_stdin = *(int *)args;
 	log_debug(logger, "%s conectado en socket %d", modulo, socket_entrada_salida_stdin);
 
-	while(1)
-	{
-		pthread_testcancel();
-
-		log_debug(logger, "Esperando paquete de %s en socket %d",modulo,socket_entrada_salida_stdin);
-		t_paquete *paquete = recibir_paquete(logger, socket_entrada_salida_stdin);
-		
-		if(paquete == NULL)
-		{	
-			log_warning(logger, "I/O STDIN se desconecto del socket %d.", socket_entrada_salida_stdin);
-			break;
-		}
-
-		revisar_paquete(paquete,logger,modulo);
-
-		switch (paquete->codigo_operacion)
-		{
-		case PLACEHOLDER:
-			// placeholder
-			break;
-		default:
-			{
-			log_warning(logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo",modulo);
-			liberar_conexion(&socket_entrada_salida_stdin);
-			eliminar_paquete(paquete);
-			free(args);
-			pthread_exit(0);
-			}
-		}
-		eliminar_paquete(paquete);
-	}
+	hilo_ejecutar(logger, socket_entrada_salida_stdin, modulo, switch_case_entrada_salida_stdin);
 	
 	free(args);
 	pthread_exit(0);
@@ -466,36 +167,7 @@ void *atender_entrada_salida_stdout(void *args)
 	socket_entrada_salida_stdout = *(int *)args;
 	log_debug(logger, "%s conectado en socket %d", modulo, socket_entrada_salida_stdout);
 
-	while(1)
-	{	
-		pthread_testcancel();
-		log_debug(logger, "Esperando paquete de %s en socket %d",modulo,socket_entrada_salida_stdout);
-		t_paquete *paquete = recibir_paquete(logger, socket_entrada_salida_stdout);
-		
-		if(paquete == NULL)
-		{	
-			log_warning(logger, "I/O STDOUT se desconecto del socket %d.", socket_entrada_salida_stdout);
-			break;
-		}
-
-		revisar_paquete(paquete,logger,modulo);
-
-		switch (paquete->codigo_operacion)
-		{
-		case PLACEHOLDER:
-			// placeholder
-			break;
-		default:
-			{
-				log_warning(logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo",modulo);
-				liberar_conexion(&socket_entrada_salida_stdout);
-				eliminar_paquete(paquete);
-				free(args);
-				pthread_exit(0);
-			}
-		}
-		eliminar_paquete(paquete);
-	}
+	hilo_ejecutar(logger, socket_entrada_salida_stdout, modulo, switch_case_entrada_salida_stdout);
 	
 	free(args);
 	pthread_exit(0);
@@ -508,39 +180,8 @@ void *atender_entrada_salida_dialfs(void *args)
 	socket_entrada_salida_dialfs = *(int *)args;
 	log_debug(logger, "%s conectado en socket %d", modulo, socket_entrada_salida_dialfs);
 
-	while(1)
-	{
-		pthread_testcancel();
-
-		log_debug(logger, "Esperando paquete de %s en socket %d",modulo,socket_entrada_salida_dialfs);
-		t_paquete *paquete = recibir_paquete(logger, socket_entrada_salida_dialfs);
-		
-		
-		if(paquete == NULL)
-		{	
-			log_warning(logger, "Memoria se desconecto del socket %d.", socket_entrada_salida_dialfs);
-			break;
-		}
-		
-		revisar_paquete(paquete,logger,modulo);
-		
-		switch (paquete->codigo_operacion)
-		{
-		case PLACEHOLDER:
-			// placeholder
-			break;
-		default:
-			{
-				log_warning(logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo",modulo);
-				liberar_conexion(&socket_entrada_salida_dialfs);
-				eliminar_paquete(paquete);
-				free(args);
-				pthread_exit(0);
-			}
-		}
-		eliminar_paquete(paquete);
-	}
-
+	hilo_ejecutar(logger, socket_entrada_salida_dialfs, modulo, switch_case_entrada_salida_dialfs);
+	
 	free(args);
 	pthread_exit(0);
 }
@@ -680,6 +321,301 @@ void eliminar_procesos(t_list *lista_procesos) {
 
 	if(!dictionary_is_empty(diccionario_procesos)){
 		dictionary_clean_and_destroy_elements(diccionario_procesos, free);
+	}
+}
+
+void switch_case_kernel(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer){
+	
+	switch (codigo_operacion)
+		{
+			case KERNEL_MEMORIA_NUEVO_PROCESO:
+			{
+				t_kernel_memoria_proceso *dato = deserializar_t_kernel_memoria(buffer);
+				
+				log_debug(logger, "Deserializado del stream:");
+				log_debug(logger, "Tamaño del path_instrucciones: %d", dato->size_path);
+				log_debug(logger, "Path de instrucciones: %s", dato->path_instrucciones);
+				log_debug(logger, "Program counter: %d", dato->program_counter);
+				log_debug(logger, "PID: %d", dato->pid);
+				
+				char *path_completo = armar_ruta(memoria.pathInstrucciones, dato->path_instrucciones);
+
+				log_debug(logger, "Path completo de instrucciones: %s", path_completo);
+				
+				t_proceso *proceso = malloc(sizeof(t_proceso));
+				proceso->pc = dato->program_counter;
+				proceso->pid = dato->pid;
+
+				// Leo las instrucciones del archivo y las guardo en la lista de instrucciones del proceso
+				proceso->instrucciones = leer_instrucciones(path_completo);
+				
+				// Le aviso a Kernel que no pude leer las instrucciones para ese PID
+				if (proceso->instrucciones == NULL){
+			
+					t_paquete *respuesta_paquete = crear_paquete(MEMORIA_KERNEL_NUEVO_PROCESO);
+					
+					t_memoria_kernel_proceso* respuesta_proceso = malloc(sizeof(t_memoria_kernel_proceso));
+					respuesta_proceso->pid = dato->pid;
+					respuesta_proceso->cantidad_instrucciones = 0;
+					respuesta_proceso->leido = false;
+					
+					serializar_t_memoria_kernel_proceso(&respuesta_paquete, respuesta_proceso);
+
+					enviar_paquete(respuesta_paquete, socket_kernel);
+
+					log_error(logger,"No se pudieron leer las instrucciones.");
+					
+					free(dato->path_instrucciones);
+					free(dato);
+					free(proceso);
+					free(path_completo);
+					free(respuesta_proceso);
+
+					eliminar_paquete(respuesta_paquete);
+					break;
+				}
+
+				log_debug(logger, "Se leyeron las instrucciones correctamente");
+
+				// Guardo el proceso en la lista de procesos
+				int index = list_add(lista_procesos, proceso);
+				
+				log_debug(logger, "Se agrego el proceso a la lista de procesos global");
+
+				char* index_char = string_itoa(index);
+				char* pid_char = string_itoa((int)proceso->pid);
+
+				// Añado el proceso al diccionario de procesos, mapeando el PID a el indice en la lista de procesos
+				dictionary_put(diccionario_procesos, pid_char, index_char);
+
+				// Le aviso a Kernel que ya lei las instrucciones para ese PID
+				t_paquete *respuesta_paquete = crear_paquete(MEMORIA_KERNEL_NUEVO_PROCESO);
+
+				t_memoria_kernel_proceso* respuesta_proceso = malloc(sizeof(t_memoria_kernel_proceso));
+				respuesta_proceso->pid = dato->pid;
+				respuesta_proceso->cantidad_instrucciones = list_size(proceso->instrucciones);
+				respuesta_proceso->leido = true;
+
+				serializar_t_memoria_kernel_proceso(&respuesta_paquete, respuesta_proceso);
+				enviar_paquete(respuesta_paquete, socket_kernel);
+
+				free(path_completo);
+				free(dato->path_instrucciones);
+				free(dato);
+				free(respuesta_proceso);
+
+				eliminar_paquete(respuesta_paquete);
+				
+				break;
+			}
+			case KERNEL_MEMORIA_FINALIZAR_PROCESO:
+			{
+				t_kernel_memoria_finalizar_proceso *proceso = deserializar_t_kernel_memoria_finalizar_proceso(buffer);
+
+				log_debug(logger, "Deserializado del stream:");
+				log_debug(logger, "Instruccion recibida para eliminar:");
+				log_debug(logger, "PID: %d", proceso->pid);
+				
+				log_info(logger,"Se comienza a buscar el proceso solicitado por CPU en la lista de procesos globales.");
+
+				t_proceso *proceso_encontrado = obtener_proceso(proceso->pid);
+
+				if (proceso_encontrado == NULL)
+				{
+					log_warning(logger, "No se pudo recuperar el proceso con PID <%d> porque no existe en Memoria.", proceso->pid);
+					free(proceso);
+					break;
+				}
+				
+				log_debug(logger, "Proceso encontrado:");
+				log_debug(logger, "PID: %d", proceso_encontrado->pid);
+				log_debug(logger, "PC: %d", proceso_encontrado->pc);
+				log_debug(logger, "Cantidad de instrucciones: %d", list_size(proceso_encontrado->instrucciones));
+
+				// Lo guardo para el log del final
+				uint32_t pid = proceso_encontrado->pid;
+
+				// Caso borde, no debería pasar nunca
+				if(list_is_empty(proceso_encontrado->instrucciones)){
+					log_warning(logger, "No se encontraron instrucciones para el proceso con PID <%d>", proceso_encontrado->pid);
+					free(proceso);
+					break;
+				}
+
+				// Remuevo cada instruccion y luego la lista de instrucciones en si misma
+				eliminar_instrucciones(proceso_encontrado->instrucciones);
+
+				char* pid_char = string_itoa(proceso_encontrado->pid);
+
+				// Elimino el proceso del diccionario de procesos
+				dictionary_remove_and_destroy(diccionario_procesos, pid_char, free);
+
+				log_info(logger, "Se elimino el proceso con PID <%d> de Memoria.\n", pid);
+
+				free(proceso_encontrado);
+				proceso_encontrado = NULL;
+
+				free(pid_char);
+				free(proceso);
+				break;
+			}
+			case FINALIZAR_SISTEMA:
+			{
+				pthread_cancel(thread_atender_cpu);
+				pthread_cancel(thread_atender_entrada_salida);
+
+				if(socket_entrada_salida_stdin != 0){
+					pthread_cancel(thread_atender_entrada_salida_stdin);
+					liberar_conexion(&socket_entrada_salida_stdin);
+				}
+				
+				if(socket_entrada_salida_stdout != 0){
+					pthread_cancel(thread_atender_entrada_salida_stdout);
+					liberar_conexion(&socket_entrada_salida_stdout);
+				}
+				
+				if(socket_entrada_salida_dialfs != 0){
+					pthread_cancel(thread_atender_entrada_salida_dialfs);
+					liberar_conexion(&socket_entrada_salida_dialfs);
+				}
+			
+				pthread_cancel(thread_atender_kernel);
+				
+				liberar_conexion(&socket_cpu);
+				liberar_conexion(&socket_server_memoria);
+				liberar_conexion(&socket_kernel);
+
+				break;
+			}
+			default:
+			{
+				log_warning(logger, "[Kernel] Se recibio un codigo de operacion desconocido. Cierro hilo");
+				liberar_conexion(&socket_cpu);
+				break;
+			}
+			
+		}
+}
+
+void switch_case_cpu(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer){
+	switch (codigo_operacion)
+		{
+		case CPU_MEMORIA_PROXIMA_INSTRUCCION:
+			{
+			
+			// Simulo el retardo de acceso a memoria en milisegundos
+			sleep(memoria.retardoRespuesta/1000);
+
+			t_cpu_memoria_instruccion *instruccion_recibida = deserializar_t_cpu_memoria_instruccion(buffer);
+
+			log_debug(logger, "Deserializado del stream:");
+			log_debug(logger, "Instruccion recibida de CPU:");
+			log_debug(logger, "PID: %d", instruccion_recibida->pid);
+			log_debug(logger, "Program counter: %d", instruccion_recibida->program_counter);
+
+			log_info(logger,"Se comienza a buscar el proceso solicitado por CPU en la lista de procesos globales.");
+
+			t_proceso *proceso_encontrado = obtener_proceso(instruccion_recibida->pid);
+			
+			if (proceso_encontrado == NULL)
+			{
+				log_warning(logger, "No se encontro el proceso con PID <%d>", instruccion_recibida->pid);
+				free(instruccion_recibida);
+				break;
+			}
+
+			log_debug(logger, "Proceso encontrado:");
+			log_debug(logger, "PID: %d", proceso_encontrado->pid);
+			log_debug(logger, "PC: %d", proceso_encontrado->pc);
+			log_debug(logger, "Cantidad de instrucciones: %d", list_size(proceso_encontrado->instrucciones));
+
+			// Actualizo la instruccion solicitada en el PC del proceso para saber cual fue la ultima solicitada por CPU
+			proceso_encontrado->pc = instruccion_recibida->program_counter;
+
+			if(list_is_empty(proceso_encontrado->instrucciones)){
+				log_warning(logger, "No se encontraron instrucciones para el proceso con PID <%d>", proceso_encontrado->pid);
+				free(instruccion_recibida);
+				free(proceso_encontrado);
+				break;
+			}
+
+			t_memoria_cpu_instruccion *instruccion_proxima = list_get(proceso_encontrado->instrucciones, instruccion_recibida->program_counter);
+			
+			for(int i=0;i<instruccion_proxima->cantidad_elementos;i++){
+				log_debug(logger, "Instruccion en posicion %d: %s", i, instruccion_proxima->array[i]);
+			}
+			
+			t_paquete *paquete_instruccion = crear_paquete(MEMORIA_CPU_PROXIMA_INSTRUCCION);
+			serializar_t_memoria_cpu_instruccion(&paquete_instruccion, instruccion_proxima);
+			enviar_paquete(paquete_instruccion, socket_cpu);
+
+			log_info(logger, "Instruccion con PID %d enviada a CPU", instruccion_recibida->pid);
+
+			free(instruccion_recibida);
+			free(instruccion_proxima);
+			eliminar_paquete(paquete_instruccion);
+			break;
+			}
+		default:
+		{	
+			log_warning(logger, "[CPU] Se recibio un codigo de operacion desconocido. Cierro hilo");
+			liberar_conexion(&socket_cpu);
+			break;
+		}
+	}
+}
+
+void switch_case_entrada_salida_stdin(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer)
+{
+	switch (codigo_operacion)
+		{
+		case PLACEHOLDER:
+			{
+			// placeholder
+			break;
+			}
+		default:
+			{
+			log_warning(logger, "[STDIN] Se recibio un codigo de operacion desconocido. Cierro hilo");
+			liberar_conexion(&socket_entrada_salida_stdin);
+			break;
+			}
+	}
+}
+
+void switch_case_entrada_salida_stdout(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer)
+{
+	switch (codigo_operacion)
+		{
+		case PLACEHOLDER:
+			{
+			// placeholder
+			break;
+			}
+		default:
+			{
+			log_warning(logger, "[STDOUT] Se recibio un codigo de operacion desconocido. Cierro hilo");
+			liberar_conexion(&socket_entrada_salida_stdin);
+			break;
+			}
+	}
+}
+
+void switch_case_entrada_salida_dialfs(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer)
+{
+	switch (codigo_operacion)
+		{
+		case PLACEHOLDER:
+			{
+			// placeholder
+			break;
+			}
+		default:
+			{
+			log_warning(logger, "[DialFS] Se recibio un codigo de operacion desconocido. Cierro hilo");
+			liberar_conexion(&socket_entrada_salida_stdin);
+			break;
+			}
 	}
 }
 
