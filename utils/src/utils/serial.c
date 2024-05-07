@@ -173,7 +173,7 @@ void revisar_paquete(t_paquete *paquete, t_log *logger, char *modulo)
 	}
 	else
 	{
-		log_info(logger, "Kernel solicito el apagado del modulo.", modulo);
+		log_info(logger, "Kernel solicito el apagado del modulo.");
 	}
 }
 
