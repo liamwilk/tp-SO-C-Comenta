@@ -12,19 +12,21 @@
 #include <utils/kernel.h>
 typedef enum
 {
+    PROCESO_ESTADO,
     EJECUTAR_SCRIPT,
     INICIAR_PROCESO,
+    MULTIPROGRAMACION,
     FINALIZAR_PROCESO,
+    FINALIZAR_CONSOLA,
     DETENER_PLANIFICACION,
     INICIAR_PLANIFICACION,
-    MULTIPROGRAMACION,
-    PROCESO_ESTADO,
-    FINALIZAR,
-    NUM_FUNCIONES // siempre mantener este al final para saber el tamaño del enum
-} operacion;
+    TOPE_ENUM_CONSOLA // siempre mantener este al final para saber el tamaño del enum
+} t_consola_operacion;
 
-operacion obtener_operacion(char *funcion);
-
-void consola_iniciar(t_log *logger, t_kernel *kernel, diagrama_estados *estados, int *flag);
+t_consola_operacion obtener_operacion(char *funcion);
+void imprimir_comandos();
+void imprimir_logo();
+void imprimir_header();
+t_pcb *buscar_proceso(diagrama_estados *estados, uint32_t pid);
 
 #endif /* CONSOLA_H_ */

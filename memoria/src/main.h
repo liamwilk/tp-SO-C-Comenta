@@ -17,11 +17,10 @@
 #include <utils/conexiones.h>
 #include <utils/configs.h>
 #include <utils/serial.h>
-#include <commons/collections/queue.h>
 #include <commons/collections/list.h>
 // Biblioteca de serializacion exclusiva para Memoria
 #include "serial.h"
-
+#include <utils/template.h>
 typedef struct
 {
 	uint32_t pid;	
@@ -71,7 +70,11 @@ t_proceso *obtener_proceso(uint32_t pid);
 void eliminar_procesos(t_list *lista_procesos);
 void eliminar_instrucciones(t_list *lista_instrucciones);
 void inicializar_argumentos(t_memoria_cpu_instruccion* instruccion);
-
+void switch_case_kernel(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_cpu(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer);
+void switch_case_entrada_salida_stdin(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_entrada_salida_stdout(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_entrada_salida_dialfs(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer);
 pthread_t thread_atender_cpu,thread_atender_kernel,thread_atender_entrada_salida,thread_esperar_cpu,thread_conectar_kernel;
 
 pthread_t thread_atender_entrada_salida_stdin,thread_atender_entrada_salida_stdout,thread_atender_entrada_salida_dialfs;

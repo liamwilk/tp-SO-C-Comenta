@@ -43,7 +43,15 @@ typedef enum KERNEL_SOCKETS
 
 typedef struct
 {
-    pthread_t thread_atender_entrada_salida_generic, thread_atender_entrada_salida_stdin, thread_atender_entrada_salida_stdout, thread_atender_entrada_salida_dialfs, thread_atender_entrada_salida;
+    pthread_t thread_atender_entrada_salida;
+    pthread_t thread_atender_entrada_salida_generic;
+    pthread_t thread_atender_entrada_salida_stdin;
+    pthread_t thread_atender_entrada_salida_stdout;
+    pthread_t thread_atender_entrada_salida_dialfs;
+    pthread_t thread_atender_cpu_interrupt;
+    pthread_t thread_atender_cpu_dispatch;
+    pthread_t thread_atender_memoria;
+    pthread_t thread_atender_consola;
 } t_kernel_threads;
 
 typedef struct t_kernel

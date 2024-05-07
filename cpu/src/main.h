@@ -18,6 +18,7 @@
 #include <utils/configs.h>
 #include <utils/serial.h>
 #include <utils/procesos.h>
+#include <utils/template.h>
 
 t_cpu cpu;
 t_log *logger;
@@ -42,5 +43,9 @@ int socket_server_dispatch;
 int socket_server_interrupt;
 
 pthread_t thread_atender_kernel_dispatch, thread_atender_kernel_interrupt, thread_conectar_memoria, thread_atender_memoria, thread_esperar_kernel_dispatch, thread_esperar_kernel_interrupt;
+
+void switch_case_memoria(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer);
+void switch_case_kernel_dispatch(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer);
+void switch_case_kernel_interrupt(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer);
 
 #endif /* MAIN_H_ */

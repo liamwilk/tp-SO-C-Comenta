@@ -86,50 +86,7 @@ void *conectar_memoria()
 
 void *atender_memoria()
 {	
-	while(1)
-	{
-		pthread_testcancel();
-
-		log_debug(logger, "Esperando paquete de Memoria en socket %d", socket_memoria);
-		t_paquete *paquete = recibir_paquete(logger, socket_memoria);
-		
-		if(paquete == NULL)
-		{	
-			log_warning(logger, "Memoria se desconecto del socket %d.", socket_memoria);
-			break;
-		}
-		
-		revisar_paquete(paquete, logger, "Memoria");
-	
-		switch (paquete->codigo_operacion)
-		{
-		case MEMORIA_CPU_PROXIMA_INSTRUCCION:
-		{
-			t_memoria_cpu_instruccion *dato = deserializar_t_memoria_cpu_instruccion(paquete->buffer);
-
-			log_debug(logger, "Instruccion recibidas de Memoria");
-			for(int i = 0; i < dato->cantidad_elementos; i++){
-				log_debug(logger, "instruccion[%d]: %s",i,dato->array[i]);
-			}
-
-			for(int i = 0; i < dato->cantidad_elementos; i++){
-				free(dato->array[i]);
-			}
-			log_debug(logger,"Se libero la memoria de las instrucciones");
-			
-			break;
-		}
-		default:
-			{	
-			log_warning(logger, "[Memoria] Se recibio un codigo de operacion desconocido. Cierro hilo");
-			eliminar_paquete(paquete);
-			liberar_conexion(&socket_memoria);
-			pthread_exit(0);
-		}
-		}
-		eliminar_paquete(paquete);
-	}
-	
+	hilo_ejecutar(logger, socket_memoria, "Memoria", switch_case_memoria);
 	pthread_exit(0);
 }
 
@@ -157,65 +114,7 @@ void *esperar_kernel_dispatch()
 
 void *atender_kernel_dispatch()
 {
-	while (1)
-	{	
-		pthread_testcancel();
-
-		log_debug(logger, "Esperando paquete de Kernel Dispatch en socket %d", socket_kernel_dispatch);
-		t_paquete *paquete = recibir_paquete(logger, socket_kernel_dispatch);
-
-		if(paquete == NULL)
-		{	
-			log_warning(logger, "Kernel Dispatch se desconecto del socket %d.", socket_kernel_dispatch);
-			break;
-		}
-		
-		revisar_paquete(paquete, logger, "Kernel Dispatch");
-		
-		switch (paquete->codigo_operacion)
-		{
-		case PLACEHOLDER:
-			/*
-			La logica
-			*/
-			break;
-		case TERMINAR:			
-			pthread_cancel(thread_atender_memoria);
-			pthread_cancel(thread_atender_kernel_interrupt);
-			pthread_cancel(thread_atender_kernel_dispatch);
-			
-			liberar_conexion(&socket_memoria);
-			liberar_conexion(&socket_kernel_dispatch);
-			liberar_conexion(&socket_kernel_interrupt);
-
-			break;
-		case KERNEL_CPU_ENVIAR_REGISTROS:
-
-			t_kernel_cpu_proceso *proceso_cpu = deserializar_t_kernel_cpu_proceso(paquete->buffer);
-			log_debug(logger, "Registros cpu recibido de Kernel Dispatch");
-			log_debug(logger, "PID: %d", proceso_cpu->pid);
-			log_debug(logger, "PC: %d", proceso_cpu->registros.pc);
-			log_debug(logger, "EAX: %d", proceso_cpu->registros.eax);
-			log_debug(logger, "EBX: %d", proceso_cpu->registros.ebx);
-			log_debug(logger, "ECX: %d", proceso_cpu->registros.ecx);
-			log_debug(logger, "AX: %d", proceso_cpu->registros.ax);
-			log_debug(logger, "BX: %d", proceso_cpu->registros.bx);
-			log_debug(logger, "CX: %d", proceso_cpu->registros.cx);
-			log_debug(logger, "DX: %d", proceso_cpu->registros.dx);
-
-			// TODO: Continuar con la logica de recibir registros desde kernel
-			free(proceso_cpu);
-			break;
-		default:
-			{
-			log_warning(logger, "[Kernel Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
-			eliminar_paquete(paquete);
-			liberar_conexion(&socket_kernel_dispatch);
-			pthread_exit(0);
-			}
-		}
-		eliminar_paquete(paquete);
-	}
+	hilo_ejecutar(logger, socket_kernel_dispatch, "Kernel Dispatch", switch_case_kernel_dispatch);
 	pthread_exit(0);
 }
 
@@ -243,37 +142,7 @@ void *esperar_kernel_interrupt()
 
 void *atender_kernel_interrupt()
 {	
-	while(1)
-	{
-		pthread_testcancel();
-		log_debug(logger, "Esperando paquete de Kernel Interrupt en socket %d", socket_kernel_interrupt);
-		t_paquete *paquete = recibir_paquete(logger, socket_kernel_interrupt);
-		
-		if(paquete == NULL)
-		{	
-			log_warning(logger, "Kernel Interrupt se desconecto del socket %d.", socket_kernel_interrupt);
-			break;
-		}
-		
-		revisar_paquete(paquete, logger, "Interrupt");
-		
-		switch (paquete->codigo_operacion)
-		{
-		case PLACEHOLDER:
-			/*
-			La logica
-			*/
-			break;
-		default:
-			{	
-			log_warning(logger, "[Kernel Interrupt] Se recibio un codigo de operacion desconocido. Cierro hilo");
-			eliminar_paquete(paquete);
-			liberar_conexion(&socket_kernel_interrupt);
-			pthread_exit(0);
-		}
-		}
-		eliminar_paquete(paquete);
-	}
+	hilo_ejecutar(logger, socket_kernel_interrupt, "Kernel Interrupt", switch_case_kernel_interrupt);
 	pthread_exit(0);
 }
 
@@ -291,4 +160,102 @@ t_kernel_cpu_proceso *deserializar_t_kernel_cpu_proceso(t_buffer *buffer)
 	deserializar_uint8_t(&stream, &(proceso->registros.cx));
 	deserializar_uint8_t(&stream, &(proceso->registros.dx));
 	return proceso;
+}
+
+void switch_case_memoria(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer){
+	switch (codigo_operacion)
+	{
+		case MEMORIA_CPU_PROXIMA_INSTRUCCION:
+		{
+			t_memoria_cpu_instruccion *dato = deserializar_t_memoria_cpu_instruccion(buffer);
+
+			log_debug(logger, "Instruccion recibidas de Memoria");
+			for(int i = 0; i < dato->cantidad_elementos; i++){
+				log_debug(logger, "instruccion[%d]: %s",i,dato->array[i]);
+			}
+
+			for(int i = 0; i < dato->cantidad_elementos; i++){
+				free(dato->array[i]);
+			}
+			log_debug(logger,"Se libero la memoria de las instrucciones");
+			
+			break;
+		}
+		default:
+			{	
+			log_warning(logger, "[Memoria] Se recibio un codigo de operacion desconocido. Cierro hilo");
+			liberar_conexion(&socket_memoria);
+			break;
+		}
+	}
+}
+
+void switch_case_kernel_dispatch(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer){
+	
+	switch (codigo_operacion)
+		{
+		case PLACEHOLDER:
+		{
+			/*
+			La logica
+			*/
+			break;
+		}
+		case KERNEL_CPU_ENVIAR_REGISTROS:
+		{
+			t_kernel_cpu_proceso *proceso_cpu = deserializar_t_kernel_cpu_proceso(buffer);
+			log_debug(logger, "Registros cpu recibido de Kernel Dispatch");
+			log_debug(logger, "PID: %d", proceso_cpu->pid);
+			log_debug(logger, "PC: %d", proceso_cpu->registros.pc);
+			log_debug(logger, "EAX: %d", proceso_cpu->registros.eax);
+			log_debug(logger, "EBX: %d", proceso_cpu->registros.ebx);
+			log_debug(logger, "ECX: %d", proceso_cpu->registros.ecx);
+			log_debug(logger, "AX: %d", proceso_cpu->registros.ax);
+			log_debug(logger, "BX: %d", proceso_cpu->registros.bx);
+			log_debug(logger, "CX: %d", proceso_cpu->registros.cx);
+			log_debug(logger, "DX: %d", proceso_cpu->registros.dx);
+
+			// TODO: Continuar con la logica de recibir registros desde kernel
+			free(proceso_cpu);
+			break;
+		}
+		default:
+			{
+			log_warning(logger, "[Kernel Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
+			liberar_conexion(&socket_kernel_dispatch);
+			break;
+			}
+		}
+}
+
+void switch_case_kernel_interrupt(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer){
+	
+	switch (codigo_operacion)
+		{
+		case PLACEHOLDER:
+		{
+			/*
+			La logica
+			*/
+			break;
+		}
+		case FINALIZAR_SISTEMA:
+		{		
+			pthread_cancel(thread_atender_memoria);
+			pthread_cancel(thread_atender_kernel_dispatch);
+			pthread_cancel(thread_atender_kernel_interrupt);
+			
+			liberar_conexion(&socket_memoria);
+			liberar_conexion(&socket_kernel_dispatch);
+			liberar_conexion(&socket_kernel_interrupt);
+
+			break;
+		}
+		default:
+			{	
+			log_warning(logger, "[Kernel Interrupt] Se recibio un codigo de operacion desconocido. Cierro hilo");
+			liberar_conexion(&socket_kernel_interrupt);
+			break;
+		}
+	}
 }

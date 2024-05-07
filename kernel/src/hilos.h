@@ -1,9 +1,8 @@
 #ifndef HILOS_H_
 #define HILOS_H_
-#include "consola.h"
-#include "commons/log.h"
-#include "pthread.h"
-#include "utils/handshake.h"
+#include <consola.h>
+#include <commons/log.h>
+#include <pthread.h>
 #include <utils/serial.h>
 #include <utils/handshake.h>
 #include <utils/conexiones.h>
@@ -14,20 +13,14 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <limits.h>
-
-typedef struct hilos_args
-{
-    t_log *logger;
-    t_kernel *kernel;
-    diagrama_estados *estados;
-    int *kernel_orden_apagado;
-} hilos_args;
-
-typedef struct hilos_io_args
-{
-    hilos_args *args;
-    int socket;
-} hilos_io_args;
+#include <stdio.h>
+#include <stdlib.h>
+#include <commons/config.h>
+#include <utils/modulos.h>
+#include <utils/configs.h>
+#include <commons/collections/queue.h>
+#include <commons/collections/list.h>
+#include <utils/template.h>
 
 /*----ATENDER----*/
 
@@ -42,6 +35,7 @@ void *hilos_atender_entrada_salida_stdout(void *args);
 void *hilos_atender_entrada_salida_dialfs(void *args);
 
 /*----CONECTAR----*/
+
 void *hilos_conectar_memoria(void *args);
 void *hilos_conectar_cpu_dispatch(void *args);
 void *hilos_conectar_cpu_interrupt(void *args);
@@ -51,5 +45,9 @@ void hilos_memoria_inicializar(hilos_args *args, pthread_t thread_conectar_memor
 void hilos_cpu_inicializar(hilos_args *args, pthread_t thread_conectar_cpu_dispatch, pthread_t thread_atender_cpu_dispatch, pthread_t thread_conectar_cpu_interrupt, pthread_t thread_atender_cpu_interrupt);
 void hilos_io_inicializar(hilos_args *args, pthread_t thread_esperar_entrada_salida);
 void hilos_consola_inicializar(hilos_args *args, pthread_t thread_atender_consola);
+
+void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *args, t_buffer *buffer);
+void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_args *args, t_buffer *buffer);
+void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_args *args, t_buffer *buffer);
 
 #endif /* HILOS_H_ */
