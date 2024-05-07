@@ -271,7 +271,7 @@ void switch_case_kernel_dispatch(t_log* logger, t_op_code codigo_operacion, t_bu
 			log_debug(logger, "EAX: %d", proceso_cpu->registros.eax);
 			log_debug(logger, "EBX: %d", proceso_cpu->registros.ebx);
 			log_debug(logger, "ECX: %d", proceso_cpu->registros.ecx);
-			log_debug(logger, "EDX: %d", proceso_cpu->registros.edx);€
+			log_debug(logger, "EDX: %d", proceso_cpu->registros.edx);
 			log_debug(logger, "AX: %d", proceso_cpu->registros.ax);
 			log_debug(logger, "BX: %d", proceso_cpu->registros.bx);
 			log_debug(logger, "CX: %d", proceso_cpu->registros.cx);
