@@ -12,7 +12,9 @@ void *hilos_atender_consola(void *args)
 
     while (flag)
     {
-        linea = readline("\n> ");
+        char *current_dir = getcwd(NULL, 0);
+        printf("\n%s>", current_dir);
+        linea = readline(" ");
         add_history(linea);
         char **separar_linea = string_split(linea, " ");
 
