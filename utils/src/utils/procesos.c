@@ -10,7 +10,7 @@ uint32_t new_pid()
 t_pcb *pcb_crear(t_log *logger, int quantum)
 {
     t_registros_cpu *registros_cpu = malloc(sizeof(t_registros_cpu));
-    *registros_cpu = (t_registros_cpu){.pc = 0, .eax = 0, .ebx = 0, .ecx = 0, .ax = 0, .bx = 0, .cx = 0, .dx = 0};
+    *registros_cpu = (t_registros_cpu){.pc = 0, .eax = 0, .ebx = 0, .ecx = 0, .edx = 0, .si = 0, .di = 0, .ax = 0, .bx = 0, .cx = 0, .dx = 0};
     t_pcb *nuevo_pcb = malloc(sizeof(t_pcb));
     *nuevo_pcb = (t_pcb){.pid = new_pid(), .quantum = quantum, .registros_cpu = registros_cpu, .memoria_aceptado = false};
     return nuevo_pcb;

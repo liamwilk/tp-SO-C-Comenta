@@ -20,6 +20,23 @@
 #include <utils/procesos.h>
 #include <utils/template.h>
 
+/*  Registros utilizados por la cpu */
+
+// Registros auxiliares de 1 byte
+uint8_t ax, bx, cx, dx;
+
+// Registros auxiliares de 4 bytes
+uint32_t eax, ebx, ecx, edx;
+
+// Contador de programa
+uint32_t pc;
+
+// Registros para el copiado de strings
+uint32_t si, di;
+
+// Process ID
+uint32_t pid;
+
 t_cpu cpu;
 t_log *logger;
 t_config *config;
@@ -47,5 +64,6 @@ pthread_t thread_atender_kernel_dispatch, thread_atender_kernel_interrupt, threa
 void switch_case_memoria(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer);
 void switch_case_kernel_dispatch(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer);
 void switch_case_kernel_interrupt(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer);
+t_instruccion determinar_codigo_instruccion(char* instruccion);
 
 #endif /* MAIN_H_ */
