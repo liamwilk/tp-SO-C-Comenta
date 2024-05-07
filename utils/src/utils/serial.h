@@ -15,6 +15,7 @@ typedef enum
 {
 	FINALIZAR_SISTEMA,
 	CPU_MEMORIA_PROXIMA_INSTRUCCION,
+	CPU_KERNEL_IO_GEN_SLEEP,
 	MEMORIA_CPU_PROXIMA_INSTRUCCION,
 	KERNEL_MEMORIA_NUEVO_PROCESO,
 	KERNEL_MEMORIA_FINALIZAR_PROCESO,
@@ -24,6 +25,19 @@ typedef enum
 	ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP,
 	PLACEHOLDER
 } t_op_code;
+
+typedef enum
+{
+	SET,
+	SUM,
+	SUB,
+	JNZ,
+	EXIT,
+	IO_GEN_SLEEP,
+	IO_GEN_SLEEP_TERMINADO,
+	IO_AVISO_EXIT,
+	IO_IDENTIFICADOR
+} t_instruccion;
 
 typedef struct
 {
@@ -47,7 +61,7 @@ typedef struct
 
 typedef struct t_registros_cpu
 {
-	uint32_t pc, eax, ebx, ecx;
+	uint32_t pc, eax, ebx, ecx, edx, si, di;
 	uint8_t ax, bx, cx, dx;
 } t_registros_cpu;
 

@@ -331,11 +331,15 @@ t_entrada_salida_kernel_finalizar *deserializar_t_entrada_salida_kernel_finaliza
 
 void serializar_t_registros_cpu(t_paquete **paquete, uint32_t pid, t_registros_cpu *registros)
 {
-	actualizar_buffer(*paquete, sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint8_t));
+	actualizar_buffer(*paquete, sizeof(uint8_t) * 4 + sizeof(uint32_t) * 8);
 	serializar_uint32_t(pid, *paquete);
 	serializar_uint32_t(registros->pc, *paquete);
 	serializar_uint32_t(registros->eax, *paquete);
 	serializar_uint32_t(registros->ebx, *paquete);
+	serializar_uint32_t(registros->ecx, *paquete);
+	serializar_uint32_t(registros->edx, *paquete);
+	serializar_uint32_t(registros->si, *paquete);
+	serializar_uint32_t(registros->di, *paquete);
 	serializar_uint8_t(registros->ax, *paquete);
 	serializar_uint8_t(registros->bx, *paquete);
 	serializar_uint8_t(registros->cx, *paquete);

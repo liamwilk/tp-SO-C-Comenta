@@ -155,10 +155,14 @@ t_kernel_cpu_proceso *deserializar_t_kernel_cpu_proceso(t_buffer *buffer)
 	deserializar_uint32_t(&stream, &(proceso->registros.eax));
 	deserializar_uint32_t(&stream, &(proceso->registros.ebx));
 	deserializar_uint32_t(&stream, &(proceso->registros.ecx));
+	deserializar_uint32_t(&stream, &(proceso->registros.edx));
+	deserializar_uint32_t(&stream, &(proceso->registros.si));
+	deserializar_uint32_t(&stream, &(proceso->registros.di));
 	deserializar_uint8_t(&stream, &(proceso->registros.ax));
 	deserializar_uint8_t(&stream, &(proceso->registros.bx));
 	deserializar_uint8_t(&stream, &(proceso->registros.cx));
 	deserializar_uint8_t(&stream, &(proceso->registros.dx));
+	
 	return proceso;
 }
 
@@ -167,6 +171,8 @@ void switch_case_memoria(t_log* logger, t_op_code codigo_operacion, t_buffer* bu
 	{
 		case MEMORIA_CPU_PROXIMA_INSTRUCCION:
 		{
+			// Fetch:
+			// Deserializo la instruccion recibida de memoria
 			t_memoria_cpu_instruccion *dato = deserializar_t_memoria_cpu_instruccion(buffer);
 
 			log_debug(logger, "Instruccion recibidas de Memoria");
@@ -174,11 +180,66 @@ void switch_case_memoria(t_log* logger, t_op_code codigo_operacion, t_buffer* bu
 				log_debug(logger, "instruccion[%d]: %s",i,dato->array[i]);
 			}
 
-			for(int i = 0; i < dato->cantidad_elementos; i++){
-				free(dato->array[i]);
+			// Aumento el PC para cuando pida la proxima instruccion
+			pc++;
+
+			// Decode:
+			// Determino la instruccion que se solicita
+			t_instruccion codigo_instruccion = determinar_codigo_instruccion(dato->array[0]);
+
+			// Execute:
+			// Ejecuto la instruccion del opcode
+			switch(codigo_instruccion)
+			{
+				case SET:
+					log_debug(logger, "reconoci un SET");
+					break;
+
+				case SUM:
+					log_debug(logger, "reconoci un SUM");
+					break;
+
+				case SUB:
+					log_debug(logger, "reconoci un SUB");
+					break;
+
+				case JNZ:
+					log_debug(logger, "reconoci un JNZ");
+					break;
+
+				case IO_GEN_SLEEP:
+					log_debug(logger, "reconoci un IO_GEN_SLEEP");
+					break;
+
+				case EXIT:
+					
+					// TODO: implementar logica del exit
+					// Tiene que cargar todos los registros a un pcb, y mandarselo a kernel
+					
+					// Liberar
+
+					for(int i = 0; i < dato->cantidad_elementos; i++){
+						free(dato->array[i]);
+					}
+					log_debug(logger,"Se libero la memoria de las instrucciones");
+
+					// Con este break salta directamente a esperar otro paquete de memoria
+					break;
+				default:
+					log_debug(logger, "todavia no entiendo esta operacion");
+					break;
 			}
-			log_debug(logger,"Se libero la memoria de las instrucciones");
-			
+
+			// // Check interrupt
+			// if(hay_interrupt)
+			// {
+			// 	atendiendo_interrupcion = true;
+			// 	// Logica
+			// } else {
+			// 	t_paquete *solicitud_instruccion = crear_paquete(PROXIMA_INSTRUCCION);
+			// 	serializar_t_cpu_memoria_instruccion(&solicitud_instruccion, pc, pid);
+			// 	enviar_paquete(solicitud_instruccion, socket_memoria);
+			// }
 			break;
 		}
 		default:
@@ -210,10 +271,14 @@ void switch_case_kernel_dispatch(t_log* logger, t_op_code codigo_operacion, t_bu
 			log_debug(logger, "EAX: %d", proceso_cpu->registros.eax);
 			log_debug(logger, "EBX: %d", proceso_cpu->registros.ebx);
 			log_debug(logger, "ECX: %d", proceso_cpu->registros.ecx);
+			log_debug(logger, "EDX: %d", proceso_cpu->registros.edx);€
 			log_debug(logger, "AX: %d", proceso_cpu->registros.ax);
 			log_debug(logger, "BX: %d", proceso_cpu->registros.bx);
 			log_debug(logger, "CX: %d", proceso_cpu->registros.cx);
 			log_debug(logger, "DX: %d", proceso_cpu->registros.dx);
+			log_debug(logger, "SI: %d", proceso_cpu->registros.si);
+			log_debug(logger, "DI: %d", proceso_cpu->registros.di);
+
 
 			// TODO: Continuar con la logica de recibir registros desde kernel
 			free(proceso_cpu);
@@ -259,3 +324,34 @@ void switch_case_kernel_interrupt(t_log* logger, t_op_code codigo_operacion, t_b
 		}
 	}
 }
+
+t_instruccion determinar_codigo_instruccion(char* instruccion)
+{
+	if(!strcmp(instruccion, "SET"))
+	{
+		return SET;
+	}
+	if(!strcmp(instruccion, "SUM"))
+	{
+		return SUM;
+	}
+	if(!strcmp(instruccion, "SUB"))
+	{
+		return SUB;
+	}
+	if(!strcmp(instruccion, "JNZ"))
+	{
+		return JNZ;
+	}
+	if(!strcmp(instruccion, "IO_GEN_SLEEP"))
+	{
+		return IO_GEN_SLEEP;
+	}
+	if(!strcmp(instruccion, "EXIT"))
+	{
+		return EXIT;
+	}
+
+	// TODO: determinar que devolver si el opcode es cualquier cosa
+	return -1;				
+};
