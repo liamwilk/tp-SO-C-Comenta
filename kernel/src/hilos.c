@@ -355,8 +355,6 @@ void *hilos_esperar_entrada_salida(void *args)
 
     while (1)
     {
-        pthread_testcancel();
-
         int socket_cliente = esperar_conexion(hiloArgs->logger, hiloArgs->kernel->sockets.server);
 
         if (socket_cliente == -1)
@@ -405,7 +403,6 @@ void *hilos_esperar_entrada_salida(void *args)
             liberar_conexion(&socket_cliente);
             break;
         }
-        free(io_args);
     }
     pthread_exit(0);
 };
@@ -422,7 +419,6 @@ void *hilos_atender_entrada_salida_generic(void *args)
 
     while (1)
     {
-        pthread_testcancel();
         log_debug(io_args->args->logger, "Esperando paquete de %s en socket %d", modulo, io_args->socket);
         t_paquete *paquete = recibir_paquete(io_args->args->logger, io_args->socket);
 
@@ -449,9 +445,7 @@ void *hilos_atender_entrada_salida_generic(void *args)
         {
             log_warning(io_args->args->logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo);
             liberar_conexion(&io_args->socket);
-            eliminar_paquete(paquete);
-            free(io_args);
-            pthread_exit(0);
+            break;
         }
         }
         eliminar_paquete(paquete);
@@ -472,7 +466,6 @@ void *hilos_atender_entrada_salida_stdin(void *args)
 
     while (1)
     {
-        pthread_testcancel();
         log_debug(io_args->args->logger, "Esperando paquete de %s en socket %d", modulo, io_args->socket);
         t_paquete *paquete = recibir_paquete(io_args->args->logger, io_args->socket);
 
@@ -497,8 +490,7 @@ void *hilos_atender_entrada_salida_stdin(void *args)
         {
             log_warning(io_args->args->logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo);
             liberar_conexion(&io_args->socket);
-            free(io_args);
-            pthread_exit(0);
+            break;
         }
         }
         eliminar_paquete(paquete);
@@ -519,7 +511,6 @@ void *hilos_atender_entrada_salida_stdout(void *args)
 
     while (1)
     {
-        pthread_testcancel();
         log_debug(io_args->args->logger, "Esperando paquete de %s en socket %d", modulo, io_args->socket);
         t_paquete *paquete = recibir_paquete(io_args->args->logger, io_args->socket);
 
@@ -544,8 +535,7 @@ void *hilos_atender_entrada_salida_stdout(void *args)
         {
             log_warning(io_args->args->logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo);
             liberar_conexion(&io_args->socket);
-            free(io_args);
-            pthread_exit(0);
+            break;
         }
         }
         eliminar_paquete(paquete);
@@ -566,7 +556,6 @@ void *hilos_atender_entrada_salida_dialfs(void *args)
 
     while (1)
     {
-        pthread_testcancel();
         log_debug(io_args->args->logger, "Esperando paquete de %s en socket %d", modulo, io_args->socket);
         t_paquete *paquete = recibir_paquete(io_args->args->logger, io_args->socket);
 
@@ -591,8 +580,7 @@ void *hilos_atender_entrada_salida_dialfs(void *args)
         {
             log_warning(io_args->args->logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo);
             liberar_conexion(&io_args->socket);
-            free(io_args);
-            pthread_exit(0);
+            break;
         }
         }
         eliminar_paquete(paquete);
