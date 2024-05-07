@@ -37,7 +37,7 @@ int main()
 	t_cpu_memoria_instruccion instruccion;
 
 	instruccion.pid = 1;
-	instruccion.program_counter = 0;
+	instruccion.program_counter = 17;
 
 	actualizar_buffer(paquete, sizeof(uint32_t) + sizeof(uint32_t));
 
@@ -53,7 +53,7 @@ int main()
 	// Libero la memoria del paquete de instruccion
 	eliminar_paquete(paquete);
 	*/
-
+	
 	pthread_create(&thread_atender_kernel_interrupt, NULL, atender_kernel_interrupt, NULL);
 	pthread_join(thread_atender_kernel_interrupt, NULL);
 
@@ -98,30 +98,25 @@ void *atender_memoria()
 			log_warning(logger, "Memoria se desconecto del socket %d.", socket_memoria);
 			break;
 		}
+		
+		revisar_paquete(paquete, logger, "Memoria");
 	
 		switch (paquete->codigo_operacion)
 		{
 		case MEMORIA_CPU_PROXIMA_INSTRUCCION:
 		{
-			revisar_paquete(paquete, logger, kernel_orden_apagado, "Memoria");
 			t_memoria_cpu_instruccion *dato = deserializar_t_memoria_cpu_instruccion(paquete->buffer);
 
-			log_debug(logger, "Instruccion recibida de Memoria: %s", dato->instruccion);
-			log_debug(logger, "Cantidad de argumentos: %d", dato->cantidad_argumentos);
-			log_debug(logger, "Argumento 1: %s", dato->argumento_1);
-			log_debug(logger, "Argumento 2: %s", dato->argumento_2);
-			log_debug(logger, "Argumento 3: %s", dato->argumento_3);
-			log_debug(logger, "Argumento 4: %s", dato->argumento_4);
-			log_debug(logger, "Argumento 5: %s", dato->argumento_5);
+			log_debug(logger, "Instruccion recibidas de Memoria");
+			for(int i = 0; i < dato->cantidad_elementos; i++){
+				log_debug(logger, "instruccion[%d]: %s",i,dato->array[i]);
+			}
 
-			free(dato->instruccion);
-			free(dato->argumento_1);
-			free(dato->argumento_2);
-			free(dato->argumento_3);
-			free(dato->argumento_4);
-			free(dato->argumento_5);
-			free(dato);
-
+			for(int i = 0; i < dato->cantidad_elementos; i++){
+				free(dato->array[i]);
+			}
+			log_debug(logger,"Se libero la memoria de las instrucciones");
+			
 			break;
 		}
 		default:
@@ -175,18 +170,16 @@ void *atender_kernel_dispatch()
 			break;
 		}
 		
+		revisar_paquete(paquete, logger, "Kernel Dispatch");
+		
 		switch (paquete->codigo_operacion)
 		{
 		case PLACEHOLDER:
-			revisar_paquete(paquete, logger, kernel_orden_apagado, "Kernel Dispatch");
 			/*
 			La logica
 			*/
 			break;
-		case TERMINAR:
-			
-			revisar_paquete(paquete, logger, kernel_orden_apagado, "Kernel Dispatch");
-			
+		case TERMINAR:			
 			pthread_cancel(thread_atender_memoria);
 			pthread_cancel(thread_atender_kernel_interrupt);
 			pthread_cancel(thread_atender_kernel_dispatch);
@@ -194,7 +187,6 @@ void *atender_kernel_dispatch()
 			liberar_conexion(&socket_memoria);
 			liberar_conexion(&socket_kernel_dispatch);
 			liberar_conexion(&socket_kernel_interrupt);
-			
 
 			break;
 		case KERNEL_CPU_ENVIAR_REGISTROS:
@@ -263,10 +255,11 @@ void *atender_kernel_interrupt()
 			break;
 		}
 		
+		revisar_paquete(paquete, logger, "Interrupt");
+		
 		switch (paquete->codigo_operacion)
 		{
 		case PLACEHOLDER:
-			revisar_paquete(paquete, logger, kernel_orden_apagado, "Interrupt");
 			/*
 			La logica
 			*/
@@ -282,28 +275,6 @@ void *atender_kernel_interrupt()
 		eliminar_paquete(paquete);
 	}
 	pthread_exit(0);
-}
-
-t_memoria_cpu_instruccion *deserializar_t_memoria_cpu_instruccion(t_buffer *buffer)
-{
-	t_memoria_cpu_instruccion *dato = malloc(sizeof(t_memoria_cpu_instruccion));
-	void *stream = buffer->stream;
-
-	deserializar_uint32_t(&stream, &(dato->size_instruccion));
-	deserializar_char(&stream, &(dato->instruccion), dato->size_instruccion);
-	deserializar_uint32_t(&stream, &(dato->cantidad_argumentos));
-	deserializar_uint32_t(&stream, &(dato->size_argumento_1));
-	deserializar_char(&stream, &(dato->argumento_1), dato->size_argumento_1);
-	deserializar_uint32_t(&stream, &(dato->size_argumento_2));
-	deserializar_char(&stream, &(dato->argumento_2), dato->size_argumento_2);
-	deserializar_uint32_t(&stream, &(dato->size_argumento_3));
-	deserializar_char(&stream, &(dato->argumento_3), dato->size_argumento_3);
-	deserializar_uint32_t(&stream, &(dato->size_argumento_4));
-	deserializar_char(&stream, &(dato->argumento_4), dato->size_argumento_4);
-	deserializar_uint32_t(&stream, &(dato->size_argumento_5));
-	deserializar_char(&stream, &(dato->argumento_5), dato->size_argumento_5);
-
-	return dato;
 }
 
 t_kernel_cpu_proceso *deserializar_t_kernel_cpu_proceso(t_buffer *buffer)

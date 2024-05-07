@@ -212,13 +212,14 @@ void *atender_kernel_generic()
             log_info(logger, "Kernel se desconecto del socket %d.", socket_kernel_generic);
 			break;
         }
+		
+		revisar_paquete(paquete, logger, nombre_modulo);
 
 		switch (paquete->codigo_operacion)
 		{
 			case KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP:
             {   
-                revisar_paquete(paquete, logger, 1, nombre_modulo);
-
+                
                 t_kernel_entrada_salida_unidad_de_trabajo* unidades = deserializar_t_kernel_entrada_salida_unidad_de_trabajo(paquete->buffer);
 
                 log_info(logger, "PID : <%u> - Operacion a realizar: KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP", process_getpid());

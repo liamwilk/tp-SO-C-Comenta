@@ -154,9 +154,9 @@ t_paquete *recibir_paquete(t_log *logger, int socket_cliente)
 	return paquete;
 }
 
-void revisar_paquete(t_paquete *paquete, t_log *logger, int flag, char *modulo)
+void revisar_paquete(t_paquete *paquete, t_log *logger, char *modulo)
 {
-	if (flag != 0)
+	if (paquete->codigo_operacion != TERMINAR)
 	{
 		log_debug(logger, "Paquete recibido de modulo %s\n", modulo);
 		log_debug(logger, "Deserializado del paquete:");
@@ -170,23 +170,10 @@ void revisar_paquete(t_paquete *paquete, t_log *logger, int flag, char *modulo)
 		{
 			log_warning(logger, "Error en el tamaño del buffer. Se esperaba %d y se recibio %ld", paquete->size_buffer, paquete->buffer->size + (2 * sizeof(uint32_t)));
 		}
-
-		if (paquete->buffer->offset != paquete->buffer->size)
-		{
-			log_warning(logger, "Error en el offset del buffer. Se esperaba %d y se recibio %d. Esto indica que serializaste mal", paquete->buffer->size, paquete->buffer->offset);
-		}
 	}
-}
-
-int recibir_operacion(int socket_cliente)
-{
-	t_op_code cod_op;
-	if (recv(socket_cliente, &cod_op, sizeof(t_op_code), MSG_WAITALL) > 0)
-		return cod_op;
 	else
 	{
-		close(socket_cliente);
-		return -1;
+		log_info(logger, "Kernel solicito el apagado del modulo de %s", modulo);
 	}
 }
 
@@ -246,6 +233,12 @@ void actualizar_buffer(t_paquete *paquete, uint32_t size)
 	paquete->buffer->size = size;
 	// Reservo el espacio necesario para el stream
 	paquete->buffer->stream = malloc(paquete->buffer->size);
+
+	// Verifico si la memoria fue asignada correctamente
+	if (paquete->buffer->stream == NULL)
+	{
+		perror("Error al asignar memoria para el stream del buffer\n");
+	}
 }
 
 void deserializar_char(void **flujo, char **destino_del_dato, uint32_t size_del_dato)
@@ -371,4 +364,211 @@ void serializar_t_entrada_salida_kernel_finalizar(t_paquete **paquete, t_entrada
 {
 	actualizar_buffer(*paquete, sizeof(bool));
 	serializar_bool(unidad->terminado, *paquete);
+}
+
+t_memoria_cpu_instruccion *deserializar_t_memoria_cpu_instruccion(t_buffer *buffer)
+{
+	t_memoria_cpu_instruccion *dato = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(dato->cantidad_elementos));
+	deserializar_char_array(&(dato->array), &(dato->cantidad_elementos), &stream);
+
+	return dato;
+}
+
+void serializar_t_memoria_cpu_instruccion(t_paquete **paquete, t_memoria_cpu_instruccion *proceso)
+{
+
+	// Reservo tamaño para el elemento que tiene la cantidad de elementos
+	uint32_t buffer_size = sizeof(uint32_t) + sizeof(char *);
+
+	for (int i = 0; i < proceso->cantidad_elementos; i++)
+	{
+		// Reservo tamaño para el elemento que tiene el tamaño de la cadena
+		buffer_size += sizeof(uint32_t);
+		// Reservo tamaño para la cadena
+		buffer_size += strlen(proceso->array[i]) + 1;
+	}
+
+	actualizar_buffer(*paquete, buffer_size);
+	serializar_uint32_t(proceso->cantidad_elementos, *paquete);
+	serializar_char_array(proceso->array, proceso->cantidad_elementos, *paquete);
+}
+
+void serializar_char_array(char **array, uint32_t cantidad_elementos, t_paquete *paquete)
+{
+	// Serializo la cantidad de elementos del array
+	serializar_uint32_t(cantidad_elementos, paquete);
+
+	// Serializo de cada elemento: el tamaño de la cadena, y luego la cadena
+	for (int i = 0; i < cantidad_elementos; i++)
+	{
+		// Calculo el tamaño de la cadena
+		uint32_t len = strlen(array[i]) + 1;
+
+		// Serializo el tamaño de la cadena
+		serializar_uint32_t(len, paquete);
+
+		// Serializo la cadena
+		serializar_char(array[i], paquete);
+	}
+}
+
+void serializar_uint32_t_array(uint32_t *array, uint32_t cantidad_elementos, t_paquete *paquete)
+{
+
+	// Serializo la cantidad de elementos del array
+	serializar_uint32_t(cantidad_elementos, paquete);
+
+	// Serializo cada elemento del array
+	for (int i = 0; i < cantidad_elementos; i++)
+	{
+		// Serializo el valor uint32_t en la posición actual del array
+		serializar_uint32_t(array[i], paquete);
+	}
+}
+
+void deserializar_uint32_t_array(uint32_t **array, uint32_t *cantidad_elementos, void **buffer)
+{
+	// Deserializo la cantidad de elementos del array
+	deserializar_uint32_t(buffer, cantidad_elementos);
+
+	// Reservo memoria para el array
+	*array = malloc(*cantidad_elementos * sizeof(uint32_t));
+
+	// Verifico que la memoria se haya asignado correctamente
+	if (*array == NULL)
+	{
+		perror("Error al asignar memoria para el array de uint32_t");
+	}
+
+	// Deserializo cada elemento del array
+	for (int i = 0; i < *cantidad_elementos; i++)
+	{
+		deserializar_uint32_t(buffer, &((*array)[i]));
+	}
+}
+
+void deserializar_char_array(char ***array, uint32_t *cantidad_elementos, void **buffer)
+{
+	// Deserializo la cantidad de elementos dentro del array
+	deserializar_uint32_t(buffer, cantidad_elementos);
+
+	// Reservamos memoria para los elementos del array
+	*array = malloc(*cantidad_elementos * sizeof(char *));
+
+	// Deserializo de cada elemento: el tamaño de la cadena, y luego la cadena
+	for (int i = 0; i < *cantidad_elementos; i++)
+	{
+		uint32_t len;
+
+		// Deserializo el tamaño de la cadena
+		deserializar_uint32_t(buffer, &len);
+
+		// Deserializo la cadena
+		deserializar_char(buffer, &((*array)[i]), len);
+	}
+}
+
+void serializar_uint8_t_array(uint8_t *array, uint32_t cantidad_elementos, t_paquete *paquete)
+{
+	// Serializo la cantidad de elementos del array
+	serializar_uint8_t(cantidad_elementos, paquete);
+
+	// Serializo cada elemento del array
+	for (int i = 0; i < cantidad_elementos; i++)
+	{
+		// Serializo el valor uint8_t en la posición actual del array
+		serializar_uint8_t(array[i], paquete);
+	}
+}
+
+void deserializar_uint8_t_array(uint8_t **array, uint8_t *cantidad_elementos, void **buffer)
+{
+	// Deserializo la cantidad de elementos del array
+	deserializar_uint8_t(buffer, cantidad_elementos);
+
+	// Reservo memoria para el array
+	*array = malloc(*cantidad_elementos * sizeof(uint8_t));
+
+	// Verifico que la memoria se haya asignado correctamente
+	if (*array == NULL)
+	{
+		perror("Error al asignar memoria para el array de uint8_t");
+	}
+
+	// Deserializo cada elemento del array
+	for (int i = 0; i < *cantidad_elementos; i++)
+	{
+		deserializar_uint8_t(buffer, &((*array)[i]));
+	}
+}
+
+void serializar_uint16_t_array(uint16_t *array, uint32_t cantidad_elementos, t_paquete *paquete)
+{
+	// Serializo la cantidad de elementos del array
+	serializar_uint16_t(cantidad_elementos, paquete);
+
+	// Serializo cada elemento del array
+	for (int i = 0; i < cantidad_elementos; i++)
+	{
+		// Serializo el valor uint16_t en la posición actual del array
+		serializar_uint16_t(array[i], paquete);
+	}
+}
+
+void deserializar_uint16_t_array(uint16_t **array, uint16_t *cantidad_elementos, void **buffer)
+{
+	// Deserializo la cantidad de elementos del array
+	deserializar_uint16_t(buffer, cantidad_elementos);
+
+	// Reservo memoria para el array
+	*array = malloc(*cantidad_elementos * sizeof(uint16_t));
+
+	// Verifico que la memoria se haya asignado correctamente
+	if (*array == NULL)
+	{
+		perror("Error al asignar memoria para el array de uint16_t");
+	}
+
+	// Deserializo cada elemento del array
+	for (int i = 0; i < *cantidad_elementos; i++)
+	{
+		deserializar_uint16_t(buffer, &((*array)[i]));
+	}
+}
+
+void serializar_uint64_t_array(uint64_t *array, uint32_t cantidad_elementos, t_paquete *paquete)
+{
+	// Serializo la cantidad de elementos del array
+	serializar_uint64_t(cantidad_elementos, paquete);
+
+	// Serializo cada elemento del array
+	for (int i = 0; i < cantidad_elementos; i++)
+	{
+		// Serializo el valor uint64_t en la posición actual del array
+		serializar_uint64_t(array[i], paquete);
+	}
+}
+
+void deserializar_uint64_t_array(uint64_t **array, uint64_t *cantidad_elementos, void **buffer)
+{
+	// Deserializo la cantidad de elementos del array
+	deserializar_uint64_t(buffer, cantidad_elementos);
+
+	// Reservo memoria para el array
+	*array = malloc(*cantidad_elementos * sizeof(uint64_t));
+
+	// Verifico que la memoria se haya asignado correctamente
+	if (*array == NULL)
+	{
+		perror("Error al asignar memoria para el array de uint64_t");
+	}
+
+	// Deserializo cada elemento del array
+	for (int i = 0; i < *cantidad_elementos; i++)
+	{
+		deserializar_uint64_t(buffer, &((*array)[i]));
+	}
 }
