@@ -43,14 +43,10 @@ void *hilos_atender_consola(void *args)
             uint32_t pid = (uint32_t)atoi(separar_linea[1]);
 
             t_pcb *busqueda = buscar_proceso(hiloArgs->estados, pid);
-            if (busqueda == NULL)
-            {
-                log_error(hiloArgs->logger, "El PID <%d> no existe", pid);
-                break;
-            }
 
-            t_pcb *proceso_buscado = buscar_proceso(hiloArgs->estados, pid);
-            if (proceso_buscado == NULL)
+            // TODO: Hay que eliminar el proceso de la cola de new, aca solo lo busca
+
+            if (busqueda == NULL)
             {
                 log_error(hiloArgs->logger, "El PID <%d> no existe", pid);
                 break;

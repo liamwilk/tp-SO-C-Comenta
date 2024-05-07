@@ -124,21 +124,25 @@ void kernel_finalizar(t_kernel *kernel)
 
     if (kernel->sockets.entrada_salida_generic > 0)
     {
+        enviar_paquete(finalizar, kernel->sockets.entrada_salida_generic);
         liberar_conexion(&kernel->sockets.entrada_salida_stdin);
     }
 
     if (kernel->sockets.entrada_salida_stdin > 0)
     {
+        enviar_paquete(finalizar, kernel->sockets.entrada_salida_stdin);
         liberar_conexion(&kernel->sockets.entrada_salida_stdin);
     }
 
     if (kernel->sockets.entrada_salida_stdout > 0)
     {
+        enviar_paquete(finalizar, kernel->sockets.entrada_salida_stdout);
         liberar_conexion(&kernel->sockets.entrada_salida_stdout);
     }
 
     if (kernel->sockets.entrada_salida_dialfs > 0)
     {
+        enviar_paquete(finalizar, kernel->sockets.cpu_dispatch);
         liberar_conexion(&kernel->sockets.entrada_salida_dialfs);
     }
 
