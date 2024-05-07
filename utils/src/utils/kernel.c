@@ -112,50 +112,44 @@ t_pcb *kernel_nuevo_proceso(t_kernel *kernel, t_new *colaNew, t_log *logger, cha
 
 void kernel_finalizar(t_kernel *kernel)
 {
-    t_paquete *finalizar = crear_paquete(TERMINAR);
+    t_paquete *finalizar = crear_paquete(FINALIZAR_SISTEMA);
+
     t_entrada_salida_kernel_finalizar *finalizar_kernel = malloc(sizeof(t_entrada_salida_kernel_finalizar));
     finalizar_kernel->terminado = true;
     actualizar_buffer(finalizar, sizeof(bool));
     serializar_t_entrada_salida_kernel_finalizar(&finalizar, finalizar_kernel);
 
-    enviar_paquete(finalizar, kernel->sockets.cpu_dispatch);
-    enviar_paquete(finalizar, kernel->sockets.memoria);
+    // Bajo el servidor de atencion de I/O para no aceptar mas conexiones
+    liberar_conexion(&kernel->sockets.server);
 
-    // >0 significa que está conectado en el socket
-
-    if (kernel->sockets.entrada_salida > 0)
-    {
-        pthread_cancel(kernel->threads.thread_atender_entrada_salida);
-        liberar_conexion(&kernel->sockets.entrada_salida);
-    }
     if (kernel->sockets.entrada_salida_generic > 0)
     {
-        pthread_cancel(kernel->threads.thread_atender_entrada_salida_generic);
         liberar_conexion(&kernel->sockets.entrada_salida_stdin);
     }
 
     if (kernel->sockets.entrada_salida_stdin > 0)
     {
-        pthread_cancel(kernel->threads.thread_atender_entrada_salida_stdin);
         liberar_conexion(&kernel->sockets.entrada_salida_stdin);
     }
 
     if (kernel->sockets.entrada_salida_stdout > 0)
     {
-        pthread_cancel(kernel->threads.thread_atender_entrada_salida_stdout);
         liberar_conexion(&kernel->sockets.entrada_salida_stdout);
     }
 
     if (kernel->sockets.entrada_salida_dialfs > 0)
     {
-        pthread_cancel(kernel->threads.thread_atender_entrada_salida_dialfs);
         liberar_conexion(&kernel->sockets.entrada_salida_dialfs);
     }
 
+    // Les aviso que se termino el sistema y que se cierren de su lado
+    enviar_paquete(finalizar, kernel->sockets.cpu_interrupt);
+    enviar_paquete(finalizar, kernel->sockets.memoria);
+
+    // Libero las conexiones en Kernel
     liberar_conexion(&kernel->sockets.cpu_dispatch);
     liberar_conexion(&kernel->sockets.cpu_interrupt);
     liberar_conexion(&kernel->sockets.memoria);
-    liberar_conexion(&kernel->sockets.server);
 
     eliminar_paquete(finalizar);
 };

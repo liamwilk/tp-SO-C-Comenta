@@ -5,7 +5,138 @@
 void *hilos_atender_consola(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-    consola_iniciar(hiloArgs->logger, hiloArgs->kernel, hiloArgs->estados, hiloArgs->kernel_orden_apagado);
+    imprimir_header();
+
+    char *linea = NULL;
+    int flag = 1;
+
+    while (flag)
+    {
+        linea = readline("\n> ");
+        add_history(linea);
+        char **separar_linea = string_split(linea, " ");
+
+        switch (obtener_operacion(separar_linea[0]))
+        {
+        case EJECUTAR_SCRIPT:
+        {
+            log_info(hiloArgs->logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+            break;
+        }
+        case INICIAR_PROCESO:
+        {
+            log_info(hiloArgs->logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+            if (!separar_linea[1])
+            {
+                log_error(hiloArgs->logger, "No se ingreso un path de instrucciones");
+                break;
+            }
+            char *pathInstrucciones = separar_linea[1];
+            kernel_nuevo_proceso((hiloArgs->kernel), hiloArgs->estados->new, hiloArgs->logger, pathInstrucciones);
+            break;
+        }
+        case FINALIZAR_PROCESO:
+        {
+            log_info(hiloArgs->logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+            uint32_t pid = (uint32_t)atoi(separar_linea[1]);
+
+            t_pcb *busqueda = buscar_proceso(hiloArgs->estados, pid);
+            if (busqueda == NULL)
+            {
+                log_error(hiloArgs->logger, "El PID <%d> no existe", pid);
+                break;
+            }
+
+            t_pcb *proceso_buscado = buscar_proceso(hiloArgs->estados, pid);
+            if (proceso_buscado == NULL)
+            {
+                log_error(hiloArgs->logger, "El PID <%d> no existe", pid);
+                break;
+            }
+
+            t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
+            t_kernel_memoria_finalizar_proceso *proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
+            proceso->pid = pid;
+            serializar_t_kernel_memoria_finalizar_proceso(&paquete, proceso);
+            enviar_paquete(paquete, hiloArgs->kernel->sockets.memoria);
+
+            eliminar_paquete(paquete);
+            free(proceso);
+            break;
+        }
+        case DETENER_PLANIFICACION:
+        {
+            log_info(hiloArgs->logger, "Se ejecuto script %s", separar_linea[0]);
+
+            // Hardcodeo una prueba para IO Generic acá, luego hay que ubicarla donde vaya.
+
+            if (hiloArgs->kernel->sockets.entrada_salida_generic == 0)
+            {
+                log_error(hiloArgs->logger, "No se pudo enviar el paquete a IO Generic porque aun no se conecto.");
+                break;
+            }
+
+            log_debug(hiloArgs->logger, "Se envia un sleep de 10 segundos a IO Generic");
+            t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP);
+
+            t_kernel_entrada_salida_unidad_de_trabajo *unidad = malloc(sizeof(t_kernel_entrada_salida_unidad_de_trabajo));
+            unidad->unidad_de_trabajo = 10;
+
+            serializar_t_kernel_entrada_salida_unidad_de_trabajo(&paquete, unidad);
+
+            log_debug(hiloArgs->logger, "Socket IO Generic: %d\n", hiloArgs->kernel->sockets.entrada_salida_generic);
+
+            enviar_paquete(paquete, hiloArgs->kernel->sockets.entrada_salida_generic);
+            log_debug(hiloArgs->logger, "Se envio el paquete a IO Generic");
+
+            eliminar_paquete(paquete);
+            free(unidad);
+
+            break;
+        }
+        case INICIAR_PLANIFICACION:
+        {
+            log_info(hiloArgs->logger, "Se ejecuto script %s", separar_linea[0]);
+            proceso_mover_ready(hiloArgs->kernel->gradoMultiprogramacion, hiloArgs->logger, hiloArgs->estados);
+            log_debug(hiloArgs->logger, "Se movieron los procesos a READY");
+            // TODO: Planificador a corto plazo (FIFO y RR)
+            break;
+        }
+        case MULTIPROGRAMACION:
+        {
+            log_info(hiloArgs->logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+            int grado_multiprogramacion = atoi(separar_linea[1]);
+            hiloArgs->kernel->gradoMultiprogramacion = grado_multiprogramacion;
+            log_info(hiloArgs->logger, "GRADO_MULTIPROGRAMACION: %d", hiloArgs->kernel->gradoMultiprogramacion);
+            break;
+        }
+        case PROCESO_ESTADO:
+        {
+            log_info(hiloArgs->logger, "Se ejecuto script %s", separar_linea[0]);
+            break;
+        }
+        case FINALIZAR_CONSOLA:
+        {
+            log_info(hiloArgs->logger, "Se ejecuto script %s", separar_linea[0]);
+            flag = 0;
+
+            // TODO: Acá hay que limpiar hilos_args entero menos la parte de kernel, que se necesita para enviar el mensaje de finalizar a los modulos. Luego si, finalizar el kernel. Luego limpiar la parte de kernel dentro de kernel_finalizar
+
+            kernel_finalizar(hiloArgs->kernel);
+            log_info(hiloArgs->logger, "El usuario solicito finalizar el sistema.");
+            break;
+        }
+        default:
+        {
+            printf("\nEl comando ingresado no es válido, por favor, intente nuevamente: \n");
+            imprimir_comandos();
+            break;
+        }
+        }
+        free(separar_linea);
+        free(linea);
+    }
+
     pthread_exit(0);
 }
 
@@ -104,7 +235,6 @@ void *hilos_atender_memoria(void *args)
         {
             log_warning(hiloArgs->logger, "[Memoria] Se recibio un codigo de operacion desconocido. Cierro hilo");
             liberar_conexion(&socket);
-            free(args);
             pthread_exit(0);
         }
         }
@@ -112,6 +242,7 @@ void *hilos_atender_memoria(void *args)
     }
     pthread_exit(0);
 }
+
 /*----CPU----*/
 
 void hilos_cpu_inicializar(hilos_args *args, pthread_t thread_conectar_cpu_dispatch, pthread_t thread_atender_cpu_dispatch, pthread_t thread_conectar_cpu_interrupt, pthread_t thread_atender_cpu_interrupt)
@@ -202,7 +333,6 @@ void *hilos_atender_cpu_dispatch(void *args)
         {
             log_warning(hiloArgs->logger, "[CPU Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
             liberar_conexion(&socket);
-            free(args);
             pthread_exit(0);
         }
         }
@@ -238,7 +368,6 @@ void *hilos_atender_cpu_interrupt(void *args)
         {
             log_warning(hiloArgs->logger, "[CPU Interrupt] Se recibio un codigo de operacion desconocido. Cierro hilo");
             liberar_conexion(&socket);
-            free(args);
             pthread_exit(0);
         }
         }
@@ -309,9 +438,9 @@ void *hilos_esperar_entrada_salida(void *args)
         default:
             log_error(hiloArgs->logger, "Se conecto un modulo de entrada/salida desconocido");
             liberar_conexion(&socket_cliente);
-            free(io_args);
             break;
         }
+        free(io_args);
     }
     pthread_exit(0);
 };
@@ -409,7 +538,6 @@ void *hilos_atender_entrada_salida_stdin(void *args)
         }
         eliminar_paquete(paquete);
     }
-
     free(io_args);
     pthread_exit(0);
 }
@@ -504,7 +632,6 @@ void *hilos_atender_entrada_salida_dialfs(void *args)
         }
         eliminar_paquete(paquete);
     }
-
     free(io_args);
     pthread_exit(0);
 }

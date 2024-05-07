@@ -17,7 +17,6 @@
 #include <utils/conexiones.h>
 #include <utils/configs.h>
 #include <utils/serial.h>
-#include <commons/collections/queue.h>
 #include <commons/collections/list.h>
 // Biblioteca de serializacion exclusiva para Memoria
 #include "serial.h"

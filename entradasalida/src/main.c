@@ -242,7 +242,7 @@ void *atender_kernel_generic()
                 eliminar_paquete(aviso_sleep);
                 break;
             }
-			case TERMINAR:
+			case FINALIZAR_SISTEMA:
 			{
 				log_info(logger, "Se recibio la señal de desconexión de Kernel. Cierro hilo");
 				pthread_cancel(thread_atender_kernel_generic);

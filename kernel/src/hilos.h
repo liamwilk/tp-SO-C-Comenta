@@ -1,9 +1,8 @@
 #ifndef HILOS_H_
 #define HILOS_H_
-#include "consola.h"
-#include "commons/log.h"
-#include "pthread.h"
-#include "utils/handshake.h"
+#include <consola.h>
+#include <commons/log.h>
+#include <pthread.h>
 #include <utils/serial.h>
 #include <utils/handshake.h>
 #include <utils/conexiones.h>
@@ -14,6 +13,13 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <commons/config.h>
+#include <utils/modulos.h>
+#include <utils/configs.h>
+#include <commons/collections/queue.h>
+#include <commons/collections/list.h>
 
 typedef struct hilos_args
 {

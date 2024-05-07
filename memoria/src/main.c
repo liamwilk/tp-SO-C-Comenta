@@ -322,7 +322,7 @@ void *atender_kernel()
 				free(proceso);
 				break;
 			}
-			case TERMINAR:
+			case FINALIZAR_SISTEMA:
 			{
 				pthread_cancel(thread_atender_cpu);
 				pthread_cancel(thread_atender_entrada_salida);

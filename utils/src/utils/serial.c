@@ -156,7 +156,7 @@ t_paquete *recibir_paquete(t_log *logger, int socket_cliente)
 
 void revisar_paquete(t_paquete *paquete, t_log *logger, char *modulo)
 {
-	if (paquete->codigo_operacion != TERMINAR)
+	if (paquete->codigo_operacion != FINALIZAR_SISTEMA)
 	{
 		log_debug(logger, "Paquete recibido de modulo %s\n", modulo);
 		log_debug(logger, "Deserializado del paquete:");
