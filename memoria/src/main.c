@@ -195,7 +195,7 @@ char *armar_ruta(char *ruta1, char *ruta2)
 	return ruta;
 }
 
-t_list *leer_instrucciones(char *path_instrucciones)
+t_list *leer_instrucciones(char *path_instrucciones, uint32_t pid)
 {	
 	if(path_instrucciones == NULL){
 		log_error(logger, "Path de instrucciones nulo. No se puede leer el archivo");
@@ -266,8 +266,9 @@ t_list *leer_instrucciones(char *path_instrucciones)
 			free(instruccion);
 			return NULL;
 		}
+		
 		instruccion->cantidad_elementos = cantidad_elementos;
-
+		instruccion->pid = pid;
 		for (int i = 0; i < cantidad_elementos; i++) {
 			instruccion->array[i] = strdup(separar_linea[i]);
 			log_debug(logger, "Posicion %d: %s",i, instruccion->array[i]);
@@ -347,7 +348,7 @@ void switch_case_kernel(t_log *logger, t_op_code codigo_operacion, t_buffer *buf
 				proceso->pid = dato->pid;
 
 				// Leo las instrucciones del archivo y las guardo en la lista de instrucciones del proceso
-				proceso->instrucciones = leer_instrucciones(path_completo);
+				proceso->instrucciones = leer_instrucciones(path_completo,proceso->pid);
 				
 				// Le aviso a Kernel que no pude leer las instrucciones para ese PID
 				if (proceso->instrucciones == NULL){
@@ -441,7 +442,9 @@ void switch_case_kernel(t_log *logger, t_op_code codigo_operacion, t_buffer *buf
 					free(proceso);
 					break;
 				}
+				
 
+				
 				// Remuevo cada instruccion y luego la lista de instrucciones en si misma
 				eliminar_instrucciones(proceso_encontrado->instrucciones);
 
@@ -526,18 +529,41 @@ void switch_case_cpu(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer
 
 			log_debug(logger, "Proceso encontrado:");
 			log_debug(logger, "PID: %d", proceso_encontrado->pid);
-			log_debug(logger, "PC: %d", proceso_encontrado->pc);
-			log_debug(logger, "Cantidad de instrucciones: %d", list_size(proceso_encontrado->instrucciones));
-
-			// Actualizo la instruccion solicitada en el PC del proceso para saber cual fue la ultima solicitada por CPU
-			proceso_encontrado->pc = instruccion_recibida->program_counter;
+			log_debug(logger, "Ultimo PC enviado: %d", proceso_encontrado->pc);
 
 			if(list_is_empty(proceso_encontrado->instrucciones)){
 				log_warning(logger, "No se encontraron instrucciones para el proceso con PID <%d>", proceso_encontrado->pid);
 				free(instruccion_recibida);
-				free(proceso_encontrado);
 				break;
 			}
+
+			log_debug(logger, "Cantidad de instrucciones: %d", list_size(proceso_encontrado->instrucciones));
+
+			int pc_solicitado = instruccion_recibida->program_counter;
+
+			// Esto no debería pasar nunca, porque las instrucciones tienen EXIT al final.
+			// En caso que el archivo de instrucciones no tenga EXIT al final, se envía un mensaje a CPU
+			if(pc_solicitado == list_size(proceso_encontrado->instrucciones)){
+				
+				log_warning(logger, "Se solicito una instruccion fuera de rango para el proceso con PID <%d>", proceso_encontrado->pid);
+				
+				log_debug(logger,"Le aviso a CPU que no hay mas instrucciones para el proceso con PID <%d>", proceso_encontrado->pid);
+
+				t_paquete *paquete_instruccion = crear_paquete(MEMORIA_CPU_PROXIMA_INSTRUCCION);
+				t_memoria_cpu_instruccion *instruccion_nula = malloc(sizeof(t_memoria_cpu_instruccion));
+				instruccion_nula->pid = proceso_encontrado->pid;
+				instruccion_nula->cantidad_elementos = 1;
+				instruccion_nula->array = string_split("EXIT", " ");
+
+				serializar_t_memoria_cpu_instruccion(&paquete_instruccion, instruccion_nula);
+				enviar_paquete(paquete_instruccion, socket_cpu);
+
+				free(instruccion_recibida);
+				break;
+			}
+
+			// Actualizo la instruccion solicitada en el PC del proceso para saber cual fue la ultima solicitada por CPU
+			proceso_encontrado->pc = instruccion_recibida->program_counter;
 
 			t_memoria_cpu_instruccion *instruccion_proxima = list_get(proceso_encontrado->instrucciones, instruccion_recibida->program_counter);
 			

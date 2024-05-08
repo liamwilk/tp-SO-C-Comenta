@@ -57,7 +57,7 @@ char *armar_ruta(char* ruta1, char* ruta2);
  * @brief Lee las instrucciones de un archivo y retorna una lista con las instrucciones leidas
  * @param path_instrucciones Ruta absoluta del archivo de instrucciones
  */
-t_list *leer_instrucciones(char *path_instrucciones);
+t_list *leer_instrucciones(char *path_instrucciones, uint32_t pid);
 
 
 /**

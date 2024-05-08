@@ -299,6 +299,30 @@ t_memoria_kernel_proceso *deserializar_t_memoria_kernel_proceso(t_buffer *buffer
 	return proceso;
 }
 
+t_cpu_kernel_proceso *deserializar_t_cpu_kernel_proceso(t_buffer *buffer)
+{
+	t_cpu_kernel_proceso *proceso = malloc(sizeof(t_cpu_kernel_proceso));
+	proceso->registros = malloc(sizeof(t_registros_cpu));
+
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(proceso->ejecutado));
+	deserializar_uint32_t(&stream, &(proceso->pid));
+	deserializar_uint32_t(&stream, &(proceso->registros->pc));
+	deserializar_uint32_t(&stream, &(proceso->registros->eax));
+	deserializar_uint32_t(&stream, &(proceso->registros->ebx));
+	deserializar_uint32_t(&stream, &(proceso->registros->ecx));
+	deserializar_uint32_t(&stream, &(proceso->registros->edx));
+	deserializar_uint32_t(&stream, &(proceso->registros->si));
+	deserializar_uint32_t(&stream, &(proceso->registros->di));
+	deserializar_uint8_t(&stream, &(proceso->registros->ax));
+	deserializar_uint8_t(&stream, &(proceso->registros->bx));
+	deserializar_uint8_t(&stream, &(proceso->registros->cx));
+	deserializar_uint8_t(&stream, &(proceso->registros->dx));
+
+	return proceso;
+}
+
 t_kernel_entrada_salida_unidad_de_trabajo *deserializar_t_kernel_entrada_salida_unidad_de_trabajo(t_buffer *buffer)
 {
 	t_kernel_entrada_salida_unidad_de_trabajo *unidad = malloc(sizeof(t_kernel_entrada_salida_unidad_de_trabajo));
@@ -352,6 +376,25 @@ void serializar_t_kernel_memoria_finalizar_proceso(t_paquete **paquete, t_kernel
 	serializar_uint32_t(proceso->pid, *paquete);
 }
 
+void serializar_t_cpu_kernel_proceso(t_paquete **paquete, t_cpu_kernel_proceso *proceso)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 13);
+
+	serializar_uint32_t(proceso->ejecutado, *paquete);
+	serializar_uint32_t(proceso->pid, *paquete);
+	serializar_uint32_t(proceso->registros->pc, *paquete);
+	serializar_uint32_t(proceso->registros->eax, *paquete);
+	serializar_uint32_t(proceso->registros->ebx, *paquete);
+	serializar_uint32_t(proceso->registros->ecx, *paquete);
+	serializar_uint32_t(proceso->registros->edx, *paquete);
+	serializar_uint32_t(proceso->registros->si, *paquete);
+	serializar_uint32_t(proceso->registros->di, *paquete);
+	serializar_uint8_t(proceso->registros->ax, *paquete);
+	serializar_uint8_t(proceso->registros->bx, *paquete);
+	serializar_uint8_t(proceso->registros->cx, *paquete);
+	serializar_uint8_t(proceso->registros->dx, *paquete);
+}
+
 void serializar_t_kernel_entrada_salida_unidad_de_trabajo(t_paquete **paquete, t_kernel_entrada_salida_unidad_de_trabajo *unidad)
 {
 	actualizar_buffer(*paquete, sizeof(uint32_t));
@@ -374,7 +417,7 @@ t_memoria_cpu_instruccion *deserializar_t_memoria_cpu_instruccion(t_buffer *buff
 {
 	t_memoria_cpu_instruccion *dato = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
 	void *stream = buffer->stream;
-
+	deserializar_uint32_t(&stream, &(dato->pid));
 	deserializar_uint32_t(&stream, &(dato->cantidad_elementos));
 	deserializar_char_array(&(dato->array), &(dato->cantidad_elementos), &stream);
 
@@ -384,8 +427,8 @@ t_memoria_cpu_instruccion *deserializar_t_memoria_cpu_instruccion(t_buffer *buff
 void serializar_t_memoria_cpu_instruccion(t_paquete **paquete, t_memoria_cpu_instruccion *proceso)
 {
 
-	// Reservo tamaño para el elemento que tiene la cantidad de elementos
-	uint32_t buffer_size = sizeof(uint32_t) + sizeof(char *);
+	// Reservo tamaño para el pid,la cantidad de elementos y el array
+	uint32_t buffer_size = sizeof(uint32_t) + sizeof(uint32_t) + sizeof(char *);
 
 	for (int i = 0; i < proceso->cantidad_elementos; i++)
 	{
@@ -396,6 +439,7 @@ void serializar_t_memoria_cpu_instruccion(t_paquete **paquete, t_memoria_cpu_ins
 	}
 
 	actualizar_buffer(*paquete, buffer_size);
+	serializar_uint32_t(proceso->pid, *paquete);
 	serializar_uint32_t(proceso->cantidad_elementos, *paquete);
 	serializar_char_array(proceso->array, proceso->cantidad_elementos, *paquete);
 }

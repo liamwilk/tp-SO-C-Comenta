@@ -333,9 +333,32 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
 {
     switch (codigo_operacion)
     {
-    case PLACEHOLDER:
-        // Placeholder
+    case CPU_KERNEL_PROCESO:
+    {
+        t_cpu_kernel_proceso *proceso = deserializar_t_cpu_kernel_proceso(buffer);
+
+        log_debug(logger, "Recibí la respuesta de CPU acerca de la ejecucion de un proceso");
+        log_debug(logger, "PID: %d", proceso->pid);
+        log_debug(logger, "Cantidad de instrucciones ejecutadas: %d", proceso->registros->pc);
+        log_debug(logger, "Ejecutado completo: %d", proceso->ejecutado);
+
+        if (proceso->ejecutado)
+        {
+            log_debug(logger, "Proceso PID:<%d> ejecutado completo.", proceso->pid);
+        }
+        else
+        {
+            // Mover proceso a ready
+            t_pcb *pcb = proceso_buscar_new(args->estados->new, proceso->pid);
+            pcb->memoria_aceptado = false;
+            proceso_mover_ready(args->kernel->gradoMultiprogramacion, logger, args->estados);
+            log_info(logger, "Se mueve el proceso <%d> a READY", proceso->pid);
+        }
+
+        free(proceso);
         break;
+    }
+    break;
     default:
     {
         log_warning(args->logger, "[CPU Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");

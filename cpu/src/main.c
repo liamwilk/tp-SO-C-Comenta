@@ -162,7 +162,7 @@ t_kernel_cpu_proceso *deserializar_t_kernel_cpu_proceso(t_buffer *buffer)
 	deserializar_uint8_t(&stream, &(proceso->registros.bx));
 	deserializar_uint8_t(&stream, &(proceso->registros.cx));
 	deserializar_uint8_t(&stream, &(proceso->registros.dx));
-	
+
 	return proceso;
 }
 
@@ -173,6 +173,45 @@ void switch_case_memoria(t_log* logger, t_op_code codigo_operacion, t_buffer* bu
 		{
 			// Fetch:
 			t_memoria_cpu_instruccion *dato = deserializar_t_memoria_cpu_instruccion(buffer);
+
+			log_debug(logger, "Instruccion recibida de Memoria");
+			log_debug(logger, "PID: %d", dato->pid);
+			for(int i = 0; i < dato->cantidad_elementos; i++){
+				log_debug(logger, "Instruccion: %s", dato->array[i]);
+			}
+			
+			if(strcmp(dato->array[0], "EXIT") == 0){
+				
+				log_debug(logger, "El proceso no tiene más instrucciones para ejecutar");
+
+				// Le aviso a Kernel que ya ejecute todas las instrucciones y le paso el contexto
+				t_paquete *paquete_proceso = crear_paquete(CPU_KERNEL_PROCESO);
+				
+				t_cpu_kernel_proceso *fin_proceso = malloc(sizeof(t_cpu_kernel_proceso));
+				fin_proceso->registros = malloc(sizeof(t_registros_cpu));
+
+				fin_proceso->ejecutado = 1;
+				fin_proceso->pid = dato->pid;
+				fin_proceso->registros->pc = pc;
+				fin_proceso->registros->eax = eax;
+				fin_proceso->registros->ebx = ebx;
+				fin_proceso->registros->ecx = ecx;
+				fin_proceso->registros->edx = edx;
+				fin_proceso->registros->si = si;
+				fin_proceso->registros->di = di;
+				fin_proceso->registros->ax = ax;
+				fin_proceso->registros->bx = bx;
+				fin_proceso->registros->cx = cx;
+				fin_proceso->registros->dx = dx;
+
+				serializar_t_cpu_kernel_proceso(&paquete_proceso, fin_proceso);
+				enviar_paquete(paquete_proceso, socket_kernel_interrupt);
+
+				eliminar_paquete(paquete_proceso);
+
+				free(dato);
+				break;
+			}
 
 			// Aumento el PC para cuando pida la proxima instruccion
 			pc++;
