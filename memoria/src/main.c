@@ -186,6 +186,54 @@ void *atender_entrada_salida_dialfs(void *args)
 	pthread_exit(0);
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////
+
+void eliminar_procesos(t_list *lista_procesos) {
+
+	if(!list_is_empty(lista_procesos)){
+		for (int i = 0; i < list_size(lista_procesos); i++){
+			t_proceso *proceso = list_get(lista_procesos, i);
+			if(!list_is_empty(proceso->instrucciones)){
+				log_debug(logger, "Proceso con PID <%d> encontrado en la lista de procesos global.", proceso->pid);
+				log_debug(logger,"Tamaño de la lista de instrucciones: %d", list_size(proceso->instrucciones));
+				char* pid = string_itoa(proceso->pid);
+				eliminar_instrucciones(proceso->instrucciones);
+				log_info(logger, "Proceso con PID <%s> que fue cargado pero no finalizado, ahora fue eliminado de Memoria.", pid);
+				free(pid);
+				free(proceso);
+			}
+		}	
+	}
+
+	// Libero la memoria de la lista de procesos
+	list_destroy(lista_procesos);
+
+	if(!dictionary_is_empty(diccionario_procesos)){
+		dictionary_clean_and_destroy_elements(diccionario_procesos, free);
+	}
+
+	// Libero la memoria del diccionario de procesos
+	dictionary_destroy(diccionario_procesos);
+}
+
+void eliminar_instrucciones(t_list *lista_instrucciones) {
+
+	if(!list_is_empty(lista_instrucciones)){
+		for(int i = 0; i < list_size(lista_instrucciones); i++){
+			t_memoria_cpu_instruccion *instruccion = list_get(lista_instrucciones, i);
+			for(int j = 0; j < instruccion->cantidad_elementos; j++){
+				if(instruccion->array[j] != NULL){
+					log_debug(logger, "Liberando instruccion en posicion %d: %s", j, instruccion->array[j]);
+					free(instruccion->array[j]);
+				}
+			}
+			free(instruccion->array);
+			free(instruccion);
+		}
+		list_destroy(lista_instrucciones);
+	}
+}
+
 char *armar_ruta(char *ruta1, char *ruta2)
 {
 	char *ruta = malloc(strlen(ruta1) + strlen(ruta2) + 2);
@@ -259,6 +307,7 @@ t_list *leer_instrucciones(char *path_instrucciones, uint32_t pid)
 
 		// Asigno memoria para el array de punteros en instruccion->array
 		instruccion->array = malloc(cantidad_elementos * sizeof(char*));
+
 		if (instruccion->array == NULL) {
 			log_error(logger, "No se pudo reservar memoria para instruccion->array");
 			fclose(file);
@@ -269,6 +318,7 @@ t_list *leer_instrucciones(char *path_instrucciones, uint32_t pid)
 		
 		instruccion->cantidad_elementos = cantidad_elementos;
 		instruccion->pid = pid;
+
 		for (int i = 0; i < cantidad_elementos; i++) {
 			instruccion->array[i] = strdup(separar_linea[i]);
 			log_debug(logger, "Posicion %d: %s",i, instruccion->array[i]);
@@ -293,37 +343,22 @@ t_list *leer_instrucciones(char *path_instrucciones, uint32_t pid)
 	return lista;
 }
 
-t_proceso *obtener_proceso(uint32_t pid)
+t_proceso *buscar_proceso(uint32_t pid)
 {	
-	char* pid_char = string_itoa((int)pid);
+	char* pid_char = string_itoa(pid);
 	char* indice = dictionary_get(diccionario_procesos, pid_char);
 	
 	if (indice == NULL) {
 		log_error(logger, "No se encontro el proceso con PID <%s>", pid_char);
 		return NULL;
 	}
-
+	
 	free(pid_char);
 
 	return list_get(lista_procesos, atoi(indice));
 }
 
-void eliminar_procesos(t_list *lista_procesos) {
-
-	for (int i = 0; i < list_size(lista_procesos); i++){
-		t_proceso *proceso = list_get(lista_procesos, i);
-		if(!list_is_empty(proceso->instrucciones)){
-			log_debug(logger, "Eliminando proceso con PID <%d> de Memoria.", proceso->pid);
-			eliminar_instrucciones(proceso->instrucciones);
-			free(proceso);
-		}
-	}
-	list_destroy(lista_procesos);
-
-	if(!dictionary_is_empty(diccionario_procesos)){
-		dictionary_clean_and_destroy_elements(diccionario_procesos, free);
-	}
-}
+//////////////////////////////////////////////////////////////////////////////////////////
 
 void switch_case_kernel(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer){
 	
@@ -333,7 +368,6 @@ void switch_case_kernel(t_log *logger, t_op_code codigo_operacion, t_buffer *buf
 			{
 				t_kernel_memoria_proceso *dato = deserializar_t_kernel_memoria(buffer);
 				
-				log_debug(logger, "Deserializado del stream:");
 				log_debug(logger, "Tamaño del path_instrucciones: %d", dato->size_path);
 				log_debug(logger, "Path de instrucciones: %s", dato->path_instrucciones);
 				log_debug(logger, "Program counter: %d", dato->program_counter);
@@ -376,50 +410,73 @@ void switch_case_kernel(t_log *logger, t_op_code codigo_operacion, t_buffer *buf
 					break;
 				}
 
-				log_debug(logger, "Se leyeron las instrucciones correctamente");
+				log_info(logger, "Se leyeron las instrucciones correctamente");
+				log_info(logger, "Process ID: %d",proceso->pid);
+				log_info(logger, "Cantidad de instrucciones leidas: %d", list_size(proceso->instrucciones));
+				
+				for(int i=0, j=1; i<list_size(proceso->instrucciones); i++){
+					t_memoria_cpu_instruccion *instruccion = list_get(proceso->instrucciones, i);
+					log_debug(logger, "Instruccion %d en indice %d:", j,i);
+					for(int k=0; k<instruccion->cantidad_elementos; k++){
+						log_debug(logger, "Elemento %d: %s", k, instruccion->array[k]);
+					}
+					j++;
+				}
 
 				// Guardo el proceso en la lista de procesos
 				int index = list_add(lista_procesos, proceso);
 				
-				log_debug(logger, "Se agrego el proceso a la lista de procesos global");
-
-				char* index_char = string_itoa(index);
-				char* pid_char = string_itoa((int)proceso->pid);
+				log_info(logger, "Proceso <%d> agregado a la lista de procesos global en la posicion %d", proceso->pid,index);
 
 				// Añado el proceso al diccionario de procesos, mapeando el PID a el indice en la lista de procesos
-				dictionary_put(diccionario_procesos, pid_char, index_char);
+				dictionary_put(diccionario_procesos, string_itoa(proceso->pid), string_itoa(index));
 
-				// Le aviso a Kernel que ya lei las instrucciones para ese PID
-				t_paquete *respuesta_paquete = crear_paquete(MEMORIA_KERNEL_NUEVO_PROCESO);
+				{ // Reviso que se haya guardado correctamente en el diccionario de procesos y en la lista de procesos
+					char* indice = dictionary_get(diccionario_procesos, string_itoa(proceso->pid));
+					t_proceso* proceso_encontrado = list_get(lista_procesos, atoi(indice));
 
-				t_memoria_kernel_proceso* respuesta_proceso = malloc(sizeof(t_memoria_kernel_proceso));
-				respuesta_proceso->pid = dato->pid;
-				respuesta_proceso->cantidad_instrucciones = list_size(proceso->instrucciones);
-				respuesta_proceso->leido = true;
+					log_debug(logger,"Reviso que se haya guardado correctamente en el diccionario de procesos y en la lista de procesos");
+					log_debug(logger, "Proceso encontrado:");
+					log_debug(logger, "PID: %d", proceso_encontrado->pid);
+					log_debug(logger, "PC: %d", proceso_encontrado->pc);
+					log_debug(logger, "Cantidad de instrucciones: %d", list_size(proceso_encontrado->instrucciones));
 
-				serializar_t_memoria_kernel_proceso(&respuesta_paquete, respuesta_proceso);
-				enviar_paquete(respuesta_paquete, socket_kernel);
-
-				free(path_completo);
-				free(dato->path_instrucciones);
-				free(dato);
-				free(respuesta_proceso);
-
-				eliminar_paquete(respuesta_paquete);
+					if(proceso->pid == proceso_encontrado->pid && proceso->pc == proceso_encontrado->pc && list_size(proceso->instrucciones) == list_size(proceso_encontrado->instrucciones)){
+						log_info(logger, "Proceso con PID <%d> guardado correctamente en el diccionario de procesos y en la lista de procesos", proceso->pid);
+					}
+				}
 				
+				{ // Le aviso a Kernel que ya lei las instrucciones para ese PID
+					t_paquete *respuesta_paquete = crear_paquete(MEMORIA_KERNEL_NUEVO_PROCESO);
+
+					t_memoria_kernel_proceso* respuesta_proceso = malloc(sizeof(t_memoria_kernel_proceso));
+					respuesta_proceso->pid = dato->pid;
+					respuesta_proceso->cantidad_instrucciones = list_size(proceso->instrucciones);
+					respuesta_proceso->leido = true;
+
+					serializar_t_memoria_kernel_proceso(&respuesta_paquete, respuesta_proceso);
+					enviar_paquete(respuesta_paquete, socket_kernel);
+
+					free(path_completo);
+					free(dato->path_instrucciones);
+					free(dato);
+					free(respuesta_proceso);
+
+					eliminar_paquete(respuesta_paquete);
+				}
+
 				break;
 			}
 			case KERNEL_MEMORIA_FINALIZAR_PROCESO:
 			{
 				t_kernel_memoria_finalizar_proceso *proceso = deserializar_t_kernel_memoria_finalizar_proceso(buffer);
 
-				log_debug(logger, "Deserializado del stream:");
 				log_debug(logger, "Instruccion recibida para eliminar:");
 				log_debug(logger, "PID: %d", proceso->pid);
 				
-				log_info(logger,"Se comienza a buscar el proceso solicitado por CPU en la lista de procesos globales.");
+				log_debug(logger,"Se comienza a buscar el proceso solicitado por CPU en la lista de procesos globales.");
 
-				t_proceso *proceso_encontrado = obtener_proceso(proceso->pid);
+				t_proceso *proceso_encontrado = buscar_proceso(proceso->pid);
 
 				if (proceso_encontrado == NULL)
 				{
@@ -437,27 +494,27 @@ void switch_case_kernel(t_log *logger, t_op_code codigo_operacion, t_buffer *buf
 				uint32_t pid = proceso_encontrado->pid;
 
 				// Caso borde, no debería pasar nunca
-				if(list_is_empty(proceso_encontrado->instrucciones)){
-					log_warning(logger, "No se encontraron instrucciones para el proceso con PID <%d>", proceso_encontrado->pid);
+				if(list_is_empty(proceso_encontrado->instrucciones))
+				{
+					log_warning(logger, "No se encontraron instrucciones para el proceso con PID <%d>. Es un proceso invalido, lo elimino de la lista.", proceso_encontrado->pid);
+					list_destroy(proceso_encontrado->instrucciones);
+					free(proceso_encontrado->instrucciones);
+					free(proceso_encontrado);
 					free(proceso);
 					break;
 				}
-				
-
 				
 				// Remuevo cada instruccion y luego la lista de instrucciones en si misma
 				eliminar_instrucciones(proceso_encontrado->instrucciones);
 
 				char* pid_char = string_itoa(proceso_encontrado->pid);
-
-				// Elimino el proceso del diccionario de procesos
+				
+				// Remuevo el proceso del diccionario de procesos
 				dictionary_remove_and_destroy(diccionario_procesos, pid_char, free);
 
 				log_info(logger, "Se elimino el proceso con PID <%d> de Memoria.\n", pid);
 
 				free(proceso_encontrado);
-				proceso_encontrado = NULL;
-
 				free(pid_char);
 				free(proceso);
 				break;
@@ -467,17 +524,17 @@ void switch_case_kernel(t_log *logger, t_op_code codigo_operacion, t_buffer *buf
 				pthread_cancel(thread_atender_cpu);
 				pthread_cancel(thread_atender_entrada_salida);
 
-				if(socket_entrada_salida_stdin != 0){
+				if(socket_entrada_salida_stdin > 0){
 					pthread_cancel(thread_atender_entrada_salida_stdin);
 					liberar_conexion(&socket_entrada_salida_stdin);
 				}
 				
-				if(socket_entrada_salida_stdout != 0){
+				if(socket_entrada_salida_stdout > 0){
 					pthread_cancel(thread_atender_entrada_salida_stdout);
 					liberar_conexion(&socket_entrada_salida_stdout);
 				}
 				
-				if(socket_entrada_salida_dialfs != 0){
+				if(socket_entrada_salida_dialfs > 0){
 					pthread_cancel(thread_atender_entrada_salida_dialfs);
 					liberar_conexion(&socket_entrada_salida_dialfs);
 				}
@@ -501,24 +558,23 @@ void switch_case_kernel(t_log *logger, t_op_code codigo_operacion, t_buffer *buf
 }
 
 void switch_case_cpu(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer){
+	
 	switch (codigo_operacion)
 		{
 		case CPU_MEMORIA_PROXIMA_INSTRUCCION:
 			{
-			
 			// Simulo el retardo de acceso a memoria en milisegundos
 			sleep(memoria.retardoRespuesta/1000);
 
 			t_cpu_memoria_instruccion *instruccion_recibida = deserializar_t_cpu_memoria_instruccion(buffer);
 
-			log_debug(logger, "Deserializado del stream:");
 			log_debug(logger, "Instruccion recibida de CPU:");
 			log_debug(logger, "PID: %d", instruccion_recibida->pid);
 			log_debug(logger, "Program counter: %d", instruccion_recibida->program_counter);
 
 			log_info(logger,"Se comienza a buscar el proceso solicitado por CPU en la lista de procesos globales.");
 
-			t_proceso *proceso_encontrado = obtener_proceso(instruccion_recibida->pid);
+			t_proceso *proceso_encontrado = buscar_proceso(instruccion_recibida->pid);
 			
 			if (proceso_encontrado == NULL)
 			{
@@ -530,7 +586,9 @@ void switch_case_cpu(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer
 			log_debug(logger, "Proceso encontrado:");
 			log_debug(logger, "PID: %d", proceso_encontrado->pid);
 			log_debug(logger, "Ultimo PC enviado: %d", proceso_encontrado->pc);
-
+			log_debug(logger, "Proximo PC a enviar: %d", instruccion_recibida->program_counter);
+			
+			// Caso borde, no debería pasar nunca
 			if(list_is_empty(proceso_encontrado->instrucciones)){
 				log_warning(logger, "No se encontraron instrucciones para el proceso con PID <%d>", proceso_encontrado->pid);
 				free(instruccion_recibida);
@@ -578,7 +636,6 @@ void switch_case_cpu(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer
 			log_info(logger, "Instruccion con PID %d enviada a CPU", instruccion_recibida->pid);
 
 			free(instruccion_recibida);
-			free(instruccion_proxima);
 			eliminar_paquete(paquete_instruccion);
 			break;
 			}
@@ -642,21 +699,5 @@ void switch_case_entrada_salida_dialfs(t_log *logger, t_op_code codigo_operacion
 			liberar_conexion(&socket_entrada_salida_stdin);
 			break;
 			}
-	}
-}
-
-void eliminar_instrucciones(t_list *lista_instrucciones) {
-
-	if(!list_is_empty(lista_instrucciones)){
-		for(int i = 0; i < list_size(lista_instrucciones); i++){
-			t_memoria_cpu_instruccion *instruccion = list_get(lista_instrucciones, i);
-			for(int j = 0; j < instruccion->cantidad_elementos; j++){
-				log_debug(logger, "Liberando instruccion en posicion %d: %s", j, instruccion->array[j]);
-				free(instruccion->array[j]);
-			}
-			free(instruccion->array);
-			free(instruccion);
-		}
-		list_destroy(lista_instrucciones);
 	}
 }

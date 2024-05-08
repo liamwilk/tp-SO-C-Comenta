@@ -18,9 +18,9 @@
 #include <utils/configs.h>
 #include <utils/serial.h>
 #include <commons/collections/list.h>
-// Biblioteca de serializacion exclusiva para Memoria
 #include "serial.h"
 #include <utils/template.h>
+
 typedef struct
 {
 	uint32_t pid;	
@@ -59,29 +59,39 @@ char *armar_ruta(char* ruta1, char* ruta2);
  */
 t_list *leer_instrucciones(char *path_instrucciones, uint32_t pid);
 
-
 /**
- * @fn    *obtener_proceso
+ * @fn    *buscar_proceso
  * @brief Dado un pid, retorna el proceso asociado de la lista global de procesos
  * @param pid El pid del proceso a buscar
  */
-t_proceso *obtener_proceso(uint32_t pid);
+t_proceso *buscar_proceso(uint32_t pid);
 
+/**
+ * @fn    *eliminar_procesos
+ * @brief Dado una lista de procesos, los elimina a todos liberando la memoria inclusive.
+ * @param lista_procesos La lista de t_proceso a eliminar
+ */
 void eliminar_procesos(t_list *lista_procesos);
+
+/**
+ * @fn    *eliminar_instrucciones
+ * @brief Dado una lista de instrucciones, las elimina a todas liberando la memoria inclusive.
+ * @param lista_instrucciones La lista de t_memoria_cpu_instruccion a eliminar
+ */
 void eliminar_instrucciones(t_list *lista_instrucciones);
-void inicializar_argumentos(t_memoria_cpu_instruccion* instruccion);
+
 void switch_case_kernel(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer);
 void switch_case_cpu(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer);
+
 void switch_case_entrada_salida_stdin(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer);
 void switch_case_entrada_salida_stdout(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer);
 void switch_case_entrada_salida_dialfs(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer);
-pthread_t thread_atender_cpu,thread_atender_kernel,thread_atender_entrada_salida,thread_esperar_cpu,thread_conectar_kernel;
 
-pthread_t thread_atender_entrada_salida_stdin,thread_atender_entrada_salida_stdout,thread_atender_entrada_salida_dialfs;
+pthread_t thread_atender_cpu,thread_atender_kernel,thread_atender_entrada_salida,thread_esperar_cpu,thread_conectar_kernel,thread_atender_entrada_salida_stdin,thread_atender_entrada_salida_stdout,thread_atender_entrada_salida_dialfs;
 
-int socket_cpu;
-int socket_kernel;
-int socket_server_memoria;
+int socket_cpu = 0;
+int socket_kernel = 0;
+int socket_server_memoria = 0;
 int socket_entrada_salida_stdin = 0;
 int socket_entrada_salida_stdout = 0;
 int socket_entrada_salida_dialfs = 0;

@@ -155,5 +155,6 @@ void kernel_finalizar(t_kernel *kernel)
     liberar_conexion(&kernel->sockets.cpu_interrupt);
     liberar_conexion(&kernel->sockets.memoria);
 
+    free(finalizar_kernel);
     eliminar_paquete(finalizar);
 };

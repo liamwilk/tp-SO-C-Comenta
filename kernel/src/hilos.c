@@ -342,9 +342,20 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         log_debug(logger, "Cantidad de instrucciones ejecutadas: %d", proceso->registros->pc);
         log_debug(logger, "Ejecutado completo: %d", proceso->ejecutado);
 
+        // TODO: En CPU implementar lo siguiente: ejecutado = 1 para ejecutado completo, 0 para interrumpido y pendiente, -1 para error.
+
         if (proceso->ejecutado)
         {
             log_debug(logger, "Proceso PID:<%d> ejecutado completo.", proceso->pid);
+
+            log_debug(logger, "Le doy notificacion a Memoria para que elimine el proceso PID:<%d>", proceso->pid);
+
+            t_paquete *paquete_finalizar = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
+            t_kernel_memoria_finalizar_proceso *finalizar_proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
+            finalizar_proceso->pid = proceso->pid;
+            serializar_t_kernel_memoria_finalizar_proceso(&paquete_finalizar, finalizar_proceso);
+            enviar_paquete(paquete_finalizar, args->kernel->sockets.memoria);
+            eliminar_paquete(paquete_finalizar);
         }
         else
         {
