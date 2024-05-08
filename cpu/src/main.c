@@ -172,33 +172,23 @@ void switch_case_memoria(t_log* logger, t_op_code codigo_operacion, t_buffer* bu
 		case MEMORIA_CPU_PROXIMA_INSTRUCCION:
 		{
 			// Fetch:
-			// Deserializo la instruccion recibida de memoria
 			t_memoria_cpu_instruccion *dato = deserializar_t_memoria_cpu_instruccion(buffer);
-
-			log_debug(logger, "Instruccion recibidas de Memoria");
-			for(int i = 0; i < dato->cantidad_elementos; i++){
-				log_debug(logger, "instruccion[%d]: %s",i,dato->array[i]);
-			}
 
 			// Aumento el PC para cuando pida la proxima instruccion
 			pc++;
 
 			// Decode:
-			// Determino la instruccion que se solicita
-			t_instruccion codigo_instruccion = determinar_codigo_instruccion(dato->array[0]);
+			t_instruccion leida = determinar_codigo_instruccion(dato->array[0]);
 
 			// Execute:
-			// Ejecuto la instruccion del opcode
-			switch(codigo_instruccion)
+			switch(leida)
 			{
 				case SET:
 					log_debug(logger, "reconoci un SET");
 					break;
-
 				case SUM:
 					log_debug(logger, "reconoci un SUM");
 					break;
-
 				case SUB:
 					log_debug(logger, "reconoci un SUB");
 					break;
@@ -206,42 +196,45 @@ void switch_case_memoria(t_log* logger, t_op_code codigo_operacion, t_buffer* bu
 				case JNZ:
 					log_debug(logger, "reconoci un JNZ");
 					break;
-
 				case IO_GEN_SLEEP:
 					log_debug(logger, "reconoci un IO_GEN_SLEEP");
 					break;
-
 				case EXIT:
-					
-					// TODO: implementar logica del exit
-					// Tiene que cargar todos los registros a un pcb, y mandarselo a kernel
-					
-					// Liberar
-
 					for(int i = 0; i < dato->cantidad_elementos; i++){
 						free(dato->array[i]);
 					}
-					log_debug(logger,"Se libero la memoria de las instrucciones");
-
-					// Con este break salta directamente a esperar otro paquete de memoria
-					break;
-				default:
-					log_debug(logger, "todavia no entiendo esta operacion");
+					log_debug(logger,"Se hallo instruccion EXIT");
+					liberar_conexion(&socket_memoria);
 					break;
 			}
+			
+			// Hardcodeo que no hay interrupt porque estamos haciendo FIFO
+			uint32_t hay_interrupt = 0;
 
 			// // Check interrupt
-			// if(hay_interrupt)
-			// {
-			// 	atendiendo_interrupcion = true;
-			// 	// Logica
-			// } else {
-			// 	t_paquete *solicitud_instruccion = crear_paquete(PROXIMA_INSTRUCCION);
-			// 	serializar_t_cpu_memoria_instruccion(&solicitud_instruccion, pc, pid);
-			// 	enviar_paquete(solicitud_instruccion, socket_memoria);
-			// }
+			if(hay_interrupt)
+			{
+				//atendiendo_interrupcion = true;
+			} else {
+				t_paquete *solicitud_instruccion = crear_paquete(CPU_MEMORIA_PROXIMA_INSTRUCCION);
+				t_cpu_memoria_instruccion *proxima_instruccion = malloc(sizeof(t_cpu_memoria_instruccion));
+				proxima_instruccion->pid = pid;
+				proxima_instruccion->program_counter = pc;
+
+				log_info(logger, "Se solicita la instruccion %d del proceso %d", proxima_instruccion->program_counter, proxima_instruccion->pid);
+
+
+				serializar_t_cpu_memoria_instruccion(&solicitud_instruccion, proxima_instruccion);
+				enviar_paquete(solicitud_instruccion, socket_memoria);
+
+				eliminar_paquete(solicitud_instruccion);
+			}
 			break;
 		}
+		case PLACEHOLDER:
+			{
+				//PLACEHOLDER
+			}
 		default:
 			{	
 			log_warning(logger, "[Memoria] Se recibio un codigo de operacion desconocido. Cierro hilo");
@@ -262,7 +255,7 @@ void switch_case_kernel_dispatch(t_log* logger, t_op_code codigo_operacion, t_bu
 			*/
 			break;
 		}
-		case KERNEL_CPU_ENVIAR_REGISTROS:
+		case KERNEL_CPU_EJECUTAR_PROCESO:
 		{
 			t_kernel_cpu_proceso *proceso_cpu = deserializar_t_kernel_cpu_proceso(buffer);
 			log_debug(logger, "Registros cpu recibido de Kernel Dispatch");
@@ -278,9 +271,38 @@ void switch_case_kernel_dispatch(t_log* logger, t_op_code codigo_operacion, t_bu
 			log_debug(logger, "DX: %d", proceso_cpu->registros.dx);
 			log_debug(logger, "SI: %d", proceso_cpu->registros.si);
 			log_debug(logger, "DI: %d", proceso_cpu->registros.di);
+			
+			pid = proceso_cpu->pid;
+			pc = proceso_cpu->registros.pc;
+			eax=proceso_cpu->registros.eax;
+			ebx=proceso_cpu->registros.ebx;
+			ecx = proceso_cpu->registros.ecx;
+			edx= proceso_cpu ->registros.edx;
+			ax=proceso_cpu->registros.ax;
+			bx= proceso_cpu->registros.bx;
+			cx= proceso_cpu->registros.cx;
+			dx = proceso_cpu->registros.si;
+			di= proceso_cpu->registros.di;
+			
+			t_paquete *paquete = crear_paquete(CPU_MEMORIA_PROXIMA_INSTRUCCION);
+
+			actualizar_buffer(paquete, sizeof(uint32_t) + sizeof(uint32_t));
+
+			serializar_uint32_t(proceso_cpu->registros.pc, paquete);
+			serializar_uint32_t(proceso_cpu->pid, paquete);
 
 
-			// TODO: Continuar con la logica de recibir registros desde kernel
+			// Envio la instruccion a Memoria
+			enviar_paquete(paquete, socket_memoria);
+
+			log_debug(logger,"Instruccion pedida a Memoria");
+			
+			// // Libero la memoria del paquete de instruccion
+			// eliminar_paquete(paquete);
+			// TODO: Ejecutar ciclo de instrucciones
+			// while(hay_instruccion)
+			// pedir_instruccion_memoria();
+			//  ejecutar instruccion
 			free(proceso_cpu);
 			break;
 		}
@@ -355,3 +377,53 @@ t_instruccion determinar_codigo_instruccion(char* instruccion)
 	// TODO: determinar que devolver si el opcode es cualquier cosa
 	return -1;				
 };
+
+uint32_t determinar_tipo_registro_uint32_t(char* instruccion)
+{
+	if(!strcmp(instruccion, "eax"))
+	{
+		return eax;
+	}
+	if(!strcmp(instruccion, "ebx"))
+	{
+		return ebx;
+	}
+	if(!strcmp(instruccion, "ecx"))
+	{
+		return ecx;
+	}
+	if(!strcmp(instruccion, "edx"))
+	{
+		return edx;
+	}
+	if(!strcmp(instruccion, "si"))
+	{
+		return si;
+	}
+	if(!strcmp(instruccion, "di"))
+	{
+		return di;
+	}
+	return -1;				
+};
+
+uint8_t determinar_tipo_registro_uint8_t(char* instruccion)
+{
+	if(!strcmp(instruccion, "ax"))
+	{
+		return ax;
+	}
+	if(!strcmp(instruccion, "bx"))
+	{
+		return bx;
+	}
+	if(!strcmp(instruccion, "cx"))
+	{
+		return cx;
+	}
+	if(!strcmp(instruccion, "dx"))
+	{
+		return dx;
+	}
+	return -1;
+}

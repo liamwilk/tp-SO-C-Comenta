@@ -576,3 +576,10 @@ void deserializar_uint64_t_array(uint64_t **array, uint64_t *cantidad_elementos,
 		deserializar_uint64_t(buffer, &((*array)[i]));
 	}
 }
+
+void serializar_t_cpu_memoria_instruccion(t_paquete **paquete, t_cpu_memoria_instruccion *proceso)
+{
+	actualizar_buffer(*paquete, (2 * sizeof(uint32_t)));
+	serializar_uint32_t(proceso->program_counter, *paquete);
+	serializar_uint32_t(proceso->pid, *paquete);
+}

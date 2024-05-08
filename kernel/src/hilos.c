@@ -98,6 +98,14 @@ void *hilos_atender_consola(void *args)
             proceso_mover_ready(hiloArgs->kernel->gradoMultiprogramacion, hiloArgs->logger, hiloArgs->estados);
             log_debug(hiloArgs->logger, "Se movieron los procesos a READY");
             // TODO: Planificador a corto plazo (FIFO y RR)
+
+            t_pcb *aux = proceso_quitar_ready(hiloArgs->estados->ready);
+            t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
+
+            serializar_t_registros_cpu(&paquete, aux->pid, aux->registros_cpu);
+            enviar_paquete(paquete, hiloArgs->kernel->sockets.cpu_dispatch);
+            free(paquete);
+            free(aux);
             break;
         }
         case MULTIPROGRAMACION:
@@ -200,10 +208,10 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *
         if (proceso->leido)
         {
             // Enviar a cpu los registros
-            t_paquete *paquete = crear_paquete(KERNEL_CPU_ENVIAR_REGISTROS);
+            // t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
             t_pcb *pcb = proceso_buscar_new(args->estados->new, proceso->pid);
-            serializar_t_registros_cpu(&paquete, pcb->pid, pcb->registros_cpu);
-            enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
+            // serializar_t_registros_cpu(&paquete, pcb->pid, pcb->registros_cpu);
+            // enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
             // Buscar proceso
             pcb->memoria_aceptado = true;
             log_debug(logger, "Proceso PID:<%d> aceptado en memoria", pcb->pid);

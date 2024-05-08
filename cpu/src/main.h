@@ -22,6 +22,7 @@
 
 /*  Registros utilizados por la cpu */
 
+
 // Registros auxiliares de 1 byte
 uint8_t ax, bx, cx, dx;
 
@@ -40,6 +41,7 @@ uint32_t pid;
 t_cpu cpu;
 t_log *logger;
 t_config *config;
+t_memoria_cpu_instruccion *instruccion;
 
 void *atender_kernel_dispatch();
 void *atender_kernel_interrupt();

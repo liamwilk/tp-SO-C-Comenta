@@ -20,7 +20,7 @@ typedef enum
 	KERNEL_MEMORIA_NUEVO_PROCESO,
 	KERNEL_MEMORIA_FINALIZAR_PROCESO,
 	MEMORIA_KERNEL_NUEVO_PROCESO,
-	KERNEL_CPU_ENVIAR_REGISTROS,
+	KERNEL_CPU_EJECUTAR_PROCESO,
 	KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP,
 	ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP,
 	PLACEHOLDER
@@ -546,5 +546,7 @@ void serializar_uint64_t_array(uint64_t *array, uint32_t cantidad_elementos, t_p
  * @param buffer Buffer de los datos a deserializar.
  */
 void deserializar_uint64_t_array(uint64_t **array, uint64_t *cantidad_elementos, void **buffer);
+
+void serializar_t_cpu_memoria_instruccion(t_paquete **paquete, t_cpu_memoria_instruccion *proceso);
 
 #endif
