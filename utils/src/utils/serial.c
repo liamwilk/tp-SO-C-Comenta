@@ -627,3 +627,23 @@ void serializar_t_cpu_memoria_instruccion(t_paquete **paquete, t_cpu_memoria_ins
 	serializar_uint32_t(proceso->program_counter, *paquete);
 	serializar_uint32_t(proceso->pid, *paquete);
 }
+
+t_kernel_cpu_proceso *deserializar_t_kernel_cpu_proceso(t_buffer *buffer)
+{
+	t_kernel_cpu_proceso *proceso = malloc(sizeof(t_kernel_cpu_proceso));
+	void *stream = buffer->stream;
+	deserializar_uint32_t(&stream, &(proceso->pid));
+	deserializar_uint32_t(&stream, &(proceso->registros.pc));
+	deserializar_uint32_t(&stream, &(proceso->registros.eax));
+	deserializar_uint32_t(&stream, &(proceso->registros.ebx));
+	deserializar_uint32_t(&stream, &(proceso->registros.ecx));
+	deserializar_uint32_t(&stream, &(proceso->registros.edx));
+	deserializar_uint32_t(&stream, &(proceso->registros.si));
+	deserializar_uint32_t(&stream, &(proceso->registros.di));
+	deserializar_uint8_t(&stream, &(proceso->registros.ax));
+	deserializar_uint8_t(&stream, &(proceso->registros.bx));
+	deserializar_uint8_t(&stream, &(proceso->registros.cx));
+	deserializar_uint8_t(&stream, &(proceso->registros.dx));
+
+	return proceso;
+}

@@ -557,5 +557,6 @@ void serializar_t_cpu_memoria_instruccion(t_paquete **paquete, t_cpu_memoria_ins
 
 t_cpu_kernel_proceso *deserializar_t_cpu_kernel_proceso(t_buffer *buffer);
 void serializar_t_cpu_kernel_proceso(t_paquete **paquete, t_cpu_kernel_proceso *proceso);
+t_kernel_cpu_proceso *deserializar_t_kernel_cpu_proceso(t_buffer *buffer);
 
 #endif

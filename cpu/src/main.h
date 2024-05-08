@@ -13,27 +13,16 @@
 #include <pthread.h>
 #include <limits.h>
 #include <utils/handshake.h>
-#include <utils/modulos.h>
+#include <utils/cpu.h>
 #include <utils/conexiones.h>
 #include <utils/configs.h>
 #include <utils/serial.h>
 #include <utils/procesos.h>
 #include <utils/template.h>
+#include <utils/instrucciones.h>
 
 /*  Registros utilizados por la cpu */
-
-
-// Registros auxiliares de 1 byte
-uint8_t ax, bx, cx, dx;
-
-// Registros auxiliares de 4 bytes
-uint32_t eax, ebx, ecx, edx;
-
-// Contador de programa
-uint32_t pc;
-
-// Registros para el copiado de strings
-uint32_t si, di;
+t_cpu_proceso proceso;
 
 // Process ID
 uint32_t pid;
@@ -41,7 +30,7 @@ uint32_t pid;
 t_cpu cpu;
 t_log *logger;
 t_config *config;
-t_memoria_cpu_instruccion *instruccion;
+t_memoria_cpu_instruccion instruccion;
 
 void *atender_kernel_dispatch();
 void *atender_kernel_interrupt();
@@ -62,9 +51,9 @@ int socket_server_interrupt;
 
 pthread_t thread_atender_kernel_dispatch, thread_atender_kernel_interrupt, thread_conectar_memoria, thread_atender_memoria, thread_esperar_kernel_dispatch, thread_esperar_kernel_interrupt;
 
-void switch_case_memoria(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer);
-void switch_case_kernel_dispatch(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer);
-void switch_case_kernel_interrupt(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer);
-t_instruccion determinar_codigo_instruccion(char* instruccion);
+void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_kernel_dispatch(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_kernel_interrupt(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer);
+t_instruccion determinar_codigo_instruccion(char *instruccion);
 
 #endif /* MAIN_H_ */
