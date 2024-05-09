@@ -97,7 +97,10 @@ void *hilos_atender_consola(void *args)
             log_info(hiloArgs->logger, "Se ejecuto script %s", separar_linea[0]);
             proceso_mover_ready(hiloArgs->kernel->gradoMultiprogramacion, hiloArgs->logger, hiloArgs->estados);
             log_debug(hiloArgs->logger, "Se movieron los procesos a READY");
-            // TODO: Planificador a corto plazo (FIFO y RR)
+            /* if (strcmp(hiloArgs->kernel->algoritmoPlanificador, "FIFO") == 0)
+            {
+                algoritmo_fifo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->kernel->sockets.cpu_dispatch);
+            } */
 
             t_pcb *aux = proceso_pop_ready(hiloArgs->estados);
             t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);

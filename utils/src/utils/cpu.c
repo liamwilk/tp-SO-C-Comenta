@@ -34,7 +34,7 @@ void cpu_memoria_pedir_proxima_instruccion(t_cpu_proceso *proceso, int socket_me
     eliminar_paquete(paquete);
 }
 
-void cpu_ejecutar_instruccion(t_memoria_cpu_instruccion *datos_instruccion, t_instruccion INSTRUCCION, t_cpu_proceso *cpu_proceso, t_log *logger)
+void cpu_ejecutar_instruccion(t_memoria_cpu_instruccion *datos_instruccion, t_instruccion instruccion, t_cpu_proceso *cpu_proceso, t_log *logger)
 {
     // SUM y SUB ya estan resueltas.
     // TODO: Hacer SET, JNZ, IO_GEN_SLEEP, EXIT
@@ -54,11 +54,60 @@ void cpu_ejecutar_instruccion(t_memoria_cpu_instruccion *datos_instruccion, t_in
     // Todas instrucciones vienen con un salto de linea en el ultimo argumento, lo remuevo para que funcionen las comparaciones
     remover_salto_linea(datos_instruccion->array[datos_instruccion->cantidad_elementos - 1]);
 
-    switch (INSTRUCCION)
+    switch (instruccion)
     {
     case SET:
     {
-        log_debug(logger, "reconoci un SET");
+        // SET (Registro, Valor): Asigna al registro el valor pasado como parámetro.
+        log_debug(logger, "Instruccion: '%s' '%s' '%s' reconocida", datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2]);
+
+        char *registro_destino = strdup(datos_instruccion->array[1]);
+        char *valor = strdup(datos_instruccion->array[2]);
+
+        t_registro registro_tipo = obtener_tipo_registro(registro_destino);
+
+        if (registro_tipo == REGISTRO_32)
+        {
+            uint32_t *registro = determinar_tipo_registro_uint32_t(registro_destino, cpu_proceso);
+            if (registro == 0)
+            {
+                log_error(logger, "Registro %s a insertar invalido", registro_destino);
+                break;
+            }
+            uint32_t valor_a_enviar = strtoul(valor, NULL, 10); // Se usa strtoul ya que es la única forma viable de hacer el pasaje de char* a uint y sus variantes
+            if (valor_a_enviar > UINT32_MAX)                    // En base a lo anterior, se hace el chequeo del tamaño para evitar el overflow
+            {
+                log_error(logger, "El numero es mas grande que la capacidad de uint32");
+                break;
+            }
+            *registro = valor_a_enviar; // Se asigna el valor obtenido;
+        }
+        else if (registro_tipo == REGISTRO_8) // Misma lógica que para registro de 4 bytes;
+        {
+            uint8_t *registro = determinar_tipo_registro_uint8_t(registro_destino, cpu_proceso);
+            if (registro == 0)
+            {
+                log_error(logger, "Registro %s a insertar invalido", registro_destino);
+                break;
+            }
+            unsigned long num = strtoul(valor, NULL, 10);
+            if (num > UINT8_MAX)
+            {
+                log_error(logger, "El numero es mas grande que la capacidad de uint8");
+                break;
+            }
+            uint8_t valor_a_enviar = (uint8_t)num;
+            *registro = valor_a_enviar;
+            log_debug(logger, "Valor final del registro %s: %d", registro_destino, *registro);
+        }
+        else
+        {
+            log_error(logger, "No existe registro con ese tipo de dato");
+        }
+        imprimir_registros(logger, cpu_proceso);
+
+        free(registro_destino);
+        free(valor);
         break;
     }
     case SUM:
@@ -79,6 +128,21 @@ void cpu_ejecutar_instruccion(t_memoria_cpu_instruccion *datos_instruccion, t_in
 
         log_debug(logger, "Argumento destino tipo: %d", argumento_destino_tipo);
         log_debug(logger, "Argumento origen tipo: %d", argumento_origen_tipo);
+
+        /*
+
+        if(destino = 32)
+            if(origen = 32)
+                Anda bien
+            if(origen = 8)
+                Hace falta castear
+
+        if(destino = 8)
+            if(origen = 8)
+                Anda bien
+            if(origen = 32)
+
+        */
 
         if (argumento_destino_tipo == argumento_origen_tipo)
         {
@@ -251,7 +315,35 @@ void cpu_ejecutar_instruccion(t_memoria_cpu_instruccion *datos_instruccion, t_in
     }
     case JNZ:
     {
-        log_debug(logger, "reconoci un JNZ");
+        // JNZ (Registro, Instrucción): Si el valor del registro es distinto de cero, actualiza el program counter al número de instrucción pasada por parámetro.
+        char *registro = strdup(datos_instruccion->array[1]);
+        char *instruccion = strdup(datos_instruccion->array[2]);
+
+        t_registro registro_tipo_size = obtener_tipo_registro(registro);
+
+        if (registro_tipo_size == REGISTRO_8)
+        {
+            uint8_t *registro_destino = determinar_tipo_registro_uint8_t(registro, cpu_proceso);
+            if (*registro_destino != 0)
+            {
+                uint32_t valor_pc = strtoul(instruccion, NULL, 10);
+                cpu_proceso->registros.pc = valor_pc;
+            }
+        }
+        else if (registro_tipo_size == REGISTRO_32)
+        {
+            uint32_t *registro_destino = determinar_tipo_registro_uint32_t(registro, cpu_proceso);
+            if (*registro_destino != 0)
+            {
+                uint32_t valor_pc = strtoul(instruccion, NULL, 10);
+                cpu_proceso->registros.pc = valor_pc;
+            }
+        }
+        else
+        {
+            log_error(logger, "Registro invalido");
+            break;
+        }
         break;
     }
     case IO_GEN_SLEEP:
@@ -264,6 +356,71 @@ void cpu_ejecutar_instruccion(t_memoria_cpu_instruccion *datos_instruccion, t_in
         log_debug(logger, "Se hallo instruccion EXIT");
         break;
     }
+    case MOV_IN:
+    {
+        log_debug(logger, "reconoci un MOV_IN");
+        break;
+    }
+    case MOV_OUT:
+    {
+        log_debug(logger, "reconoci un MOV_OUT");
+        break;
+    }
+    case RESIZE:
+    {
+        log_debug(logger, "reconoci un RESIZE");
+        break;
+    }
+    case COPY_STRING:
+    {
+        log_debug(logger, "reconoci un COPY_STRING");
+        break;
+    }
+    case IO_STDIN_READ:
+    {
+        log_debug(logger, "reconoci un IO_STDIN_READ");
+        break;
+    }
+    case IO_STDOUT_WRITE:
+    {
+        log_debug(logger, "reconoci un IO_STDOUT_WRITE");
+        break;
+    }
+    case IO_FS_CREATE:
+    {
+        log_debug(logger, "reconoci un IO_FS_CREATE");
+        break;
+    }
+    case IO_FS_DELETE:
+    {
+        log_debug(logger, "reconoci un IO_FS_DELETE");
+        break;
+    }
+    case IO_FS_TRUNCATE:
+    {
+        log_debug(logger, "reconoci un IO_FS_TRUNCATE");
+        break;
+    }
+    case IO_FS_WRITE:
+    {
+        log_debug(logger, "reconoci un IO_FS_WRITE");
+        break;
+    }
+    case IO_FS_READ:
+    {
+        log_debug(logger, "reconoci un IO_FS_READ");
+        break;
+    }
+    case WAIT:
+    {
+        log_debug(logger, "reconoci un WAIT");
+        break;
+    }
+    case SIGNAL:
+    {
+        log_debug(logger, "reconoci un SIGNAL");
+        break;
+    }
     default:
     {
         log_error(logger, "Instruccion invalida");
@@ -271,7 +428,35 @@ void cpu_ejecutar_instruccion(t_memoria_cpu_instruccion *datos_instruccion, t_in
     }
     }
 
-    log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2]); // Log oblitario
+    if (datos_instruccion->cantidad_elementos == 2)
+    {
+        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1]);
+    }
+
+    if (datos_instruccion->cantidad_elementos == 3)
+    {
+        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2]);
+    }
+
+    if (datos_instruccion->cantidad_elementos == 1)
+    {
+        log_info(logger, "PID: <%d> - Ejecutando: <%s>", cpu_proceso->pid, datos_instruccion->array[0]);
+    }
+
+    if (datos_instruccion->cantidad_elementos == 4)
+    {
+        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s> - <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2], datos_instruccion->array[3]);
+    }
+
+    if (datos_instruccion->cantidad_elementos == 5)
+    {
+        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s> - <%s> - <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2], datos_instruccion->array[3], datos_instruccion->array[4]);
+    }
+
+    if (datos_instruccion->cantidad_elementos == 6)
+    {
+        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s> - <%s> - <%s> - <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2], datos_instruccion->array[3], datos_instruccion->array[4], datos_instruccion->array[5]);
+    }
 
     // Hardcodeo (por ahora)
     // uint32_t hay_interrupt = 0;
@@ -282,20 +467,20 @@ void cpu_ejecutar_instruccion(t_memoria_cpu_instruccion *datos_instruccion, t_in
     // atendiendo_interrupcion = true;
 };
 
-int cpu_memoria_recibir_instruccion(t_buffer *buffer, t_log *logger, t_memoria_cpu_instruccion *datos_instruccion, t_instruccion *INSTRUCCION, t_cpu_proceso *proceso)
+int cpu_memoria_recibir_instruccion(t_buffer *buffer, t_log *logger, t_memoria_cpu_instruccion *datos_instruccion, t_instruccion *instruccion, t_cpu_proceso *proceso)
 {
     t_memoria_cpu_instruccion *dato = deserializar_t_memoria_cpu_instruccion(buffer);
-    *INSTRUCCION = determinar_codigo_instruccion(dato->array[0]);
-    proceso->registros.pc += 1;
     log_info(logger, "PID : <%d> - FETCH - Program Counter : <%d>", proceso->pid, proceso->registros.pc); // Log oblitario
-    if (*INSTRUCCION == -1)
+    *instruccion = determinar_codigo_instruccion(dato->array[0]);
+    proceso->registros.pc += 1;
+    if (*instruccion == -1)
     {
         log_error(logger, "Instruccion invalida");
         return -1;
     }
-    if (*INSTRUCCION == EXIT)
+    if (*instruccion == EXIT)
     {
-        log_info(logger, "Finalizacion del proceso");
+        log_debug(logger, "Reconoci el EXIT. Termino.");
         return 1;
     }
     *datos_instruccion = *dato;
@@ -370,6 +555,10 @@ void cpu_kernel_avisar_finalizacion(t_cpu_proceso proceso, int socket_kernel_int
 
 uint32_t *determinar_tipo_registro_uint32_t(char *instruccion, t_cpu_proceso *proceso)
 {
+    if (!strcmp(instruccion, "PC"))
+    {
+        return &proceso->registros.pc;
+    }
     if (!strcmp(instruccion, "EAX"))
     {
         return &proceso->registros.eax;
@@ -420,6 +609,32 @@ uint8_t *determinar_tipo_registro_uint8_t(char *instruccion, t_cpu_proceso *proc
 
 t_instruccion determinar_codigo_instruccion(char *instruccion)
 {
+    /* Todas las posibles instrucciones:
+    typedef enum
+    {
+        SET,
+        SUM,
+        SUB,
+        JNZ,
+        IO_GEN_SLEEP,
+        MOV_IN,
+        MOV_OUT,
+        RESIZE,
+        COPY_STRING,
+        IO_STDIN_READ,
+        IO_STDOUT_WRITE,
+        IO_FS_CREATE,
+        IO_FS_DELETE,
+        IO_FS_TRUNCATE,
+        IO_FS_WRITE,
+        IO_FS_READ,
+        WAIT,
+        SIGNAL,
+        EXIT
+    } t_instruccion;
+
+    */
+
     if (!strcmp(instruccion, "SET"))
     {
         return SET;
@@ -444,12 +659,68 @@ t_instruccion determinar_codigo_instruccion(char *instruccion)
     {
         return EXIT;
     }
+    if (!strcmp(instruccion, "MOV_IN"))
+    {
+        return MOV_IN;
+    }
+    if (!strcmp(instruccion, "MOV_OUT"))
+    {
+        return MOV_OUT;
+    }
+    if (!strcmp(instruccion, "RESIZE"))
+    {
+        return RESIZE;
+    }
+    if (!strcmp(instruccion, "COPY_STRING"))
+    {
+        return COPY_STRING;
+    }
+    if (!strcmp(instruccion, "IO_STDIN_READ"))
+    {
+        return IO_STDIN_READ;
+    }
+    if (!strcmp(instruccion, "IO_STDOUT_WRITE"))
+    {
+        return IO_STDOUT_WRITE;
+    }
+    if (!strcmp(instruccion, "IO_FS_CREATE"))
+    {
+        return IO_FS_CREATE;
+    }
+    if (!strcmp(instruccion, "IO_FS_DELETE"))
+    {
+        return IO_FS_DELETE;
+    }
+    if (!strcmp(instruccion, "IO_FS_TRUNCATE"))
+    {
+        return IO_FS_TRUNCATE;
+    }
+    if (!strcmp(instruccion, "IO_FS_WRITE"))
+    {
+        return IO_FS_WRITE;
+    }
+    if (!strcmp(instruccion, "IO_FS_READ"))
+    {
+        return IO_FS_READ;
+    }
+    if (!strcmp(instruccion, "WAIT"))
+    {
+        return WAIT;
+    }
+    if (!strcmp(instruccion, "SIGNAL"))
+    {
+        return SIGNAL;
+    }
 
     return -1;
 };
 
 t_registro obtener_tipo_registro(char *nombre_registro)
 {
+    if (!strcmp(nombre_registro, "PC"))
+    {
+        return REGISTRO_32;
+    }
     if (!strcmp(nombre_registro, "EAX"))
     {
         return REGISTRO_32;

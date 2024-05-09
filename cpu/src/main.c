@@ -103,8 +103,9 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 	case MEMORIA_CPU_PROXIMA_INSTRUCCION:
 	{
 		// FETCH
-		t_instruccion *TIPO_INSTRUCCION = malloc(sizeof(t_instruccion));
-		int debeTerminar = cpu_memoria_recibir_instruccion(buffer, logger, &instruccion, TIPO_INSTRUCCION, &proceso);
+		t_instruccion *tipo_instruccion = malloc(sizeof(t_instruccion));
+		
+		int debeTerminar = cpu_memoria_recibir_instruccion(buffer, logger, &instruccion, tipo_instruccion, &proceso);
 
 		if (debeTerminar)
 		{
@@ -113,10 +114,10 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 		}
 
 		// EXECUTE:
-		cpu_ejecutar_instruccion(&instruccion, *TIPO_INSTRUCCION, &proceso, logger);
+		cpu_ejecutar_instruccion(&instruccion, *tipo_instruccion, &proceso, logger);
 		cpu_memoria_pedir_proxima_instruccion(&proceso, socket_memoria);
 		log_debug(logger, "Instruccion pedida a Memoria");
-		free(TIPO_INSTRUCCION);
+		free(tipo_instruccion);
 		break;
 	}
 	case PLACEHOLDER:
