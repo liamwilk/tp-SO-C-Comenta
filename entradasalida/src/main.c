@@ -73,39 +73,12 @@ int main(int argc, char *argv[]) {
 }
 
 void* conectar_memoria_stdin(){
-	socket_memoria = crear_conexion(logger,entradasalida.ipMemoria,entradasalida.puertoMemoria);
-	
-	if(socket_memoria == -1){
-		pthread_exit(0);
-	}
-
-	// Hay que cambiar el codigo de operacion segun el tipo de interfaz.
-	t_handshake resultado = crear_handshake(logger,socket_memoria,MEMORIA_ENTRADA_SALIDA_STDIN, "Memoria");
-
-	if(resultado != CORRECTO){
-		liberar_conexion(&socket_memoria);
-		pthread_exit(0);
-	}
-
-	log_info(logger,"Conectado a Memoria en socket %d",socket_memoria);
+	conexion_crear(logger,entradasalida.ipMemoria,entradasalida.puertoMemoria,&socket_memoria,"Memoria",MEMORIA_ENTRADA_SALIDA_STDIN);
 	pthread_exit(0);
 }
 
 void* conectar_kernel_stdin(){
-	socket_kernel_stdin = crear_conexion(logger,entradasalida.ipKernel,entradasalida.puertoKernel);
-	
-	if(socket_kernel_stdin == -1){
-		pthread_exit(0);
-	}
-
-	t_handshake resultado = crear_handshake(logger,socket_kernel_stdin,KERNEL_ENTRADA_SALIDA_STDIN, "Kernel");
-
-	if(resultado != CORRECTO){
-		liberar_conexion(&socket_kernel_stdin);
-		pthread_exit(0);
-	}
-
-	log_info(logger,"Conectado a Kernel en socket %d",socket_kernel_stdin);
+	conexion_crear(logger,entradasalida.ipKernel,entradasalida.puertoKernel,&socket_kernel_stdin,"Kernel",KERNEL_ENTRADA_SALIDA_STDIN);
 	pthread_exit(0);
 }
 
@@ -180,20 +153,8 @@ void procesar_entradasalida_dialfs()
 }		
 
 void* conectar_kernel_generic(){
-	socket_kernel_generic = crear_conexion(logger,entradasalida.ipKernel,entradasalida.puertoKernel);
-	
-	if(socket_kernel_generic == -1){
-		pthread_exit(0);
-	}
 
-	t_handshake resultado = crear_handshake(logger,socket_kernel_generic,KERNEL_ENTRADA_SALIDA_GENERIC, "Kernel");
-
-	if(resultado != CORRECTO){
-		liberar_conexion(&socket_kernel_generic);
-		pthread_exit(0);
-	}
-
-	log_info(logger,"Conectado a Kernel en socket %d",socket_kernel_generic);
+	conexion_crear(logger,entradasalida.ipKernel,entradasalida.puertoKernel,&socket_kernel_generic,"Kernel",KERNEL_ENTRADA_SALIDA_GENERIC);
 	pthread_exit(0);
 }
 
