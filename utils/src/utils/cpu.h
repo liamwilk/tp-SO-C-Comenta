@@ -59,9 +59,13 @@ void cpu_kernel_avisar_finalizacion(t_cpu_proceso proceso, int socket_kernel_int
 
 t_cpu_proceso cpu_kernel_recibir_proceso(t_buffer *buffer, t_log *logger);
 
-uint32_t determinar_tipo_registro_uint32_t(char *instruccion, t_cpu_proceso *proceso);
+uint32_t *determinar_tipo_registro_uint32_t(char *instruccion, t_cpu_proceso *proceso);
 
-uint8_t determinar_tipo_registro_uint8_t(char *instruccion, t_cpu_proceso *proceso);
+uint8_t *determinar_tipo_registro_uint8_t(char *instruccion, t_cpu_proceso *proceso);
 t_instruccion determinar_codigo_instruccion(char *instruccion);
+
+t_registro obtener_tipo_registro(char *nombre_registro);
+void imprimir_registros(t_log *logger, t_cpu_proceso *cpu_proceso);
+void remover_salto_linea(char *argumento_origen);
 
 #endif /* CPU_H_ */

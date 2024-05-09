@@ -37,6 +37,22 @@ typedef enum
 	IO_GEN_SLEEP,
 } t_instruccion;
 
+typedef enum
+{
+	REGISTRO_32,
+	REGISTRO_8,
+	EAX,
+	EBX,
+	ECX,
+	EDX,
+	SI,
+	DI,
+	AX,
+	BX,
+	CX,
+	DX
+} t_registro;
+
 typedef struct
 {
 	uint32_t size;
