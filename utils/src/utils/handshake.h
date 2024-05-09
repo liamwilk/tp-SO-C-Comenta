@@ -18,6 +18,8 @@ typedef enum
 { // Nomenclatura: SERVIDOR_CLIENTE
     CORRECTO,
     ERROR,
+    SERVIDOR,
+    CLIENTE,
     MEMORIA_CPU,
     MEMORIA_KERNEL,
     CPU_DISPATCH_KERNEL,
@@ -45,7 +47,7 @@ typedef enum
 t_handshake crear_handshake(t_log *logger, int socket_servidor, t_handshake codigo_a_recibir, char *modulo);
 
 /**
- * @fn esperar_handshake
+ * @fn conexion_handshake_recibir
  * @brief Espera el handshake del cliente
  * @param t_log* logger: logger del modulo
  * @param socket_cliente: El socket del cliente
@@ -53,7 +55,7 @@ t_handshake crear_handshake(t_log *logger, int socket_servidor, t_handshake codi
  * @param modulo: Nombre del modulo que se quiere conectar con el servidor
  * @return t_handshake
  */
-t_handshake esperar_handshake(t_log *logger, int socket_cliente, t_handshake codigo_esperado, char *modulo);
+t_handshake conexion_handshake_recibir(t_log *logger, int socket_cliente, t_handshake codigo_esperado, char *modulo);
 
 t_handshake esperar_handshake_entrada_salida(t_log *logger, int socket_cliente);
 

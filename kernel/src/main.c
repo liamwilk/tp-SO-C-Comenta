@@ -17,7 +17,6 @@ int main()
 	hilos_cpu_inicializar(&args, thread_conectar_cpu_dispatch, args.kernel->threads.thread_atender_cpu_dispatch, thread_conectar_cpu_interrupt, args.kernel->threads.thread_atender_cpu_interrupt);
 
 	kernel.sockets.server = iniciar_servidor(logger, kernel.puertoEscucha);
-	log_debug(logger, "Servidor listo para recibir clientes en socket %d.", kernel.sockets.server);
 
 	hilos_io_inicializar(&args, args.kernel->threads.thread_atender_entrada_salida);
 

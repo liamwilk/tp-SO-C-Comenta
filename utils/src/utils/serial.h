@@ -16,11 +16,12 @@ typedef enum
 	FINALIZAR_SISTEMA,
 	CPU_MEMORIA_PROXIMA_INSTRUCCION,
 	CPU_KERNEL_IO_GEN_SLEEP,
+	CPU_KERNEL_PROCESO,
 	MEMORIA_CPU_PROXIMA_INSTRUCCION,
 	KERNEL_MEMORIA_NUEVO_PROCESO,
 	KERNEL_MEMORIA_FINALIZAR_PROCESO,
 	MEMORIA_KERNEL_NUEVO_PROCESO,
-	KERNEL_CPU_ENVIAR_REGISTROS,
+	KERNEL_CPU_EJECUTAR_PROCESO,
 	KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP,
 	ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP,
 	PLACEHOLDER
@@ -34,9 +35,6 @@ typedef enum
 	JNZ,
 	EXIT,
 	IO_GEN_SLEEP,
-	IO_GEN_SLEEP_TERMINADO,
-	IO_AVISO_EXIT,
-	IO_IDENTIFICADOR
 } t_instruccion;
 
 typedef struct
@@ -55,6 +53,7 @@ typedef struct
 
 typedef struct
 {
+	uint32_t pid;
 	uint32_t cantidad_elementos;
 	char **array;
 } t_memoria_cpu_instruccion;
@@ -111,6 +110,13 @@ typedef struct
 	uint32_t pid;
 	t_registros_cpu registros;
 } t_kernel_cpu_proceso;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t ejecutado;
+	t_registros_cpu *registros;
+} t_cpu_kernel_proceso;
 
 /**
  * @fn    *crear_paquete
@@ -546,5 +552,11 @@ void serializar_uint64_t_array(uint64_t *array, uint32_t cantidad_elementos, t_p
  * @param buffer Buffer de los datos a deserializar.
  */
 void deserializar_uint64_t_array(uint64_t **array, uint64_t *cantidad_elementos, void **buffer);
+
+void serializar_t_cpu_memoria_instruccion(t_paquete **paquete, t_cpu_memoria_instruccion *proceso);
+
+t_cpu_kernel_proceso *deserializar_t_cpu_kernel_proceso(t_buffer *buffer);
+void serializar_t_cpu_kernel_proceso(t_paquete **paquete, t_cpu_kernel_proceso *proceso);
+t_kernel_cpu_proceso *deserializar_t_kernel_cpu_proceso(t_buffer *buffer);
 
 #endif

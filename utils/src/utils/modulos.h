@@ -11,36 +11,6 @@
 #include <pthread.h>
 #include <limits.h>
 
-/*--------CPU--------*/
-
-/*Estructura basica de la CPU*/
-
-typedef struct t_cpu
-{
-    int puertoEscuchaDispatch;
-    int puertoEscuchaInterrupt;
-    char *ipMemoria;
-    int puertoMemoria;
-    int cantidadEntradasTlb;
-    char *algoritmoTlb;
-} t_cpu;
-
-/**
- * @fn    cpu_inicializar
- * @brief Inicializa el cpu junto con todas sus configuraciones
- * @param config Instancia de module.config
- * @return config
- */
-t_cpu cpu_inicializar(t_config *config);
-
-/**
- * @fn    cpu_log
- * @brief Logs necesarios para cpu
- * @param config Instancia de module.config
- * @return t_cpu
- */
-void cpu_log(t_cpu cpu, t_log *logger);
-
 /*--------Entrada salida--------*/
 
 typedef struct
