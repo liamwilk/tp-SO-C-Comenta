@@ -14,5 +14,3 @@ obj/
 !.vscode/launch.json
 !.vscode/settings.json
 !.vscode/tasks.json
-
-module.config
