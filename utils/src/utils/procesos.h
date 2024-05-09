@@ -46,6 +46,7 @@ typedef struct diagrama_estados
     t_exec *exec;
     t_block *block;
     t_exit *exit;
+    t_dictionary *procesos; // Diccionario que mapea PID: ESTADO
 } diagrama_estados;
 
 typedef struct pcb
@@ -88,10 +89,10 @@ uint32_t new_pid();
 /**
  * Agrega un PCB a la cola "new".
  *
- * @param new La cola "new".
+ * @param estados El diagrama de 5 estados que se debe actualizar.
  * @param pcb El PCB a agregar.
  */
-void proceso_agregar_new(t_new *new, t_pcb *pcb);
+void proceso_push_new(diagrama_estados *estados, t_pcb *pcb);
 
 /**
  * Agrega un PCB a la cola "ready".
@@ -99,7 +100,7 @@ void proceso_agregar_new(t_new *new, t_pcb *pcb);
  * @param ready La cola "ready".
  * @param pcb El PCB a agregar.
  */
-void proceso_agregar_ready(t_ready *ready, t_pcb *pcb);
+void proceso_push_ready(diagrama_estados *estados, t_pcb *pcb);
 
 /**
  * Busca un proceso con el PID dado en la cola "new".
@@ -108,7 +109,7 @@ void proceso_agregar_ready(t_ready *ready, t_pcb *pcb);
  * @param pid El PID del proceso a buscar.
  * @return El PCB (Bloque de Control de Procesos) del proceso encontrado, o NULL si no se encuentra.
  */
-t_pcb *proceso_buscar_new(t_new *new, int pid);
+t_pcb *proceso_buscar_new(diagrama_estados *estados, int pid);
 
 /**
  * Elimina un proceso de la cola "ready".
@@ -118,7 +119,7 @@ t_pcb *proceso_buscar_new(t_new *new, int pid);
  * @param ready La cola "ready" de la cual eliminar el proceso.
  * @return Un puntero al bloque de control de procesos (PCB) eliminado.
  */
-t_pcb *proceso_quitar_ready(t_ready *ready);
+t_pcb *proceso_pop_ready(diagrama_estados *estados);
 
 /**
  * Quita un proceso de la cola de new sin eliminar su estructura
@@ -126,7 +127,7 @@ t_pcb *proceso_quitar_ready(t_ready *ready);
  * @param new La cola "new".
  * @param pcb El PCB a eliminar.
  */
-t_pcb *proceso_quitar_new(t_new *new);
+t_pcb *proceso_pop_new(diagrama_estados *estados);
 
 /**
  * Mueve un proceso al estado "ready" en el kernel.
@@ -138,22 +139,13 @@ t_pcb *proceso_quitar_new(t_new *new);
 void proceso_mover_ready(int gradoMultiprogramacion, t_log *logger, diagrama_estados *estados);
 
 /**
- * Busca un proceso en estado "new" en la lista de procesos y devuelve su PCB.
- *
- * @param new Puntero al proceso "new" a buscar.
- * @param pid Identificador del proceso a buscar.
- * @return Puntero al PCB del proceso encontrado, o NULL si no se encuentra.
- */
-t_pcb *proceso_buscar_new(t_new *new, int pid);
-
-/**
  * @brief Elimina un proceso de la cola de new y libera el recurso de memoria
  *
  * @param new El proceso nuevo a eliminar.
  * @param pid El ID del proceso nuevo.
  * @return true si el proceso nuevo se eliminó correctamente, false en caso contrario.
  */
-int proceso_eliminar_new(t_new *new, uint32_t processPID);
+int proceso_eliminar_new(diagrama_estados *estados, uint32_t processPID);
 
 /**
  *  Busca un proceso con el PID dado en la cola de listos.
@@ -162,7 +154,7 @@ int proceso_eliminar_new(t_new *new, uint32_t processPID);
  * @param pid El PID del proceso a buscar.
  * @return Un puntero al PCB del proceso encontrado, o NULL si no se encuentra.
  */
-t_pcb *proceso_buscar_ready(t_ready *ready, int pid);
+t_pcb *proceso_buscar_ready(diagrama_estados *estados, int pid);
 
 /**
  * Busca un proceso con el PID dado en la cola de ejecución.
@@ -171,7 +163,7 @@ t_pcb *proceso_buscar_ready(t_ready *ready, int pid);
  * @param pid El PID del proceso a buscar.
  * @return Un puntero al PCB del proceso encontrado, o NULL si no se encuentra.
  */
-t_pcb *proceso_buscar_exec(t_exec *exec, int pid);
+t_pcb *proceso_buscar_exec(diagrama_estados *estados, int pid);
 
 /**
  * Busca un proceso con el PID dado en la cola de bloqueados.
@@ -180,7 +172,7 @@ t_pcb *proceso_buscar_exec(t_exec *exec, int pid);
  * @param pid El PID del proceso a buscar.
  * @return Un puntero al PCB del proceso encontrado, o NULL si no se encuentra.
  */
-t_pcb *proceso_buscar_block(t_block *block, int pid);
+t_pcb *proceso_buscar_block(diagrama_estados *estados, int pid);
 
 /**
  * Busca un proceso con el PID dado en la cola de finalizados.
@@ -189,6 +181,6 @@ t_pcb *proceso_buscar_block(t_block *block, int pid);
  * @param pid El PID del proceso a buscar.
  * @return Un puntero al PCB del proceso encontrado, o NULL si no se encuentra.
  */
-t_pcb *proceso_buscar_exit(t_exit *exit, int pid);
+t_pcb *proceso_buscar_exit(diagrama_estados *estados, int pid);
 
 #endif

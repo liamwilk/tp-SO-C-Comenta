@@ -82,7 +82,7 @@ diagrama_estados kernel_inicializar_estados(diagrama_estados *estados)
     return diagrama;
 }
 
-t_pcb *kernel_nuevo_proceso(t_kernel *kernel, t_new *colaNew, t_log *logger, char *instrucciones)
+t_pcb *kernel_nuevo_proceso(t_kernel *kernel, diagrama_estados *estados, t_log *logger, char *instrucciones)
 {
     t_pcb *nuevaPcb = pcb_crear(logger, kernel->quantum);
     log_debug(logger, "[PCB] Program Counter: %d", nuevaPcb->registros_cpu->pc);
@@ -103,7 +103,7 @@ t_pcb *kernel_nuevo_proceso(t_kernel *kernel, t_new *colaNew, t_log *logger, cha
 
     eliminar_paquete(paquete);
     free(proceso);
-    proceso_agregar_new(colaNew, nuevaPcb);
+    proceso_push_new(estados, nuevaPcb);
 
     return nuevaPcb;
 }

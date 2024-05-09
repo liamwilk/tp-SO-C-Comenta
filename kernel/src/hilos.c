@@ -34,7 +34,7 @@ void *hilos_atender_consola(void *args)
                 break;
             }
             char *pathInstrucciones = separar_linea[1];
-            kernel_nuevo_proceso((hiloArgs->kernel), hiloArgs->estados->new, hiloArgs->logger, pathInstrucciones);
+            kernel_nuevo_proceso((hiloArgs->kernel), hiloArgs->estados, hiloArgs->logger, pathInstrucciones);
             break;
         }
         case FINALIZAR_PROCESO:
@@ -44,7 +44,7 @@ void *hilos_atender_consola(void *args)
 
             t_pcb *busqueda = buscar_proceso(hiloArgs->estados, pid);
 
-            // TODO: Hay que eliminar el proceso de la cola de new, aca solo lo busca
+            // TODO: Hay que eliminar el proceso de la cola  pertinente aca solo lo busca
 
             if (busqueda == NULL)
             {
@@ -99,7 +99,7 @@ void *hilos_atender_consola(void *args)
             log_debug(hiloArgs->logger, "Se movieron los procesos a READY");
             // TODO: Planificador a corto plazo (FIFO y RR)
 
-            t_pcb *aux = proceso_quitar_ready(hiloArgs->estados->ready);
+            t_pcb *aux = proceso_pop_ready(hiloArgs->estados);
             t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
 
             serializar_t_registros_cpu(&paquete, aux->pid, aux->registros_cpu);
@@ -209,7 +209,7 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *
         {
             // Enviar a cpu los registros
             // t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
-            t_pcb *pcb = proceso_buscar_new(args->estados->new, proceso->pid);
+            t_pcb *pcb = proceso_buscar_new(args->estados, proceso->pid);
             // serializar_t_registros_cpu(&paquete, pcb->pid, pcb->registros_cpu);
             // enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
             // Buscar proceso
@@ -221,7 +221,7 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *
         {
             log_error(logger, "Proceso PID:<%d> rechazado en memoria", proceso->pid);
             // Eliminar proceso de la cola de new
-            proceso_eliminar_new(args->estados->new, proceso->pid);
+            proceso_eliminar_new(args->estados, proceso->pid);
             log_warning(logger, "Proceso PID:<%d> eliminado de kernel", proceso->pid);
         };
         free(proceso);
@@ -360,7 +360,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         else
         {
             // Mover proceso a ready
-            t_pcb *pcb = proceso_buscar_new(args->estados->new, proceso->pid);
+            t_pcb *pcb = proceso_buscar_new(args->estados, proceso->pid);
             pcb->memoria_aceptado = false;
             proceso_mover_ready(args->kernel->gradoMultiprogramacion, logger, args->estados);
             log_info(logger, "Se mueve el proceso <%d> a READY", proceso->pid);
