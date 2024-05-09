@@ -65,44 +65,31 @@ void *hilos_atender_consola(void *args)
         case DETENER_PLANIFICACION:
         {
             log_info(hiloArgs->logger, "Se ejecuto script %s", separar_linea[0]);
-
-            // Hardcodeo una prueba para IO Generic acá, luego hay que ubicarla donde vaya.
-
-            if (hiloArgs->kernel->sockets.entrada_salida_generic == 0)
-            {
-                log_error(hiloArgs->logger, "No se pudo enviar el paquete a IO Generic porque aun no se conecto.");
-                break;
-            }
-
-            log_debug(hiloArgs->logger, "Se envia un sleep de 10 segundos a IO Generic");
-            t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP);
-
-            t_kernel_entrada_salida_unidad_de_trabajo *unidad = malloc(sizeof(t_kernel_entrada_salida_unidad_de_trabajo));
-            unidad->unidad_de_trabajo = 10;
-
-            serializar_t_kernel_entrada_salida_unidad_de_trabajo(&paquete, unidad);
-
-            log_debug(hiloArgs->logger, "Socket IO Generic: %d\n", hiloArgs->kernel->sockets.entrada_salida_generic);
-
-            enviar_paquete(paquete, hiloArgs->kernel->sockets.entrada_salida_generic);
-            log_debug(hiloArgs->logger, "Se envio el paquete a IO Generic");
-
-            eliminar_paquete(paquete);
-            free(unidad);
-
             break;
         }
         case INICIAR_PLANIFICACION:
         {
             log_info(hiloArgs->logger, "Se ejecuto script %s", separar_linea[0]);
+
+            /*
+
+            OJO!
+
+            TODO: Si no hay procesos cargados y queremos iniciar la planificacion, esto genera un segmentation fault.
+            Verifiquen si hay algun proceso en la cola de new antes de iniciar la planificacion. Sino reboten la solicitud.
+
+            */
+
             proceso_mover_ready(hiloArgs->kernel->gradoMultiprogramacion, hiloArgs->logger, hiloArgs->estados);
             log_debug(hiloArgs->logger, "Se movieron los procesos a READY");
+
             /* if (strcmp(hiloArgs->kernel->algoritmoPlanificador, "FIFO") == 0)
             {
                 algoritmo_fifo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->kernel->sockets.cpu_dispatch);
             } */
 
             t_pcb *aux = proceso_quitar_ready(hiloArgs->estados->ready);
+
             t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
 
             serializar_t_registros_cpu(&paquete, aux->pid, aux->registros_cpu);
@@ -372,7 +359,36 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         free(proceso);
         break;
     }
-    break;
+    case CPU_KERNEL_IO_GEN_SLEEP:
+    {
+        t_cpu_kernel_io_gen_sleep *sleep = deserializar_t_cpu_kernel_io_gen_sleep(buffer);
+
+        log_debug(logger, "Recibí la solicitud de CPU para activar IO_GEN_SLEEP en la Interfaz %s por %d unidades de trabajo", sleep->interfaz, sleep->tiempo);
+
+        if (args->kernel->sockets.entrada_salida_generic == 0)
+        {
+            log_error(args->logger, "No se pudo enviar el paquete a IO Generic porque aun no se conecto.");
+            break;
+        }
+
+        // TODO: Implementar mapeo de logica de IDs de IO a sockets de IO. Actualmente solo se envia a IO Generic.
+
+        log_debug(args->logger, "Se envia un sleep de 10 segundos a IO Generic ID %s", sleep->interfaz);
+        t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP);
+
+        t_kernel_entrada_salida_unidad_de_trabajo *unidad = malloc(sizeof(t_kernel_entrada_salida_unidad_de_trabajo));
+        unidad->unidad_de_trabajo = sleep->tiempo;
+
+        serializar_t_kernel_entrada_salida_unidad_de_trabajo(&paquete, unidad);
+
+        enviar_paquete(paquete, args->kernel->sockets.entrada_salida_generic);
+        log_debug(args->logger, "Se envio el paquete a IO Generic");
+
+        eliminar_paquete(paquete);
+        free(unidad);
+
+        break;
+    }
     default:
     {
         log_warning(args->logger, "[CPU Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
