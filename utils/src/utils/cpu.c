@@ -37,6 +37,9 @@ void cpu_memoria_pedir_proxima_instruccion(t_cpu_proceso *proceso, int socket_me
 void cpu_ejecutar_instruccion(t_cpu cpu_paquete, t_memoria_cpu_instruccion *datos_instruccion, t_instruccion instruccion, t_cpu_proceso *cpu_proceso, t_log *logger)
 {
 
+    // Todas instrucciones vienen con un salto de linea en el ultimo argumento, lo remuevo para que funcionen las comparaciones
+    remover_salto_linea(datos_instruccion->array[datos_instruccion->cantidad_elementos - 1]);
+
     /* TODO: Refactorear este log para que cumpla la misma funcion de una forma mas limpia. Daba segmentation fault el log original porque
     cuando llegaba una instruccion de un solo elemento y queria forzar a imprimir array[2] estaba accediendo a una posicion
     de memoria que no era del array.
@@ -73,26 +76,21 @@ void cpu_ejecutar_instruccion(t_cpu cpu_paquete, t_memoria_cpu_instruccion *dato
     }
 
     /*
-    SUM EAX AX -> OK
-    SUM AX EAX -> Aca hay que castear el EAX a 8 bits
-    SUB EBX BX -> Aca se castea el BX a 32 bits, se resta y se guarda en EBX
-    SUB BX ECX -> Aca se castea el EBX a 8 bits y se resta a BX.
+    SUM AX EAX
+    SUB BX EBX
     */
 
     // Añado valores para probar.
-    cpu_proceso->registros.eax = 246;
-    cpu_proceso->registros.ebx = 255;
-    cpu_proceso->registros.ecx = 100;
-    cpu_proceso->registros.edx = 4;
-    cpu_proceso->registros.ax = 10;
+    cpu_proceso->registros.eax = 6;
+    cpu_proceso->registros.ebx = 256;
+    cpu_proceso->registros.ecx = 0;
+    cpu_proceso->registros.edx = 0;
+    cpu_proceso->registros.ax = 250;
     cpu_proceso->registros.bx = 255;
-    cpu_proceso->registros.cx = 7;
-    cpu_proceso->registros.dx = 8;
-    cpu_proceso->registros.si = 9;
-    cpu_proceso->registros.di = 10;
-
-    // Todas instrucciones vienen con un salto de linea en el ultimo argumento, lo remuevo para que funcionen las comparaciones
-    remover_salto_linea(datos_instruccion->array[datos_instruccion->cantidad_elementos - 1]);
+    cpu_proceso->registros.cx = 0;
+    cpu_proceso->registros.dx = 0;
+    cpu_proceso->registros.si = 0;
+    cpu_proceso->registros.di = 0;
 
     switch (instruccion)
     {
@@ -300,6 +298,12 @@ void cpu_ejecutar_instruccion(t_cpu cpu_paquete, t_memoria_cpu_instruccion *dato
                     else
                     { // Dado que son unsigned, son siempre positivos. Entonces, el unico caso que queda es que sea 0.
                         registro_origen_casteado = 0;
+                    }
+
+                    if (*registro_destino + registro_origen_casteado > UINT8_MAX)
+                    {
+                        log_error(logger, "No se puede realizar la suma, el valor a castear es mayor a 255 por lo cual no es compatible con uint8_t");
+                        break;
                     }
 
                     *registro_destino = *registro_destino + registro_origen_casteado;
