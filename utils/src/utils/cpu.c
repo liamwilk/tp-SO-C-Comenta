@@ -34,18 +34,58 @@ void cpu_memoria_pedir_proxima_instruccion(t_cpu_proceso *proceso, int socket_me
     eliminar_paquete(paquete);
 }
 
-void cpu_ejecutar_instruccion(t_memoria_cpu_instruccion *datos_instruccion, t_instruccion instruccion, t_cpu_proceso *cpu_proceso, t_log *logger)
+void cpu_ejecutar_instruccion(t_cpu cpu_paquete, t_memoria_cpu_instruccion *datos_instruccion, t_instruccion instruccion, t_cpu_proceso *cpu_proceso, t_log *logger)
 {
-    // SUM y SUB ya estan resueltas.
-    // TODO: Hacer SET, JNZ, IO_GEN_SLEEP, EXIT
+
+    /* TODO: Refactorear este log para que cumpla la misma funcion de una forma mas limpia. Daba segmentation fault el log original porque
+    cuando llegaba una instruccion de un solo elemento y queria forzar a imprimir array[2] estaba accediendo a una posicion
+    de memoria que no era del array.
+    */
+
+    if (datos_instruccion->cantidad_elementos == 1)
+    {
+        log_info(logger, "PID: <%d> - Ejecutando: <%s>", cpu_proceso->pid, datos_instruccion->array[0]);
+    }
+
+    if (datos_instruccion->cantidad_elementos == 2)
+    {
+        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1]);
+    }
+
+    if (datos_instruccion->cantidad_elementos == 3)
+    {
+        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2]);
+    }
+
+    if (datos_instruccion->cantidad_elementos == 4)
+    {
+        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s> - <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2], datos_instruccion->array[3]);
+    }
+
+    if (datos_instruccion->cantidad_elementos == 5)
+    {
+        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s> - <%s> - <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2], datos_instruccion->array[3], datos_instruccion->array[4]);
+    }
+
+    if (datos_instruccion->cantidad_elementos == 6)
+    {
+        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s> - <%s> - <%s> - <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2], datos_instruccion->array[3], datos_instruccion->array[4], datos_instruccion->array[5]);
+    }
+
+    /*
+    SUM EAX AX -> OK
+    SUM AX EAX -> Aca hay que castear el EAX a 8 bits
+    SUB EBX BX -> Aca se castea el BX a 32 bits, se resta y se guarda en EBX
+    SUB BX ECX -> Aca se castea el EBX a 8 bits y se resta a BX.
+    */
 
     // Añado valores para probar.
-    cpu_proceso->registros.eax = 1;
-    cpu_proceso->registros.ebx = 2;
-    cpu_proceso->registros.ecx = 3;
+    cpu_proceso->registros.eax = 246;
+    cpu_proceso->registros.ebx = 255;
+    cpu_proceso->registros.ecx = 100;
     cpu_proceso->registros.edx = 4;
-    cpu_proceso->registros.ax = 15;
-    cpu_proceso->registros.bx = 6;
+    cpu_proceso->registros.ax = 10;
+    cpu_proceso->registros.bx = 255;
     cpu_proceso->registros.cx = 7;
     cpu_proceso->registros.dx = 8;
     cpu_proceso->registros.si = 9;
@@ -112,11 +152,6 @@ void cpu_ejecutar_instruccion(t_memoria_cpu_instruccion *datos_instruccion, t_in
     }
     case SUM:
     {
-        /*
-        dato[] = {"SUM","EAX","EBX"}
-        SUM (Registro Destino, Registro Origen): Suma al Registro Destino el Registro Origen y deja el resultado en el Registro Destino.
-        */
-
         log_debug(logger, "Instruccion: '%s' '%s' '%s' reconocida", datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2]);
 
         char *argumento_destino = strdup(datos_instruccion->array[1]);
@@ -129,98 +164,169 @@ void cpu_ejecutar_instruccion(t_memoria_cpu_instruccion *datos_instruccion, t_in
         log_debug(logger, "Argumento destino tipo: %d", argumento_destino_tipo);
         log_debug(logger, "Argumento origen tipo: %d", argumento_origen_tipo);
 
-        /*
-
-        if(destino = 32)
-            if(origen = 32)
-                Anda bien
-            if(origen = 8)
-                Hace falta castear
-
-        if(destino = 8)
-            if(origen = 8)
-                Anda bien
-            if(origen = 32)
-
-        */
-
-        if (argumento_destino_tipo == argumento_origen_tipo)
+        if (argumento_destino_tipo != INVALIDO && argumento_origen_tipo != INVALIDO)
         {
-            if (argumento_destino_tipo == REGISTRO_32)
+
+            if (argumento_destino_tipo == argumento_origen_tipo)
             {
-
-                uint32_t *registro_destino = determinar_tipo_registro_uint32_t(argumento_destino, cpu_proceso);
-
-                if (registro_destino == 0)
+                if (argumento_destino_tipo == REGISTRO_32)
                 {
-                    log_error(logger, "Registro destino invalido");
-                    break;
+                    uint32_t *registro_destino = determinar_tipo_registro_uint32_t(argumento_destino, cpu_proceso);
+
+                    if (registro_destino == NULL)
+                    {
+                        log_error(logger, "Registro destino invalido");
+                        break;
+                    }
+
+                    log_debug(logger, "Se reconocio el argumento destino %s", argumento_destino);
+
+                    uint32_t *registro_origen = determinar_tipo_registro_uint32_t(argumento_origen, cpu_proceso);
+
+                    if (registro_origen == NULL)
+                    {
+                        log_error(logger, "Registro origen invalido");
+                        break;
+                    }
+
+                    log_debug(logger, "Se reconocio el argumento origen %s", argumento_origen);
+
+                    uint32_t registro_destino_anterior = *registro_destino;
+                    *registro_destino = *registro_destino + *registro_origen;
+
+                    log_debug(logger, "Suma realizada: %d + %d = %d", registro_destino_anterior, *registro_origen, *registro_destino);
+
+                    log_debug(logger, "Registros del proceso %d", cpu_proceso->pid);
+
+                    imprimir_registros(logger, cpu_proceso);
                 }
-
-                log_debug(logger, "Se reconocio el argumento destino %s", argumento_destino);
-
-                uint32_t *registro_origen = determinar_tipo_registro_uint32_t(argumento_origen, cpu_proceso);
-
-                if (registro_origen == 0)
+                else
                 {
-                    log_error(logger, "Registro origen invalido");
-                    break;
+                    uint8_t *registro_destino = determinar_tipo_registro_uint8_t(argumento_destino, cpu_proceso);
+
+                    if (registro_destino == NULL)
+                    {
+                        log_error(logger, "Registro destino %s no encontrado", argumento_destino);
+                        break;
+                    }
+
+                    uint8_t *registro_origen = determinar_tipo_registro_uint8_t(argumento_origen, cpu_proceso);
+
+                    if (registro_origen == NULL)
+                    {
+                        log_error(logger, "Registro origen %s no encontrado", argumento_origen);
+                        break;
+                    }
+                    uint32_t registro_destino_anterior = *registro_destino;
+                    *registro_destino += *registro_origen;
+
+                    log_debug(logger, "Suma realizada: %d + %d = %d", registro_destino_anterior, *registro_origen, *registro_destino);
                 }
-
-                log_debug(logger, "Se reconocio el argumento origen %s", argumento_origen);
-
-                uint32_t registro_destino_anterior = *registro_destino;
-                *registro_destino = *registro_destino + *registro_origen;
-
-                log_debug(logger, "Suma realizada: %d + %d = %d", registro_destino_anterior, *registro_origen, *registro_destino);
-
-                log_debug(logger, "Registros del proceso %d", cpu_proceso->pid);
-
-                imprimir_registros(logger, cpu_proceso);
             }
-            else if (argumento_destino_tipo == REGISTRO_8)
+            else
             {
-                uint8_t *registro_destino = determinar_tipo_registro_uint8_t(argumento_destino, cpu_proceso);
-
-                if (registro_destino == 0)
+                if (argumento_destino_tipo == REGISTRO_32)
                 {
-                    log_error(logger, "Registro destino %s no encontrado", argumento_destino);
-                    break;
+
+                    uint32_t *registro_destino = determinar_tipo_registro_uint32_t(argumento_destino, cpu_proceso);
+
+                    if (registro_destino == NULL)
+                    {
+                        log_error(logger, "Registro destino invalido");
+                        break;
+                    }
+
+                    log_debug(logger, "Se reconocio el argumento destino %s", argumento_destino);
+
+                    uint8_t *registro_origen = determinar_tipo_registro_uint8_t(argumento_origen, cpu_proceso);
+
+                    if (registro_origen == NULL)
+                    {
+                        log_error(logger, "Registro origen invalido");
+                        break;
+                    }
+
+                    log_debug(logger, "Se reconocio el argumento origen %s", argumento_origen);
+
+                    uint32_t registro_destino_anterior = *registro_destino;
+
+                    uint32_t registro_origen_casteado = casteo_uint32_t(*registro_origen);
+
+                    *registro_destino = *registro_destino + registro_origen_casteado;
+
+                    log_debug(logger, "Suma realizada: %d + %d = %d", registro_destino_anterior, registro_origen_casteado, *registro_destino);
+
+                    log_debug(logger, "Registros del proceso %d", cpu_proceso->pid);
+
+                    imprimir_registros(logger, cpu_proceso);
+
+                    log_debug(logger, "Argumento destino tipo: %d", argumento_destino_tipo);
                 }
-
-                uint8_t *registro_origen = determinar_tipo_registro_uint8_t(argumento_origen, cpu_proceso);
-
-                if (registro_origen == 0)
+                if (argumento_destino_tipo == REGISTRO_8)
                 {
-                    log_error(logger, "Registro origen %s no encontrado", argumento_origen);
-                    break;
-                }
-                uint32_t registro_destino_anterior = *registro_destino;
-                *registro_destino += *registro_origen;
+                    uint8_t *registro_destino = determinar_tipo_registro_uint8_t(argumento_destino, cpu_proceso);
 
-                log_debug(logger, "Suma realizada: %d + %d = %d", registro_destino_anterior, *registro_origen, *registro_destino);
-            }
-            else if (argumento_destino_tipo == -1)
-            {
-                log_error(logger, "Argumentos detectados (Destino: %s y Origen: %s) inválidos. No es posible realizar la suma", argumento_destino, argumento_origen);
+                    if (registro_destino == NULL)
+                    {
+                        log_error(logger, "Registro destino invalido");
+                        break;
+                    }
+
+                    log_debug(logger, "Se reconocio el argumento destino %s", argumento_destino);
+
+                    uint32_t *registro_origen = determinar_tipo_registro_uint32_t(argumento_origen, cpu_proceso);
+
+                    if (registro_origen == NULL)
+                    {
+                        log_error(logger, "Registro origen invalido");
+                        break;
+                    }
+
+                    log_debug(logger, "Se reconocio el argumento origen %s", argumento_origen);
+
+                    uint8_t registro_destino_anterior = *registro_destino;
+                    uint8_t registro_origen_casteado;
+
+                    if (*registro_origen > 0)
+                    {
+                        registro_origen_casteado = casteo_uint8_t(*registro_origen);
+
+                        if (registro_origen_casteado == 0)
+                        {
+                            log_error(logger, "No se puede realizar la suma, el valor a castear es mayor a 255 por lo cual no es compatible con uint8_t");
+                            break;
+                        }
+                    }
+                    else
+                    { // Dado que son unsigned, son siempre positivos. Entonces, el unico caso que queda es que sea 0.
+                        registro_origen_casteado = 0;
+                    }
+
+                    *registro_destino = *registro_destino + registro_origen_casteado;
+
+                    log_debug(logger, "Suma realizada: %d + %d = %d", registro_destino_anterior, registro_origen_casteado, *registro_destino);
+
+                    log_debug(logger, "Registros del proceso %d", cpu_proceso->pid);
+
+                    imprimir_registros(logger, cpu_proceso);
+
+                    log_debug(logger, "Argumento destino tipo: %d", argumento_destino_tipo);
+                }
+                break;
             }
         }
         else
         {
-            log_error(logger, "Los registros no son del mismo tipo, no se puede realizar la operacion.");
+            log_error(logger, "Se reconocieron los registros %s y %s. No se pueden sumar porque al menos uno no es válido.", argumento_destino, argumento_origen);
             break;
         }
+
         free(argumento_destino);
         free(argumento_origen);
         break;
     }
     case SUB:
     {
-        /*
-        dato[] = {"SUB","EAX","EBX"}
-        SUB (Registro Destino, Registro Origen): Resta al Registro Destino el Registro Origen y deja el resultado en el Registro Destino.
-        */
-
         log_debug(logger, "Instruccion: '%s' '%s' '%s' reconocida", datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2]);
 
         char *argumento_destino = strdup(datos_instruccion->array[1]);
@@ -230,85 +336,180 @@ void cpu_ejecutar_instruccion(t_memoria_cpu_instruccion *datos_instruccion, t_in
         t_registro argumento_destino_tipo = obtener_tipo_registro(argumento_destino);
         t_registro argumento_origen_tipo = obtener_tipo_registro(argumento_origen);
 
-        if (argumento_destino_tipo == argumento_origen_tipo)
+        if (argumento_destino_tipo != INVALIDO && argumento_origen_tipo != INVALIDO)
         {
-            if (argumento_destino_tipo == REGISTRO_32)
+            if (argumento_destino_tipo == argumento_origen_tipo)
             {
-
-                uint32_t *registro_destino = determinar_tipo_registro_uint32_t(argumento_destino, cpu_proceso);
-
-                if (registro_destino == 0)
+                if (argumento_destino_tipo == REGISTRO_32)
                 {
-                    log_error(logger, "Registro destino invalido");
-                    break;
+                    uint32_t *registro_destino = determinar_tipo_registro_uint32_t(argumento_destino, cpu_proceso);
+
+                    if (registro_destino == NULL)
+                    {
+                        log_error(logger, "Registro destino invalido");
+                        break;
+                    }
+
+                    log_debug(logger, "Se reconocio el argumento destino %s", argumento_destino);
+
+                    uint32_t *registro_origen = determinar_tipo_registro_uint32_t(argumento_origen, cpu_proceso);
+
+                    if (registro_origen == NULL)
+                    {
+                        log_error(logger, "Registro origen invalido");
+                        break;
+                    }
+
+                    log_debug(logger, "Se reconocio el argumento origen %s", argumento_origen);
+
+                    if (*registro_destino < *registro_origen)
+                    {
+                        log_error(logger, "No se puede realizar la resta, el registro destino %s es menor al registro origen %s", argumento_destino, argumento_origen);
+                        break;
+                    }
+
+                    uint8_t registro_destino_anterior = *registro_destino;
+                    *registro_destino -= *registro_origen;
+
+                    log_debug(logger, "Resta realizada: %d - %d = %d", registro_destino_anterior, *registro_origen, *registro_destino);
+
+                    log_debug(logger, "Registros del proceso %d", cpu_proceso->pid);
+
+                    imprimir_registros(logger, cpu_proceso);
                 }
-
-                log_debug(logger, "Se reconocio el argumento destino %s", argumento_destino);
-
-                uint32_t *registro_origen = determinar_tipo_registro_uint32_t(argumento_origen, cpu_proceso);
-
-                if (registro_origen == 0)
+                else
                 {
-                    log_error(logger, "Registro origen invalido");
-                    break;
+                    uint8_t *registro_destino = determinar_tipo_registro_uint8_t(argumento_destino, cpu_proceso);
+
+                    if (registro_destino == NULL)
+                    {
+                        log_error(logger, "Registro destino %s no encontrado", argumento_destino);
+                        break;
+                    }
+
+                    uint8_t *registro_origen = determinar_tipo_registro_uint8_t(argumento_origen, cpu_proceso);
+
+                    if (registro_origen == NULL)
+                    {
+                        log_error(logger, "Registro origen %s no encontrado", argumento_origen);
+                        break;
+                    }
+
+                    if (*registro_destino < *registro_origen)
+                    {
+                        log_error(logger, "No se puede realizar la resta, el registro destino %s es menor al registro origen %s", argumento_destino, argumento_origen);
+                        break;
+                    }
+
+                    uint8_t registro_destino_anterior = *registro_destino;
+                    *registro_destino = *registro_destino - *registro_origen;
+
+                    log_debug(logger, "Resta realizada: %d - %d = %d", registro_destino_anterior, *registro_origen, *registro_destino);
                 }
-
-                log_debug(logger, "Se reconocio el argumento origen %s", argumento_origen);
-
-                if (*registro_destino < *registro_origen)
-                {
-                    log_error(logger, "No se puede realizar la resta, el registro destino %s es menor al registro origen %s", argumento_destino, argumento_origen);
-                    break;
-                }
-
-                uint8_t registro_destino_anterior = *registro_destino;
-                *registro_destino -= *registro_origen;
-
-                log_debug(logger, "Resta realizada: %d - %d = %d", registro_destino_anterior, *registro_origen, *registro_destino);
-
-                log_debug(logger, "Registros del proceso %d", cpu_proceso->pid);
-
-                imprimir_registros(logger, cpu_proceso);
             }
-            else if (argumento_destino_tipo == REGISTRO_8)
+            else
             {
-                uint8_t *registro_destino = determinar_tipo_registro_uint8_t(argumento_destino, cpu_proceso);
-
-                if (registro_destino == 0)
+                if (argumento_destino_tipo == REGISTRO_32)
                 {
-                    log_error(logger, "Registro destino %s no encontrado", argumento_destino);
-                    break;
+                    uint32_t *registro_destino = determinar_tipo_registro_uint32_t(argumento_destino, cpu_proceso);
+
+                    if (registro_destino == NULL)
+                    {
+                        log_error(logger, "Registro destino invalido");
+                        break;
+                    }
+
+                    log_debug(logger, "Se reconocio el argumento destino %s", argumento_destino);
+
+                    uint8_t *registro_origen = determinar_tipo_registro_uint8_t(argumento_origen, cpu_proceso);
+
+                    if (registro_origen == NULL)
+                    {
+                        log_error(logger, "Registro origen invalido");
+                        break;
+                    }
+
+                    log_debug(logger, "Se reconocio el argumento origen %s", argumento_origen);
+
+                    uint32_t registro_origen_casteado = casteo_uint32_t(*registro_origen);
+
+                    if (*registro_destino < registro_origen_casteado)
+                    {
+                        log_error(logger, "No se puede realizar la resta, el registro destino %s es menor al registro origen %s", argumento_destino, argumento_origen);
+                        break;
+                    }
+
+                    uint8_t registro_destino_anterior = *registro_destino;
+                    *registro_destino -= registro_origen_casteado;
+
+                    log_debug(logger, "Resta realizada: %d - %d = %d", registro_destino_anterior, registro_origen_casteado, *registro_destino);
+
+                    log_debug(logger, "Registros del proceso %d", cpu_proceso->pid);
+
+                    imprimir_registros(logger, cpu_proceso);
                 }
-
-                uint8_t *registro_origen = determinar_tipo_registro_uint8_t(argumento_origen, cpu_proceso);
-
-                if (registro_origen == 0)
+                else
                 {
-                    log_error(logger, "Registro origen %s no encontrado", argumento_origen);
-                    break;
+                    uint8_t *registro_destino = determinar_tipo_registro_uint8_t(argumento_destino, cpu_proceso);
+
+                    if (registro_destino == NULL)
+                    {
+                        log_error(logger, "Registro destino invalido");
+                        break;
+                    }
+
+                    log_debug(logger, "Se reconocio el argumento destino %s", argumento_destino);
+
+                    uint32_t *registro_origen = determinar_tipo_registro_uint32_t(argumento_origen, cpu_proceso);
+
+                    if (registro_origen == NULL)
+                    {
+                        log_error(logger, "Registro origen invalido");
+                        break;
+                    }
+
+                    log_debug(logger, "Se reconocio el argumento origen %s", argumento_origen);
+
+                    uint8_t registro_origen_casteado;
+
+                    if (*registro_origen > 0)
+                    {
+                        registro_origen_casteado = casteo_uint8_t(*registro_origen);
+
+                        if (registro_origen_casteado == 0)
+                        {
+                            log_error(logger, "No se puede realizar la resta, el valor a castear es mayor a 255 por lo cual no es compatible con uint8_t");
+                            break;
+                        }
+                    }
+                    else
+                    { // Dado que son unsigned, son siempre positivos. Entonces, el unico caso que queda es que sea 0.
+                        registro_origen_casteado = 0;
+                    }
+
+                    if (*registro_destino < registro_origen_casteado)
+                    {
+                        log_error(logger, "No se puede realizar la resta, el registro destino %s es menor al registro origen %s", argumento_destino, argumento_origen);
+                        break;
+                    }
+
+                    uint8_t registro_destino_anterior = *registro_destino;
+                    *registro_destino -= registro_origen_casteado;
+
+                    log_debug(logger, "Resta realizada: %d - %d = %d", registro_destino_anterior, registro_origen_casteado, *registro_destino);
+
+                    log_debug(logger, "Registros del proceso %d", cpu_proceso->pid);
+
+                    imprimir_registros(logger, cpu_proceso);
                 }
-
-                if (*registro_destino < *registro_origen)
-                {
-                    log_error(logger, "No se puede realizar la resta, el registro destino %s es menor al registro origen %s", argumento_destino, argumento_origen);
-                    break;
-                }
-
-                uint8_t registro_destino_anterior = *registro_destino;
-                *registro_destino = *registro_destino - *registro_origen;
-
-                log_debug(logger, "Resta realizada: %d - %d = %d", registro_destino_anterior, *registro_origen, *registro_destino);
-            }
-            else if (argumento_destino_tipo == -1)
-            {
-                log_error(logger, "Argumentos detectados (Destino: %s y Origen: %s) inválidos. No es posible realizar la suma", argumento_destino, argumento_origen);
             }
         }
         else
         {
-            log_error(logger, "Los registros no son del mismo tipo, no se puede realizar la operacion.");
+            log_error(logger, "Se reconocieron los registros %s y %s. No se pueden sumar porque al menos uno no es válido.", argumento_destino, argumento_origen);
             break;
         }
+
         free(argumento_destino);
         free(argumento_origen);
         break;
@@ -348,12 +549,32 @@ void cpu_ejecutar_instruccion(t_memoria_cpu_instruccion *datos_instruccion, t_in
     }
     case IO_GEN_SLEEP:
     {
-        log_debug(logger, "reconoci un IO_GEN_SLEEP");
-        break;
-    }
-    case EXIT:
-    {
-        log_debug(logger, "Se hallo instruccion EXIT");
+        // IO_GEN_SLEEP (Interfaz, Unidades de trabajo): Esta instrucción solicita al Kernel que se envíe a una interfaz de I/O a que realice un sleep por una cantidad de unidades de trabajo.
+
+        char *interfaz = strdup(datos_instruccion->array[1]);
+        uint32_t tiempo = atoi(datos_instruccion->array[2]);
+
+        log_debug(logger, "Instruccion: '%s' '%s' '%s' reconocida", datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2]);
+
+        log_debug(logger, "Interfaz: %s", interfaz);
+        log_debug(logger, "Tiempo: %d", tiempo);
+
+        log_debug(logger, "Se envia un sleep de %d a la Interfaz IO Generic ID %s", tiempo, interfaz);
+
+        t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_GEN_SLEEP);
+
+        t_cpu_kernel_io_gen_sleep *unidad = malloc(sizeof(t_cpu_kernel_io_gen_sleep));
+        unidad->tiempo = tiempo;
+        unidad->size_interfaz = strlen(interfaz) + 1;
+        unidad->interfaz = strdup(interfaz);
+
+        serializar_t_cpu_kernel_io_gen_sleep(&paquete, unidad);
+
+        enviar_paquete(paquete, cpu_paquete.socket_kernel_interrupt);
+
+        free(unidad->interfaz);
+        free(unidad);
+        eliminar_paquete(paquete);
         break;
     }
     case MOV_IN:
@@ -427,44 +648,6 @@ void cpu_ejecutar_instruccion(t_memoria_cpu_instruccion *datos_instruccion, t_in
         break;
     }
     }
-
-    if (datos_instruccion->cantidad_elementos == 2)
-    {
-        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1]);
-    }
-
-    if (datos_instruccion->cantidad_elementos == 3)
-    {
-        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2]);
-    }
-
-    if (datos_instruccion->cantidad_elementos == 1)
-    {
-        log_info(logger, "PID: <%d> - Ejecutando: <%s>", cpu_proceso->pid, datos_instruccion->array[0]);
-    }
-
-    if (datos_instruccion->cantidad_elementos == 4)
-    {
-        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s> - <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2], datos_instruccion->array[3]);
-    }
-
-    if (datos_instruccion->cantidad_elementos == 5)
-    {
-        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s> - <%s> - <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2], datos_instruccion->array[3], datos_instruccion->array[4]);
-    }
-
-    if (datos_instruccion->cantidad_elementos == 6)
-    {
-        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s> - <%s> - <%s> - <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2], datos_instruccion->array[3], datos_instruccion->array[4], datos_instruccion->array[5]);
-    }
-
-    // Hardcodeo (por ahora)
-    // uint32_t hay_interrupt = 0;
-
-    //  Check interrupt
-    // if (!hay_interrupt)
-    // 	cpu_memoria_pedir_proxima_instruccion(pid, pc, socket_memoria) break;
-    // atendiendo_interrupcion = true;
 };
 
 int cpu_memoria_recibir_instruccion(t_buffer *buffer, t_log *logger, t_memoria_cpu_instruccion *datos_instruccion, t_instruccion *instruccion, t_cpu_proceso *proceso)
@@ -583,7 +766,7 @@ uint32_t *determinar_tipo_registro_uint32_t(char *instruccion, t_cpu_proceso *pr
     {
         return &proceso->registros.di;
     }
-    return 0;
+    return NULL;
 };
 
 uint8_t *determinar_tipo_registro_uint8_t(char *instruccion, t_cpu_proceso *proceso)
@@ -604,7 +787,7 @@ uint8_t *determinar_tipo_registro_uint8_t(char *instruccion, t_cpu_proceso *proc
     {
         return &proceso->registros.dx;
     }
-    return 0;
+    return NULL;
 };
 
 t_instruccion determinar_codigo_instruccion(char *instruccion)
@@ -755,7 +938,7 @@ t_registro obtener_tipo_registro(char *nombre_registro)
     }
     else
     {
-        return -1;
+        return INVALIDO;
     }
 }
 
@@ -781,4 +964,23 @@ void remover_salto_linea(char *argumento_origen)
     {
         argumento_origen[strlen(argumento_origen) - 1] = '\0';
     }
+}
+
+bool casteo_verificar_uint_8t_valido(uint32_t valor)
+{
+    return valor <= UINT8_MAX;
+}
+
+uint8_t casteo_uint8_t(uint32_t valor)
+{
+    if (!casteo_verificar_uint_8t_valido(valor))
+    {
+        return 0;
+    }
+    return (uint8_t)valor;
+}
+
+uint32_t casteo_uint32_t(uint8_t valor)
+{
+    return (uint32_t)valor;
 }

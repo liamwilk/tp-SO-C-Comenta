@@ -9,8 +9,8 @@ int main()
 	cpu = cpu_inicializar(config);
 	cpu_log(cpu, logger);
 
-	socket_server_dispatch = iniciar_servidor(logger, cpu.puertoEscuchaDispatch);
-	socket_server_interrupt = iniciar_servidor(logger, cpu.puertoEscuchaInterrupt);
+	cpu.socket_server_dispatch = iniciar_servidor(logger, cpu.puertoEscuchaDispatch);
+	cpu.socket_server_interrupt = iniciar_servidor(logger, cpu.puertoEscuchaInterrupt);
 
 	pthread_create(&thread_conectar_memoria, NULL, conectar_memoria, NULL);
 	pthread_join(thread_conectar_memoria, NULL);
@@ -62,37 +62,37 @@ int main()
 
 void *conectar_memoria()
 {
-	conexion_crear(logger, cpu.ipMemoria, cpu.puertoMemoria, &socket_memoria, "Memoria", MEMORIA_CPU);
+	conexion_crear(logger, cpu.ipMemoria, cpu.puertoMemoria, &cpu.socket_memoria, "Memoria", MEMORIA_CPU);
 	pthread_exit(0);
 }
 
 void *atender_memoria()
 {
-	hilo_ejecutar(logger, socket_memoria, "Memoria", switch_case_memoria);
+	hilo_ejecutar(logger, cpu.socket_memoria, "Memoria", switch_case_memoria);
 	pthread_exit(0);
 }
 
 void *esperar_kernel_dispatch()
 {
-	conexion_recibir(logger, socket_server_dispatch, &socket_kernel_dispatch, "Kernel por Dispatch", CPU_DISPATCH_KERNEL);
+	conexion_recibir(logger, cpu.socket_server_dispatch, &cpu.socket_kernel_dispatch, "Kernel por Dispatch", CPU_DISPATCH_KERNEL);
 	pthread_exit(0);
 }
 
 void *atender_kernel_dispatch()
 {
-	hilo_ejecutar(logger, socket_kernel_dispatch, "Kernel Dispatch", switch_case_kernel_dispatch);
+	hilo_ejecutar(logger, cpu.socket_kernel_dispatch, "Kernel Dispatch", switch_case_kernel_dispatch);
 	pthread_exit(0);
 }
 
 void *esperar_kernel_interrupt()
 {
-	conexion_recibir(logger, socket_server_interrupt, &socket_kernel_interrupt, "Kernel por Interrupt", CPU_INTERRUPT_KERNEL);
+	conexion_recibir(logger, cpu.socket_server_interrupt, &cpu.socket_kernel_interrupt, "Kernel por Interrupt", CPU_INTERRUPT_KERNEL);
 	pthread_exit(0);
 }
 
 void *atender_kernel_interrupt()
 {
-	hilo_ejecutar(logger, socket_kernel_interrupt, "Kernel Interrupt", switch_case_kernel_interrupt);
+	hilo_ejecutar(logger, cpu.socket_kernel_interrupt, "Kernel Interrupt", switch_case_kernel_interrupt);
 	pthread_exit(0);
 }
 
@@ -109,13 +109,16 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 
 		if (debeTerminar)
 		{
-			cpu_kernel_avisar_finalizacion(proceso, socket_kernel_interrupt);
+			cpu_kernel_avisar_finalizacion(proceso, cpu.socket_kernel_interrupt);
 			break;
 		}
 
 		// EXECUTE:
-		cpu_ejecutar_instruccion(&instruccion, *tipo_instruccion, &proceso, logger);
-		cpu_memoria_pedir_proxima_instruccion(&proceso, socket_memoria);
+		cpu_ejecutar_instruccion(cpu,&instruccion, *tipo_instruccion, &proceso, logger);
+
+		// TODO: Acá hay que chequear si Kernel mando una interrupcion antes de pedir la proxima instruccion.
+
+		cpu_memoria_pedir_proxima_instruccion(&proceso, cpu.socket_memoria);
 		log_debug(logger, "Instruccion pedida a Memoria");
 		free(tipo_instruccion);
 		break;
@@ -127,7 +130,7 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 	default:
 	{
 		log_warning(logger, "[Memoria] Se recibio un codigo de operacion desconocido. Cierro hilo");
-		liberar_conexion(&socket_memoria);
+		liberar_conexion(&cpu.socket_memoria);
 		break;
 	}
 	}
@@ -150,14 +153,14 @@ void switch_case_kernel_dispatch(t_log *logger, t_op_code codigo_operacion, t_bu
 		/*RECIBIR PROCESO*/
 		proceso = cpu_kernel_recibir_proceso(buffer, logger);
 		/*PEDIR INSTRUCCION*/
-		cpu_memoria_pedir_proxima_instruccion(&proceso, socket_memoria);
+		cpu_memoria_pedir_proxima_instruccion(&proceso, cpu.socket_memoria);
 		log_debug(logger, "Instruccion pedida a Memoria");
 		break;
 	}
 	default:
 	{
 		log_warning(logger, "[Kernel Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
-		liberar_conexion(&socket_kernel_dispatch);
+		liberar_conexion(&cpu.socket_kernel_dispatch);
 		break;
 	}
 	}
@@ -181,16 +184,16 @@ void switch_case_kernel_interrupt(t_log *logger, t_op_code codigo_operacion, t_b
 		pthread_cancel(thread_atender_kernel_dispatch);
 		pthread_cancel(thread_atender_kernel_interrupt);
 
-		liberar_conexion(&socket_memoria);
-		liberar_conexion(&socket_kernel_dispatch);
-		liberar_conexion(&socket_kernel_interrupt);
+		liberar_conexion(&cpu.socket_memoria);
+		liberar_conexion(&cpu.socket_kernel_dispatch);
+		liberar_conexion(&cpu.socket_kernel_interrupt);
 
 		break;
 	}
 	default:
 	{
 		log_warning(logger, "[Kernel Interrupt] Se recibio un codigo de operacion desconocido. Cierro hilo");
-		liberar_conexion(&socket_kernel_interrupt);
+		liberar_conexion(&cpu.socket_kernel_interrupt);
 		break;
 	}
 	}

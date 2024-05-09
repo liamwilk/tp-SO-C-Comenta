@@ -43,12 +43,6 @@ void *conectar_memoria();
 t_memoria_cpu_instruccion *deserializar_t_memoria_cpu_instruccion(t_buffer *buffer);
 t_kernel_cpu_proceso *deserializar_t_kernel_cpu_proceso(t_buffer *buffer);
 
-int socket_kernel_dispatch;
-int socket_kernel_interrupt;
-int socket_memoria;
-int socket_server_dispatch;
-int socket_server_interrupt;
-
 pthread_t thread_atender_kernel_dispatch, thread_atender_kernel_interrupt, thread_conectar_memoria, thread_atender_memoria, thread_esperar_kernel_dispatch, thread_esperar_kernel_interrupt;
 
 void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer);

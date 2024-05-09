@@ -401,6 +401,25 @@ void serializar_t_kernel_entrada_salida_unidad_de_trabajo(t_paquete **paquete, t
 	serializar_uint32_t(unidad->unidad_de_trabajo, *paquete);
 }
 
+void serializar_t_cpu_kernel_io_gen_sleep(t_paquete **paquete, t_cpu_kernel_io_gen_sleep *unidad)
+{
+	actualizar_buffer(*paquete, unidad->size_interfaz + sizeof(uint32_t) * 2);
+	serializar_uint32_t(unidad->size_interfaz, *paquete);
+	serializar_char(unidad->interfaz, *paquete);
+	serializar_uint32_t(unidad->tiempo, *paquete);
+}
+
+t_cpu_kernel_io_gen_sleep *deserializar_t_cpu_kernel_io_gen_sleep(t_buffer *buffer)
+{
+	t_cpu_kernel_io_gen_sleep *dato = malloc(sizeof(t_cpu_kernel_io_gen_sleep));
+	void *stream = buffer->stream;
+	deserializar_uint32_t(&stream, &(dato->size_interfaz));
+	deserializar_char(&stream, &(dato->interfaz), dato->size_interfaz);
+	deserializar_uint32_t(&stream, &(dato->tiempo));
+
+	return dato;
+}
+
 void serializar_t_entrada_salida_kernel_unidad_de_trabajo(t_paquete **paquete, t_entrada_salida_kernel_unidad_de_trabajo *unidad)
 {
 	actualizar_buffer(*paquete, sizeof(bool));
