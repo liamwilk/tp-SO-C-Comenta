@@ -158,7 +158,7 @@ int proceso_eliminar_new(diagrama_estados *estados, uint32_t processPID)
     int pos = atoi(pos_str);
     void *proceso = list_remove(estados->new->cola, pos);
     free(proceso);
-    dictionary_remove_and_destroy(estados->new->diccionario, pid_str);
+    dictionary_remove_and_destroy(estados->new->diccionario, pid_str, free);
     pid -= 1;
     return 1;
 }
