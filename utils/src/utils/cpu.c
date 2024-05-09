@@ -58,7 +58,56 @@ void cpu_ejecutar_instruccion(t_memoria_cpu_instruccion *datos_instruccion, t_in
     {
     case SET:
     {
-        log_debug(logger, "reconoci un SET");
+        // SET (Registro, Valor): Asigna al registro el valor pasado como parámetro.
+        log_debug(logger, "Instruccion: '%s' '%s' '%s' reconocida", datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2]);
+
+        char *registro_destino = strdup(datos_instruccion->array[1]);
+        char *valor = strdup(datos_instruccion->array[2]);
+
+        t_registro registro_tipo = obtener_tipo_registro(registro_destino);
+
+        if (registro_tipo == REGISTRO_32)
+        {
+            uint32_t *registro = determinar_tipo_registro_uint32_t(registro_destino, cpu_proceso);
+            if (registro == 0)
+            {
+                log_error(logger, "Registro %s a insertar invalido", registro_destino);
+                break;
+            }
+            uint32_t valor_a_enviar = strtoul(valor, NULL, 10); // Se usa strtoul ya que es la única forma viable de hacer el pasaje de char* a uint y sus variantes
+            if (valor_a_enviar > UINT32_MAX)                    // En base a lo anterior, se hace el chequeo del tamaño para evitar el overflow
+            {
+                log_error(logger, "El numero es mas grande que la capacidad de uint32");
+                break;
+            }
+            *registro = valor_a_enviar; // Se asigna el valor obtenido;
+        }
+        else if (registro_tipo == REGISTRO_8) // Misma lógica que para registro de 4 bytes;
+        {
+            uint8_t *registro = determinar_tipo_registro_uint8_t(registro_destino, cpu_proceso);
+            if (registro == 0)
+            {
+                log_error(logger, "Registro %s a insertar invalido", registro_destino);
+                break;
+            }
+            unsigned long num = strtoul(valor, NULL, 10);
+            if (num > UINT8_MAX)
+            {
+                log_error(logger, "El numero es mas grande que la capacidad de uint8");
+                break;
+            }
+            uint8_t valor_a_enviar = (uint8_t)num;
+            *registro = valor_a_enviar;
+            log_debug(logger, "Valor final del registro %s: %d", registro_destino, *registro);
+        }
+        else
+        {
+            log_error(logger, "No existe registro con ese tipo de dato");
+        }
+        imprimir_registros(logger, cpu_proceso);
+
+        free(registro_destino);
+        free(valor);
         break;
     }
     case SUM:
@@ -79,6 +128,21 @@ void cpu_ejecutar_instruccion(t_memoria_cpu_instruccion *datos_instruccion, t_in
 
         log_debug(logger, "Argumento destino tipo: %d", argumento_destino_tipo);
         log_debug(logger, "Argumento origen tipo: %d", argumento_origen_tipo);
+
+        /*
+
+        if(destino = 32)
+            if(origen = 32)
+                Anda bien
+            if(origen = 8)
+                Hace falta castear
+
+        if(destino = 8)
+            if(origen = 8)
+                Anda bien
+            if(origen = 32)
+
+        */
 
         if (argumento_destino_tipo == argumento_origen_tipo)
         {
@@ -251,7 +315,35 @@ void cpu_ejecutar_instruccion(t_memoria_cpu_instruccion *datos_instruccion, t_in
     }
     case JNZ:
     {
-        log_debug(logger, "reconoci un JNZ");
+        // JNZ (Registro, Instrucción): Si el valor del registro es distinto de cero, actualiza el program counter al número de instrucción pasada por parámetro.
+        char *registro = strdup(datos_instruccion->array[1]);
+        char *instruccion = strdup(datos_instruccion->array[2]);
+
+        t_registro registro_tipo_size = obtener_tipo_registro(registro);
+
+        if (registro_tipo_size == REGISTRO_8)
+        {
+            uint8_t *registro_destino = determinar_tipo_registro_uint8_t(registro, cpu_proceso);
+            if (*registro_destino != 0)
+            {
+                uint32_t valor_pc = strtoul(instruccion, NULL, 10);
+                cpu_proceso->registros.pc = valor_pc;
+            }
+        }
+        else if (registro_tipo_size == REGISTRO_32)
+        {
+            uint32_t *registro_destino = determinar_tipo_registro_uint32_t(registro, cpu_proceso);
+            if (*registro_destino != 0)
+            {
+                uint32_t valor_pc = strtoul(instruccion, NULL, 10);
+                cpu_proceso->registros.pc = valor_pc;
+            }
+        }
+        else
+        {
+            log_error(logger, "Registro invalido");
+            break;
+        }
         break;
     }
     case IO_GEN_SLEEP:
@@ -370,6 +462,10 @@ void cpu_kernel_avisar_finalizacion(t_cpu_proceso proceso, int socket_kernel_int
 
 uint32_t *determinar_tipo_registro_uint32_t(char *instruccion, t_cpu_proceso *proceso)
 {
+    if (!strcmp(instruccion, "PC"))
+    {
+        return &proceso->registros.pc;
+    }
     if (!strcmp(instruccion, "EAX"))
     {
         return &proceso->registros.eax;
@@ -450,6 +546,10 @@ t_instruccion determinar_codigo_instruccion(char *instruccion)
 
 t_registro obtener_tipo_registro(char *nombre_registro)
 {
+    if (!strcmp(nombre_registro, "PC"))
+    {
+        return REGISTRO_32;
+    }
     if (!strcmp(nombre_registro, "EAX"))
     {
         return REGISTRO_32;
