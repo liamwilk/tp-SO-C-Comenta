@@ -20,6 +20,7 @@
 #include "common.h"
 #include "init.h"
 #include <commons/process.h>
+#include <utils/template.h>
 
 t_log* logger;
 t_config* config;
