@@ -4,7 +4,7 @@ void algoritmo_fifo(t_kernel *kernel, diagrama_estados *estados, int socket_disp
 {
     if (list_size(estados->ready->cola) > 0 && list_size(estados->exec->cola) == 0)
     {
-        t_pcb *aux = proceso_quitar_ready(estados->ready);
+        t_pcb *aux = proceso_pop_ready(estados->ready);
         t_cpu_kernel_proceso *proceso = malloc(sizeof(t_cpu_kernel_proceso));
         proceso->pid = aux->pid;
         proceso->registros = malloc(sizeof(t_registros_cpu));
