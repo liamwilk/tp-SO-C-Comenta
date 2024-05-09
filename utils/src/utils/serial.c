@@ -415,7 +415,7 @@ void serializar_t_entrada_salida_kernel_finalizar(t_paquete **paquete, t_entrada
 
 t_memoria_cpu_instruccion *deserializar_t_memoria_cpu_instruccion(t_buffer *buffer)
 {
-	t_memoria_cpu_instruccion *dato = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
+	t_memoria_cpu_instruccion *dato = malloc(sizeof(t_memoria_cpu_instruccion));
 	void *stream = buffer->stream;
 	deserializar_uint32_t(&stream, &(dato->pid));
 	deserializar_uint32_t(&stream, &(dato->cantidad_elementos));
