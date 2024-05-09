@@ -19,7 +19,7 @@ t_handshake crear_handshake(t_log *logger, int socket_servidor, t_handshake codi
 	return respuesta;
 }
 
-t_handshake esperar_handshake(t_log *logger, int socket_cliente, t_handshake codigo_esperado, char *modulo)
+t_handshake conexion_handshake_recibir(t_log *logger, int socket_cliente, t_handshake codigo_esperado, char *modulo)
 {
 	t_handshake respuesta;
 	t_handshake ok = CORRECTO;

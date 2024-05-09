@@ -10,10 +10,7 @@ int main()
 	cpu_log(cpu, logger);
 
 	socket_server_dispatch = iniciar_servidor(logger, cpu.puertoEscuchaDispatch);
-	log_debug(logger, "Servidor Dispatch listo para recibir al cliente en socket %d", socket_server_dispatch);
-
 	socket_server_interrupt = iniciar_servidor(logger, cpu.puertoEscuchaInterrupt);
-	log_debug(logger, "Servidor Interrupt listo para recibir al cliente en socket %d", socket_server_interrupt);
 
 	pthread_create(&thread_conectar_memoria, NULL, conectar_memoria, NULL);
 	pthread_join(thread_conectar_memoria, NULL);
@@ -65,22 +62,7 @@ int main()
 
 void *conectar_memoria()
 {
-	socket_memoria = crear_conexion(logger, cpu.ipMemoria, cpu.puertoMemoria);
-
-	if (socket_memoria == -1)
-	{
-		pthread_exit(0);
-	}
-
-	t_handshake resultado = crear_handshake(logger, socket_memoria, MEMORIA_CPU, "Memoria");
-
-	if (resultado != CORRECTO)
-	{
-		liberar_conexion(&socket_memoria);
-		pthread_exit(0);
-	}
-
-	log_debug(logger, "Conectado a Memoria en socket %d", socket_memoria);
+	conexion_crear(logger, cpu.ipMemoria, cpu.puertoMemoria, &socket_memoria, "Memoria", MEMORIA_CPU);
 	pthread_exit(0);
 }
 
@@ -92,23 +74,7 @@ void *atender_memoria()
 
 void *esperar_kernel_dispatch()
 {
-	socket_kernel_dispatch = esperar_conexion(logger, socket_server_dispatch);
-
-	if (socket_kernel_dispatch == -1)
-	{
-		pthread_exit(0);
-	}
-
-	t_handshake resultado = esperar_handshake(logger, socket_kernel_dispatch, CPU_DISPATCH_KERNEL, "Kernel por Dispatch");
-
-	if (resultado != CORRECTO)
-	{
-		liberar_conexion(&socket_kernel_dispatch);
-		pthread_exit(0);
-	}
-
-	log_debug(logger, "Kernel conectado por Dispatch en socket %d", socket_kernel_dispatch);
-	liberar_conexion(&socket_server_dispatch);
+	conexion_recibir(logger, socket_server_dispatch, &socket_kernel_dispatch, "Kernel por Dispatch", CPU_DISPATCH_KERNEL);
 	pthread_exit(0);
 }
 
@@ -120,23 +86,7 @@ void *atender_kernel_dispatch()
 
 void *esperar_kernel_interrupt()
 {
-	socket_kernel_interrupt = esperar_conexion(logger, socket_server_interrupt);
-
-	if (socket_kernel_interrupt == -1)
-	{
-		pthread_exit(0);
-	}
-
-	t_handshake resultado = esperar_handshake(logger, socket_kernel_interrupt, CPU_INTERRUPT_KERNEL, "Kernel por Interrupt");
-
-	if (resultado != CORRECTO)
-	{
-		liberar_conexion(&socket_kernel_interrupt);
-		pthread_exit(0);
-	}
-
-	log_debug(logger, "Kernel conectado por Interrupt en socket %d", socket_kernel_interrupt);
-	liberar_conexion(&socket_server_interrupt);
+	conexion_recibir(logger, socket_server_interrupt, &socket_kernel_interrupt, "Kernel por Interrupt", CPU_INTERRUPT_KERNEL);
 	pthread_exit(0);
 }
 

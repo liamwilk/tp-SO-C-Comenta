@@ -40,4 +40,7 @@ typedef void (*t_funcion_kernel_ptr)(t_log *, t_op_code, hilos_args *, t_buffer 
 void hilo_ejecutar(t_log *logger, int socket, char *modulo_emisor, t_funcion_ptr switch_case_atencion);
 void hilo_ejecutar_kernel(int socket, hilos_args *args, char *modulo, t_funcion_kernel_ptr switch_case_atencion);
 
+void conexion_crear(t_log *logger, char *ip, int puerto, int *socket_modulo, char *modulo, t_handshake codigo_esperado);
+void conexion_recibir(t_log *logger, int socket_servidor, int *socket_modulo, char *modulo, t_handshake codigo_esperado);
+
 #endif /* TEMPLATE_H */

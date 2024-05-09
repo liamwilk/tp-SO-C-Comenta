@@ -11,11 +11,8 @@ int main()
 	lista_procesos = list_create();
 	diccionario_procesos = dictionary_create();
 
-	log_debug(logger, "Estructuras de procesos globales inicializados");
-
 	socket_server_memoria = iniciar_servidor(logger, memoria.puertoEscucha);
-	log_debug(logger, "Servidor Memoria listo para recibir al cliente en socket %d", socket_server_memoria);
-
+	
 	pthread_create(&thread_esperar_cpu, NULL, esperar_cpu, NULL);
 	pthread_join(thread_esperar_cpu, NULL);
 
@@ -41,23 +38,7 @@ int main()
 
 void *esperar_cpu()
 {
-	socket_cpu = esperar_conexion(logger, socket_server_memoria);
-	
-	if (socket_cpu == -1)
-	{
-		log_debug(logger, "Error al esperar conexion de CPU");
-		pthread_exit(0);
-	}
-
-	t_handshake resultado = esperar_handshake(logger, socket_cpu, MEMORIA_CPU, "CPU");
-
-	if (resultado != CORRECTO)
-	{
-		liberar_conexion(&socket_cpu);
-		pthread_exit(0);
-	}
-	
-	log_debug(logger, "CPU conectado en socket %d", socket_cpu);
+	conexion_recibir(logger, socket_server_memoria, &socket_cpu, "CPU", MEMORIA_CPU);
 	pthread_exit(0);
 }
 
@@ -69,23 +50,7 @@ void *atender_cpu()
 
 void *esperar_kernel()
 {
-	socket_kernel = esperar_conexion(logger, socket_server_memoria);
-	
-	if (socket_kernel == -1)
-	{
-		log_error(logger, "Error al esperar conexion de Kernel");
-		pthread_exit(0);
-	}
-
-	t_handshake resultado = esperar_handshake(logger, socket_kernel, MEMORIA_KERNEL, "Kernel");
-
-	if (resultado != CORRECTO)
-	{
-		liberar_conexion(&socket_kernel);
-		pthread_exit(0);
-	}
-
-	log_debug(logger, "Kernel conectado en socket %d", socket_kernel);
+	conexion_recibir(logger, socket_server_memoria, &socket_kernel, "Kernel", MEMORIA_KERNEL);
 	pthread_exit(0);
 }
 
@@ -95,11 +60,13 @@ void *atender_kernel()
 	pthread_exit(0);
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////
+
 void *esperar_entrada_salida()
 {
 	while (1)
 	{
-		int socket_cliente = esperar_conexion(logger, socket_server_memoria);
+		int socket_cliente = conexion_socket_recibir(socket_server_memoria);
 
 		if (socket_cliente == -1)
 		{
