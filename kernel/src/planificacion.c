@@ -1,31 +1,51 @@
 #include <planificacion.h>
 
-void algoritmo_fifo(t_kernel *kernel, diagrama_estados *estados, int socket_dispatch)
+void planificacion_largo_plazo(t_kernel *kernel, diagrama_estados *estados, t_log *logger)
+{
+    int cant_en_new = list_size(estados->new->cola);
+    int cant_en_ready = list_size(estados->ready->cola);
+
+    if (cant_en_ready < kernel->gradoMultiprogramacion)
+    {
+        while (cant_en_ready < kernel->gradoMultiprogramacion && cant_en_new > 0)
+        {
+            t_pcb *proceso = proceso_pop_new(estados);
+            if (proceso->memoria_aceptado == false)
+            {
+                log_warning(logger, "No se puede mover el proceso PID: <%d> a ready, ya que no fue aceptado por memoria", proceso->pid);
+                continue;
+            }
+            proceso_push_ready(estados, proceso);
+            cant_en_ready++;
+            cant_en_new--;
+            log_debug(logger, "[PLANIFICADOR LARGO PLAZO] Proceso PID: <%d> movido a ready", proceso->pid);
+        }
+    }
+    if (cant_en_new != 0)
+    {
+        log_warning(logger, "No se pueden mover mas procesos a ready, ya que se alcanzo el grado de multiprogramacion");
+    }
+};
+
+void planificacion_corto_plazo(t_kernel *kernel, diagrama_estados *estados, t_log *logger)
+{
+    if (strcmp(kernel->algoritmoPlanificador, "FIFO") == 0)
+    {
+        fifo(kernel, estados, logger);
+    }
+};
+
+void fifo(t_kernel *kernel, diagrama_estados *estados, t_log *logger)
 {
     if (list_size(estados->ready->cola) > 0 && list_size(estados->exec->cola) == 0)
     {
-        t_pcb *aux = proceso_pop_ready(estados->ready);
-        t_cpu_kernel_proceso *proceso = malloc(sizeof(t_cpu_kernel_proceso));
-        proceso->pid = aux->pid;
-        proceso->registros = malloc(sizeof(t_registros_cpu));
-        proceso->registros->pc = aux->registros_cpu->pc;
-        proceso->registros->eax = aux->registros_cpu->eax;
-        proceso->registros->ebx = aux->registros_cpu->ebx;
-        proceso->registros->ecx = aux->registros_cpu->ecx;
-        proceso->registros->edx = aux->registros_cpu->edx;
-        proceso->registros->si = aux->registros_cpu->si;
-        proceso->registros->di = aux->registros_cpu->di;
-        proceso->registros->ax = aux->registros_cpu->ax;
-        proceso->registros->bx = aux->registros_cpu->bx;
-        proceso->registros->cx = aux->registros_cpu->cx;
-        proceso->registros->dx = aux->registros_cpu->dx;
-
+        t_pcb *aux = proceso_transicion_ready_exec(estados);
+        log_debug(logger, "[FIFO]: Enviando proceso <PID: %d> a CPU", aux->pid);
         t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
 
-        serializar_t_registros_cpu(&paquete, proceso->pid, proceso->registros);
-        enviar_paquete(paquete, socket_dispatch);
-        eliminar_paquete(paquete);
-        free(proceso);
+        serializar_t_registros_cpu(&paquete, aux->pid, aux->registros_cpu);
+        enviar_paquete(paquete, kernel->sockets.cpu_dispatch);
+        free(paquete);
         free(aux);
     }
     if (list_size(estados->block->cola) == 0)

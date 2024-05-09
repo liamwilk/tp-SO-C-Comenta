@@ -40,21 +40,19 @@ void *hilos_atender_consola(void *args)
         case FINALIZAR_PROCESO:
         {
             log_info(hiloArgs->logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-            uint32_t pid = (uint32_t)atoi(separar_linea[1]);
-
-            t_pcb *busqueda = buscar_proceso(hiloArgs->estados, pid);
-
+            bool existe = proceso_matar(hiloArgs->estados, separar_linea[1]);
+            int pidReceived = atoi(separar_linea[1]);
             // TODO: Hay que eliminar el proceso de la cola  pertinente aca solo lo busca
-
-            if (busqueda == NULL)
+            if (!existe)
             {
-                log_error(hiloArgs->logger, "El PID <%d> no existe", pid);
+                log_error(hiloArgs->logger, "El PID <%d> no existe", pidReceived);
                 break;
             }
+            log_debug(hiloArgs->logger, "PID: <%d> eliminado de kernel", pidReceived);
 
             t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
             t_kernel_memoria_finalizar_proceso *proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
-            proceso->pid = pid;
+            proceso->pid = pidReceived;
             serializar_t_kernel_memoria_finalizar_proceso(&paquete, proceso);
             enviar_paquete(paquete, hiloArgs->kernel->sockets.memoria);
 
@@ -95,20 +93,8 @@ void *hilos_atender_consola(void *args)
         case INICIAR_PLANIFICACION:
         {
             log_info(hiloArgs->logger, "Se ejecuto script %s", separar_linea[0]);
-            proceso_mover_ready(hiloArgs->kernel->gradoMultiprogramacion, hiloArgs->logger, hiloArgs->estados);
-            log_debug(hiloArgs->logger, "Se movieron los procesos a READY");
-            /* if (strcmp(hiloArgs->kernel->algoritmoPlanificador, "FIFO") == 0)
-            {
-                algoritmo_fifo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->kernel->sockets.cpu_dispatch);
-            } */
-
-            t_pcb *aux = proceso_pop_ready(hiloArgs->estados);
-            t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
-
-            serializar_t_registros_cpu(&paquete, aux->pid, aux->registros_cpu);
-            enviar_paquete(paquete, hiloArgs->kernel->sockets.cpu_dispatch);
-            free(paquete);
-            free(aux);
+            planificacion_largo_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
+            planificacion_corto_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
             break;
         }
         case MULTIPROGRAMACION:
@@ -224,7 +210,7 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *
         {
             log_error(logger, "Proceso PID:<%d> rechazado en memoria", proceso->pid);
             // Eliminar proceso de la cola de new
-            proceso_eliminar_new(args->estados, proceso->pid);
+            proceso_revertir(args->estados, proceso->pid);
             log_warning(logger, "Proceso PID:<%d> eliminado de kernel", proceso->pid);
         };
         free(proceso);
@@ -365,7 +351,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
             // Mover proceso a ready
             t_pcb *pcb = proceso_buscar_new(args->estados, proceso->pid);
             pcb->memoria_aceptado = false;
-            proceso_mover_ready(args->kernel->gradoMultiprogramacion, logger, args->estados);
+            proceso_push_ready(args->estados, pcb);
             log_info(logger, "Se mueve el proceso <%d> a READY", proceso->pid);
         }
 

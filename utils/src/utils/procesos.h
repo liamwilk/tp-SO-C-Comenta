@@ -1,8 +1,6 @@
 #ifndef PROCESOS_H_
 #define PROCESOS_H_
 #include <commons/log.h>
-#include <stdlib.h>
-#include <stdint.h>
 #include <stdbool.h>
 #include <utils/modulos.h>
 #include <utils/serial.h>
@@ -97,10 +95,34 @@ void proceso_push_new(diagrama_estados *estados, t_pcb *pcb);
 /**
  * Agrega un PCB a la cola "ready".
  *
- * @param ready La cola "ready".
+ * @param estados diagrama de 5 estados
  * @param pcb El PCB a agregar.
  */
 void proceso_push_ready(diagrama_estados *estados, t_pcb *pcb);
+
+/**
+ * Agrega un PCB a la cola "exec".
+ *
+ * @param estados diagrama de 5 estados
+ * @param pcb El PCB a agregar.
+ */
+void proceso_push_exec(diagrama_estados *estados, t_pcb *pcb);
+
+/**
+ * Agrega un PCB a la cola "block".
+ *
+ * @param estados diagrama de 5 estados
+ * @param pcb El PCB a agregar.
+ */
+void proceso_push_block(diagrama_estados *estados, t_pcb *pcb);
+
+/**
+ * Agrega un PCB a la cola "exit".
+ *
+ * @param estados diagrama de 5 estados
+ * @param pcb El PCB a agregar.
+ */
+void proceso_push_exit(diagrama_estados *estados, t_pcb *pcb);
 
 /**
  * Busca un proceso con el PID dado en la cola "new".
@@ -130,22 +152,43 @@ t_pcb *proceso_pop_ready(diagrama_estados *estados);
 t_pcb *proceso_pop_new(diagrama_estados *estados);
 
 /**
- * Mueve un proceso al estado "ready" en el kernel.
+ * Elimina un proceso de la cola "exec".
  *
- * @param kernel La instancia del kernel.
- * @param logger La instancia del logger.
- * @param estados El diagrama de estados.
+ * Esta función elimina un proceso de la cola "exec" y devuelve un puntero al bloque de control de procesos (PCB) eliminado.
+ *
+ * @param exec La cola "exec" de la cual eliminar el proceso.
+ * @return Un puntero al bloque de control de procesos (PCB) eliminado.
  */
-void proceso_mover_ready(int gradoMultiprogramacion, t_log *logger, diagrama_estados *estados);
+t_pcb *proceso_pop_exec(diagrama_estados *estados);
 
 /**
- * @brief Elimina un proceso de la cola de new y libera el recurso de memoria
+ * Elimina un proceso de la cola "exit".
+ *
+ * Esta función elimina un proceso de la cola "exit" y devuelve un puntero al bloque de control de procesos (PCB) eliminado.
+ *
+ * @param exit La cola "exit" de la cual eliminar el proceso.
+ * @return Un puntero al bloque de control de procesos (PCB) eliminado.
+ */
+t_pcb *proceso_pop_exit(diagrama_estados *estados);
+
+/**
+ * Elimina un proceso de la cola "block".
+ *
+ * Esta función elimina un proceso de la cola "block" y devuelve un puntero al bloque de control de procesos (PCB) eliminado.
+ *
+ * @param block La cola "block" de la cual eliminar el proceso.
+ * @return Un puntero al bloque de control de procesos (PCB) eliminado.
+ */
+t_pcb *proceso_pop_block(diagrama_estados *estados);
+
+/**
+ * @brief Revierte la creacion de un proceso en estado new
  *
  * @param new El proceso nuevo a eliminar.
  * @param pid El ID del proceso nuevo.
  * @return true si el proceso nuevo se eliminó correctamente, false en caso contrario.
  */
-int proceso_eliminar_new(diagrama_estados *estados, uint32_t processPID);
+int proceso_revertir(diagrama_estados *estados, uint32_t processPID);
 
 /**
  *  Busca un proceso con el PID dado en la cola de listos.
@@ -182,5 +225,32 @@ t_pcb *proceso_buscar_block(diagrama_estados *estados, int pid);
  * @return Un puntero al PCB del proceso encontrado, o NULL si no se encuentra.
  */
 t_pcb *proceso_buscar_exit(diagrama_estados *estados, int pid);
+
+/**
+ * Obtiene el estado de un proceso basado en su ID de proceso.
+ *
+ * @param estados El diagrama de estados que contiene los estados de los procesos.
+ * @param pid El ID de proceso del proceso del cual se desea obtener el estado.
+ * @return Un puntero a una cadena de caracteres que representa el estado del proceso.
+ */
+char *proceso_estado(diagrama_estados *estados, int pid);
+
+/**
+ * @brief Mata un proceso identificado por su PID.
+ *
+ * Esta función mata un proceso identificado por su PID. Toma como parámetros un puntero a una estructura `diagrama_estados`
+ * y el PID del proceso a matar.
+ *
+ * @param estados Un puntero a una estructura `diagrama_estados` que contiene los estados de los procesos.
+ * @param pid El PID del proceso a matar.
+ * @return Devuelve 0 en caso de éxito, o -1 si ocurrió un error.
+ */
+bool proceso_matar(diagrama_estados *estados, char *pid);
+
+t_pcb *proceso_transicion_ready_exec(diagrama_estados *estados);
+
+t_pcb *proceso_transicion_exec_block(diagrama_estados *estados);
+
+t_pcb *proceso_transicion_block_ready(diagrama_estados *estados);
 
 #endif

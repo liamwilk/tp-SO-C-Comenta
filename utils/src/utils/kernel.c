@@ -73,12 +73,15 @@ diagrama_estados kernel_inicializar_estados(diagrama_estados *estados)
     t_exit *exit = malloc(sizeof(t_exit));
     exit->cola = list_create();
     exit->diccionario = dictionary_create();
+    // Inicializar diccionario de procesos
+    estados->procesos = dictionary_create();
     diagrama_estados diagrama = {
         .new = new,
         .ready = ready,
         .exec = exec,
         .block = block,
-        .exit = exit};
+        .exit = exit,
+        .procesos = estados->procesos};
     return diagrama;
 }
 
