@@ -52,6 +52,7 @@ typedef enum
 
 typedef enum
 {
+	INVALIDO,
 	REGISTRO_32,
 	REGISTRO_8,
 	EAX,
@@ -101,6 +102,14 @@ typedef struct
 
 typedef struct
 {
+	uint32_t pid;
+	uint32_t size_interfaz;
+	char *interfaz;
+	uint32_t tiempo;
+} t_cpu_kernel_io_gen_sleep;
+
+typedef struct
+{
 	uint32_t size_path;
 	char *path_instrucciones;
 	uint32_t program_counter;
@@ -121,11 +130,13 @@ typedef struct
 
 typedef struct
 {
+	uint32_t pid;
 	uint32_t unidad_de_trabajo;
 } t_kernel_entrada_salida_unidad_de_trabajo;
 
 typedef struct
 {
+	uint32_t pid;
 	bool terminado;
 } t_entrada_salida_kernel_unidad_de_trabajo;
 
@@ -587,5 +598,8 @@ void serializar_t_cpu_memoria_instruccion(t_paquete **paquete, t_cpu_memoria_ins
 t_cpu_kernel_proceso *deserializar_t_cpu_kernel_proceso(t_buffer *buffer);
 void serializar_t_cpu_kernel_proceso(t_paquete **paquete, t_cpu_kernel_proceso *proceso);
 t_kernel_cpu_proceso *deserializar_t_kernel_cpu_proceso(t_buffer *buffer);
+
+t_cpu_kernel_io_gen_sleep *deserializar_t_cpu_kernel_io_gen_sleep(t_buffer *buffer);
+void serializar_t_cpu_kernel_io_gen_sleep(t_paquete **paquete, t_cpu_kernel_io_gen_sleep *unidad);
 
 #endif

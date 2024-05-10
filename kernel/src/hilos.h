@@ -20,6 +20,7 @@
 #include <utils/configs.h>
 #include <commons/collections/queue.h>
 #include <commons/collections/list.h>
+#include "planificacion.h"
 #include <utils/template.h>
 
 /*----ATENDER----*/

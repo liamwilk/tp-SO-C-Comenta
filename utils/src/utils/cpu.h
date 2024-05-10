@@ -18,6 +18,11 @@ typedef struct t_cpu
     int puertoMemoria;
     int cantidadEntradasTlb;
     char *algoritmoTlb;
+    int socket_kernel_dispatch;
+    int socket_kernel_interrupt;
+    int socket_memoria;
+    int socket_server_dispatch;
+    int socket_server_interrupt;
 } t_cpu;
 
 typedef struct t_cpu_proceso
@@ -51,7 +56,7 @@ void cpu_log(t_cpu cpu, t_log *logger);
  */
 void cpu_memoria_pedir_proxima_instruccion(t_cpu_proceso *proceso, int socket_memoria);
 
-void cpu_ejecutar_instruccion(t_memoria_cpu_instruccion *datos_instruccion, t_instruccion INSTRUCCION, t_cpu_proceso *cpu_proceso, t_log *logger);
+void cpu_ejecutar_instruccion(t_cpu paquete, t_memoria_cpu_instruccion *datos_instruccion, t_instruccion INSTRUCCION, t_cpu_proceso *cpu_proceso, t_log *logger);
 
 int cpu_memoria_recibir_instruccion(t_buffer *buffer, t_log *logger, t_memoria_cpu_instruccion *datos_instruccion, t_instruccion *INSTRUCCION, t_cpu_proceso *proceso);
 
@@ -67,5 +72,9 @@ t_instruccion determinar_codigo_instruccion(char *instruccion);
 t_registro obtener_tipo_registro(char *nombre_registro);
 void imprimir_registros(t_log *logger, t_cpu_proceso *cpu_proceso);
 void remover_salto_linea(char *argumento_origen);
+
+bool casteo_verificar_uint_8t_valido(uint32_t valor);
+uint8_t casteo_uint8_t(uint32_t valor);
+uint32_t casteo_uint32_t(uint8_t valor);
 
 #endif /* CPU_H_ */

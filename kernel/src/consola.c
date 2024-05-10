@@ -25,16 +25,16 @@ t_consola_operacion obtener_operacion(char *funcion)
 
 t_pcb *buscar_proceso(diagrama_estados *estados, uint32_t pid)
 {
-    t_pcb *pcb = proceso_buscar_new(estados->new, pid);
+    t_pcb *pcb = proceso_buscar_new(estados, pid);
     if (pcb == NULL)
     {
-        pcb = proceso_buscar_ready(estados->ready, pid);
+        pcb = proceso_buscar_ready(estados, pid);
         if (pcb == NULL)
         {
-            pcb = proceso_buscar_exec(estados->exec, pid);
+            pcb = proceso_buscar_exec(estados, pid);
             if (pcb == NULL)
             {
-                pcb = proceso_buscar_block(estados->block, pid);
+                pcb = proceso_buscar_block(estados, pid);
             }
         }
     }

@@ -58,31 +58,29 @@ t_kernel_sockets kernel_sockets_agregar(t_kernel *kernel, KERNEL_SOCKETS type, i
 
 diagrama_estados kernel_inicializar_estados(diagrama_estados *estados)
 {
-    t_new *new = malloc(sizeof(t_new));
-    new->cola = list_create();
-    new->diccionario = dictionary_create();
-    t_ready *ready = malloc(sizeof(t_ready));
-    ready->cola = list_create();
-    ready->diccionario = dictionary_create();
-    t_exec *exec = malloc(sizeof(t_exec));
-    exec->cola = list_create();
-    exec->diccionario = dictionary_create();
-    t_block *block = malloc(sizeof(t_block));
-    block->cola = list_create();
-    block->diccionario = dictionary_create();
-    t_exit *exit = malloc(sizeof(t_exit));
-    exit->cola = list_create();
-    exit->diccionario = dictionary_create();
+    t_list *new = malloc(sizeof(t_list));
+    new = list_create();
+    t_list *ready = malloc(sizeof(t_list));
+    ready = list_create();
+    t_list *exec = malloc(sizeof(t_list));
+    exec = list_create();
+    t_list *block = malloc(sizeof(t_list));
+    block = list_create();
+    t_list *exit = malloc(sizeof(t_list));
+    exit = list_create();
+    // Inicializar diccionario de procesos
+    estados->procesos = dictionary_create();
     diagrama_estados diagrama = {
         .new = new,
         .ready = ready,
         .exec = exec,
         .block = block,
-        .exit = exit};
+        .exit = exit,
+        .procesos = estados->procesos};
     return diagrama;
 }
 
-t_pcb *kernel_nuevo_proceso(t_kernel *kernel, t_new *colaNew, t_log *logger, char *instrucciones)
+t_pcb *kernel_nuevo_proceso(t_kernel *kernel, diagrama_estados *estados, t_log *logger, char *instrucciones)
 {
     t_pcb *nuevaPcb = pcb_crear(logger, kernel->quantum);
     log_debug(logger, "[PCB] Program Counter: %d", nuevaPcb->registros_cpu->pc);
@@ -103,7 +101,7 @@ t_pcb *kernel_nuevo_proceso(t_kernel *kernel, t_new *colaNew, t_log *logger, cha
 
     eliminar_paquete(paquete);
     free(proceso);
-    proceso_agregar_new(colaNew, nuevaPcb);
+    proceso_push_new(estados, nuevaPcb);
 
     return nuevaPcb;
 }

@@ -1,51 +1,20 @@
 #ifndef PROCESOS_H_
 #define PROCESOS_H_
 #include <commons/log.h>
-#include <stdlib.h>
-#include <stdint.h>
 #include <stdbool.h>
 #include <utils/modulos.h>
 #include <utils/serial.h>
 #include <commons/collections/queue.h>
 #include <commons/string.h>
 
-typedef struct t_new
-{
-    t_list *cola;
-    t_dictionary *diccionario;
-} t_new;
-
-typedef struct t_ready
-{
-    t_list *cola;
-    t_dictionary *diccionario;
-} t_ready;
-
-typedef struct t_exec
-{
-    t_list *cola;
-    t_dictionary *diccionario;
-} t_exec;
-
-typedef struct t_block
-{
-    t_list *cola;
-    t_dictionary *diccionario;
-} t_block;
-
-typedef struct t_exit
-{
-    t_list *cola;
-    t_dictionary *diccionario;
-} t_exit;
-
 typedef struct diagrama_estados
 {
-    t_new *new;
-    t_ready *ready;
-    t_exec *exec;
-    t_block *block;
-    t_exit *exit;
+    t_list *new;
+    t_list *ready;
+    t_list *exec;
+    t_list *block;
+    t_list *exit;
+    t_dictionary *procesos; // Diccionario que mapea PID: ESTADO
 } diagrama_estados;
 
 typedef struct pcb
@@ -88,18 +57,42 @@ uint32_t new_pid();
 /**
  * Agrega un PCB a la cola "new".
  *
- * @param new La cola "new".
+ * @param estados El diagrama de 5 estados que se debe actualizar.
  * @param pcb El PCB a agregar.
  */
-void proceso_agregar_new(t_new *new, t_pcb *pcb);
+void proceso_push_new(diagrama_estados *estados, t_pcb *pcb);
 
 /**
  * Agrega un PCB a la cola "ready".
  *
- * @param ready La cola "ready".
+ * @param estados diagrama de 5 estados
  * @param pcb El PCB a agregar.
  */
-void proceso_agregar_ready(t_ready *ready, t_pcb *pcb);
+void proceso_push_ready(diagrama_estados *estados, t_pcb *pcb);
+
+/**
+ * Agrega un PCB a la cola "exec".
+ *
+ * @param estados diagrama de 5 estados
+ * @param pcb El PCB a agregar.
+ */
+void proceso_push_exec(diagrama_estados *estados, t_pcb *pcb);
+
+/**
+ * Agrega un PCB a la cola "block".
+ *
+ * @param estados diagrama de 5 estados
+ * @param pcb El PCB a agregar.
+ */
+void proceso_push_block(diagrama_estados *estados, t_pcb *pcb);
+
+/**
+ * Agrega un PCB a la cola "exit".
+ *
+ * @param estados diagrama de 5 estados
+ * @param pcb El PCB a agregar.
+ */
+void proceso_push_exit(diagrama_estados *estados, t_pcb *pcb);
 
 /**
  * Busca un proceso con el PID dado en la cola "new".
@@ -108,7 +101,7 @@ void proceso_agregar_ready(t_ready *ready, t_pcb *pcb);
  * @param pid El PID del proceso a buscar.
  * @return El PCB (Bloque de Control de Procesos) del proceso encontrado, o NULL si no se encuentra.
  */
-t_pcb *proceso_buscar_new(t_new *new, int pid);
+t_pcb *proceso_buscar_new(diagrama_estados *estados, int pid);
 
 /**
  * Elimina un proceso de la cola "ready".
@@ -118,7 +111,7 @@ t_pcb *proceso_buscar_new(t_new *new, int pid);
  * @param ready La cola "ready" de la cual eliminar el proceso.
  * @return Un puntero al bloque de control de procesos (PCB) eliminado.
  */
-t_pcb *proceso_quitar_ready(t_ready *ready);
+t_pcb *proceso_pop_ready(diagrama_estados *estados);
 
 /**
  * Quita un proceso de la cola de new sin eliminar su estructura
@@ -126,34 +119,46 @@ t_pcb *proceso_quitar_ready(t_ready *ready);
  * @param new La cola "new".
  * @param pcb El PCB a eliminar.
  */
-t_pcb *proceso_quitar_new(t_new *new);
+t_pcb *proceso_pop_new(diagrama_estados *estados);
 
 /**
- * Mueve un proceso al estado "ready" en el kernel.
+ * Elimina un proceso de la cola "exec".
  *
- * @param kernel La instancia del kernel.
- * @param logger La instancia del logger.
- * @param estados El diagrama de estados.
- */
-void proceso_mover_ready(int gradoMultiprogramacion, t_log *logger, diagrama_estados *estados);
-
-/**
- * Busca un proceso en estado "new" en la lista de procesos y devuelve su PCB.
+ * Esta función elimina un proceso de la cola "exec" y devuelve un puntero al bloque de control de procesos (PCB) eliminado.
  *
- * @param new Puntero al proceso "new" a buscar.
- * @param pid Identificador del proceso a buscar.
- * @return Puntero al PCB del proceso encontrado, o NULL si no se encuentra.
+ * @param exec La cola "exec" de la cual eliminar el proceso.
+ * @return Un puntero al bloque de control de procesos (PCB) eliminado.
  */
-t_pcb *proceso_buscar_new(t_new *new, int pid);
+t_pcb *proceso_pop_exec(diagrama_estados *estados);
 
 /**
- * @brief Elimina un proceso de la cola de new y libera el recurso de memoria
+ * Elimina un proceso de la cola "exit".
+ *
+ * Esta función elimina un proceso de la cola "exit" y devuelve un puntero al bloque de control de procesos (PCB) eliminado.
+ *
+ * @param exit La cola "exit" de la cual eliminar el proceso.
+ * @return Un puntero al bloque de control de procesos (PCB) eliminado.
+ */
+t_pcb *proceso_pop_exit(diagrama_estados *estados);
+
+/**
+ * Elimina un proceso de la cola "block".
+ *
+ * Esta función elimina un proceso de la cola "block" y devuelve un puntero al bloque de control de procesos (PCB) eliminado.
+ *
+ * @param block La cola "block" de la cual eliminar el proceso.
+ * @return Un puntero al bloque de control de procesos (PCB) eliminado.
+ */
+t_pcb *proceso_pop_block(diagrama_estados *estados);
+
+/**
+ * @brief Revierte la creacion de un proceso en estado new
  *
  * @param new El proceso nuevo a eliminar.
  * @param pid El ID del proceso nuevo.
  * @return true si el proceso nuevo se eliminó correctamente, false en caso contrario.
  */
-int proceso_eliminar_new(t_new *new, uint32_t processPID);
+int proceso_revertir(diagrama_estados *estados, uint32_t processPID);
 
 /**
  *  Busca un proceso con el PID dado en la cola de listos.
@@ -162,7 +167,7 @@ int proceso_eliminar_new(t_new *new, uint32_t processPID);
  * @param pid El PID del proceso a buscar.
  * @return Un puntero al PCB del proceso encontrado, o NULL si no se encuentra.
  */
-t_pcb *proceso_buscar_ready(t_ready *ready, int pid);
+t_pcb *proceso_buscar_ready(diagrama_estados *estados, int pid);
 
 /**
  * Busca un proceso con el PID dado en la cola de ejecución.
@@ -171,7 +176,7 @@ t_pcb *proceso_buscar_ready(t_ready *ready, int pid);
  * @param pid El PID del proceso a buscar.
  * @return Un puntero al PCB del proceso encontrado, o NULL si no se encuentra.
  */
-t_pcb *proceso_buscar_exec(t_exec *exec, int pid);
+t_pcb *proceso_buscar_exec(diagrama_estados *estados, int pid);
 
 /**
  * Busca un proceso con el PID dado en la cola de bloqueados.
@@ -180,7 +185,7 @@ t_pcb *proceso_buscar_exec(t_exec *exec, int pid);
  * @param pid El PID del proceso a buscar.
  * @return Un puntero al PCB del proceso encontrado, o NULL si no se encuentra.
  */
-t_pcb *proceso_buscar_block(t_block *block, int pid);
+t_pcb *proceso_buscar_block(diagrama_estados *estados, int pid);
 
 /**
  * Busca un proceso con el PID dado en la cola de finalizados.
@@ -189,6 +194,33 @@ t_pcb *proceso_buscar_block(t_block *block, int pid);
  * @param pid El PID del proceso a buscar.
  * @return Un puntero al PCB del proceso encontrado, o NULL si no se encuentra.
  */
-t_pcb *proceso_buscar_exit(t_exit *exit, int pid);
+t_pcb *proceso_buscar_exit(diagrama_estados *estados, int pid);
+
+/**
+ * Obtiene el estado de un proceso basado en su ID de proceso.
+ *
+ * @param estados El diagrama de estados que contiene los estados de los procesos.
+ * @param pid El ID de proceso del proceso del cual se desea obtener el estado.
+ * @return Un puntero a una cadena de caracteres que representa el estado del proceso.
+ */
+char *proceso_estado(diagrama_estados *estados, int pid);
+
+/**
+ * @brief Mata un proceso identificado por su PID.
+ *
+ * Esta función mata un proceso identificado por su PID. Toma como parámetros un puntero a una estructura `diagrama_estados`
+ * y el PID del proceso a matar.
+ *
+ * @param estados Un puntero a una estructura `diagrama_estados` que contiene los estados de los procesos.
+ * @param pid El PID del proceso a matar.
+ * @return Devuelve 0 en caso de éxito, o -1 si ocurrió un error.
+ */
+bool proceso_matar(diagrama_estados *estados, char *pid);
+
+t_pcb *proceso_transicion_ready_exec(diagrama_estados *estados);
+
+t_pcb *proceso_transicion_exec_block(diagrama_estados *estados);
+
+t_pcb *proceso_transicion_block_ready(diagrama_estados *estados);
 
 #endif

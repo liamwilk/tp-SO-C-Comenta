@@ -34,27 +34,25 @@ void *hilos_atender_consola(void *args)
                 break;
             }
             char *pathInstrucciones = separar_linea[1];
-            kernel_nuevo_proceso((hiloArgs->kernel), hiloArgs->estados->new, hiloArgs->logger, pathInstrucciones);
+            kernel_nuevo_proceso((hiloArgs->kernel), hiloArgs->estados, hiloArgs->logger, pathInstrucciones);
             break;
         }
         case FINALIZAR_PROCESO:
         {
             log_info(hiloArgs->logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-            uint32_t pid = (uint32_t)atoi(separar_linea[1]);
-
-            t_pcb *busqueda = buscar_proceso(hiloArgs->estados, pid);
-
-            // TODO: Hay que eliminar el proceso de la cola de new, aca solo lo busca
-
-            if (busqueda == NULL)
+            bool existe = proceso_matar(hiloArgs->estados, separar_linea[1]);
+            int pidReceived = atoi(separar_linea[1]);
+            // TODO: Hay que eliminar el proceso de la cola  pertinente aca solo lo busca
+            if (!existe)
             {
-                log_error(hiloArgs->logger, "El PID <%d> no existe", pid);
+                log_error(hiloArgs->logger, "El PID <%d> no existe", pidReceived);
                 break;
             }
+            log_debug(hiloArgs->logger, "PID: <%d> eliminado de kernel", pidReceived);
 
             t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
             t_kernel_memoria_finalizar_proceso *proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
-            proceso->pid = pid;
+            proceso->pid = pidReceived;
             serializar_t_kernel_memoria_finalizar_proceso(&paquete, proceso);
             enviar_paquete(paquete, hiloArgs->kernel->sockets.memoria);
 
@@ -65,47 +63,13 @@ void *hilos_atender_consola(void *args)
         case DETENER_PLANIFICACION:
         {
             log_info(hiloArgs->logger, "Se ejecuto script %s", separar_linea[0]);
-
-            // Hardcodeo una prueba para IO Generic acá, luego hay que ubicarla donde vaya.
-
-            if (hiloArgs->kernel->sockets.entrada_salida_generic == 0)
-            {
-                log_error(hiloArgs->logger, "No se pudo enviar el paquete a IO Generic porque aun no se conecto.");
-                break;
-            }
-
-            log_debug(hiloArgs->logger, "Se envia un sleep de 10 segundos a IO Generic");
-            t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP);
-
-            t_kernel_entrada_salida_unidad_de_trabajo *unidad = malloc(sizeof(t_kernel_entrada_salida_unidad_de_trabajo));
-            unidad->unidad_de_trabajo = 10;
-
-            serializar_t_kernel_entrada_salida_unidad_de_trabajo(&paquete, unidad);
-
-            log_debug(hiloArgs->logger, "Socket IO Generic: %d\n", hiloArgs->kernel->sockets.entrada_salida_generic);
-
-            enviar_paquete(paquete, hiloArgs->kernel->sockets.entrada_salida_generic);
-            log_debug(hiloArgs->logger, "Se envio el paquete a IO Generic");
-
-            eliminar_paquete(paquete);
-            free(unidad);
-
             break;
         }
         case INICIAR_PLANIFICACION:
         {
             log_info(hiloArgs->logger, "Se ejecuto script %s", separar_linea[0]);
-            proceso_mover_ready(hiloArgs->kernel->gradoMultiprogramacion, hiloArgs->logger, hiloArgs->estados);
-            log_debug(hiloArgs->logger, "Se movieron los procesos a READY");
-            // TODO: Planificador a corto plazo (FIFO y RR)
-
-            t_pcb *aux = proceso_quitar_ready(hiloArgs->estados->ready);
-            t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
-
-            serializar_t_registros_cpu(&paquete, aux->pid, aux->registros_cpu);
-            enviar_paquete(paquete, hiloArgs->kernel->sockets.cpu_dispatch);
-            free(paquete);
-            free(aux);
+            planificacion_largo_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
+            planificacion_corto_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
             break;
         }
         case MULTIPROGRAMACION:
@@ -209,7 +173,7 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *
         {
             // Enviar a cpu los registros
             // t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
-            t_pcb *pcb = proceso_buscar_new(args->estados->new, proceso->pid);
+            t_pcb *pcb = proceso_buscar_new(args->estados, proceso->pid);
             // serializar_t_registros_cpu(&paquete, pcb->pid, pcb->registros_cpu);
             // enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
             // Buscar proceso
@@ -221,7 +185,7 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *
         {
             log_error(logger, "Proceso PID:<%d> rechazado en memoria", proceso->pid);
             // Eliminar proceso de la cola de new
-            proceso_eliminar_new(args->estados->new, proceso->pid);
+            proceso_revertir(args->estados, proceso->pid);
             log_warning(logger, "Proceso PID:<%d> eliminado de kernel", proceso->pid);
         };
         free(proceso);
@@ -360,16 +324,46 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         else
         {
             // Mover proceso a ready
-            t_pcb *pcb = proceso_buscar_new(args->estados->new, proceso->pid);
+            t_pcb *pcb = proceso_buscar_new(args->estados, proceso->pid);
             pcb->memoria_aceptado = false;
-            proceso_mover_ready(args->kernel->gradoMultiprogramacion, logger, args->estados);
+            proceso_push_ready(args->estados, pcb);
             log_info(logger, "Se mueve el proceso <%d> a READY", proceso->pid);
         }
 
         free(proceso);
         break;
     }
-    break;
+    case CPU_KERNEL_IO_GEN_SLEEP:
+    {
+        t_cpu_kernel_io_gen_sleep *sleep = deserializar_t_cpu_kernel_io_gen_sleep(buffer);
+
+        log_debug(logger, "Recibí la solicitud de CPU para activar IO_GEN_SLEEP en la Interfaz %s por %d unidades de trabajo asociado al PID %d", sleep->interfaz, sleep->tiempo, sleep->pid);
+
+        if (args->kernel->sockets.entrada_salida_generic == 0)
+        {
+            log_error(args->logger, "No se pudo enviar el paquete a IO Generic porque aun no se conecto.");
+            break;
+        }
+
+        // TODO: Implementar mapeo de logica de IDs de IO a sockets de IO. Actualmente solo se envia a IO Generic.
+
+        log_debug(args->logger, "Se envia un sleep de 10 segundos a IO Generic ID %s", sleep->interfaz);
+        t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP);
+
+        t_kernel_entrada_salida_unidad_de_trabajo *unidad = malloc(sizeof(t_kernel_entrada_salida_unidad_de_trabajo));
+        unidad->pid = sleep->pid;
+        unidad->unidad_de_trabajo = sleep->tiempo;
+
+        serializar_t_kernel_entrada_salida_unidad_de_trabajo(&paquete, unidad);
+
+        enviar_paquete(paquete, args->kernel->sockets.entrada_salida_generic);
+        log_debug(args->logger, "Se envio el paquete a IO Generic");
+
+        eliminar_paquete(paquete);
+        free(unidad);
+
+        break;
+    }
     default:
     {
         log_warning(args->logger, "[CPU Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
@@ -474,7 +468,7 @@ void *hilos_atender_entrada_salida_generic(void *args)
             t_entrada_salida_kernel_unidad_de_trabajo *unidad = deserializar_t_entrada_salida_kernel_unidad_de_trabajo(paquete->buffer);
 
             // Este mensaje es solo de efecto, no contiene ningun buffer de datos
-            log_debug(io_args->args->logger, "Se recibio un mensaje de %s con la respuesta a sleep:  %d", modulo, unidad->terminado);
+            log_debug(io_args->args->logger, "Se recibio un mensaje de %s con la respuesta a sleep del PID %d:  %d", modulo, unidad->pid, unidad->terminado);
 
             free(unidad);
             break;
