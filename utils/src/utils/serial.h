@@ -102,6 +102,7 @@ typedef struct
 
 typedef struct
 {
+	uint32_t pid;
 	uint32_t size_interfaz;
 	char *interfaz;
 	uint32_t tiempo;
@@ -129,11 +130,13 @@ typedef struct
 
 typedef struct
 {
+	uint32_t pid;
 	uint32_t unidad_de_trabajo;
 } t_kernel_entrada_salida_unidad_de_trabajo;
 
 typedef struct
 {
+	uint32_t pid;
 	bool terminado;
 } t_entrada_salida_kernel_unidad_de_trabajo;
 

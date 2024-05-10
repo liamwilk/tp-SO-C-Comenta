@@ -104,7 +104,7 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 	{
 		// FETCH
 		t_instruccion *tipo_instruccion = malloc(sizeof(t_instruccion));
-		
+
 		int debeTerminar = cpu_memoria_recibir_instruccion(buffer, logger, &instruccion, tipo_instruccion, &proceso);
 
 		if (debeTerminar)
@@ -114,7 +114,7 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 		}
 
 		// EXECUTE:
-		cpu_ejecutar_instruccion(cpu,&instruccion, *tipo_instruccion, &proceso, logger);
+		cpu_ejecutar_instruccion(cpu, &instruccion, *tipo_instruccion, &proceso, logger);
 
 		// TODO: Acá hay que chequear si Kernel mando una interrupcion antes de pedir la proxima instruccion.
 

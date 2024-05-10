@@ -337,7 +337,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
     {
         t_cpu_kernel_io_gen_sleep *sleep = deserializar_t_cpu_kernel_io_gen_sleep(buffer);
 
-        log_debug(logger, "Recibí la solicitud de CPU para activar IO_GEN_SLEEP en la Interfaz %s por %d unidades de trabajo", sleep->interfaz, sleep->tiempo);
+        log_debug(logger, "Recibí la solicitud de CPU para activar IO_GEN_SLEEP en la Interfaz %s por %d unidades de trabajo asociado al PID %d", sleep->interfaz, sleep->tiempo, sleep->pid);
 
         if (args->kernel->sockets.entrada_salida_generic == 0)
         {
@@ -351,6 +351,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP);
 
         t_kernel_entrada_salida_unidad_de_trabajo *unidad = malloc(sizeof(t_kernel_entrada_salida_unidad_de_trabajo));
+        unidad->pid = sleep->pid;
         unidad->unidad_de_trabajo = sleep->tiempo;
 
         serializar_t_kernel_entrada_salida_unidad_de_trabajo(&paquete, unidad);
@@ -467,7 +468,7 @@ void *hilos_atender_entrada_salida_generic(void *args)
             t_entrada_salida_kernel_unidad_de_trabajo *unidad = deserializar_t_entrada_salida_kernel_unidad_de_trabajo(paquete->buffer);
 
             // Este mensaje es solo de efecto, no contiene ningun buffer de datos
-            log_debug(io_args->args->logger, "Se recibio un mensaje de %s con la respuesta a sleep:  %d", modulo, unidad->terminado);
+            log_debug(io_args->args->logger, "Se recibio un mensaje de %s con la respuesta a sleep del PID %d:  %d", modulo, unidad->pid, unidad->terminado);
 
             free(unidad);
             break;
