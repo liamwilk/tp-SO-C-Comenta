@@ -328,7 +328,7 @@ t_kernel_entrada_salida_unidad_de_trabajo *deserializar_t_kernel_entrada_salida_
 	t_kernel_entrada_salida_unidad_de_trabajo *unidad = malloc(sizeof(t_kernel_entrada_salida_unidad_de_trabajo));
 	void *stream = buffer->stream;
 
-	deserializar_uint32_t(&stram, &(unidad->pid));
+	deserializar_uint32_t(&stream, &(unidad->pid));
 	deserializar_uint32_t(&stream, &(unidad->unidad_de_trabajo));
 
 	return unidad;
