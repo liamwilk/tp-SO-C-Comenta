@@ -23,7 +23,7 @@ t_consola_operacion obtener_operacion(char *funcion)
     return TOPE_ENUM_CONSOLA;
 }
 
-t_pcb *buscar_proceso(diagrama_estados *estados, uint32_t pid)
+t_pcb *buscar_proceso(t_diagrama_estados *estados, uint32_t pid)
 {
     t_pcb *pcb = proceso_buscar_new(estados, pid);
     if (pcb == NULL)

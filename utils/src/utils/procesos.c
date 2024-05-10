@@ -16,7 +16,7 @@ t_pcb *pcb_crear(t_log *logger, int quantum)
     return nuevo_pcb;
 };
 
-void proceso_push_new(diagrama_estados *estados, t_pcb *pcb)
+void proceso_push_new(t_diagrama_estados *estados, t_pcb *pcb)
 {
     list_add(estados->new, pcb);
     char *pid_char = string_itoa(pcb->pid);
@@ -26,7 +26,7 @@ void proceso_push_new(diagrama_estados *estados, t_pcb *pcb)
     dictionary_put(estados->procesos, pid_char, estado);
 };
 
-void proceso_push_ready(diagrama_estados *estados, t_pcb *pcb)
+void proceso_push_ready(t_diagrama_estados *estados, t_pcb *pcb)
 {
     list_add(estados->ready, pcb);
     char *pid_char = string_itoa(pcb->pid);
@@ -36,7 +36,7 @@ void proceso_push_ready(diagrama_estados *estados, t_pcb *pcb)
     dictionary_put(estados->procesos, pid_char, estado);
 };
 
-void proceso_push_exec(diagrama_estados *estados, t_pcb *pcb)
+void proceso_push_exec(t_diagrama_estados *estados, t_pcb *pcb)
 {
     list_add(estados->exec, pcb);
     char *pid_char = string_itoa(pcb->pid);
@@ -46,7 +46,7 @@ void proceso_push_exec(diagrama_estados *estados, t_pcb *pcb)
     dictionary_put(estados->procesos, pid_char, estado);
 };
 
-void proceso_push_block(diagrama_estados *estados, t_pcb *pcb)
+void proceso_push_block(t_diagrama_estados *estados, t_pcb *pcb)
 {
     list_add(estados->block, pcb);
     char *pid_char = string_itoa(pcb->pid);
@@ -56,7 +56,7 @@ void proceso_push_block(diagrama_estados *estados, t_pcb *pcb)
     dictionary_put(estados->procesos, pid_char, estado);
 };
 
-void proceso_push_exit(diagrama_estados *estados, t_pcb *pcb)
+void proceso_push_exit(t_diagrama_estados *estados, t_pcb *pcb)
 {
     list_add(estados->exit, pcb);
 
@@ -68,7 +68,7 @@ void proceso_push_exit(diagrama_estados *estados, t_pcb *pcb)
     dictionary_put(estados->procesos, pid_char, estado);
 };
 
-t_pcb *proceso_pop_new(diagrama_estados *estados)
+t_pcb *proceso_pop_new(t_diagrama_estados *estados)
 {
     // Check if the list is empty
     if (list_is_empty(estados->new))
@@ -80,7 +80,7 @@ t_pcb *proceso_pop_new(diagrama_estados *estados)
     return elem;
 };
 
-t_pcb *proceso_pop_ready(diagrama_estados *estados)
+t_pcb *proceso_pop_ready(t_diagrama_estados *estados)
 {
     // Check if the list is empty
     if (list_size(estados->ready) == 0)
@@ -92,7 +92,7 @@ t_pcb *proceso_pop_ready(diagrama_estados *estados)
     return elem;
 };
 
-t_pcb *proceso_pop_exec(diagrama_estados *estados)
+t_pcb *proceso_pop_exec(t_diagrama_estados *estados)
 {
     if (list_size(estados->exec) == 0)
     {
@@ -103,7 +103,7 @@ t_pcb *proceso_pop_exec(diagrama_estados *estados)
     return elem;
 };
 
-t_pcb *proceso_pop_exit(diagrama_estados *estados)
+t_pcb *proceso_pop_exit(t_diagrama_estados *estados)
 {
     if (list_size(estados->exit) == 0)
     {
@@ -114,7 +114,7 @@ t_pcb *proceso_pop_exit(diagrama_estados *estados)
     return elem;
 };
 
-t_pcb *proceso_pop_block(diagrama_estados *estados)
+t_pcb *proceso_pop_block(t_diagrama_estados *estados)
 {
     if (list_size(estados->block) == 0)
     {
@@ -125,7 +125,7 @@ t_pcb *proceso_pop_block(diagrama_estados *estados)
     return elem;
 };
 
-t_pcb *proceso_buscar_new(diagrama_estados *estados, int pid)
+t_pcb *proceso_buscar_new(t_diagrama_estados *estados, int pid)
 {
     // Recorrer la lista hasta que se encuentre el pid
     for (int i = 0; i < list_size(estados->new); i++)
@@ -139,7 +139,7 @@ t_pcb *proceso_buscar_new(diagrama_estados *estados, int pid)
     return NULL;
 }
 
-t_pcb *proceso_buscar_ready(diagrama_estados *estados, int pid)
+t_pcb *proceso_buscar_ready(t_diagrama_estados *estados, int pid)
 {
     // Recorrer la lista hasta que se encuentre el pid
     for (int i = 0; i < list_size(estados->ready); i++)
@@ -153,7 +153,7 @@ t_pcb *proceso_buscar_ready(diagrama_estados *estados, int pid)
     return NULL;
 }
 
-t_pcb *proceso_buscar_exec(diagrama_estados *estados, int pid)
+t_pcb *proceso_buscar_exec(t_diagrama_estados *estados, int pid)
 {
     // Recorrer la lista hasta que se encuentre el pid
     for (int i = 0; i < list_size(estados->exec); i++)
@@ -167,7 +167,7 @@ t_pcb *proceso_buscar_exec(diagrama_estados *estados, int pid)
     return NULL;
 }
 
-t_pcb *proceso_buscar_block(diagrama_estados *estados, int pid)
+t_pcb *proceso_buscar_block(t_diagrama_estados *estados, int pid)
 {
     // Recorrer la lista hasta que se encuentre el pid
     for (int i = 0; i < list_size(estados->block); i++)
@@ -181,7 +181,7 @@ t_pcb *proceso_buscar_block(diagrama_estados *estados, int pid)
     return NULL;
 }
 
-int proceso_revertir(diagrama_estados *estados, uint32_t processPID)
+int proceso_revertir(t_diagrama_estados *estados, uint32_t processPID)
 {
     // Buscar posicion del proceso en la lista
     int pos = 0;
@@ -200,7 +200,7 @@ int proceso_revertir(diagrama_estados *estados, uint32_t processPID)
     return 1;
 }
 
-t_pcb *proceso_buscar_exit(diagrama_estados *estados, int pid)
+t_pcb *proceso_buscar_exit(t_diagrama_estados *estados, int pid)
 {
     // Recorrer la lista hasta que se encuentre el pid
     for (int i = 0; i < list_size(estados->exit); i++)
@@ -214,7 +214,7 @@ t_pcb *proceso_buscar_exit(diagrama_estados *estados, int pid)
     return NULL;
 }
 
-char *proceso_estado(diagrama_estados *estados, int pid)
+char *proceso_estado(t_diagrama_estados *estados, int pid)
 {
     // Busca en estados->procesos
     char *pid_str = string_itoa(pid);
@@ -226,7 +226,7 @@ char *proceso_estado(diagrama_estados *estados, int pid)
     return estado;
 }
 
-bool proceso_matar(diagrama_estados *estados, char *pid)
+bool proceso_matar(t_diagrama_estados *estados, char *pid)
 {
     // Obtener en que estado esta el proceso
     int pidNumber = atoi(pid);
@@ -308,7 +308,7 @@ bool proceso_matar(diagrama_estados *estados, char *pid)
     return true;
 }
 
-t_pcb *proceso_transicion_ready_exec(diagrama_estados *estados)
+t_pcb *proceso_transicion_ready_exec(t_diagrama_estados *estados)
 {
     t_pcb *proceso = proceso_pop_ready(estados);
     if (proceso == NULL)
@@ -319,7 +319,7 @@ t_pcb *proceso_transicion_ready_exec(diagrama_estados *estados)
     return proceso;
 };
 
-t_pcb *proceso_transicion_exec_block(diagrama_estados *estados)
+t_pcb *proceso_transicion_exec_block(t_diagrama_estados *estados)
 {
     t_pcb *proceso = proceso_pop_exec(estados);
     if (proceso == NULL)
@@ -330,7 +330,7 @@ t_pcb *proceso_transicion_exec_block(diagrama_estados *estados)
     return proceso;
 };
 
-t_pcb *proceso_transicion_block_ready(diagrama_estados *estados)
+t_pcb *proceso_transicion_block_ready(t_diagrama_estados *estados)
 {
     t_pcb *proceso = proceso_pop_block(estados);
     if (proceso == NULL)

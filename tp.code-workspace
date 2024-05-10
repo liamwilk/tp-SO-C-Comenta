@@ -31,5 +31,10 @@
 			"name": "utils",
 			"path": "utils"
 		}
-	]
+	],
+	"extensions": {
+		"recommendations": [
+			"github.copilot"
+		]
+	}
 }

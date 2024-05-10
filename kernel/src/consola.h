@@ -27,6 +27,6 @@ t_consola_operacion obtener_operacion(char *funcion);
 void imprimir_comandos();
 void imprimir_logo();
 void imprimir_header();
-t_pcb *buscar_proceso(diagrama_estados *estados, uint32_t pid);
+t_pcb *buscar_proceso(t_diagrama_estados *estados, uint32_t pid);
 
 #endif /* CONSOLA_H_ */

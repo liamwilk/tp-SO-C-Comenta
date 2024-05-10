@@ -56,7 +56,7 @@ t_kernel_sockets kernel_sockets_agregar(t_kernel *kernel, KERNEL_SOCKETS type, i
     return kernel->sockets;
 };
 
-diagrama_estados kernel_inicializar_estados(diagrama_estados *estados)
+t_diagrama_estados kernel_inicializar_estados(t_diagrama_estados *estados)
 {
     t_list *new = malloc(sizeof(t_list));
     new = list_create();
@@ -70,7 +70,7 @@ diagrama_estados kernel_inicializar_estados(diagrama_estados *estados)
     exit = list_create();
     // Inicializar diccionario de procesos
     estados->procesos = dictionary_create();
-    diagrama_estados diagrama = {
+    t_diagrama_estados diagrama = {
         .new = new,
         .ready = ready,
         .exec = exec,
@@ -80,7 +80,7 @@ diagrama_estados kernel_inicializar_estados(diagrama_estados *estados)
     return diagrama;
 }
 
-t_pcb *kernel_nuevo_proceso(t_kernel *kernel, diagrama_estados *estados, t_log *logger, char *instrucciones)
+t_pcb *kernel_nuevo_proceso(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger, char *instrucciones)
 {
     t_pcb *nuevaPcb = pcb_crear(logger, kernel->quantum);
     log_debug(logger, "[PCB] Program Counter: %d", nuevaPcb->registros_cpu->pc);

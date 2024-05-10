@@ -6,7 +6,7 @@
 context(test_kernel)
 {
     t_log *logger = log_create("test_kernel.log", "test_kernel", true, LOG_LEVEL_DEBUG);
-    diagrama_estados estados;
+    t_diagrama_estados estados;
     estados = kernel_inicializar_estados(&estados);
     describe("Manejo cola de procesos")
     {

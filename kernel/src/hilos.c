@@ -27,49 +27,71 @@ void *hilos_atender_consola(void *args)
         }
         case INICIAR_PROCESO:
         {
-            log_info(hiloArgs->logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-            if (!separar_linea[1])
+            if (!separar_linea[1] == 0)
             {
-                log_error(hiloArgs->logger, "No se ingreso un path de instrucciones");
-                break;
+                log_info(hiloArgs->logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+                if (!separar_linea[1])
+                {
+                    log_error(hiloArgs->logger, "No se ingreso un path de instrucciones");
+                    break;
+                }
+                char *pathInstrucciones = separar_linea[1];
+                kernel_nuevo_proceso((hiloArgs->kernel), hiloArgs->estados, hiloArgs->logger, pathInstrucciones);
             }
-            char *pathInstrucciones = separar_linea[1];
-            kernel_nuevo_proceso((hiloArgs->kernel), hiloArgs->estados, hiloArgs->logger, pathInstrucciones);
+            else
+            {
+                log_error(hiloArgs->logger, "No se proporciono un path. Vuelva a intentar");
+            }
             break;
         }
         case FINALIZAR_PROCESO:
         {
-            log_info(hiloArgs->logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-            bool existe = proceso_matar(hiloArgs->estados, separar_linea[1]);
-            int pidReceived = atoi(separar_linea[1]);
-            // TODO: Hay que eliminar el proceso de la cola  pertinente aca solo lo busca
-            if (!existe)
+            if (!separar_linea[1] == 0)
             {
-                log_error(hiloArgs->logger, "El PID <%d> no existe", pidReceived);
-                break;
+                log_info(hiloArgs->logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+                bool existe = proceso_matar(hiloArgs->estados, separar_linea[1]);
+                int pidReceived = atoi(separar_linea[1]);
+
+                // TODO: Hay que eliminar el proceso de la cola  pertinente aca solo lo busca
+
+                if (!existe)
+                {
+                    log_error(hiloArgs->logger, "El PID <%d> no existe", pidReceived);
+                    break;
+                }
+                log_debug(hiloArgs->logger, "PID: <%d> eliminado de kernel", pidReceived);
+
+                t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
+                t_kernel_memoria_finalizar_proceso *proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
+                proceso->pid = pidReceived;
+                serializar_t_kernel_memoria_finalizar_proceso(&paquete, proceso);
+                enviar_paquete(paquete, hiloArgs->kernel->sockets.memoria);
+
+                eliminar_paquete(paquete);
+                free(proceso);
             }
-            log_debug(hiloArgs->logger, "PID: <%d> eliminado de kernel", pidReceived);
-
-            t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
-            t_kernel_memoria_finalizar_proceso *proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
-            proceso->pid = pidReceived;
-            serializar_t_kernel_memoria_finalizar_proceso(&paquete, proceso);
-            enviar_paquete(paquete, hiloArgs->kernel->sockets.memoria);
-
-            eliminar_paquete(paquete);
-            free(proceso);
+            else
+            {
+                log_error(hiloArgs->logger, "Falta proporcionar un numero de PID para eliminar. Vuelva a intentar.");
+            }
             break;
         }
         case DETENER_PLANIFICACION:
         {
             log_info(hiloArgs->logger, "Se ejecuto script %s", separar_linea[0]);
+            hilo_planificador_detener(hiloArgs);
             break;
         }
         case INICIAR_PLANIFICACION:
         {
             log_info(hiloArgs->logger, "Se ejecuto script %s", separar_linea[0]);
-            planificacion_largo_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
-            planificacion_corto_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
+
+            hilo_planificador_iniciar(hiloArgs);
+            sem_post(&hiloArgs->kernel->iniciar_planificador);
+
+            // planificacion_largo_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
+
+            // planificacion_corto_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
             break;
         }
         case MULTIPROGRAMACION:
@@ -114,6 +136,144 @@ void hilos_consola_inicializar(hilos_args *args, pthread_t thread_atender_consol
 {
     pthread_create(&thread_atender_consola, NULL, hilos_atender_consola, args);
     pthread_join(thread_atender_consola, NULL);
+}
+
+void hilos_planificador_inicializar(hilos_args *args, pthread_t thread_planificador)
+{
+    pthread_create(&thread_planificador, NULL, hilo_planificador, args);
+    pthread_detach(thread_planificador);
+}
+
+void *hilo_planificador(void *args)
+{
+    hilos_args *hiloArgs = (hilos_args *)args;
+    while (1)
+    {
+        // Espero que por consola inicien la planificacion
+        sem_wait(&hiloArgs->kernel->iniciar_planificador);
+
+        log_debug(hiloArgs->logger, "Planificacion iniciada por señal de INICIAR_PLANIFICACION.");
+
+        // Entro a la planificacion segun el algoritmo que este en la configuracion
+        switch (determinar_algoritmo(hiloArgs))
+        {
+        case FIFO:
+        {
+            log_debug(hiloArgs->logger, "Llegue al Fifo. Recibi bien la señal de post. Empiezo a ejecutar");
+
+            while (1)
+            {
+                // Espero a que me den la señal de que debo detenerme
+                sem_wait(&hiloArgs->kernel->detener_planificador);
+
+                if (!hiloArgs->kernel->continuar_planificador)
+                {
+                    // Si se recibe la señal de que no se debe continuar, se sale del bucle
+                    sem_post(&hiloArgs->kernel->detener_planificador);
+
+                    log_info(hiloArgs->logger, "Planificacion FIFO detenida por señal de DETENER_PLANIFICACION.");
+                    break;
+                }
+
+                // Se libera el semaforo para que el hilo de consola pueda detener la planificacion
+                sem_post(&hiloArgs->kernel->detener_planificador);
+
+                // Aca va toda la logica de FIFO para los estados de Kernel.
+                // planificacion_corto_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
+            }
+            break;
+        }
+        case RR:
+        {
+            log_debug(hiloArgs->logger, "Llegue al RR. Recibi bien la señal de post. Empiezo a ejecutar");
+
+            while (1)
+            {
+                // Espero a que me den la señal de que debo detenerme
+                sem_wait(&hiloArgs->kernel->detener_planificador);
+
+                if (!hiloArgs->kernel->continuar_planificador)
+                {
+                    // Si se recibe la señal de que no se debe continuar, se sale del bucle
+                    sem_post(&hiloArgs->kernel->detener_planificador);
+
+                    log_info(hiloArgs->logger, "Planificacion RR detenida por señal de DETENER_PLANIFICACION.");
+                    break;
+                }
+
+                // Se libera el semaforo para que el hilo de consola pueda detener la planificacion
+                sem_post(&hiloArgs->kernel->detener_planificador);
+
+                // Aca va toda la logica de RR para los estados de Kernel.
+                // planificacion_corto_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
+            }
+            break;
+        }
+        case VRR:
+        {
+            log_debug(hiloArgs->logger, "Llegue al VRR. Recibi bien la señal de post. Empiezo a ejecutar");
+
+            while (1)
+            {
+                // Espero a que me den la señal de que debo detenerme
+                sem_wait(&hiloArgs->kernel->detener_planificador);
+
+                if (!hiloArgs->kernel->continuar_planificador)
+                {
+                    // Si se recibe la señal de que no se debe continuar, se sale del bucle
+                    sem_post(&hiloArgs->kernel->detener_planificador);
+
+                    log_info(hiloArgs->logger, "Planificacion VRR detenida por señal de DETENER_PLANIFICACION.");
+                    break;
+                }
+
+                // Se libera el semaforo para que el hilo de consola pueda detener la planificacion
+                sem_post(&hiloArgs->kernel->detener_planificador);
+
+                // Aca va toda la logica de VRR para los estados de Kernel.
+                // planificacion_corto_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
+            }
+            break;
+        }
+        default:
+        {
+            log_debug(hiloArgs->logger, "Algoritmo de planificacion inválido.");
+            break;
+        }
+        }
+    }
+    pthread_exit(0);
+}
+
+void hilo_planificador_detener(hilos_args *hiloArgs)
+{
+    sem_wait(&hiloArgs->kernel->actualizar_planificador); // Asegurar acceso exclusivo a la variable 'continuar'
+    hiloArgs->kernel->continuar_planificador = false;
+    sem_post(&hiloArgs->kernel->actualizar_planificador); // Liberar el semáforo
+}
+
+void hilo_planificador_iniciar(hilos_args *hiloArgs)
+{
+    sem_wait(&hiloArgs->kernel->actualizar_planificador); // Asegurar acceso exclusivo a la variable 'continuar'
+    hiloArgs->kernel->continuar_planificador = true;
+    sem_post(&hiloArgs->kernel->actualizar_planificador); // Liberar el semáforo
+}
+
+t_algoritmo determinar_algoritmo(hilos_args *args)
+{
+    if (strcmp(args->kernel->algoritmoPlanificador, "FIFO") == 0)
+    {
+        return FIFO;
+    }
+    else if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0)
+    {
+        return RR;
+    }
+    else if (strcmp(args->kernel->algoritmoPlanificador, "VRR") == 0)
+    {
+        return VRR;
+    }
+    return -1;
 }
 
 /*----MEMORIA----*/

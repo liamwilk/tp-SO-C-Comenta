@@ -13,7 +13,7 @@
  * @param estados  Un puntero al diagrama de estados.
  * @param logger   Un puntero al logger.
  */
-void planificacion_largo_plazo(t_kernel *kernel, diagrama_estados *estados, t_log *logger);
+void planificacion_largo_plazo(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger);
 
 /**
  * Ejecuta el algoritmo de planificación a corto plazo.
@@ -26,8 +26,8 @@ void planificacion_largo_plazo(t_kernel *kernel, diagrama_estados *estados, t_lo
  * @param estados  Un puntero al diagrama de estados.
  * @param logger   Un puntero al logger.
  */
-void planificacion_corto_plazo(t_kernel *kernel, diagrama_estados *estados, t_log *logger);
+void planificacion_corto_plazo(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger);
 
-void fifo(t_kernel *kernel, diagrama_estados *estados, t_log *logger);
+void fifo(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger);
 
 #endif /* PLANIFICACION_H_ */
