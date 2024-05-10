@@ -7,43 +7,13 @@
 #include <commons/collections/queue.h>
 #include <commons/string.h>
 
-typedef struct t_new
-{
-    t_list *cola;
-    t_dictionary *diccionario;
-} t_new;
-
-typedef struct t_ready
-{
-    t_list *cola;
-    t_dictionary *diccionario;
-} t_ready;
-
-typedef struct t_exec
-{
-    t_list *cola;
-    t_dictionary *diccionario;
-} t_exec;
-
-typedef struct t_block
-{
-    t_list *cola;
-    t_dictionary *diccionario;
-} t_block;
-
-typedef struct t_exit
-{
-    t_list *cola;
-    t_dictionary *diccionario;
-} t_exit;
-
 typedef struct diagrama_estados
 {
-    t_new *new;
-    t_ready *ready;
-    t_exec *exec;
-    t_block *block;
-    t_exit *exit;
+    t_list *new;
+    t_list *ready;
+    t_list *exec;
+    t_list *block;
+    t_list *exit;
     t_dictionary *procesos; // Diccionario que mapea PID: ESTADO
 } diagrama_estados;
 

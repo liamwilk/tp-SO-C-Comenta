@@ -2,8 +2,8 @@
 
 void planificacion_largo_plazo(t_kernel *kernel, diagrama_estados *estados, t_log *logger)
 {
-    int cant_en_new = list_size(estados->new->cola);
-    int cant_en_ready = list_size(estados->ready->cola);
+    int cant_en_new = list_size(estados->new);
+    int cant_en_ready = list_size(estados->ready);
 
     if (cant_en_ready < kernel->gradoMultiprogramacion)
     {
@@ -37,24 +37,15 @@ void planificacion_corto_plazo(t_kernel *kernel, diagrama_estados *estados, t_lo
 
 void fifo(t_kernel *kernel, diagrama_estados *estados, t_log *logger)
 {
-    while (1)
+    if (list_size(estados->ready) > 0 && list_size(estados->exec) == 0)
     {
-        t_paquete *paquete = recibir_paquete(kernel->sockets.cpu_dispatch); // Recibo paquete de CPU para ver si hay que ejecutar algo de IO o termino
+        t_pcb *aux = proceso_transicion_ready_exec(estados);
+        log_debug(logger, "[FIFO]: Enviando proceso <PID: %d> a CPU", aux->pid);
+        t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
 
-        if (list_size(estados->ready->cola) > 0 && list_size(estados->exec->cola) == 0)
-        {
-            t_pcb *aux = proceso_transicion_ready_exec(estados);
-            log_debug(logger, "[FIFO]: Enviando proceso <PID: %d> a CPU", aux->pid);
-            t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
-
-            serializar_t_registros_cpu(&paquete, aux->pid, aux->registros_cpu);
-            enviar_paquete(paquete, kernel->sockets.cpu_dispatch);
-            free(paquete);
-            free(aux);
-        }
-        if (list_size(estados->block->cola) == 0 && paquete->codigo_operacion == CPU_KERNEL_IO_GEN_SLEEP)
-        {
-            t_cpu_kernel_io_gen_sleep *proceso = deserializar_t_cpu_kernel_io_gen_sleep(paquete);
-                }
+        serializar_t_registros_cpu(&paquete, aux->pid, aux->registros_cpu);
+        enviar_paquete(paquete, kernel->sockets.cpu_dispatch);
+        free(paquete);
+        free(aux);
     }
 }
