@@ -988,3 +988,31 @@ uint32_t casteo_uint32_t(uint8_t valor)
 {
     return (uint32_t)valor;
 }
+
+int cpu_recibir_interrupcion(t_log *logger, t_buffer *buffer, t_cpu_proceso proceso)
+{
+    t_kernel_cpu_interrupcion *interrupcion = deserializar_t_kernel_cpu_interrupcion(buffer);
+    if (interrupcion->pid == proceso.pid)
+    {
+        log_debug(logger, "Se detecto una solicitud de interrupcion para el proceso de PID: %d. Actualizando flag de interrupt...", interrupcion->pid);
+        free(interrupcion);
+        return 1;
+    }
+    else
+    {
+        log_debug(logger, "El PID recibido (%d) no se corresponde con el que se esta ejecutando (%d). Se ignora la interrupcion.", interrupcion->pid, proceso.pid);
+        free(interrupcion);
+        return 0;
+    }
+}
+
+void cpu_checkear_interrupt(t_cpu cpu, bool flag_interrupt, t_cpu_proceso proceso)
+{
+    // TODO: implementar logica chequeo
+    // if (flag_interrupt)
+    // {
+    // }
+    // else
+    // {
+    // }
+}

@@ -109,6 +109,7 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 
 		if (debeTerminar)
 		{
+			// TODO: este socket deberia ser el de dispatch
 			cpu_kernel_avisar_finalizacion(proceso, cpu.socket_kernel_interrupt);
 			break;
 		}
@@ -116,6 +117,7 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 		// EXECUTE:
 		cpu_ejecutar_instruccion(cpu, &instruccion, *tipo_instruccion, &proceso, logger);
 
+		cpu_checkear_interrupt(cpu, flag_interrupt, proceso);
 		// TODO: Acá hay que chequear si Kernel mando una interrupcion antes de pedir la proxima instruccion.
 
 		cpu_memoria_pedir_proxima_instruccion(&proceso, cpu.socket_memoria);
@@ -190,6 +192,13 @@ void switch_case_kernel_interrupt(t_log *logger, t_op_code codigo_operacion, t_b
 
 		break;
 	}
+	case KERNEL_CPU_INTERRUPCION:
+	{
+		flag_interrupt = cpu_recibir_interrupcion(logger, buffer, proceso);
+		log_warning(logger, "Valor del flag ahora en: %d", flag_interrupt);
+		break;
+	}
+
 	default:
 	{
 		log_warning(logger, "[Kernel Interrupt] Se recibio un codigo de operacion desconocido. Cierro hilo");
