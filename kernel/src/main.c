@@ -27,8 +27,6 @@ int main()
 
 	log_destroy(logger);
 	config_destroy(config);
-	sem_destroy(&kernel.iniciar_planificador);
-
 	return 0;
 }
 
@@ -37,7 +35,7 @@ void inicializar_args()
 	args.logger = logger;
 	args.kernel = &kernel;
 	args.estados = &estados;
-	args.kernel_orden_apagado = &kernel_orden_apagado;
+	args.kernel_orden_apagado = 0;
 	args.kernel->sockets.entrada_salida_generic = 0;
 	args.kernel->sockets.entrada_salida_stdin = 0;
 	args.kernel->sockets.entrada_salida_stdout = 0;
@@ -48,6 +46,5 @@ void inicializar_args()
 void inicializar_semaforos()
 {
 	sem_init(&kernel.iniciar_planificador, 0, 0);
-	sem_init(&kernel.detener_planificador, 0, 1);
-	sem_init(&kernel.actualizar_planificador, 0, 1);
+	sem_init(&kernel.iniciar_algoritmo, 0, 0);
 }

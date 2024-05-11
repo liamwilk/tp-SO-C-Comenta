@@ -63,4 +63,7 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *
 void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_args *args, t_buffer *buffer);
 void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_args *args, t_buffer *buffer);
 
+int obtener_key_finalizacion_hilo(hilos_args *args);
+int obtener_key_finalizacion_algoritmo(hilos_args *args);
+
 #endif /* HILOS_H_ */

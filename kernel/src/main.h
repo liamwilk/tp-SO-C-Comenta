@@ -29,7 +29,4 @@ pthread_t thread_esperar_entrada_salida;
 void inicializar_args();
 void inicializar_semaforos();
 
-// Cuando vale 0, es porque el Kernel ordeno a todos los modulos apagarse
-int kernel_orden_apagado = 1;
-
 #endif /* MAIN_H_ */
