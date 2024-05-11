@@ -1,6 +1,6 @@
 #include <planificacion.h>
 
-void planificacion_largo_plazo(t_kernel *kernel, diagrama_estados *estados, t_log *logger)
+void planificacion_largo_plazo(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger)
 {
     int cant_en_new = list_size(estados->new);
     int cant_en_ready = list_size(estados->ready);
@@ -27,7 +27,7 @@ void planificacion_largo_plazo(t_kernel *kernel, diagrama_estados *estados, t_lo
     }
 };
 
-void planificacion_corto_plazo(t_kernel *kernel, diagrama_estados *estados, t_log *logger)
+void planificacion_corto_plazo(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger)
 {
     if (strcmp(kernel->algoritmoPlanificador, "FIFO") == 0)
     {
@@ -35,14 +35,14 @@ void planificacion_corto_plazo(t_kernel *kernel, diagrama_estados *estados, t_lo
     }
 };
 
-void fifo(t_kernel *kernel, diagrama_estados *estados, t_log *logger)
+void fifo(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger)
 {
     if (list_size(estados->ready) > 0 && list_size(estados->exec) == 0)
     {
         t_pcb *aux = proceso_transicion_ready_exec(estados);
         log_debug(logger, "[FIFO]: Enviando proceso <PID: %d> a CPU", aux->pid);
-        t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
 
+        t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
         serializar_t_registros_cpu(&paquete, aux->pid, aux->registros_cpu);
         enviar_paquete(paquete, kernel->sockets.cpu_dispatch);
         free(paquete);

@@ -9,6 +9,7 @@ int main()
 	estados = kernel_inicializar_estados(&estados);
 	kernel_log(kernel, logger);
 	inicializar_args();
+	inicializar_semaforos();
 
 	/*----HILOS----*/
 
@@ -20,11 +21,12 @@ int main()
 
 	hilos_io_inicializar(&args, args.kernel->threads.thread_atender_entrada_salida);
 
+	hilos_planificador_inicializar(&args, args.kernel->threads.thread_planificador);
+
 	hilos_consola_inicializar(&args, args.kernel->threads.thread_atender_consola);
 
 	log_destroy(logger);
 	config_destroy(config);
-
 	return 0;
 }
 
@@ -33,11 +35,16 @@ void inicializar_args()
 	args.logger = logger;
 	args.kernel = &kernel;
 	args.estados = &estados;
-	args.kernel_orden_apagado = &kernel_orden_apagado;
-
+	args.kernel_orden_apagado = 0;
 	args.kernel->sockets.entrada_salida_generic = 0;
 	args.kernel->sockets.entrada_salida_stdin = 0;
 	args.kernel->sockets.entrada_salida_stdout = 0;
 	args.kernel->sockets.entrada_salida_dialfs = 0;
 	args.kernel->sockets.entrada_salida = 0;
+}
+
+void inicializar_semaforos()
+{
+	sem_init(&kernel.iniciar_planificador, 0, 0);
+	sem_init(&kernel.iniciar_algoritmo, 0, 0);
 }

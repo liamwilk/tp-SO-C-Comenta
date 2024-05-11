@@ -8,9 +8,8 @@ void *hilos_atender_consola(void *args)
     imprimir_header();
 
     char *linea = NULL;
-    int flag = 1;
 
-    while (flag)
+    while (!hiloArgs->kernel_orden_apagado)
     {
         char *current_dir = getcwd(NULL, 0);
         printf("\n%s>", current_dir);
@@ -27,49 +26,82 @@ void *hilos_atender_consola(void *args)
         }
         case INICIAR_PROCESO:
         {
-            log_info(hiloArgs->logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-            if (!separar_linea[1])
+            if (!separar_linea[1] == 0)
             {
-                log_error(hiloArgs->logger, "No se ingreso un path de instrucciones");
-                break;
+                log_info(hiloArgs->logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+                if (!separar_linea[1])
+                {
+                    log_error(hiloArgs->logger, "No se ingreso un path de instrucciones");
+                    break;
+                }
+                char *pathInstrucciones = separar_linea[1];
+                kernel_nuevo_proceso((hiloArgs->kernel), hiloArgs->estados, hiloArgs->logger, pathInstrucciones);
             }
-            char *pathInstrucciones = separar_linea[1];
-            kernel_nuevo_proceso((hiloArgs->kernel), hiloArgs->estados, hiloArgs->logger, pathInstrucciones);
+            else
+            {
+                log_error(hiloArgs->logger, "No se proporciono un path. Vuelva a intentar");
+            }
             break;
         }
         case FINALIZAR_PROCESO:
         {
-            log_info(hiloArgs->logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-            bool existe = proceso_matar(hiloArgs->estados, separar_linea[1]);
-            int pidReceived = atoi(separar_linea[1]);
-            // TODO: Hay que eliminar el proceso de la cola  pertinente aca solo lo busca
-            if (!existe)
+            if (!separar_linea[1] == 0)
             {
-                log_error(hiloArgs->logger, "El PID <%d> no existe", pidReceived);
-                break;
+                log_info(hiloArgs->logger, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+                bool existe = proceso_matar(hiloArgs->estados, separar_linea[1]);
+                int pidReceived = atoi(separar_linea[1]);
+
+                // TODO: Hay que eliminar el proceso de la cola  pertinente aca solo lo busca
+
+                if (!existe)
+                {
+                    log_error(hiloArgs->logger, "El PID <%d> no existe", pidReceived);
+                    break;
+                }
+                log_debug(hiloArgs->logger, "PID: <%d> eliminado de kernel", pidReceived);
+
+                t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
+                t_kernel_memoria_finalizar_proceso *proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
+                proceso->pid = pidReceived;
+                serializar_t_kernel_memoria_finalizar_proceso(&paquete, proceso);
+                enviar_paquete(paquete, hiloArgs->kernel->sockets.memoria);
+
+                eliminar_paquete(paquete);
+                free(proceso);
             }
-            log_debug(hiloArgs->logger, "PID: <%d> eliminado de kernel", pidReceived);
-
-            t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
-            t_kernel_memoria_finalizar_proceso *proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
-            proceso->pid = pidReceived;
-            serializar_t_kernel_memoria_finalizar_proceso(&paquete, proceso);
-            enviar_paquete(paquete, hiloArgs->kernel->sockets.memoria);
-
-            eliminar_paquete(paquete);
-            free(proceso);
+            else
+            {
+                log_error(hiloArgs->logger, "Falta proporcionar un numero de PID para eliminar. Vuelva a intentar.");
+            }
             break;
         }
         case DETENER_PLANIFICACION:
         {
             log_info(hiloArgs->logger, "Se ejecuto script %s", separar_linea[0]);
+
+            int iniciar_planificador_valor;
+
+            sem_getvalue(&hiloArgs->kernel->iniciar_planificador, &iniciar_planificador_valor);
+
+            if (iniciar_planificador_valor == 0)
+            {
+                log_error(hiloArgs->logger, "No se puede detener la planificacion si no esta iniciada.");
+            }
+
+            hilo_planificador_detener(hiloArgs);
             break;
         }
         case INICIAR_PLANIFICACION:
         {
             log_info(hiloArgs->logger, "Se ejecuto script %s", separar_linea[0]);
-            planificacion_largo_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
-            planificacion_corto_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
+
+            hilo_planificador_iniciar(hiloArgs);
+            sem_post(&hiloArgs->kernel->iniciar_planificador);
+            sem_post(&hiloArgs->kernel->iniciar_algoritmo);
+
+            // planificacion_largo_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
+
+            // planificacion_corto_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
             break;
         }
         case MULTIPROGRAMACION:
@@ -88,12 +120,37 @@ void *hilos_atender_consola(void *args)
         case FINALIZAR_CONSOLA:
         {
             log_info(hiloArgs->logger, "Se ejecuto script %s", separar_linea[0]);
-            flag = 0;
+            hiloArgs->kernel_orden_apagado = 1;
 
-            // TODO: Acá hay que limpiar hilos_args entero menos la parte de kernel, que se necesita para enviar el mensaje de finalizar a los modulos. Luego si, finalizar el kernel. Luego limpiar la parte de kernel dentro de kernel_finalizar
+            /* TODO: Acá hay que limpiar hilos_args entero menos la parte de kernel
+             que se necesita para enviar el mensaje de finalizar a los modulos. Luego si, finalizar el kernel. Luego limpiar la parte de kernel dentro de kernel_finalizar
+
+            Desbloqueo el proceso hilo_planificador para que lea la señal de finalizacion de kernel_orden_apagado
+            */
+
+            int iniciar_planificador_valor;
+            int iniciar_algoritmo_valor;
+
+            sem_getvalue(&hiloArgs->kernel->iniciar_planificador, &iniciar_planificador_valor);
+            sem_getvalue(&hiloArgs->kernel->iniciar_algoritmo, &iniciar_algoritmo_valor);
+
+            if (iniciar_planificador_valor == 0)
+            { // Si es cero, esta bloqueado el proceso. Tengo que desbloquearlo para apagar el sistema
+                sem_post(&hiloArgs->kernel->iniciar_planificador);
+            }
+
+            if (iniciar_algoritmo_valor == 0)
+            { // Si es cero, esta bloqueado el proceso. Tengo que desbloquearlo para apagar el sistema
+                sem_post(&hiloArgs->kernel->iniciar_algoritmo);
+            }
+
+            sem_destroy(&hiloArgs->kernel->iniciar_planificador);
+            sem_destroy(&hiloArgs->kernel->iniciar_algoritmo);
 
             kernel_finalizar(hiloArgs->kernel);
+
             log_info(hiloArgs->logger, "El usuario solicito finalizar el sistema.");
+
             break;
         }
         default:
@@ -114,6 +171,180 @@ void hilos_consola_inicializar(hilos_args *args, pthread_t thread_atender_consol
 {
     pthread_create(&thread_atender_consola, NULL, hilos_atender_consola, args);
     pthread_join(thread_atender_consola, NULL);
+}
+
+void hilos_planificador_inicializar(hilos_args *args, pthread_t thread_planificador)
+{
+    pthread_create(&thread_planificador, NULL, hilo_planificador, args);
+    pthread_detach(thread_planificador);
+}
+
+void *hilo_planificador(void *args)
+{
+    hilos_args *hiloArgs = (hilos_args *)args;
+    while (1)
+    {
+        sem_wait(&hiloArgs->kernel->iniciar_planificador);
+        if (obtener_key_finalizacion_hilo(hiloArgs))
+        {
+            break;
+        }
+        sem_post(&hiloArgs->kernel->iniciar_planificador);
+        switch (determinar_algoritmo(hiloArgs))
+        {
+        case FIFO:
+        {
+            log_debug(hiloArgs->logger, "Llegue al case de FIFO.");
+
+            while (1)
+            {
+                sem_wait(&hiloArgs->kernel->iniciar_algoritmo);
+
+                // Si tengo que salir del planificador, rompo el bucle
+                if (obtener_key_finalizacion_hilo(hiloArgs))
+                {
+                    break;
+                }
+
+                // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
+                if (!obtener_key_finalizacion_algoritmo(hiloArgs))
+                {
+                    continue;
+                }
+
+                // Con esto me aseguro que el proximo se ejecute hasta que se reciba la señal de frenar
+                sem_post(&hiloArgs->kernel->iniciar_algoritmo);
+
+                // Simulo procesamiento
+                log_debug(hiloArgs->logger, "Planificacion FIFO continua.");
+                sleep(10);
+
+                /* TODO: Manejar solamente la lógica de mover procesos de las colas de estados desde este hilo.
+
+                Todo lo que sea de comunicación con otros módulos, como Memoria, CPU, IO, etc, se debe hacer en los hilos de esos módulos como respuesta a mensajes que se reciban a partir de un flujo activado por la ejecucción de comandos desde consola interactiva.
+
+                El hilo_planificador es un orquestador interno de Kernel, no debe tener comunicación directa con los módulos externos. Cualquier cosa preguntame.
+                */
+            }
+            break;
+        }
+        case RR:
+        {
+            log_debug(hiloArgs->logger, "Llegue al case de RR.");
+
+            while (1)
+            {
+                sem_wait(&hiloArgs->kernel->iniciar_algoritmo);
+
+                // Si tengo que salir del planificador, rompo el bucle
+                if (obtener_key_finalizacion_hilo(hiloArgs))
+                {
+                    break;
+                }
+
+                // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
+                if (!obtener_key_finalizacion_algoritmo(hiloArgs))
+                {
+                    continue;
+                }
+
+                // Con esto me aseguro que el proximo se ejecute hasta que se reciba la señal de frenar
+                sem_post(&hiloArgs->kernel->iniciar_algoritmo);
+
+                // Simulo procesamiento
+                log_debug(hiloArgs->logger, "Planificacion RR continua.");
+                sleep(10);
+
+                /* TODO: Manejar solamente la lógica de mover procesos de las colas de estados desde este hilo.
+
+                Todo lo que sea de comunicación con otros módulos, como Memoria, CPU, IO, etc, se debe hacer en los hilos de esos módulos como respuesta a mensajes que se reciban a partir de un flujo activado por la ejecucción de comandos desde consola interactiva.
+
+                El hilo_planificador es un orquestador interno de Kernel, no debe tener comunicación directa con los módulos externos. Cualquier cosa preguntame.
+                */
+            }
+            break;
+        }
+        case VRR:
+        {
+            log_debug(hiloArgs->logger, "Llegue al case de VRR.");
+
+            while (1)
+            {
+                sem_wait(&hiloArgs->kernel->iniciar_algoritmo);
+
+                // Si tengo que salir del planificador, rompo el bucle
+                if (obtener_key_finalizacion_hilo(hiloArgs))
+                {
+                    break;
+                }
+
+                // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
+                if (!obtener_key_finalizacion_algoritmo(hiloArgs))
+                {
+                    continue;
+                }
+
+                // Con esto me aseguro que el proximo se ejecute hasta que se reciba la señal de frenar
+                sem_post(&hiloArgs->kernel->iniciar_algoritmo);
+
+                // Simulo procesamiento
+                log_debug(hiloArgs->logger, "Planificacion VRR continua.");
+                sleep(10);
+
+                /* TODO: Manejar solamente la lógica de mover procesos de las colas de estados desde este hilo.
+
+                Todo lo que sea de comunicación con otros módulos, como Memoria, CPU, IO, etc, se debe hacer en los hilos de esos módulos como respuesta a mensajes que se reciban a partir de un flujo activado por la ejecucción de comandos desde consola interactiva.
+
+                El hilo_planificador es un orquestador interno de Kernel, no debe tener comunicación directa con los módulos externos. Cualquier cosa preguntame.
+                */
+            }
+            break;
+        }
+        default:
+        {
+            log_debug(hiloArgs->logger, "Algoritmo de planificacion inválido.");
+            break;
+        }
+        }
+    }
+    pthread_exit(0);
+}
+
+void hilo_planificador_detener(hilos_args *hiloArgs)
+{
+    hiloArgs->kernel->continuar_planificador = false;
+}
+
+void hilo_planificador_iniciar(hilos_args *hiloArgs)
+{
+    hiloArgs->kernel->continuar_planificador = true;
+}
+
+int obtener_key_finalizacion_hilo(hilos_args *args)
+{
+    return args->kernel_orden_apagado;
+}
+
+int obtener_key_finalizacion_algoritmo(hilos_args *args)
+{
+    return args->kernel->continuar_planificador;
+}
+
+t_algoritmo determinar_algoritmo(hilos_args *args)
+{
+    if (strcmp(args->kernel->algoritmoPlanificador, "FIFO") == 0)
+    {
+        return FIFO;
+    }
+    else if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0)
+    {
+        return RR;
+    }
+    else if (strcmp(args->kernel->algoritmoPlanificador, "VRR") == 0)
+    {
+        return VRR;
+    }
+    return -1;
 }
 
 /*----MEMORIA----*/

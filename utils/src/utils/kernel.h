@@ -14,6 +14,8 @@
 #include <commons/collections/queue.h>
 #include "procesos.h"
 #include "conexiones.h"
+#include <semaphore.h>
+
 /*Estructura basica del kernel*/
 
 typedef struct t_kernel_sockets
@@ -52,6 +54,7 @@ typedef struct
     pthread_t thread_atender_cpu_dispatch;
     pthread_t thread_atender_memoria;
     pthread_t thread_atender_consola;
+    pthread_t thread_planificador;
 } t_kernel_threads;
 
 typedef struct t_kernel
@@ -67,6 +70,10 @@ typedef struct t_kernel
     char *recursos;
     char *instanciasRecursos;
     int gradoMultiprogramacion;
+    sem_t iniciar_planificador;
+    sem_t iniciar_algoritmo;
+    sem_t actualizar_planificador;
+    bool continuar_planificador;
     t_kernel_sockets sockets;
     t_kernel_threads threads;
 } t_kernel;
@@ -106,7 +113,7 @@ void kernel_log(t_kernel kernel, t_log *logger);
  *
  * @param estados  Diagrama de 5 estados
  */
-diagrama_estados kernel_inicializar_estados(diagrama_estados *estados);
+t_diagrama_estados kernel_inicializar_estados(t_diagrama_estados *estados);
 
 /**
  * @brief Crea un nuevo proceso en el kernel.
@@ -118,7 +125,7 @@ diagrama_estados kernel_inicializar_estados(diagrama_estados *estados);
  * @param logger Un puntero al logger.
  * @param instrucciones Una cadena de caracteres que contiene las instrucciones para el nuevo proceso.
  */
-t_pcb *kernel_nuevo_proceso(t_kernel *kernel, diagrama_estados *estados, t_log *logger, char *instrucciones);
+t_pcb *kernel_nuevo_proceso(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger, char *instrucciones);
 
 void kernel_enviar_pcb_cpu(t_kernel *kernel, t_pcb *pcb, KERNEL_SOCKETS cpu);
 

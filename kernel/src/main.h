@@ -11,13 +11,13 @@
 #include "consola.h"
 #include "hilos.h"
 #include "pthread.h"
+#include <semaphore.h>
 
 t_kernel kernel;
 t_log *logger;
 t_config *config;
 hilos_args args;
-
-diagrama_estados estados;
+t_diagrama_estados estados;
 
 void terminar_programa(int, t_log *, t_config *);
 
@@ -27,8 +27,6 @@ pthread_t thread_conectar_cpu_interrupt;
 pthread_t thread_esperar_entrada_salida;
 
 void inicializar_args();
-
-// Cuando vale 0, es porque el Kernel ordeno a todos los modulos apagarse
-int kernel_orden_apagado = 1;
+void inicializar_semaforos();
 
 #endif /* MAIN_H_ */

@@ -24,8 +24,8 @@ typedef struct hilos_args
 {
     t_log *logger;
     t_kernel *kernel;
-    diagrama_estados *estados;
-    int *kernel_orden_apagado;
+    t_diagrama_estados *estados;
+    int kernel_orden_apagado;
 } hilos_args;
 
 typedef struct hilos_io_args
