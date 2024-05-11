@@ -28,13 +28,13 @@ void hilo_ejecutar_kernel(int socket, hilos_args *args, char *modulo, t_funcion_
 {
     while (1)
     {
-        log_debug(args->logger, "Esperando paquete de Kernel en socket %d", socket);
+        imprimir_log(args, LOG_LEVEL_DEBUG, "Esperando paquete de Kernel en socket %d", socket);
 
         t_paquete *paquete = recibir_paquete(args->logger, socket);
 
         if (paquete == NULL)
         {
-            log_warning(args->logger, "%s se desconecto del socket %d.", modulo, socket);
+            imprimir_log(args, LOG_LEVEL_WARNING, "%s se deconecto del socket %d", modulo, socket);
             break;
         }
 
@@ -89,4 +89,88 @@ void conexion_recibir(t_log *logger, int socket_servidor, int *socket_modulo, ch
     }
 
     log_debug(logger, "%s conectado en socket %d", modulo, *socket_modulo);
+}
+
+void imprimir_log_simple(pthread_mutex_t *mutex, t_log *logger, t_log_level nivel, const char *mensaje)
+{
+    pthread_mutex_lock(mutex);
+
+    // Guardar el estado actual de readline
+    int saved_point = rl_point;
+    char *saved_line = rl_copy_text(0, rl_end);
+    char *current_dir = getcwd(NULL, 0);
+    char *new_prompt = malloc(strlen(current_dir) + 3);
+    sprintf(new_prompt, "%s> ", current_dir);
+
+    // Limpiar la línea actual
+    rl_set_prompt("");
+    rl_replace_line("", 0);
+    rl_redisplay();
+
+    // Imprimir el mensaje de log usando la función de log correspondiente
+    switch (nivel)
+    {
+    case LOG_LEVEL_TRACE:
+        log_trace(logger, "%s", mensaje);
+        break;
+    case LOG_LEVEL_DEBUG:
+        log_debug(logger, "%s", mensaje);
+        break;
+    case LOG_LEVEL_INFO:
+        log_info(logger, "%s", mensaje);
+        break;
+    case LOG_LEVEL_WARNING:
+        log_warning(logger, "%s", mensaje);
+        break;
+    case LOG_LEVEL_ERROR:
+        log_error(logger, "%s", mensaje);
+        break;
+    default:
+        log_error(logger, "Nivel de log inválido en imprimir_log_simple");
+        break;
+    }
+
+    // Restaurar el estado de readline
+    rl_set_prompt(new_prompt);
+    rl_replace_line(saved_line, 0);
+    rl_point = saved_point;
+    rl_redisplay();
+    free(saved_line);
+    free(new_prompt);
+    free(current_dir);
+    pthread_mutex_unlock(mutex);
+}
+
+void imprimir_log(hilos_args *args, t_log_level nivel, const char *mensaje, ...)
+{
+    va_list args_list;
+    va_start(args_list, mensaje);
+
+    // Calcular el tamaño necesario para el mensaje formateado
+    int needed_size = vsnprintf(NULL, 0, mensaje, args_list) + 1;
+
+    // Crear un buffer para el mensaje formateado
+    char *mensaje_formateado = malloc(needed_size);
+
+    if (mensaje_formateado != NULL)
+    {
+        // Reiniciar 'args_list' para usarla de nuevo
+        va_end(args_list);
+        va_start(args_list, mensaje);
+
+        // Formatear el mensaje
+        vsnprintf(mensaje_formateado, needed_size, mensaje, args_list);
+
+        // Llamar a la función que imprime el mensaje simple
+        imprimir_log_simple(&args->kernel->lock, args->logger, nivel, mensaje_formateado);
+
+        // Liberar la memoria del mensaje formateado
+        free(mensaje_formateado);
+    }
+    else
+    {
+        log_error(args->logger, "Error al reservar memoria para imprimir log");
+    }
+
+    va_end(args_list);
 }

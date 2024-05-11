@@ -10,6 +10,7 @@ int main()
 	kernel_log(kernel, logger);
 	inicializar_args();
 	inicializar_semaforos();
+	pthread_mutex_init(&kernel.lock, NULL);
 
 	/*----HILOS----*/
 
