@@ -490,6 +490,16 @@ void *hilos_atender_cpu_dispatch(void *args)
 void *hilos_atender_cpu_interrupt(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
+
+    // // Esto se usa para testear interrupt
+    // sleep(20);
+    // t_kernel_cpu_interrupcion *interrupcion = malloc(sizeof(t_kernel_cpu_interrupcion));
+    // interrupcion->pid = 1;
+    // t_paquete *paquete = crear_paquete(KERNEL_CPU_INTERRUPCION);
+    // serializar_t_kernel_cpu_interrupcion(&paquete, interrupcion);
+    // enviar_paquete(paquete, hiloArgs->kernel->sockets.cpu_interrupt);
+    // free(interrupcion);
+
     hilo_ejecutar_kernel(hiloArgs->kernel->sockets.cpu_interrupt, hiloArgs, "CPU Interrupt", switch_case_cpu_interrupt);
     pthread_exit(0);
 };

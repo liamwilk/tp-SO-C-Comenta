@@ -110,15 +110,20 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 		if (debeTerminar)
 		{
 			// TODO: este socket deberia ser el de dispatch
-			cpu_kernel_avisar_finalizacion(proceso, cpu.socket_kernel_interrupt);
+			cpu_kernel_avisar_finalizacion(proceso, cpu.socket_kernel_dispatch);
 			break;
 		}
 
 		// EXECUTE:
 		cpu_ejecutar_instruccion(cpu, &instruccion, *tipo_instruccion, &proceso, logger);
 
-		cpu_checkear_interrupt(cpu, flag_interrupt, proceso);
-		// TODO: Acá hay que chequear si Kernel mando una interrupcion antes de pedir la proxima instruccion.
+		// TODO: Esto podria necesitar un mutex
+		if(flag_interrupt)
+		{
+			cpu_procesar_interrupt(logger, cpu, proceso);
+			flag_interrupt = 0;
+			break;
+		}
 
 		cpu_memoria_pedir_proxima_instruccion(&proceso, cpu.socket_memoria);
 		log_debug(logger, "Instruccion pedida a Memoria");
@@ -194,6 +199,7 @@ void switch_case_kernel_interrupt(t_log *logger, t_op_code codigo_operacion, t_b
 	}
 	case KERNEL_CPU_INTERRUPCION:
 	{
+		// TODO_ esto podria necesitar un mutex
 		flag_interrupt = cpu_recibir_interrupcion(logger, buffer, proceso);
 		log_warning(logger, "Valor del flag ahora en: %d", flag_interrupt);
 		break;
