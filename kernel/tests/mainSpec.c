@@ -38,7 +38,7 @@ context(test_kernel)
         it("Muevo un proceso de new a ready")
         {
             t_pcb *proceso1 = proceso_pop_new(&estados);
-            proceso_push_ready(&estados, proceso1);
+            proceso_push_ready(&estados, proceso1, logger);
             // Tamaño de la cola de new tiene que ser 2
             should_int(list_size(estados.new)) be equal to(2);
             // Tamaño de la cola de ready tiene que ser 1
@@ -70,7 +70,7 @@ context(test_kernel)
         end;
         it("Transicion block->ready")
         {
-            t_pcb *proceso = proceso_transicion_block_ready(&estados);
+            t_pcb *proceso = proceso_transicion_block_ready(&estados, logger);
             should_int(list_size(estados.block)) be equal to(0);
             should_int(list_size(estados.ready)) be equal to(1);
         }
