@@ -712,7 +712,7 @@ t_cpu_proceso cpu_kernel_recibir_proceso(t_buffer *buffer, t_log *logger)
     return proceso;
 };
 
-void cpu_kernel_avisar_finalizacion(t_cpu_proceso proceso, int socket_kernel_interrupt)
+void cpu_kernel_avisar_finalizacion(t_cpu_proceso proceso, int socket_kernel_dispatch)
 {
     t_paquete *paquete_proceso = crear_paquete(CPU_KERNEL_PROCESO);
     t_cpu_kernel_proceso *fin_proceso = malloc(sizeof(t_cpu_kernel_proceso));
@@ -733,7 +733,7 @@ void cpu_kernel_avisar_finalizacion(t_cpu_proceso proceso, int socket_kernel_int
     fin_proceso->registros->dx = proceso.registros.dx;
 
     serializar_t_cpu_kernel_proceso(&paquete_proceso, fin_proceso);
-    enviar_paquete(paquete_proceso, socket_kernel_interrupt);
+    enviar_paquete(paquete_proceso, socket_kernel_dispatch);
 
     eliminar_paquete(paquete_proceso);
     free(fin_proceso->registros);
@@ -1006,13 +1006,18 @@ int cpu_recibir_interrupcion(t_log *logger, t_buffer *buffer, t_cpu_proceso proc
     }
 }
 
-void cpu_checkear_interrupt(t_cpu cpu, bool flag_interrupt, t_cpu_proceso proceso)
+void cpu_procesar_interrupt(t_log *logger, t_cpu cpu, t_cpu_proceso proceso)
 {
-    // TODO: implementar logica chequeo
-    // if (flag_interrupt)
-    // {
-    // }
-    // else
-    // {
-    // }
+    log_debug(logger, "Se atiende interrupcion");
+
+    t_cpu_kernel_proceso *proceso_interrumpido = malloc(sizeof(t_cpu_kernel_proceso));
+    proceso_interrumpido->ejecutado = 0; // Desalojado por interrupcion
+    proceso_interrumpido->pid = proceso.pid;
+    proceso_interrumpido->registros = &proceso.registros;
+
+    // TODO: preguntar si este es el opcode que se usa
+    t_paquete *paquete = crear_paquete(CPU_KERNEL_PROCESO);
+    serializar_t_cpu_kernel_proceso(&paquete, proceso_interrumpido);
+    // TODO: esto cambiarlo a interrupt en el testeo
+    enviar_paquete(paquete, cpu.socket_kernel_dispatch);
 }

@@ -273,27 +273,21 @@ void *hilos_atender_cpu_dispatch(void *args)
 void *hilos_atender_cpu_interrupt(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
+
+    // // Esto se usa para testear interrupt
+    // sleep(20);
+    // t_kernel_cpu_interrupcion *interrupcion = malloc(sizeof(t_kernel_cpu_interrupcion));
+    // interrupcion->pid = 1;
+    // t_paquete *paquete = crear_paquete(KERNEL_CPU_INTERRUPCION);
+    // serializar_t_kernel_cpu_interrupcion(&paquete, interrupcion);
+    // enviar_paquete(paquete, hiloArgs->kernel->sockets.cpu_interrupt);
+    // free(interrupcion);
+
     hilo_ejecutar_kernel(hiloArgs->kernel->sockets.cpu_interrupt, hiloArgs, "CPU Interrupt", switch_case_cpu_interrupt);
     pthread_exit(0);
 };
 
 void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_args *args, t_buffer *buffer)
-{
-    switch (codigo_operacion)
-    {
-    case PLACEHOLDER:
-        // Placeholder
-        break;
-    default:
-    {
-        log_warning(args->logger, "[CPU Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
-        liberar_conexion(&args->kernel->sockets.cpu_dispatch);
-        break;
-    }
-    }
-}
-
-void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_args *args, t_buffer *buffer)
 {
     switch (codigo_operacion)
     {
@@ -307,7 +301,6 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         log_debug(logger, "Ejecutado completo: %d", proceso->ejecutado);
 
         // TODO: En CPU implementar lo siguiente: ejecutado = 1 para ejecutado completo, 0 para interrumpido y pendiente, -1 para error.
-
         if (proceso->ejecutado)
         {
             log_debug(logger, "Proceso PID:<%d> ejecutado completo.", proceso->pid);
@@ -323,16 +316,30 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         }
         else
         {
-            // Mover proceso a ready
-            t_pcb *pcb = proceso_buscar_new(args->estados, proceso->pid);
-            pcb->memoria_aceptado = false;
-            proceso_push_ready(args->estados, pcb);
-            log_info(logger, "Se mueve el proceso <%d> a READY", proceso->pid);
+            // // Mover proceso a ready
+            // t_pcb *pcb = proceso_buscar_new(args->estados, proceso->pid);
+            // pcb->memoria_aceptado = false;
+            // proceso_push_ready(args->estados, pcb);
+            // log_info(logger, "Se mueve el proceso <%d> a READY", proceso->pid);
+            log_warning(logger, "Mandar proceso PID: %d a READY", proceso->pid);
         }
 
         free(proceso);
         break;
     }
+    default:
+    {
+        log_warning(args->logger, "[CPU Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
+        liberar_conexion(&args->kernel->sockets.cpu_dispatch);
+        break;
+    }
+    }
+}
+
+void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_args *args, t_buffer *buffer)
+{
+    switch (codigo_operacion)
+    {
     case CPU_KERNEL_IO_GEN_SLEEP:
     {
         t_cpu_kernel_io_gen_sleep *sleep = deserializar_t_cpu_kernel_io_gen_sleep(buffer);
