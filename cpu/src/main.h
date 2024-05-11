@@ -27,6 +27,9 @@ t_cpu_proceso proceso;
 // Process ID
 uint32_t pid;
 
+// Flag de interrupt: identifica una interrupcion pendiente
+int flag_interrupt; 
+
 t_cpu cpu;
 t_log *logger;
 t_config *config;

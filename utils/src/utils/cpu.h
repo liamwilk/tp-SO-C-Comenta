@@ -77,4 +77,7 @@ bool casteo_verificar_uint_8t_valido(uint32_t valor);
 uint8_t casteo_uint8_t(uint32_t valor);
 uint32_t casteo_uint32_t(uint8_t valor);
 
+int cpu_recibir_interrupcion(t_log *logger, t_buffer *buffer, t_cpu_proceso proceso);
+void cpu_checkear_interrupt(t_cpu cpu, bool flag_interrupt, t_cpu_proceso proceso);
+
 #endif /* CPU_H_ */
