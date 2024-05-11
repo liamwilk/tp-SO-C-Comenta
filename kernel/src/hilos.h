@@ -64,5 +64,4 @@ void hilos_planificador_inicializar(hilos_args *args, pthread_t thread_planifica
 
 int obtener_key_finalizacion_hilo(hilos_args *args);
 int obtener_key_finalizacion_algoritmo(hilos_args *args);
-
 #endif /* HILOS_H_ */
