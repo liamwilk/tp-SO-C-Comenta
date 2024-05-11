@@ -22,6 +22,9 @@
 #include <commons/collections/list.h>
 #include "planificacion.h"
 #include <utils/template.h>
+#include "modulos/cpu_dispatch.h"
+#include "modulos/cpu_interrupt.h"
+#include "modulos/memoria.h"
 
 typedef enum
 {
@@ -58,10 +61,6 @@ void hilos_cpu_inicializar(hilos_args *args, pthread_t thread_conectar_cpu_dispa
 void hilos_io_inicializar(hilos_args *args, pthread_t thread_esperar_entrada_salida);
 void hilos_consola_inicializar(hilos_args *args, pthread_t thread_atender_consola);
 void hilos_planificador_inicializar(hilos_args *args, pthread_t thread_planificador);
-
-void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *args, t_buffer *buffer);
-void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_args *args, t_buffer *buffer);
-void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_args *args, t_buffer *buffer);
 
 int obtener_key_finalizacion_hilo(hilos_args *args);
 int obtener_key_finalizacion_algoritmo(hilos_args *args);

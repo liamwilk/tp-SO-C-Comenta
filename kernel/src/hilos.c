@@ -171,6 +171,8 @@ void hilos_consola_inicializar(hilos_args *args, pthread_t thread_atender_consol
     pthread_join(thread_atender_consola, NULL);
 }
 
+/*----PLANIFICACION----*/
+
 void hilos_planificador_inicializar(hilos_args *args, pthread_t thread_planificador)
 {
     pthread_create(&thread_planificador, NULL, hilo_planificador, args);
@@ -387,49 +389,6 @@ void *hilos_atender_memoria(void *args)
     pthread_exit(0);
 }
 
-void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *args, t_buffer *buffer)
-{
-    switch (codigo_operacion)
-    {
-    case MEMORIA_KERNEL_NUEVO_PROCESO:
-    {
-        t_memoria_kernel_proceso *proceso = deserializar_t_memoria_kernel_proceso(buffer);
-
-        log_debug(logger, "Recibí la respuesta de Memoria acerca de la solicitud de nuevo proceso");
-        log_debug(logger, "PID: %d", proceso->pid);
-        log_debug(logger, "Cantidad de instrucciones: %d", proceso->cantidad_instrucciones);
-        log_debug(logger, "Leido: %d", proceso->leido);
-        if (proceso->leido)
-        {
-            // Enviar a cpu los registros
-            // t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
-            t_pcb *pcb = proceso_buscar_new(args->estados, proceso->pid);
-            // serializar_t_registros_cpu(&paquete, pcb->pid, pcb->registros_cpu);
-            // enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
-            // Buscar proceso
-            pcb->memoria_aceptado = true;
-            log_debug(logger, "Proceso PID:<%d> aceptado en memoria", pcb->pid);
-            log_info(logger, "Se crea el proceso <%d> en NEW", pcb->pid);
-        }
-        else
-        {
-            log_error(logger, "Proceso PID:<%d> rechazado en memoria", proceso->pid);
-            // Eliminar proceso de la cola de new
-            proceso_revertir(args->estados, proceso->pid);
-            log_warning(logger, "Proceso PID:<%d> eliminado de kernel", proceso->pid);
-        };
-        free(proceso);
-        break;
-    }
-    default:
-    {
-        log_warning(args->logger, "[Memoria] Se recibio un codigo de operacion desconocido. Cierro hilo");
-        liberar_conexion(&args->kernel->sockets.memoria);
-        break;
-    }
-    }
-}
-
 /*----CPU----*/
 
 void hilos_cpu_inicializar(hilos_args *args, pthread_t thread_conectar_cpu_dispatch, pthread_t thread_atender_cpu_dispatch, pthread_t thread_conectar_cpu_interrupt, pthread_t thread_atender_cpu_interrupt)
@@ -506,102 +465,6 @@ void *hilos_atender_cpu_interrupt(void *args)
     hilo_ejecutar_kernel(hiloArgs->kernel->sockets.cpu_interrupt, hiloArgs, "CPU Interrupt", switch_case_cpu_interrupt);
     pthread_exit(0);
 };
-
-void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_args *args, t_buffer *buffer)
-{
-    switch (codigo_operacion)
-    {
-    case PLACEHOLDER:
-        // Placeholder
-        break;
-    default:
-    {
-        log_warning(args->logger, "[CPU Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
-        liberar_conexion(&args->kernel->sockets.cpu_dispatch);
-        break;
-    }
-    }
-}
-
-void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_args *args, t_buffer *buffer)
-{
-    switch (codigo_operacion)
-    {
-    case CPU_KERNEL_PROCESO:
-    {
-        t_cpu_kernel_proceso *proceso = deserializar_t_cpu_kernel_proceso(buffer);
-
-        log_debug(logger, "Recibí la respuesta de CPU acerca de la ejecucion de un proceso");
-        log_debug(logger, "PID: %d", proceso->pid);
-        log_debug(logger, "Cantidad de instrucciones ejecutadas: %d", proceso->registros->pc);
-        log_debug(logger, "Ejecutado completo: %d", proceso->ejecutado);
-
-        // TODO: En CPU implementar lo siguiente: ejecutado = 1 para ejecutado completo, 0 para interrumpido y pendiente, -1 para error.
-
-        if (proceso->ejecutado)
-        {
-            log_debug(logger, "Proceso PID:<%d> ejecutado completo.", proceso->pid);
-
-            log_debug(logger, "Le doy notificacion a Memoria para que elimine el proceso PID:<%d>", proceso->pid);
-
-            t_paquete *paquete_finalizar = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
-            t_kernel_memoria_finalizar_proceso *finalizar_proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
-            finalizar_proceso->pid = proceso->pid;
-            serializar_t_kernel_memoria_finalizar_proceso(&paquete_finalizar, finalizar_proceso);
-            enviar_paquete(paquete_finalizar, args->kernel->sockets.memoria);
-            eliminar_paquete(paquete_finalizar);
-        }
-        else
-        {
-            // Mover proceso a ready
-            t_pcb *pcb = proceso_buscar_new(args->estados, proceso->pid);
-            pcb->memoria_aceptado = false;
-            proceso_push_ready(args->estados, pcb, logger);
-            log_info(logger, "Se mueve el proceso <%d> a READY", proceso->pid);
-        }
-
-        free(proceso);
-        break;
-    }
-    case CPU_KERNEL_IO_GEN_SLEEP:
-    {
-        t_cpu_kernel_io_gen_sleep *sleep = deserializar_t_cpu_kernel_io_gen_sleep(buffer);
-
-        log_debug(logger, "Recibí la solicitud de CPU para activar IO_GEN_SLEEP en la Interfaz %s por %d unidades de trabajo asociado al PID %d", sleep->interfaz, sleep->tiempo, sleep->pid);
-
-        if (args->kernel->sockets.entrada_salida_generic == 0)
-        {
-            log_error(args->logger, "No se pudo enviar el paquete a IO Generic porque aun no se conecto.");
-            break;
-        }
-
-        // TODO: Implementar mapeo de logica de IDs de IO a sockets de IO. Actualmente solo se envia a IO Generic.
-
-        log_debug(args->logger, "Se envia un sleep de 10 segundos a IO Generic ID %s", sleep->interfaz);
-        t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP);
-
-        t_kernel_entrada_salida_unidad_de_trabajo *unidad = malloc(sizeof(t_kernel_entrada_salida_unidad_de_trabajo));
-        unidad->pid = sleep->pid;
-        unidad->unidad_de_trabajo = sleep->tiempo;
-
-        serializar_t_kernel_entrada_salida_unidad_de_trabajo(&paquete, unidad);
-
-        enviar_paquete(paquete, args->kernel->sockets.entrada_salida_generic);
-        log_debug(args->logger, "Se envio el paquete a IO Generic");
-
-        eliminar_paquete(paquete);
-        free(unidad);
-
-        break;
-    }
-    default:
-    {
-        log_warning(args->logger, "[CPU Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
-        liberar_conexion(&args->kernel->sockets.cpu_interrupt);
-        break;
-    }
-    }
-}
 
 /*----IO----*/
 
