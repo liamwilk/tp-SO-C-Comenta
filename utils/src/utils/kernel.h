@@ -76,6 +76,7 @@ typedef struct t_kernel
     bool continuar_planificador;
     t_kernel_sockets sockets;
     t_kernel_threads threads;
+    pthread_mutex_t lock;
 } t_kernel;
 
 /**
