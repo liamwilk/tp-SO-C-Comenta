@@ -52,8 +52,6 @@ void *hilos_atender_consola(void *args)
                 bool existe = proceso_matar(hiloArgs->estados, separar_linea[1]);
                 int pidReceived = atoi(separar_linea[1]);
 
-                // TODO: Hay que eliminar el proceso de la cola  pertinente aca solo lo busca
-
                 if (!existe)
                 {
                     log_error(hiloArgs->logger, "El PID <%d> no existe", pidReceived);
@@ -89,9 +87,6 @@ void *hilos_atender_consola(void *args)
             hilo_planificador_iniciar(hiloArgs);
             sem_post(&hiloArgs->kernel->iniciar_planificador);
 
-            // planificacion_largo_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
-
-            // planificacion_corto_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
             break;
         }
         case MULTIPROGRAMACION:
@@ -105,6 +100,9 @@ void *hilos_atender_consola(void *args)
         case PROCESO_ESTADO:
         {
             log_info(hiloArgs->logger, "Se ejecuto script %s", separar_linea[0]);
+            int pid = atoi(separar_linea[1]);
+            char *estado = proceso_estado(hiloArgs->estados, pid);
+            log_info(hiloArgs->logger, "El proceso <%d> se encuentra en estado <%s>", pid, estado);
             break;
         }
         case FINALIZAR_CONSOLA:
@@ -151,8 +149,8 @@ void *hilo_planificador(void *args)
     {
         // Espero que por consola inicien la planificacion
         sem_wait(&hiloArgs->kernel->iniciar_planificador);
-
         log_debug(hiloArgs->logger, "Planificacion iniciada por señal de INICIAR_PLANIFICACION.");
+        planificacion_largo_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
 
         // Entro a la planificacion segun el algoritmo que este en la configuracion
         switch (determinar_algoritmo(hiloArgs))
@@ -205,7 +203,7 @@ void *hilo_planificador(void *args)
                 sem_post(&hiloArgs->kernel->detener_planificador);
 
                 // Aca va toda la logica de RR para los estados de Kernel.
-                // planificacion_corto_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
+                round_robin(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
             }
             break;
         }
@@ -486,7 +484,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
             // Mover proceso a ready
             t_pcb *pcb = proceso_buscar_new(args->estados, proceso->pid);
             pcb->memoria_aceptado = false;
-            proceso_push_ready(args->estados, pcb);
+            proceso_push_ready(args->estados, pcb, logger);
             log_info(logger, "Se mueve el proceso <%d> a READY", proceso->pid);
         }
 

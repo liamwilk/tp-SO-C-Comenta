@@ -30,4 +30,6 @@ void planificacion_corto_plazo(t_kernel *kernel, t_diagrama_estados *estados, t_
 
 void fifo(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger);
 
+void round_robin(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger);
+
 #endif /* PLANIFICACION_H_ */

@@ -68,7 +68,7 @@ void proceso_push_new(t_diagrama_estados *estados, t_pcb *pcb);
  * @param estados diagrama de 5 estados
  * @param pcb El PCB a agregar.
  */
-void proceso_push_ready(t_diagrama_estados *estados, t_pcb *pcb);
+void proceso_push_ready(t_diagrama_estados *estados, t_pcb *pcb, t_log *logger);
 
 /**
  * Agrega un PCB a la cola "exec".
@@ -221,6 +221,5 @@ t_pcb *proceso_transicion_ready_exec(t_diagrama_estados *estados);
 
 t_pcb *proceso_transicion_exec_block(t_diagrama_estados *estados);
 
-t_pcb *proceso_transicion_block_ready(t_diagrama_estados *estados);
-
+t_pcb *proceso_transicion_block_ready(t_diagrama_estados *estados, t_log *logger);
 #endif

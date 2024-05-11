@@ -15,7 +15,7 @@ void planificacion_largo_plazo(t_kernel *kernel, t_diagrama_estados *estados, t_
                 log_warning(logger, "No se puede mover el proceso PID: <%d> a ready, ya que no fue aceptado por memoria", proceso->pid);
                 continue;
             }
-            proceso_push_ready(estados, proceso);
+            proceso_push_ready(estados, proceso, logger);
             cant_en_ready++;
             cant_en_new--;
             log_debug(logger, "[PLANIFICADOR LARGO PLAZO] Proceso PID: <%d> movido a ready", proceso->pid);
@@ -24,14 +24,6 @@ void planificacion_largo_plazo(t_kernel *kernel, t_diagrama_estados *estados, t_
     if (cant_en_new != 0)
     {
         log_warning(logger, "No se pueden mover mas procesos a ready, ya que se alcanzo el grado de multiprogramacion");
-    }
-};
-
-void planificacion_corto_plazo(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger)
-{
-    if (strcmp(kernel->algoritmoPlanificador, "FIFO") == 0)
-    {
-        fifo(kernel, estados, logger);
     }
 };
 
@@ -47,5 +39,30 @@ void fifo(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger)
         enviar_paquete(paquete, kernel->sockets.cpu_dispatch);
         free(paquete);
         free(aux);
+    }
+}
+
+void round_robin(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger)
+{
+    if (list_size(estados->ready) == 0)
+    {
+        log_debug(logger, "[ROUND ROBIN]: No hay procesos en ready");
+        return;
+    }
+    if (list_size(estados->exec) == 0)
+    {
+        t_pcb *aux = proceso_transicion_ready_exec(estados);
+        log_debug(logger, "[ROUND ROBIN]: Enviando proceso <PID: %d> a CPU", aux->pid);
+
+        t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
+        serializar_t_registros_cpu(&paquete, aux->pid, aux->registros_cpu);
+        enviar_paquete(paquete, kernel->sockets.cpu_dispatch);
+        free(paquete);
+
+        // Comienza el quantum
+        usleep(kernel->quantum * 1000);
+        log_info(logger, "PID: <%d> - Desalojado por fin de Quantum", aux->pid);
+        // Enviar señal de fin de quantum
+        return;
     }
 }

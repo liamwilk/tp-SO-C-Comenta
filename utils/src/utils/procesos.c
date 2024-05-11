@@ -26,14 +26,20 @@ void proceso_push_new(t_diagrama_estados *estados, t_pcb *pcb)
     dictionary_put(estados->procesos, pid_char, estado);
 };
 
-void proceso_push_ready(t_diagrama_estados *estados, t_pcb *pcb)
+void proceso_push_ready(t_diagrama_estados *estados, t_pcb *pcb, t_log *logger)
 {
     list_add(estados->ready, pcb);
     char *pid_char = string_itoa(pcb->pid);
-
     // Actualizo el diccionario de procesos
     char *estado = "READY";
     dictionary_put(estados->procesos, pid_char, estado);
+    // Loggear la cola de ready
+    log_info(logger, "Cola Ready <COLA>:");
+    for (int i = 0; i < list_size(estados->ready); i++)
+    {
+        t_pcb *proceso = list_get(estados->ready, i);
+        log_info(logger, "PID: <%d>", proceso->pid);
+    }
 };
 
 void proceso_push_exec(t_diagrama_estados *estados, t_pcb *pcb)
@@ -330,13 +336,13 @@ t_pcb *proceso_transicion_exec_block(t_diagrama_estados *estados)
     return proceso;
 };
 
-t_pcb *proceso_transicion_block_ready(t_diagrama_estados *estados)
+t_pcb *proceso_transicion_block_ready(t_diagrama_estados *estados, t_log *logger)
 {
     t_pcb *proceso = proceso_pop_block(estados);
     if (proceso == NULL)
     {
         return NULL;
     }
-    proceso_push_ready(estados, proceso);
+    proceso_push_ready(estados, proceso, logger);
     return proceso;
 };
