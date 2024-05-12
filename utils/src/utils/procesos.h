@@ -25,6 +25,21 @@ typedef struct pcb
     bool memoria_aceptado;
 } t_pcb;
 
+typedef enum t_buffer_transicion
+{
+    NEW_READY,
+    NEW_EXIT,
+    READY_EXEC,
+    READY_EXIT,
+    EXEC_EXIT,
+    EXEC_BLOCK,
+    EXEC_READY,
+    BLOCK_READY,
+    BLOCK_EXIT,
+    EXIT_CPU,
+    EXIT_MEMORIA
+} t_buffer_transicion;
+
 extern uint32_t pid;
 
 /**
@@ -217,9 +232,8 @@ char *proceso_estado(t_diagrama_estados *estados, int pid);
  */
 bool proceso_matar(t_diagrama_estados *estados, char *pid);
 
-t_pcb *proceso_transicion_ready_exec(t_diagrama_estados *estados);
+void procesos_inicializar_buffer_transiciones(t_dictionary *buffer);
 
-t_pcb *proceso_transicion_exec_block(t_diagrama_estados *estados);
+char *obtener_transicion_enum();
 
-t_pcb *proceso_transicion_block_ready(t_diagrama_estados *estados, t_log *logger);
 #endif

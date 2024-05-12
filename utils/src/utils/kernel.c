@@ -156,3 +156,92 @@ void kernel_finalizar(t_kernel *kernel)
     free(finalizar_kernel);
     eliminar_paquete(finalizar);
 };
+
+t_pcb *kernel_transicion_ready_exec(t_diagrama_estados *estados, t_kernel *kernel, pthread_mutex_t *mutex)
+{
+    pthread_mutex_lock(mutex);
+
+    t_pcb *proceso = proceso_pop_ready(estados);
+    if (proceso == NULL)
+    {
+        return NULL;
+    }
+    pthread_mutex_lock(mutex);
+    proceso_push_exec(estados, proceso);
+
+    pthread_mutex_unlock(mutex);
+
+    // Enviar paquete a cpu dispatch
+    t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
+    serializar_t_registros_cpu(&paquete, proceso->pid, proceso->registros_cpu);
+    enviar_paquete(paquete, kernel->sockets.cpu_dispatch);
+    free(paquete);
+
+    return proceso;
+};
+
+t_pcb *kernel_transicion_exec_block(t_diagrama_estados *estados)
+{
+    t_pcb *proceso = proceso_pop_exec(estados);
+    if (proceso == NULL)
+    {
+        return NULL;
+    }
+    proceso_push_block(estados, proceso);
+    return proceso;
+};
+
+t_pcb *kernel_transicion_block_ready(t_diagrama_estados *estados, t_log *logger)
+{
+    t_pcb *proceso = proceso_pop_block(estados);
+    if (proceso == NULL)
+    {
+        return NULL;
+    }
+    proceso_push_ready(estados, proceso, logger);
+    return proceso;
+};
+
+t_pcb *kernel_transicion_exec_ready(t_diagrama_estados *estados, t_log *logger, pthread_mutex_t *mutex, t_kernel *kernel)
+{
+    pthread_mutex_lock(mutex);
+
+    t_pcb *proceso = proceso_pop_exec(estados);
+    if (proceso == NULL)
+    {
+        return NULL;
+    }
+    proceso_push_ready(estados, proceso, logger);
+
+    pthread_mutex_unlock(mutex);
+    if (strcmp(kernel->algoritmoPlanificador, "RR") == 0 || strcmp(kernel->algoritmoPlanificador, "VRR") == 0)
+    {
+        log_info(logger, "PID: <%d> - Desalojado por fin de Quantum", proceso->pid);
+        // Enviar señal de fin de quantum
+        // TODO: Falta agregar el motivo del interrupt en el paquete
+        t_paquete *paquete = crear_paquete(KERNEL_CPU_INTERRUPCION);
+        serializar_uint32_t(proceso->pid, paquete);
+        enviar_paquete(paquete, kernel->sockets.cpu_interrupt);
+        free(paquete);
+    }
+    return proceso;
+};
+
+void kernel_desalojar_proceso(t_diagrama_estados *estados, t_kernel *kernel, t_log *logger, pthread_mutex_t *mutex, t_pcb *proceso)
+{
+    // Kernel desalojara el proceso SI Y SOLO SI el proceso se encuentra en la cola de exec
+    // Esto es para evitar que termine el quantum y el proceso se vaya a una io, este en estado block y se haga un llamado innecesario a memoria
+    usleep(kernel->quantum * 1000);
+    t_pcb *aux = list_get(estados->exec, 0);
+    if (aux == NULL)
+    {
+        log_error(logger, "Se quiere desalojar un proceso pero no hay procesos en exec");
+        return;
+    }
+    if (aux->pid != proceso->pid)
+    {
+        log_error(logger, "El proceso que se  extrajo de la cola de exec no coincide con el proceso que se quiere desalojar");
+        return;
+    }
+    kernel_transicion_exec_ready(estados, logger, mutex, kernel);
+}

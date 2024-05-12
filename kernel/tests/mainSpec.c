@@ -54,27 +54,6 @@ context(test_kernel)
             should_int(list_size(estados.new)) be equal to(1);
         }
         end;
-        it("Transicion ready->exec")
-        {
-            t_pcb *proceso = proceso_transicion_ready_exec(&estados);
-            should_int(list_size(estados.ready)) be equal to(0);
-            should_int(list_size(estados.exec)) be equal to(1);
-        }
-        end;
-        it("Transicion exec->block")
-        {
-            t_pcb *proceso = proceso_transicion_exec_block(&estados);
-            should_int(list_size(estados.exec)) be equal to(0);
-            should_int(list_size(estados.block)) be equal to(1);
-        }
-        end;
-        it("Transicion block->ready")
-        {
-            t_pcb *proceso = proceso_transicion_block_ready(&estados, logger);
-            should_int(list_size(estados.block)) be equal to(0);
-            should_int(list_size(estados.ready)) be equal to(1);
-        }
-        end;
     }
     end;
 }
