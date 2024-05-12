@@ -33,9 +33,4 @@ void fifo(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger);
 
 void round_robin(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger);
 
-t_dictionary *buffer_procesos;
-
-pthread_mutex_t mutex_ready_exec = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutex_exec_ready = PTHREAD_MUTEX_INITIALIZER;
-
 #endif /* PLANIFICACION_H_ */

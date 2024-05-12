@@ -31,7 +31,7 @@ void fifo(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger)
 {
     if (list_size(estados->ready) > 0 && list_size(estados->exec) == 0)
     {
-        t_pcb *aux = kernel_transicion_ready_exec(estados, kernel, &mutex_ready_exec);
+        t_pcb *aux = kernel_transicion_ready_exec(estados, kernel);
         log_debug(logger, "[FIFO]: Enviando proceso <PID: %d> a CPU", aux->pid);
         free(aux);
     }
@@ -47,9 +47,9 @@ void round_robin(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger)
     if (list_size(estados->exec) == 0)
     {
 
-        t_pcb *aux = kernel_transicion_ready_exec(estados, kernel, &mutex_ready_exec);
+        t_pcb *aux = kernel_transicion_ready_exec(estados, kernel);
         log_debug(logger, "[ROUND ROBIN]: Enviando proceso <PID: %d> a CPU", aux->pid);
-        kernel_desalojar_proceso(estados, kernel, logger, &mutex_exec_ready, aux);
+        kernel_desalojar_proceso(estados, kernel, logger, aux);
         return;
     }
 }

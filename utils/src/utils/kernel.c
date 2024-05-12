@@ -70,13 +70,16 @@ t_diagrama_estados kernel_inicializar_estados(t_diagrama_estados *estados)
     exit = list_create();
     // Inicializar diccionario de procesos
     estados->procesos = dictionary_create();
+    estados->buffer_procesos = dictionary_create();
     t_diagrama_estados diagrama = {
         .new = new,
         .ready = ready,
         .exec = exec,
         .block = block,
         .exit = exit,
-        .procesos = estados->procesos};
+        .procesos = estados->procesos,
+        .mutex_exec_ready = PTHREAD_MUTEX_INITIALIZER,
+        .mutex_ready_exec = PTHREAD_MUTEX_INITIALIZER};
     return diagrama;
 }
 
@@ -157,19 +160,18 @@ void kernel_finalizar(t_kernel *kernel)
     eliminar_paquete(finalizar);
 };
 
-t_pcb *kernel_transicion_ready_exec(t_diagrama_estados *estados, t_kernel *kernel, pthread_mutex_t *mutex)
+t_pcb *kernel_transicion_ready_exec(t_diagrama_estados *estados, t_kernel *kernel)
 {
-    pthread_mutex_lock(mutex);
+    pthread_mutex_lock(&estados->mutex_ready_exec);
 
     t_pcb *proceso = proceso_pop_ready(estados);
     if (proceso == NULL)
     {
         return NULL;
     }
-    pthread_mutex_lock(mutex);
     proceso_push_exec(estados, proceso);
 
-    pthread_mutex_unlock(mutex);
+    pthread_mutex_unlock(&estados->mutex_ready_exec);
 
     // Enviar paquete a cpu dispatch
     t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
@@ -202,9 +204,9 @@ t_pcb *kernel_transicion_block_ready(t_diagrama_estados *estados, t_log *logger)
     return proceso;
 };
 
-t_pcb *kernel_transicion_exec_ready(t_diagrama_estados *estados, t_log *logger, pthread_mutex_t *mutex, t_kernel *kernel)
+t_pcb *kernel_transicion_exec_ready(t_diagrama_estados *estados, t_log *logger, t_kernel *kernel)
 {
-    pthread_mutex_lock(mutex);
+    pthread_mutex_lock(&estados->mutex_exec_ready);
 
     t_pcb *proceso = proceso_pop_exec(estados);
     if (proceso == NULL)
@@ -213,7 +215,7 @@ t_pcb *kernel_transicion_exec_ready(t_diagrama_estados *estados, t_log *logger, 
     }
     proceso_push_ready(estados, proceso, logger);
 
-    pthread_mutex_unlock(mutex);
+    pthread_mutex_unlock(&estados->mutex_exec_ready);
     if (strcmp(kernel->algoritmoPlanificador, "RR") == 0 || strcmp(kernel->algoritmoPlanificador, "VRR") == 0)
     {
         log_info(logger, "PID: <%d> - Desalojado por fin de Quantum", proceso->pid);
@@ -227,7 +229,7 @@ t_pcb *kernel_transicion_exec_ready(t_diagrama_estados *estados, t_log *logger, 
     return proceso;
 };
 
-void kernel_desalojar_proceso(t_diagrama_estados *estados, t_kernel *kernel, t_log *logger, pthread_mutex_t *mutex, t_pcb *proceso)
+void kernel_desalojar_proceso(t_diagrama_estados *estados, t_kernel *kernel, t_log *logger, t_pcb *proceso)
 {
     // Kernel desalojara el proceso SI Y SOLO SI el proceso se encuentra en la cola de exec
     // Esto es para evitar que termine el quantum y el proceso se vaya a una io, este en estado block y se haga un llamado innecesario a memoria
@@ -243,5 +245,5 @@ void kernel_desalojar_proceso(t_diagrama_estados *estados, t_kernel *kernel, t_l
         log_error(logger, "El proceso que se  extrajo de la cola de exec no coincide con el proceso que se quiere desalojar");
         return;
     }
-    kernel_transicion_exec_ready(estados, logger, mutex, kernel);
+    kernel_transicion_exec_ready(estados, logger, kernel);
 }

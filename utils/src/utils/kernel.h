@@ -134,14 +134,14 @@ void kernel_enviar_pcb_cpu(t_kernel *kernel, t_pcb *pcb, KERNEL_SOCKETS cpu);
 
 void kernel_finalizar(t_kernel *kernel);
 
-t_pcb *kernel_transicion_ready_exec(t_diagrama_estados *estados, t_kernel *kernel, pthread_mutex_t *mutex);
+t_pcb *kernel_transicion_ready_exec(t_diagrama_estados *estados, t_kernel *kernel);
 
 t_pcb *kernel_transicion_exec_block(t_diagrama_estados *estados);
 
 t_pcb *kernel_transicion_block_ready(t_diagrama_estados *estados, t_log *logger);
 
-t_pcb *kernel_transicion_exec_ready(t_diagrama_estados *estados, t_log *logger, pthread_mutex_t *mutex, t_kernel *kernel);
+t_pcb *kernel_transicion_exec_ready(t_diagrama_estados *estados, t_log *logger, t_kernel *kernel);
 
-void kernel_desalojar_proceso(t_diagrama_estados *estados, t_kernel *kernel, t_log *logger, pthread_mutex_t *mutex, t_pcb *proceso);
+void kernel_desalojar_proceso(t_diagrama_estados *estados, t_kernel *kernel, t_log *logger, t_pcb *proceso);
 
 #endif /* KERNEL_H */
