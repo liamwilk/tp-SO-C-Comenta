@@ -95,4 +95,13 @@ typedef struct
     int socket;
 } hilos_io_args;
 
+/**
+ * Inicializa los estados de las colas del kernel.
+ *
+ * Esta función inicializa los estados de las colas del kernel, que incluyen las colas new, ready, exec, block y exit.
+ *
+ * @param estados  Diagrama de 5 estados
+ */
+t_diagrama_estados kernel_inicializar_estados(t_diagrama_estados *estados);
+
 #endif /* KERNEL_H */

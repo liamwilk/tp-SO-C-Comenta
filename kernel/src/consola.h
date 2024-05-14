@@ -66,15 +66,6 @@ void kernel_log(hilos_args *args);
 /**----PROCESOS Y ESTADOS----**/
 
 /**
- * Inicializa los estados de las colas del kernel.
- *
- * Esta función inicializa los estados de las colas del kernel, que incluyen las colas new, ready, exec, block y exit.
- *
- * @param estados  Diagrama de 5 estados
- */
-t_diagrama_estados kernel_inicializar_estados(t_diagrama_estados *estados);
-
-/**
  * @brief Crea un nuevo proceso en el kernel.
  *
  * Esta función se encarga de crear un nuevo proceso en el kernel. Envia el struct t_kernel_memoria_proceso al modulo memoria
