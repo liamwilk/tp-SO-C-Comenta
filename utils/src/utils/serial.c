@@ -160,7 +160,7 @@ void revisar_paquete(t_paquete *paquete, t_log *logger, char *modulo)
 	{
 		log_debug(logger, "Paquete recibido de modulo %s\n", modulo);
 		log_debug(logger, "Deserializado del paquete:");
-		log_info(logger, "Codigo de operacion: %d", paquete->codigo_operacion);
+		log_debug(logger, "Codigo de operacion: %d", paquete->codigo_operacion);
 		log_debug(logger, "Size del buffer en paquete: %d", paquete->size_buffer);
 		log_debug(logger, "Deserializado del buffer:");
 		log_debug(logger, "Size del stream: %d", paquete->buffer->size);
@@ -173,7 +173,7 @@ void revisar_paquete(t_paquete *paquete, t_log *logger, char *modulo)
 	}
 	else
 	{
-		log_info(logger, "Kernel solicito el apagado del modulo.");
+		log_debug(logger, "Kernel solicito el apagado del modulo.");
 	}
 }
 

@@ -26,36 +26,11 @@
 #include <pwd.h>
 #include "kernel.h"
 
-typedef struct hilos_args
-{
-    t_log *logger;
-    t_kernel *kernel;
-    t_diagrama_estados *estados;
-    int kernel_orden_apagado;
-} hilos_args;
-
-typedef struct hilos_io_args
-{
-    hilos_args *args;
-    int socket;
-} hilos_io_args;
-
-typedef enum
-{
-    INT,
-    CHAR
-} t_parametro;
-
 typedef void (*t_funcion_ptr)(t_log *, t_op_code, t_buffer *);
-typedef void (*t_funcion_kernel_ptr)(t_log *, t_op_code, hilos_args *, t_buffer *);
 
 void hilo_ejecutar(t_log *logger, int socket, char *modulo_emisor, t_funcion_ptr switch_case_atencion);
-void hilo_ejecutar_kernel(int socket, hilos_args *args, char *modulo, t_funcion_kernel_ptr switch_case_atencion);
 
 void conexion_crear(t_log *logger, char *ip, int puerto, int *socket_modulo, char *modulo, t_handshake codigo_esperado);
 void conexion_recibir(t_log *logger, int socket_servidor, int *socket_modulo, char *modulo, t_handshake codigo_esperado);
-
-void imprimir_log_simple(sem_t *sem, t_log *logger, t_log_level nivel, const char *mensaje);
-void imprimir_log(hilos_args *args, t_log_level nivel, const char *mensaje, ...) __attribute__((format(printf, 3, 4)));
 
 #endif /* TEMPLATE_H */

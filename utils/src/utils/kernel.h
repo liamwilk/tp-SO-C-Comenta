@@ -73,76 +73,26 @@ typedef struct t_kernel
     sem_t planificador_iniciar;
     sem_t sistema_finalizar;
     sem_t log_lock;
-    sem_t thread_log_lock;
+    sem_t memoria_consola_finalizacion_proceso;
+    sem_t memoria_consola_nuevo_proceso;
     bool detener_planificador;
     t_kernel_sockets sockets;
     t_kernel_threads threads;
     pthread_mutex_t lock;
 } t_kernel;
 
-/**
- * Agrega un socket al kernel
- *
- * @param kernel El puntero al kernel.
- * @param type El tipo de socket agregar
- * @param socket El socket a agregar
- * @return El struct de sockets actualizado
- */
-t_kernel_sockets kernel_sockets_agregar(t_kernel *kernel, KERNEL_SOCKETS type, int socket);
+typedef struct
+{
+    t_log *logger;
+    t_kernel *kernel;
+    t_diagrama_estados *estados;
+    int kernel_orden_apagado;
+} hilos_args;
 
-/**
- * @fn    kernel_inicializar
- * @brief Inicializa el kernel junto con todas sus configuraciones
- * @param config Instancia de module.config
- * @return Kernel: Struct de kernel
- */
-t_kernel kernel_inicializar(t_config *config);
-
-/**
- * @fn    log_kernel
- * @brief Log obligatorios de kernel junto con su configuracion
- * @param kernel Instancia de kernel (kernel_inicializar)
- * @param logger Instancia de t_log
- */
-void kernel_log(t_kernel kernel, t_log *logger);
-
-/**----PROCESOS Y ESTADOS----**/
-
-/**
- * Inicializa los estados de las colas del kernel.
- *
- * Esta función inicializa los estados de las colas del kernel, que incluyen las colas new, ready, exec, block y exit.
- *
- * @param estados  Diagrama de 5 estados
- */
-t_diagrama_estados kernel_inicializar_estados(t_diagrama_estados *estados);
-
-/**
- * @brief Crea un nuevo proceso en el kernel.
- *
- * Esta función se encarga de crear un nuevo proceso en el kernel. Envia el struct t_kernel_memoria_proceso al modulo memoria
- *
- * @param kernel Un puntero a la estructura del kernel.
- * @param new  Un puntero a la cola de new.
- * @param logger Un puntero al logger.
- * @param instrucciones Una cadena de caracteres que contiene las instrucciones para el nuevo proceso.
- */
-t_pcb *kernel_nuevo_proceso(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger, char *instrucciones);
-
-void kernel_enviar_pcb_cpu(t_kernel *kernel, t_pcb *pcb, KERNEL_SOCKETS cpu);
-
-/** FUNCIONES DE CONSOLA**/
-
-void kernel_finalizar(t_kernel *kernel);
-
-t_pcb *kernel_transicion_ready_exec(t_diagrama_estados *estados, t_kernel *kernel);
-
-t_pcb *kernel_transicion_exec_block(t_diagrama_estados *estados);
-
-t_pcb *kernel_transicion_block_ready(t_diagrama_estados *estados, t_log *logger);
-
-t_pcb *kernel_transicion_exec_ready(t_diagrama_estados *estados, t_log *logger, t_kernel *kernel);
-
-void kernel_desalojar_proceso(t_diagrama_estados *estados, t_kernel *kernel, t_log *logger, t_pcb *proceso);
+typedef struct
+{
+    hilos_args *args;
+    int socket;
+} hilos_io_args;
 
 #endif /* KERNEL_H */

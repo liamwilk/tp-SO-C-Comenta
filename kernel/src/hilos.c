@@ -5,7 +5,7 @@
 void *hilos_atender_consola(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-    imprimir_header();
+    imprimir_header(hiloArgs);
 
     const char *username = getenv("USER");
     if (username == NULL)
@@ -42,8 +42,10 @@ void *hilos_atender_consola(void *args)
 
     while (hiloArgs->kernel_orden_apagado)
     {
+        pthread_mutex_lock(&hiloArgs->kernel->lock);
         rl_set_prompt("");
         rl_replace_line("", 0);
+        pthread_mutex_unlock(&hiloArgs->kernel->lock);
         rl_redisplay();
 
         linea = readline(prompt);
@@ -58,7 +60,7 @@ void *hilos_atender_consola(void *args)
         {
             if (!separar_linea[1] == 0)
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+                log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
 
                 // char *pathInstrucciones = separar_linea[1];
                 //  ejecutar_sript(pathInstrucciones, hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
@@ -66,7 +68,7 @@ void *hilos_atender_consola(void *args)
             }
             else
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un path. Vuelva a intentar");
+                log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un path. Vuelva a intentar");
                 break;
             }
         }
@@ -74,16 +76,15 @@ void *hilos_atender_consola(void *args)
         {
             if (separar_linea[1] == 0)
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un path. Vuelva a intentar");
+                log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un path. Vuelva a intentar");
                 break;
             }
             else
             {
-                // sem_wait(&hiloArgs->kernel->thread_log_lock);
-                // imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-                // sem_post(&hiloArgs->kernel->thread_log_lock);
+                log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
                 char *pathInstrucciones = separar_linea[1];
-                kernel_nuevo_proceso((hiloArgs->kernel), hiloArgs->estados, hiloArgs->logger, pathInstrucciones);
+                kernel_nuevo_proceso(hiloArgs, hiloArgs->estados, hiloArgs->logger, pathInstrucciones);
+                sem_wait(&hiloArgs->kernel->memoria_consola_nuevo_proceso);
                 break;
             }
         }
@@ -91,24 +92,20 @@ void *hilos_atender_consola(void *args)
         {
             if (separar_linea[1] == 0)
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "Falta proporcionar un numero de PID para eliminar. Vuelva a intentar.");
+                log_generic(hiloArgs, LOG_LEVEL_ERROR, "Falta proporcionar un numero de PID para eliminar. Vuelva a intentar.");
                 break;
             }
             else
             {
-                sem_wait(&hiloArgs->kernel->thread_log_lock);
-                imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-                sem_post(&hiloArgs->kernel->thread_log_lock);
+                log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
                 bool existe = proceso_matar(hiloArgs->estados, separar_linea[1]);
                 int pidReceived = atoi(separar_linea[1]);
 
                 if (!existe)
                 {
-                    imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "El PID <%d> no existe", pidReceived);
+                    log_generic(hiloArgs, LOG_LEVEL_ERROR, "El PID <%d> no existe", pidReceived);
                     break;
                 }
-
-                imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se elimino el proceso <%d>", pidReceived);
 
                 t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
                 t_kernel_memoria_finalizar_proceso *proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
@@ -116,6 +113,7 @@ void *hilos_atender_consola(void *args)
                 serializar_t_kernel_memoria_finalizar_proceso(&paquete, proceso);
                 enviar_paquete(paquete, hiloArgs->kernel->sockets.memoria);
 
+                log_generic(hiloArgs, LOG_LEVEL_INFO, "Se elimino el proceso <%d>", pidReceived);
                 eliminar_paquete(paquete);
                 free(proceso);
                 break;
@@ -127,16 +125,16 @@ void *hilos_atender_consola(void *args)
             sem_getvalue(&hiloArgs->kernel->planificador_iniciar, &iniciar_algoritmo_valor);
             if (iniciar_algoritmo_valor == -1)
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "No se puede detener la planificacion si no está iniciada");
+                log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se puede detener la planificacion si no está iniciada");
                 break;
             }
             hilo_planificador_detener(hiloArgs);
-            imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
+            log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
             break;
         }
         case INICIAR_PLANIFICACION:
         {
-            imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
+            log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
             hilo_planificador_iniciar(hiloArgs);
             sem_post(&hiloArgs->kernel->planificador_iniciar);
             break;
@@ -145,15 +143,15 @@ void *hilos_atender_consola(void *args)
         {
             if (separar_linea[1] == 0)
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un numero para el grado de multiprogramacion. Vuelva a intentar");
+                log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un numero para el grado de multiprogramacion. Vuelva a intentar");
                 break;
             }
             else
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+                log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
                 int grado_multiprogramacion = atoi(separar_linea[1]);
                 hiloArgs->kernel->gradoMultiprogramacion = grado_multiprogramacion;
-                imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se cambio el grado de multiprogramacion a %d", grado_multiprogramacion);
+                log_generic(hiloArgs, LOG_LEVEL_INFO, "Se cambio el grado de multiprogramacion a %d", grado_multiprogramacion);
                 break;
             }
         }
@@ -161,36 +159,30 @@ void *hilos_atender_consola(void *args)
         {
             if (separar_linea[1] == 0)
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un PID para consultar el proceso. Vuelva a intentar");
+                log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un PID para consultar el proceso. Vuelva a intentar");
                 break;
             }
             else
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+                log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
                 break;
             }
         }
         case FINALIZAR_CONSOLA:
         {
-            imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se solicito el apagado del Sistema Operativo");
+            log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
 
             pthread_mutex_lock(&hiloArgs->kernel->lock);
             hiloArgs->kernel_orden_apagado = 0;
             pthread_mutex_unlock(&hiloArgs->kernel->lock);
 
-            /* TODO: Acá hay que limpiar hilos_args entero menos la parte de kernel
-             que se necesita para enviar el mensaje de finalizar a los modulos. Luego si, finalizar el kernel. Luego limpiar la parte de kernel dentro de kernel_finalizar
+            kernel_finalizar(hiloArgs);
 
-            Desbloqueo el proceso hilo_planificador para que lea la señal de finalizacion de kernel_orden_apagado
-            */
-
-            imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Finalizando consola.");
-            kernel_finalizar(hiloArgs->kernel);
             break;
         }
         default:
         {
-            imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "Comando no reconocido. Vuelva a intentar.");
+            log_generic(hiloArgs, LOG_LEVEL_ERROR, "Comando no reconocido. Vuelva a intentar.");
             break;
         }
         }
@@ -221,8 +213,8 @@ void *hilo_planificador(void *args)
     {
     case FIFO:
     {
-        imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
-        imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
+        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
+        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
 
         while (obtener_key_finalizacion_hilo(hiloArgs))
         {
@@ -236,14 +228,14 @@ void *hilo_planificador(void *args)
             // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
             if (obtener_key_detencion_algoritmo(hiloArgs))
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO pausada.");
+                log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO pausada.");
                 continue;
             }
 
             // Con esto me aseguro que la proxima iteracion se ejecute hasta que se reciba la señal de detencion
             sem_post(&hiloArgs->kernel->planificador_iniciar);
 
-            imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO continua.");
+            log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO continua.");
 
             sleep(2);
 
@@ -258,8 +250,8 @@ void *hilo_planificador(void *args)
     }
     case RR:
     {
-        imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
-        imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
+        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
+        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
 
         while (obtener_key_finalizacion_hilo(hiloArgs))
         {
@@ -273,14 +265,14 @@ void *hilo_planificador(void *args)
             // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
             if (obtener_key_detencion_algoritmo(hiloArgs))
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO pausada.");
+                log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO pausada.");
                 continue;
             }
 
             // Con esto me aseguro que la proxima iteracion se ejecute hasta que se reciba la señal de detencion
             sem_post(&hiloArgs->kernel->planificador_iniciar);
 
-            imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO continua.");
+            log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO continua.");
 
             sleep(2);
 
@@ -295,8 +287,8 @@ void *hilo_planificador(void *args)
     }
     case VRR:
     {
-        imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
-        imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
+        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
+        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
 
         while (obtener_key_finalizacion_hilo(hiloArgs))
         {
@@ -310,14 +302,14 @@ void *hilo_planificador(void *args)
             // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
             if (obtener_key_detencion_algoritmo(hiloArgs))
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO pausada.");
+                log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO pausada.");
                 continue;
             }
 
             // Con esto me aseguro que la proxima iteracion se ejecute hasta que se reciba la señal de detencion
             sem_post(&hiloArgs->kernel->planificador_iniciar);
 
-            imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO continua.");
+            log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO continua.");
 
             sleep(2);
 
@@ -332,11 +324,11 @@ void *hilo_planificador(void *args)
     }
     default:
     {
-        imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "Algoritmo de planificacion no reconocido.");
+        log_generic(hiloArgs, LOG_LEVEL_ERROR, "Algoritmo de planificacion no reconocido.");
         break;
     }
     }
-    imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Se cierra Hilo Planificador.");
+    log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se cierra Hilo Planificador.");
     usleep(500);
     sem_post(&hiloArgs->kernel->sistema_finalizar);
     pthread_exit(0);

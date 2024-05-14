@@ -7,25 +7,25 @@ int main()
 	config = iniciar_config(logger);
 	kernel = kernel_inicializar(config);
 	estados = kernel_inicializar_estados(&estados);
-	kernel_log(kernel, logger);
+
 	inicializar_args();
 	inicializar_semaforos();
 	pthread_mutex_init(&kernel.lock, NULL);
 
+	kernel_log(&args);
+
 	/*----HILOS----*/
 
 	hilos_memoria_inicializar(&args, thread_conectar_memoria, args.kernel->threads.thread_atender_memoria);
-
 	hilos_cpu_inicializar(&args, thread_conectar_cpu_dispatch, args.kernel->threads.thread_atender_cpu_dispatch, thread_conectar_cpu_interrupt, args.kernel->threads.thread_atender_cpu_interrupt);
-
 	kernel.sockets.server = iniciar_servidor(logger, kernel.puertoEscucha);
-
 	hilos_io_inicializar(&args, args.kernel->threads.thread_atender_entrada_salida);
-
 	hilos_planificador_inicializar(&args, args.kernel->threads.thread_planificador);
-
 	hilos_consola_inicializar(&args, args.kernel->threads.thread_atender_consola);
 
+	/*----LIBERO----*/
+
+	printf("\n");
 	log_destroy(logger);
 	config_destroy(config);
 	return 0;
@@ -47,7 +47,7 @@ void inicializar_args()
 void inicializar_semaforos()
 {
 	sem_init(&kernel.planificador_iniciar, 0, 0);
-	sem_init(&kernel.sistema_finalizar, 0, 5);
+	sem_init(&kernel.memoria_consola_nuevo_proceso, 0, 0);
+	sem_init(&kernel.sistema_finalizar, 0, 4);
 	sem_init(&kernel.log_lock, 0, 1);
-	sem_init(&kernel.thread_log_lock, 0, 1);
 }
