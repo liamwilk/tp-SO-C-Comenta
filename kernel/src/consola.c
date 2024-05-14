@@ -405,6 +405,14 @@ void kernel_finalizar(hilos_args *args)
 
     log_generic(args, LOG_LEVEL_INFO, "Finalizando Kernel");
 
+    // Borro el comando FINALIZAR de la seccion de texto de la consola antes de terminar.
+    pthread_mutex_lock(&args->kernel->lock);
+    rl_set_prompt("");
+    rl_replace_line("", 0);
+    pthread_mutex_unlock(&args->kernel->lock);
+
+    rl_redisplay();
+
     pthread_mutex_destroy(&args->kernel->lock);
 
     sem_destroy(&args->kernel->sistema_finalizar);
