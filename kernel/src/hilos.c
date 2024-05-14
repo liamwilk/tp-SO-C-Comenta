@@ -42,11 +42,13 @@ void *hilos_atender_consola(void *args)
 
     while (hiloArgs->kernel_orden_apagado)
     {
+        sem_wait(&hiloArgs->kernel->log_lock);
         pthread_mutex_lock(&hiloArgs->kernel->lock);
         rl_set_prompt("");
         rl_replace_line("", 0);
         pthread_mutex_unlock(&hiloArgs->kernel->lock);
         rl_redisplay();
+        sem_post(&hiloArgs->kernel->log_lock);
 
         linea = readline(prompt);
         if (linea && *linea)
