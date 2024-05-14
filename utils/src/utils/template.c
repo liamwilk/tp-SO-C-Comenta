@@ -44,6 +44,10 @@ void hilo_ejecutar_kernel(int socket, hilos_args *args, char *modulo, t_funcion_
 
         eliminar_paquete(paquete);
     }
+    imprimir_log(args, LOG_LEVEL_DEBUG, "Finalizando hilo de atencion a %s", modulo);
+    usleep(500);
+    fflush(stdout);
+    sem_post(&args->kernel->sistema_finalizar);
 }
 
 void conexion_crear(t_log *logger, char *ip, int puerto, int *socket_modulo, char *modulo, t_handshake codigo_esperado)
@@ -91,18 +95,16 @@ void conexion_recibir(t_log *logger, int socket_servidor, int *socket_modulo, ch
     log_debug(logger, "%s conectado en socket %d", modulo, *socket_modulo);
 }
 
-void imprimir_log_simple(pthread_mutex_t *mutex, t_log *logger, t_log_level nivel, const char *mensaje)
+void imprimir_log_simple(sem_t *sem, t_log *logger, t_log_level nivel, const char *mensaje)
 {
-    pthread_mutex_lock(mutex);
+    sem_wait(sem);
 
     // Guardar el estado actual de readline
     int saved_point = rl_point;
     char *saved_line = rl_copy_text(0, rl_end);
-    char *current_dir = getcwd(NULL, 0);
-    char *new_prompt = malloc(strlen(current_dir) + 3);
-    sprintf(new_prompt, "%s> ", current_dir);
 
     // Limpiar la línea actual
+    rl_save_prompt();
     rl_set_prompt("");
     rl_replace_line("", 0);
     rl_redisplay();
@@ -131,14 +133,15 @@ void imprimir_log_simple(pthread_mutex_t *mutex, t_log *logger, t_log_level nive
     }
 
     // Restaurar el estado de readline
-    rl_set_prompt(new_prompt);
+    rl_set_prompt("");
+    rl_replace_line("", 0);
+    rl_restore_prompt();
     rl_replace_line(saved_line, 0);
     rl_point = saved_point;
     rl_redisplay();
+
+    sem_post(sem);
     free(saved_line);
-    free(new_prompt);
-    free(current_dir);
-    pthread_mutex_unlock(mutex);
 }
 
 void imprimir_log(hilos_args *args, t_log_level nivel, const char *mensaje, ...)
@@ -162,7 +165,7 @@ void imprimir_log(hilos_args *args, t_log_level nivel, const char *mensaje, ...)
         vsnprintf(mensaje_formateado, needed_size, mensaje, args_list);
 
         // Llamar a la función que imprime el mensaje simple
-        imprimir_log_simple(&args->kernel->lock, args->logger, nivel, mensaje_formateado);
+        imprimir_log_simple(&args->kernel->log_lock, args->logger, nivel, mensaje_formateado);
 
         // Liberar la memoria del mensaje formateado
         free(mensaje_formateado);

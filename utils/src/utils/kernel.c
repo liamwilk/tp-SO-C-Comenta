@@ -156,6 +156,23 @@ void kernel_finalizar(t_kernel *kernel)
     liberar_conexion(&kernel->sockets.cpu_interrupt);
     liberar_conexion(&kernel->sockets.memoria);
 
+    // Si no fue iniciado la planificacion, debo marcarla como apagada y luego encenderla
+    // hilo_planificador_detener(hiloArgs);
+    // sem_post(&hiloArgs->kernel->planificador_iniciar);
+
+    // Espero a que todos los hilos terminen, uno por cada hilo de atencion + hilo planificador
+    // sem_wait(&kernel->sistema_finalizar); // Este es del hilo planificador pero hay que verificar que este prendido antes de esperarlo
+
+    sem_wait(&kernel->sistema_finalizar); // Memoria
+    sem_wait(&kernel->sistema_finalizar); // CPU Dispatch
+    sem_wait(&kernel->sistema_finalizar); // CPU Interurpt
+    sem_wait(&kernel->sistema_finalizar); // Entrada/Salida conector de hilos (se baja al romper socket server)
+
+    sem_destroy(&kernel->sistema_finalizar);
+    sem_destroy(&kernel->planificador_iniciar);
+    sem_destroy(&kernel->log_lock);
+    sem_destroy(&kernel->thread_log_lock);
+
     free(finalizar_kernel);
     eliminar_paquete(finalizar);
 };

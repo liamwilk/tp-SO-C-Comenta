@@ -7,22 +7,45 @@ void *hilos_atender_consola(void *args)
     hilos_args *hiloArgs = (hilos_args *)args;
     imprimir_header();
 
+    const char *username = getenv("USER");
+    if (username == NULL)
+    {
+        struct passwd *pw = getpwuid(getuid());
+        username = pw->pw_name;
+    }
+
+    char hostname[HOST_NAME_MAX];
+    gethostname(hostname, sizeof(hostname));
+
+    char cwd[PATH_MAX];
+    if (getcwd(cwd, sizeof(cwd)) == NULL)
+    {
+        perror("getcwd() error");
+    }
+
+    const char *home_dir = getenv("HOME");
+    if (home_dir != NULL && strstr(cwd, home_dir) == cwd)
+    {
+        size_t home_len = strlen(home_dir);
+        memmove(cwd + 1, cwd + home_len, strlen(cwd) - home_len + 1);
+        cwd[0] = '~';
+    }
+
+    char prompt[PATH_MAX + HOST_NAME_MAX + 50];
+    const char *green_bold = "\001\x1b[1;32m\002";
+    const char *blue_bold = "\001\x1b[1;34m\002";
+    const char *reset = "\001\x1b[0m\002";
+
+    snprintf(prompt, sizeof(prompt), "%s%s@%s%s:%s%s%s$ ", green_bold, username, hostname, reset, blue_bold, cwd, reset);
+
     char *linea = NULL;
-    char *current_dir = getcwd(NULL, 0);
-    char prompt[PATH_MAX + 3];
 
-    if (current_dir)
+    while (hiloArgs->kernel_orden_apagado)
     {
-        snprintf(prompt, sizeof(prompt), "\n%s> ", current_dir);
-        free(current_dir);
-    }
-    else
-    {
-        snprintf(prompt, sizeof(prompt), "\n> ");
-    }
+        rl_set_prompt("");
+        rl_replace_line("", 0);
+        rl_redisplay();
 
-    while (!hiloArgs->kernel_orden_apagado)
-    {
         linea = readline(prompt);
         if (linea && *linea)
         {
@@ -56,7 +79,9 @@ void *hilos_atender_consola(void *args)
             }
             else
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+                // sem_wait(&hiloArgs->kernel->thread_log_lock);
+                // imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+                // sem_post(&hiloArgs->kernel->thread_log_lock);
                 char *pathInstrucciones = separar_linea[1];
                 kernel_nuevo_proceso((hiloArgs->kernel), hiloArgs->estados, hiloArgs->logger, pathInstrucciones);
                 break;
@@ -71,7 +96,9 @@ void *hilos_atender_consola(void *args)
             }
             else
             {
+                sem_wait(&hiloArgs->kernel->thread_log_lock);
                 imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+                sem_post(&hiloArgs->kernel->thread_log_lock);
                 bool existe = proceso_matar(hiloArgs->estados, separar_linea[1]);
                 int pidReceived = atoi(separar_linea[1]);
 
@@ -96,28 +123,22 @@ void *hilos_atender_consola(void *args)
         }
         case DETENER_PLANIFICACION:
         {
-            int iniciar_planificador_valor;
-            sem_getvalue(&hiloArgs->kernel->iniciar_planificador, &iniciar_planificador_valor);
-
-            if (iniciar_planificador_valor == 0)
+            int iniciar_algoritmo_valor;
+            sem_getvalue(&hiloArgs->kernel->planificador_iniciar, &iniciar_algoritmo_valor);
+            if (iniciar_algoritmo_valor == -1)
             {
                 imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "No se puede detener la planificacion si no está iniciada");
                 break;
             }
-
-            imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
             hilo_planificador_detener(hiloArgs);
+            imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
             break;
         }
         case INICIAR_PLANIFICACION:
         {
             imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
-
-            // hilo_planificador_iniciar(hiloArgs);
-
-            sem_post(&hiloArgs->kernel->iniciar_planificador);
-            sem_post(&hiloArgs->kernel->iniciar_algoritmo);
-
+            hilo_planificador_iniciar(hiloArgs);
+            sem_post(&hiloArgs->kernel->planificador_iniciar);
             break;
         }
         case MULTIPROGRAMACION:
@@ -152,7 +173,10 @@ void *hilos_atender_consola(void *args)
         case FINALIZAR_CONSOLA:
         {
             imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se solicito el apagado del Sistema Operativo");
-            hiloArgs->kernel_orden_apagado = 1;
+
+            pthread_mutex_lock(&hiloArgs->kernel->lock);
+            hiloArgs->kernel_orden_apagado = 0;
+            pthread_mutex_unlock(&hiloArgs->kernel->lock);
 
             /* TODO: Acá hay que limpiar hilos_args entero menos la parte de kernel
              que se necesita para enviar el mensaje de finalizar a los modulos. Luego si, finalizar el kernel. Luego limpiar la parte de kernel dentro de kernel_finalizar
@@ -160,34 +184,13 @@ void *hilos_atender_consola(void *args)
             Desbloqueo el proceso hilo_planificador para que lea la señal de finalizacion de kernel_orden_apagado
             */
 
-            int iniciar_planificador_valor;
-            int iniciar_algoritmo_valor;
-
-            sem_getvalue(&hiloArgs->kernel->iniciar_planificador, &iniciar_planificador_valor);
-            sem_getvalue(&hiloArgs->kernel->iniciar_algoritmo, &iniciar_algoritmo_valor);
-
-            if (iniciar_planificador_valor == 0)
-            { // Si es cero, esta bloqueado el proceso. Tengo que desbloquearlo para apagar el sistema
-                sem_post(&hiloArgs->kernel->iniciar_planificador);
-            }
-
-            if (iniciar_algoritmo_valor == 0)
-            { // Si es cero, esta bloqueado el proceso. Tengo que desbloquearlo para apagar el sistema
-                sem_post(&hiloArgs->kernel->iniciar_algoritmo);
-            }
-
-            sem_destroy(&hiloArgs->kernel->iniciar_planificador);
-            sem_destroy(&hiloArgs->kernel->iniciar_algoritmo);
-
             imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Finalizando consola.");
-            printf("\n");
             kernel_finalizar(hiloArgs->kernel);
             break;
         }
         default:
         {
-            imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "Comando no reconocido. Vuelva a intentar");
-            imprimir_comandos();
+            imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "Comando no reconocido. Vuelva a intentar.");
             break;
         }
         }
@@ -214,37 +217,35 @@ void hilos_planificador_inicializar(hilos_args *args, pthread_t thread_planifica
 void *hilo_planificador(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-    // planificacion_largo_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
     switch (determinar_algoritmo(hiloArgs))
     {
     case FIFO:
     {
         imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
         imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
-        while (1)
-        {
-            sem_wait(&hiloArgs->kernel->iniciar_algoritmo);
 
-            // Si tengo que salir del planificador, rompo el bucle
-            if (obtener_key_finalizacion_hilo(hiloArgs))
+        while (obtener_key_finalizacion_hilo(hiloArgs))
+        {
+            sem_wait(&hiloArgs->kernel->planificador_iniciar);
+
+            if (!obtener_key_finalizacion_hilo(hiloArgs))
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Finalizando planificador.");
                 break;
             }
 
             // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
-            if (!obtener_key_finalizacion_algoritmo(hiloArgs))
+            if (obtener_key_detencion_algoritmo(hiloArgs))
             {
                 imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO pausada.");
                 continue;
             }
 
-            // Con esto me aseguro que el proximo se ejecute hasta que se reciba la señal de frenar
-            sem_post(&hiloArgs->kernel->iniciar_algoritmo);
+            // Con esto me aseguro que la proxima iteracion se ejecute hasta que se reciba la señal de detencion
+            sem_post(&hiloArgs->kernel->planificador_iniciar);
 
             imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO continua.");
 
-            sleep(10);
+            sleep(2);
 
             /* TODO: Manejar solamente la lógica de mover procesos de las colas de estados desde este hilo.
 
@@ -259,29 +260,29 @@ void *hilo_planificador(void *args)
     {
         imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
         imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
-        while (1)
-        {
-            sem_wait(&hiloArgs->kernel->iniciar_algoritmo);
 
-            // Si tengo que salir del planificador, rompo el bucle
-            if (obtener_key_finalizacion_hilo(hiloArgs))
+        while (obtener_key_finalizacion_hilo(hiloArgs))
+        {
+            sem_wait(&hiloArgs->kernel->planificador_iniciar);
+
+            if (!obtener_key_finalizacion_hilo(hiloArgs))
             {
                 break;
             }
 
             // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
-            if (!obtener_key_finalizacion_algoritmo(hiloArgs))
+            if (obtener_key_detencion_algoritmo(hiloArgs))
             {
                 imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO pausada.");
                 continue;
             }
 
-            // Con esto me aseguro que el proximo se ejecute hasta que se reciba la señal de frenar
-            sem_post(&hiloArgs->kernel->iniciar_algoritmo);
+            // Con esto me aseguro que la proxima iteracion se ejecute hasta que se reciba la señal de detencion
+            sem_post(&hiloArgs->kernel->planificador_iniciar);
 
             imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO continua.");
 
-            sleep(10);
+            sleep(2);
 
             /* TODO: Manejar solamente la lógica de mover procesos de las colas de estados desde este hilo.
 
@@ -296,29 +297,29 @@ void *hilo_planificador(void *args)
     {
         imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
         imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
-        while (1)
-        {
-            sem_wait(&hiloArgs->kernel->iniciar_algoritmo);
 
-            // Si tengo que salir del planificador, rompo el bucle
-            if (obtener_key_finalizacion_hilo(hiloArgs))
+        while (obtener_key_finalizacion_hilo(hiloArgs))
+        {
+            sem_wait(&hiloArgs->kernel->planificador_iniciar);
+
+            if (!obtener_key_finalizacion_hilo(hiloArgs))
             {
                 break;
             }
 
             // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
-            if (!obtener_key_finalizacion_algoritmo(hiloArgs))
+            if (obtener_key_detencion_algoritmo(hiloArgs))
             {
                 imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO pausada.");
                 continue;
             }
 
-            // Con esto me aseguro que el proximo se ejecute hasta que se reciba la señal de frenar
-            sem_post(&hiloArgs->kernel->iniciar_algoritmo);
+            // Con esto me aseguro que la proxima iteracion se ejecute hasta que se reciba la señal de detencion
+            sem_post(&hiloArgs->kernel->planificador_iniciar);
 
             imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO continua.");
 
-            sleep(10);
+            sleep(2);
 
             /* TODO: Manejar solamente la lógica de mover procesos de las colas de estados desde este hilo.
 
@@ -335,28 +336,42 @@ void *hilo_planificador(void *args)
         break;
     }
     }
-    imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificador finalizado.");
+    imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Se cierra Hilo Planificador.");
+    usleep(500);
+    sem_post(&hiloArgs->kernel->sistema_finalizar);
     pthread_exit(0);
 }
 
-void hilo_planificador_detener(hilos_args *hiloArgs)
+void hilo_planificador_detener(hilos_args *args)
 {
-    hiloArgs->kernel->continuar_planificador = false;
+    pthread_mutex_lock(&args->kernel->lock);
+    args->kernel->detener_planificador = true;
+    pthread_mutex_unlock(&args->kernel->lock);
 }
 
-void hilo_planificador_iniciar(hilos_args *hiloArgs)
+void hilo_planificador_iniciar(hilos_args *args)
 {
-    hiloArgs->kernel->continuar_planificador = true;
+    pthread_mutex_lock(&args->kernel->lock);
+    args->kernel->detener_planificador = false;
+    pthread_mutex_unlock(&args->kernel->lock);
 }
 
 int obtener_key_finalizacion_hilo(hilos_args *args)
 {
-    return args->kernel_orden_apagado;
+    int i;
+    pthread_mutex_lock(&args->kernel->lock);
+    i = args->kernel_orden_apagado;
+    pthread_mutex_unlock(&args->kernel->lock);
+    return i;
 }
 
-int obtener_key_finalizacion_algoritmo(hilos_args *args)
+int obtener_key_detencion_algoritmo(hilos_args *args)
 {
-    return args->kernel->continuar_planificador;
+    int i;
+    pthread_mutex_lock(&args->kernel->lock);
+    i = args->kernel->detener_planificador;
+    pthread_mutex_unlock(&args->kernel->lock);
+    return i;
 }
 
 t_algoritmo determinar_algoritmo(hilos_args *args)
@@ -567,6 +582,7 @@ void *hilos_esperar_entrada_salida(void *args)
             break;
         }
     }
+    sem_post(&hiloArgs->kernel->sistema_finalizar);
     pthread_exit(0);
 };
 

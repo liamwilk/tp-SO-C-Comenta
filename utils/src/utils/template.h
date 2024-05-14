@@ -22,6 +22,9 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include "kernel.h"
 
 typedef struct hilos_args
 {
@@ -52,7 +55,7 @@ void hilo_ejecutar_kernel(int socket, hilos_args *args, char *modulo, t_funcion_
 void conexion_crear(t_log *logger, char *ip, int puerto, int *socket_modulo, char *modulo, t_handshake codigo_esperado);
 void conexion_recibir(t_log *logger, int socket_servidor, int *socket_modulo, char *modulo, t_handshake codigo_esperado);
 
-void imprimir_log_simple(pthread_mutex_t *mutex, t_log *logger, t_log_level nivel, const char *mensaje);
+void imprimir_log_simple(sem_t *sem, t_log *logger, t_log_level nivel, const char *mensaje);
 void imprimir_log(hilos_args *args, t_log_level nivel, const char *mensaje, ...) __attribute__((format(printf, 3, 4)));
 
 #endif /* TEMPLATE_H */

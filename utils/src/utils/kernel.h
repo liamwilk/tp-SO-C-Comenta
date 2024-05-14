@@ -70,10 +70,11 @@ typedef struct t_kernel
     char *recursos;
     char *instanciasRecursos;
     int gradoMultiprogramacion;
-    sem_t iniciar_planificador;
-    sem_t iniciar_algoritmo;
-    sem_t actualizar_planificador;
-    bool continuar_planificador;
+    sem_t planificador_iniciar;
+    sem_t sistema_finalizar;
+    sem_t log_lock;
+    sem_t thread_log_lock;
+    bool detener_planificador;
     t_kernel_sockets sockets;
     t_kernel_threads threads;
     pthread_mutex_t lock;

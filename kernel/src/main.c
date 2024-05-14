@@ -36,7 +36,7 @@ void inicializar_args()
 	args.logger = logger;
 	args.kernel = &kernel;
 	args.estados = &estados;
-	args.kernel_orden_apagado = 0;
+	args.kernel_orden_apagado = 1;
 	args.kernel->sockets.entrada_salida_generic = 0;
 	args.kernel->sockets.entrada_salida_stdin = 0;
 	args.kernel->sockets.entrada_salida_stdout = 0;
@@ -46,6 +46,8 @@ void inicializar_args()
 
 void inicializar_semaforos()
 {
-	sem_init(&kernel.iniciar_planificador, 0, 0);
-	sem_init(&kernel.iniciar_algoritmo, 0, 0);
+	sem_init(&kernel.planificador_iniciar, 0, 0);
+	sem_init(&kernel.sistema_finalizar, 0, 5);
+	sem_init(&kernel.log_lock, 0, 1);
+	sem_init(&kernel.thread_log_lock, 0, 1);
 }
