@@ -1,5 +1,6 @@
 #ifndef PLANIFICACION_H_
 #define PLANIFICACION_H_
+#include "pthread.h"
 #include <consola.h>
 
 /**
@@ -29,5 +30,7 @@ void planificacion_largo_plazo(t_kernel *kernel, t_diagrama_estados *estados, t_
 void planificacion_corto_plazo(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger);
 
 void fifo(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger);
+
+void round_robin(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger);
 
 #endif /* PLANIFICACION_H_ */

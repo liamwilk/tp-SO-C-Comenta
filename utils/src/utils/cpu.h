@@ -60,7 +60,7 @@ void cpu_ejecutar_instruccion(t_cpu paquete, t_memoria_cpu_instruccion *datos_in
 
 int cpu_memoria_recibir_instruccion(t_buffer *buffer, t_log *logger, t_memoria_cpu_instruccion *datos_instruccion, t_instruccion *INSTRUCCION, t_cpu_proceso *proceso);
 
-void cpu_kernel_avisar_finalizacion(t_cpu_proceso proceso, int socket_kernel_interrupt);
+void cpu_kernel_avisar_finalizacion(t_cpu_proceso proceso, int socket_kernel_dispatch);
 
 t_cpu_proceso cpu_kernel_recibir_proceso(t_buffer *buffer, t_log *logger);
 
@@ -76,5 +76,8 @@ void remover_salto_linea(char *argumento_origen);
 bool casteo_verificar_uint_8t_valido(uint32_t valor);
 uint8_t casteo_uint8_t(uint32_t valor);
 uint32_t casteo_uint32_t(uint8_t valor);
+
+int cpu_recibir_interrupcion(t_log *logger, t_buffer *buffer, t_cpu_proceso proceso);
+void cpu_procesar_interrupt(t_log *logger, t_cpu cpu, t_cpu_proceso proceso);
 
 #endif /* CPU_H_ */

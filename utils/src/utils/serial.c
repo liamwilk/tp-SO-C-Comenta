@@ -160,7 +160,7 @@ void revisar_paquete(t_paquete *paquete, t_log *logger, char *modulo)
 	{
 		log_debug(logger, "Paquete recibido de modulo %s\n", modulo);
 		log_debug(logger, "Deserializado del paquete:");
-		log_info(logger, "Codigo de operacion: %d", paquete->codigo_operacion);
+		log_debug(logger, "Codigo de operacion: %d", paquete->codigo_operacion);
 		log_debug(logger, "Size del buffer en paquete: %d", paquete->size_buffer);
 		log_debug(logger, "Deserializado del buffer:");
 		log_debug(logger, "Size del stream: %d", paquete->buffer->size);
@@ -173,7 +173,7 @@ void revisar_paquete(t_paquete *paquete, t_log *logger, char *modulo)
 	}
 	else
 	{
-		log_info(logger, "Kernel solicito el apagado del modulo.");
+		log_debug(logger, "Kernel solicito el apagado del modulo.");
 	}
 }
 
@@ -671,4 +671,19 @@ t_kernel_cpu_proceso *deserializar_t_kernel_cpu_proceso(t_buffer *buffer)
 	deserializar_uint8_t(&stream, &(proceso->registros.dx));
 
 	return proceso;
+}
+
+void serializar_t_kernel_cpu_interrupcion(t_paquete **paquete, t_kernel_cpu_interrupcion *interrupcion)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t));
+	serializar_uint32_t(interrupcion->pid, *paquete);
+}
+
+t_kernel_cpu_interrupcion *deserializar_t_kernel_cpu_interrupcion(t_buffer *buffer)
+{
+	t_kernel_cpu_interrupcion *interrupcion = malloc(sizeof(t_kernel_cpu_interrupcion));
+	void *stream = buffer->stream;
+	deserializar_uint32_t(&stream, &(interrupcion->pid));
+
+	return interrupcion;
 }

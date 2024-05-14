@@ -712,7 +712,7 @@ t_cpu_proceso cpu_kernel_recibir_proceso(t_buffer *buffer, t_log *logger)
     return proceso;
 };
 
-void cpu_kernel_avisar_finalizacion(t_cpu_proceso proceso, int socket_kernel_interrupt)
+void cpu_kernel_avisar_finalizacion(t_cpu_proceso proceso, int socket_kernel_dispatch)
 {
     t_paquete *paquete_proceso = crear_paquete(CPU_KERNEL_PROCESO);
     t_cpu_kernel_proceso *fin_proceso = malloc(sizeof(t_cpu_kernel_proceso));
@@ -733,7 +733,7 @@ void cpu_kernel_avisar_finalizacion(t_cpu_proceso proceso, int socket_kernel_int
     fin_proceso->registros->dx = proceso.registros.dx;
 
     serializar_t_cpu_kernel_proceso(&paquete_proceso, fin_proceso);
-    enviar_paquete(paquete_proceso, socket_kernel_interrupt);
+    enviar_paquete(paquete_proceso, socket_kernel_dispatch);
 
     eliminar_paquete(paquete_proceso);
     free(fin_proceso->registros);
@@ -987,4 +987,37 @@ uint8_t casteo_uint8_t(uint32_t valor)
 uint32_t casteo_uint32_t(uint8_t valor)
 {
     return (uint32_t)valor;
+}
+
+int cpu_recibir_interrupcion(t_log *logger, t_buffer *buffer, t_cpu_proceso proceso)
+{
+    t_kernel_cpu_interrupcion *interrupcion = deserializar_t_kernel_cpu_interrupcion(buffer);
+    if (interrupcion->pid == proceso.pid)
+    {
+        log_debug(logger, "Se detecto una solicitud de interrupcion para el proceso de PID: %d. Actualizando flag de interrupt...", interrupcion->pid);
+        free(interrupcion);
+        return 1;
+    }
+    else
+    {
+        log_debug(logger, "El PID recibido (%d) no se corresponde con el que se esta ejecutando (%d). Se ignora la interrupcion.", interrupcion->pid, proceso.pid);
+        free(interrupcion);
+        return 0;
+    }
+}
+
+void cpu_procesar_interrupt(t_log *logger, t_cpu cpu, t_cpu_proceso proceso)
+{
+    log_debug(logger, "Se atiende interrupcion");
+
+    t_cpu_kernel_proceso *proceso_interrumpido = malloc(sizeof(t_cpu_kernel_proceso));
+    proceso_interrumpido->ejecutado = 0; // Desalojado por interrupcion
+    proceso_interrumpido->pid = proceso.pid;
+    proceso_interrumpido->registros = &proceso.registros;
+
+    // TODO: preguntar si este es el opcode que se usa
+    t_paquete *paquete = crear_paquete(CPU_KERNEL_PROCESO);
+    serializar_t_cpu_kernel_proceso(&paquete, proceso_interrumpido);
+    // TODO: esto cambiarlo a interrupt en el testeo
+    enviar_paquete(paquete, cpu.socket_kernel_dispatch);
 }

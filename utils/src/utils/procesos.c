@@ -26,14 +26,20 @@ void proceso_push_new(t_diagrama_estados *estados, t_pcb *pcb)
     dictionary_put(estados->procesos, pid_char, estado);
 };
 
-void proceso_push_ready(t_diagrama_estados *estados, t_pcb *pcb)
+void proceso_push_ready(t_diagrama_estados *estados, t_pcb *pcb, t_log *logger)
 {
     list_add(estados->ready, pcb);
     char *pid_char = string_itoa(pcb->pid);
-
     // Actualizo el diccionario de procesos
     char *estado = "READY";
     dictionary_put(estados->procesos, pid_char, estado);
+    // Loggear la cola de ready
+    log_info(logger, "Cola Ready <COLA>:");
+    for (int i = 0; i < list_size(estados->ready); i++)
+    {
+        t_pcb *proceso = list_get(estados->ready, i);
+        log_info(logger, "PID: <%d>", proceso->pid);
+    }
 };
 
 void proceso_push_exec(t_diagrama_estados *estados, t_pcb *pcb)
@@ -308,35 +314,54 @@ bool proceso_matar(t_diagrama_estados *estados, char *pid)
     return true;
 }
 
-t_pcb *proceso_transicion_ready_exec(t_diagrama_estados *estados)
+void procesos_inicializar_buffer_transiciones(t_dictionary *buffer)
 {
-    t_pcb *proceso = proceso_pop_ready(estados);
-    if (proceso == NULL)
+    char *transiciones[] = {
+        "NEW_READY",
+        "READY_EXEC",
+        "EXEC_BLOCK",
+        "BLOCK_READY",
+        "EXEC_READY",
+        "EXEC_EXIT",
+        "BLOCK_EXIT",
+        "NEW_EXIT",
+        "READY_EXIT",
+        "EXIT_CPU",
+        "EXIT_MEMORIA"};
+    for (int i = 0; i < 11; i++)
     {
-        return NULL;
+        dictionary_put(buffer, transiciones[i], list_create());
     }
-    proceso_push_exec(estados, proceso);
-    return proceso;
-};
+}
 
-t_pcb *proceso_transicion_exec_block(t_diagrama_estados *estados)
+char *obtener_transicion_enum(t_buffer_transicion TRANSICION)
 {
-    t_pcb *proceso = proceso_pop_exec(estados);
-    if (proceso == NULL)
+    // Dada una transicion devolver el char*
+    switch (TRANSICION)
     {
-        return NULL;
+    case NEW_READY:
+        return "NEW_READY";
+    case READY_EXEC:
+        return "READY_EXEC";
+    case EXEC_BLOCK:
+        return "EXEC_BLOCK";
+    case BLOCK_READY:
+        return "BLOCK_READY";
+    case EXEC_READY:
+        return "EXEC_READY";
+    case EXEC_EXIT:
+        return "EXEC_EXIT";
+    case NEW_EXIT:
+        return "NEW_EXIT";
+    case READY_EXIT:
+        return "READY_EXIT";
+    case EXIT_CPU:
+        return "EXIT_CPU";
+    case EXIT_MEMORIA:
+        return "EXIT_MEMORIA";
+    case BLOCK_EXIT:
+        return "BLOCK_EXIT";
+    default:
+        return "ERROR";
     }
-    proceso_push_block(estados, proceso);
-    return proceso;
-};
-
-t_pcb *proceso_transicion_block_ready(t_diagrama_estados *estados)
-{
-    t_pcb *proceso = proceso_pop_block(estados);
-    if (proceso == NULL)
-    {
-        return NULL;
-    }
-    proceso_push_ready(estados, proceso);
-    return proceso;
-};
+}

@@ -15,6 +15,9 @@ typedef struct t_diagrama_estados
     t_list *block;
     t_list *exit;
     t_dictionary *procesos; // Diccionario que mapea PID: ESTADO
+    pthread_mutex_t mutex_ready_exec;
+    pthread_mutex_t mutex_exec_ready;
+    t_dictionary *buffer_procesos;
 } t_diagrama_estados;
 
 typedef struct pcb
@@ -24,6 +27,21 @@ typedef struct pcb
     t_registros_cpu *registros_cpu;
     bool memoria_aceptado;
 } t_pcb;
+
+typedef enum t_buffer_transicion
+{
+    NEW_READY,
+    NEW_EXIT,
+    READY_EXEC,
+    READY_EXIT,
+    EXEC_EXIT,
+    EXEC_BLOCK,
+    EXEC_READY,
+    BLOCK_READY,
+    BLOCK_EXIT,
+    EXIT_CPU,
+    EXIT_MEMORIA
+} t_buffer_transicion;
 
 extern uint32_t pid;
 
@@ -68,7 +86,7 @@ void proceso_push_new(t_diagrama_estados *estados, t_pcb *pcb);
  * @param estados diagrama de 5 estados
  * @param pcb El PCB a agregar.
  */
-void proceso_push_ready(t_diagrama_estados *estados, t_pcb *pcb);
+void proceso_push_ready(t_diagrama_estados *estados, t_pcb *pcb, t_log *logger);
 
 /**
  * Agrega un PCB a la cola "exec".
@@ -217,10 +235,8 @@ char *proceso_estado(t_diagrama_estados *estados, int pid);
  */
 bool proceso_matar(t_diagrama_estados *estados, char *pid);
 
-t_pcb *proceso_transicion_ready_exec(t_diagrama_estados *estados);
+void procesos_inicializar_buffer_transiciones(t_dictionary *buffer);
 
-t_pcb *proceso_transicion_exec_block(t_diagrama_estados *estados);
-
-t_pcb *proceso_transicion_block_ready(t_diagrama_estados *estados);
+char *obtener_transicion_enum();
 
 #endif

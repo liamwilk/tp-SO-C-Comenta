@@ -5,24 +5,49 @@
 void *hilos_atender_consola(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-    imprimir_header();
+    imprimir_header(hiloArgs);
+
+    const char *username = getenv("USER");
+    if (username == NULL)
+    {
+        struct passwd *pw = getpwuid(getuid());
+        username = pw->pw_name;
+    }
+
+    char hostname[HOST_NAME_MAX];
+    gethostname(hostname, sizeof(hostname));
+
+    char cwd[PATH_MAX];
+    if (getcwd(cwd, sizeof(cwd)) == NULL)
+    {
+        perror("getcwd() error");
+    }
+
+    const char *home_dir = getenv("HOME");
+    if (home_dir != NULL && strstr(cwd, home_dir) == cwd)
+    {
+        size_t home_len = strlen(home_dir);
+        memmove(cwd + 1, cwd + home_len, strlen(cwd) - home_len + 1);
+        cwd[0] = '~';
+    }
+
+    char prompt[PATH_MAX + HOST_NAME_MAX + 50];
+    const char *green_bold = "\001\x1b[1;32m\002";
+    const char *blue_bold = "\001\x1b[1;34m\002";
+    const char *reset = "\001\x1b[0m\002";
+
+    snprintf(prompt, sizeof(prompt), "%s%s@%s%s:%s%s%s$ ", green_bold, username, hostname, reset, blue_bold, cwd, reset);
 
     char *linea = NULL;
-    char *current_dir = getcwd(NULL, 0);
-    char prompt[PATH_MAX + 3];
 
-    if (current_dir)
+    while (hiloArgs->kernel_orden_apagado)
     {
-        snprintf(prompt, sizeof(prompt), "\n%s> ", current_dir);
-        free(current_dir);
-    }
-    else
-    {
-        snprintf(prompt, sizeof(prompt), "\n> ");
-    }
+        pthread_mutex_lock(&hiloArgs->kernel->lock);
+        rl_set_prompt("");
+        rl_replace_line("", 0);
+        pthread_mutex_unlock(&hiloArgs->kernel->lock);
+        rl_redisplay();
 
-    while (!hiloArgs->kernel_orden_apagado)
-    {
         linea = readline(prompt);
         if (linea && *linea)
         {
@@ -35,7 +60,7 @@ void *hilos_atender_consola(void *args)
         {
             if (!separar_linea[1] == 0)
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+                log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
 
                 // char *pathInstrucciones = separar_linea[1];
                 //  ejecutar_sript(pathInstrucciones, hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
@@ -43,7 +68,7 @@ void *hilos_atender_consola(void *args)
             }
             else
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un path. Vuelva a intentar");
+                log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un path. Vuelva a intentar");
                 break;
             }
         }
@@ -51,14 +76,15 @@ void *hilos_atender_consola(void *args)
         {
             if (separar_linea[1] == 0)
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un path. Vuelva a intentar");
+                log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un path. Vuelva a intentar");
                 break;
             }
             else
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+                log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
                 char *pathInstrucciones = separar_linea[1];
-                kernel_nuevo_proceso((hiloArgs->kernel), hiloArgs->estados, hiloArgs->logger, pathInstrucciones);
+                kernel_nuevo_proceso(hiloArgs, hiloArgs->estados, hiloArgs->logger, pathInstrucciones);
+                sem_wait(&hiloArgs->kernel->memoria_consola_nuevo_proceso);
                 break;
             }
         }
@@ -66,24 +92,20 @@ void *hilos_atender_consola(void *args)
         {
             if (separar_linea[1] == 0)
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "Falta proporcionar un numero de PID para eliminar. Vuelva a intentar.");
+                log_generic(hiloArgs, LOG_LEVEL_ERROR, "Falta proporcionar un numero de PID para eliminar. Vuelva a intentar.");
                 break;
             }
             else
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+                log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
                 bool existe = proceso_matar(hiloArgs->estados, separar_linea[1]);
                 int pidReceived = atoi(separar_linea[1]);
 
-                // TODO: Hay que eliminar el proceso de la cola  pertinente aca solo lo busca
-
                 if (!existe)
                 {
-                    imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "El PID <%d> no existe", pidReceived);
+                    log_generic(hiloArgs, LOG_LEVEL_ERROR, "El PID <%d> no existe", pidReceived);
                     break;
                 }
-
-                imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se elimino el proceso <%d>", pidReceived);
 
                 t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
                 t_kernel_memoria_finalizar_proceso *proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
@@ -91,6 +113,7 @@ void *hilos_atender_consola(void *args)
                 serializar_t_kernel_memoria_finalizar_proceso(&paquete, proceso);
                 enviar_paquete(paquete, hiloArgs->kernel->sockets.memoria);
 
+                log_generic(hiloArgs, LOG_LEVEL_INFO, "Se elimino el proceso <%d>", pidReceived);
                 eliminar_paquete(paquete);
                 free(proceso);
                 break;
@@ -98,45 +121,37 @@ void *hilos_atender_consola(void *args)
         }
         case DETENER_PLANIFICACION:
         {
-            int iniciar_planificador_valor;
-            sem_getvalue(&hiloArgs->kernel->iniciar_planificador, &iniciar_planificador_valor);
-
-            if (iniciar_planificador_valor == 0)
+            int iniciar_algoritmo_valor;
+            sem_getvalue(&hiloArgs->kernel->planificador_iniciar, &iniciar_algoritmo_valor);
+            if (iniciar_algoritmo_valor == -1)
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "No se puede detener la planificacion si no está iniciada");
+                log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se puede detener la planificacion si no está iniciada");
                 break;
             }
-
-            imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
             hilo_planificador_detener(hiloArgs);
+            log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
             break;
         }
         case INICIAR_PLANIFICACION:
         {
-            imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
-
-            // hilo_planificador_iniciar(hiloArgs);
-
-            sem_post(&hiloArgs->kernel->iniciar_planificador);
-            sem_post(&hiloArgs->kernel->iniciar_algoritmo);
-
-            // planificacion_largo_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
-            // planificacion_corto_plazo(hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
+            log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
+            hilo_planificador_iniciar(hiloArgs);
+            sem_post(&hiloArgs->kernel->planificador_iniciar);
             break;
         }
         case MULTIPROGRAMACION:
         {
             if (separar_linea[1] == 0)
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un numero para el grado de multiprogramacion. Vuelva a intentar");
+                log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un numero para el grado de multiprogramacion. Vuelva a intentar");
                 break;
             }
             else
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+                log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
                 int grado_multiprogramacion = atoi(separar_linea[1]);
                 hiloArgs->kernel->gradoMultiprogramacion = grado_multiprogramacion;
-                imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se cambio el grado de multiprogramacion a %d", grado_multiprogramacion);
+                log_generic(hiloArgs, LOG_LEVEL_INFO, "Se cambio el grado de multiprogramacion a %d", grado_multiprogramacion);
                 break;
             }
         }
@@ -144,54 +159,30 @@ void *hilos_atender_consola(void *args)
         {
             if (separar_linea[1] == 0)
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un PID para consultar el proceso. Vuelva a intentar");
+                log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un PID para consultar el proceso. Vuelva a intentar");
                 break;
             }
             else
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+                log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
                 break;
             }
         }
         case FINALIZAR_CONSOLA:
         {
-            imprimir_log(hiloArgs, LOG_LEVEL_INFO, "Se solicito el apagado del Sistema Operativo");
-            hiloArgs->kernel_orden_apagado = 1;
+            log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
 
-            /* TODO: Acá hay que limpiar hilos_args entero menos la parte de kernel
-             que se necesita para enviar el mensaje de finalizar a los modulos. Luego si, finalizar el kernel. Luego limpiar la parte de kernel dentro de kernel_finalizar
+            pthread_mutex_lock(&hiloArgs->kernel->lock);
+            hiloArgs->kernel_orden_apagado = 0;
+            pthread_mutex_unlock(&hiloArgs->kernel->lock);
 
-            Desbloqueo el proceso hilo_planificador para que lea la señal de finalizacion de kernel_orden_apagado
-            */
+            kernel_finalizar(hiloArgs);
 
-            int iniciar_planificador_valor;
-            int iniciar_algoritmo_valor;
-
-            sem_getvalue(&hiloArgs->kernel->iniciar_planificador, &iniciar_planificador_valor);
-            sem_getvalue(&hiloArgs->kernel->iniciar_algoritmo, &iniciar_algoritmo_valor);
-
-            if (iniciar_planificador_valor == 0)
-            { // Si es cero, esta bloqueado el proceso. Tengo que desbloquearlo para apagar el sistema
-                sem_post(&hiloArgs->kernel->iniciar_planificador);
-            }
-
-            if (iniciar_algoritmo_valor == 0)
-            { // Si es cero, esta bloqueado el proceso. Tengo que desbloquearlo para apagar el sistema
-                sem_post(&hiloArgs->kernel->iniciar_algoritmo);
-            }
-
-            sem_destroy(&hiloArgs->kernel->iniciar_planificador);
-            sem_destroy(&hiloArgs->kernel->iniciar_algoritmo);
-
-            imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Finalizando consola.");
-            printf("\n");
-            kernel_finalizar(hiloArgs->kernel);
             break;
         }
         default:
         {
-            imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "Comando no reconocido. Vuelva a intentar");
-            imprimir_comandos();
+            log_generic(hiloArgs, LOG_LEVEL_ERROR, "Comando no reconocido. Vuelva a intentar.");
             break;
         }
         }
@@ -207,6 +198,8 @@ void hilos_consola_inicializar(hilos_args *args, pthread_t thread_atender_consol
     pthread_join(thread_atender_consola, NULL);
 }
 
+/*----PLANIFICACION----*/
+
 void hilos_planificador_inicializar(hilos_args *args, pthread_t thread_planificador)
 {
     pthread_create(&thread_planificador, NULL, hilo_planificador, args);
@@ -220,32 +213,31 @@ void *hilo_planificador(void *args)
     {
     case FIFO:
     {
-        imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
-        imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
-        while (1)
-        {
-            sem_wait(&hiloArgs->kernel->iniciar_algoritmo);
+        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
+        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
 
-            // Si tengo que salir del planificador, rompo el bucle
-            if (obtener_key_finalizacion_hilo(hiloArgs))
+        while (obtener_key_finalizacion_hilo(hiloArgs))
+        {
+            sem_wait(&hiloArgs->kernel->planificador_iniciar);
+
+            if (!obtener_key_finalizacion_hilo(hiloArgs))
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Finalizando planificador.");
                 break;
             }
 
             // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
-            if (!obtener_key_finalizacion_algoritmo(hiloArgs))
+            if (obtener_key_detencion_algoritmo(hiloArgs))
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO pausada.");
+                log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO pausada.");
                 continue;
             }
 
-            // Con esto me aseguro que el proximo se ejecute hasta que se reciba la señal de frenar
-            sem_post(&hiloArgs->kernel->iniciar_algoritmo);
+            // Con esto me aseguro que la proxima iteracion se ejecute hasta que se reciba la señal de detencion
+            sem_post(&hiloArgs->kernel->planificador_iniciar);
 
-            imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO continua.");
+            log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO continua.");
 
-            sleep(10);
+            sleep(2);
 
             /* TODO: Manejar solamente la lógica de mover procesos de las colas de estados desde este hilo.
 
@@ -258,31 +250,31 @@ void *hilo_planificador(void *args)
     }
     case RR:
     {
-        imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
-        imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
-        while (1)
-        {
-            sem_wait(&hiloArgs->kernel->iniciar_algoritmo);
+        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
+        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
 
-            // Si tengo que salir del planificador, rompo el bucle
-            if (obtener_key_finalizacion_hilo(hiloArgs))
+        while (obtener_key_finalizacion_hilo(hiloArgs))
+        {
+            sem_wait(&hiloArgs->kernel->planificador_iniciar);
+
+            if (!obtener_key_finalizacion_hilo(hiloArgs))
             {
                 break;
             }
 
             // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
-            if (!obtener_key_finalizacion_algoritmo(hiloArgs))
+            if (obtener_key_detencion_algoritmo(hiloArgs))
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO pausada.");
+                log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO pausada.");
                 continue;
             }
 
-            // Con esto me aseguro que el proximo se ejecute hasta que se reciba la señal de frenar
-            sem_post(&hiloArgs->kernel->iniciar_algoritmo);
+            // Con esto me aseguro que la proxima iteracion se ejecute hasta que se reciba la señal de detencion
+            sem_post(&hiloArgs->kernel->planificador_iniciar);
 
-            imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO continua.");
+            log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO continua.");
 
-            sleep(10);
+            sleep(2);
 
             /* TODO: Manejar solamente la lógica de mover procesos de las colas de estados desde este hilo.
 
@@ -295,31 +287,31 @@ void *hilo_planificador(void *args)
     }
     case VRR:
     {
-        imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
-        imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
-        while (1)
-        {
-            sem_wait(&hiloArgs->kernel->iniciar_algoritmo);
+        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
+        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
 
-            // Si tengo que salir del planificador, rompo el bucle
-            if (obtener_key_finalizacion_hilo(hiloArgs))
+        while (obtener_key_finalizacion_hilo(hiloArgs))
+        {
+            sem_wait(&hiloArgs->kernel->planificador_iniciar);
+
+            if (!obtener_key_finalizacion_hilo(hiloArgs))
             {
                 break;
             }
 
             // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
-            if (!obtener_key_finalizacion_algoritmo(hiloArgs))
+            if (obtener_key_detencion_algoritmo(hiloArgs))
             {
-                imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO pausada.");
+                log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO pausada.");
                 continue;
             }
 
-            // Con esto me aseguro que el proximo se ejecute hasta que se reciba la señal de frenar
-            sem_post(&hiloArgs->kernel->iniciar_algoritmo);
+            // Con esto me aseguro que la proxima iteracion se ejecute hasta que se reciba la señal de detencion
+            sem_post(&hiloArgs->kernel->planificador_iniciar);
 
-            imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO continua.");
+            log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO continua.");
 
-            sleep(10);
+            sleep(2);
 
             /* TODO: Manejar solamente la lógica de mover procesos de las colas de estados desde este hilo.
 
@@ -332,32 +324,46 @@ void *hilo_planificador(void *args)
     }
     default:
     {
-        imprimir_log(hiloArgs, LOG_LEVEL_ERROR, "Algoritmo de planificacion no reconocido.");
+        log_generic(hiloArgs, LOG_LEVEL_ERROR, "Algoritmo de planificacion no reconocido.");
         break;
     }
     }
-    imprimir_log(hiloArgs, LOG_LEVEL_DEBUG, "Planificador finalizado.");
+    log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se cierra Hilo Planificador.");
+    usleep(500);
+    sem_post(&hiloArgs->kernel->sistema_finalizar);
     pthread_exit(0);
 }
 
-void hilo_planificador_detener(hilos_args *hiloArgs)
+void hilo_planificador_detener(hilos_args *args)
 {
-    hiloArgs->kernel->continuar_planificador = false;
+    pthread_mutex_lock(&args->kernel->lock);
+    args->kernel->detener_planificador = true;
+    pthread_mutex_unlock(&args->kernel->lock);
 }
 
-void hilo_planificador_iniciar(hilos_args *hiloArgs)
+void hilo_planificador_iniciar(hilos_args *args)
 {
-    hiloArgs->kernel->continuar_planificador = true;
+    pthread_mutex_lock(&args->kernel->lock);
+    args->kernel->detener_planificador = false;
+    pthread_mutex_unlock(&args->kernel->lock);
 }
 
 int obtener_key_finalizacion_hilo(hilos_args *args)
 {
-    return args->kernel_orden_apagado;
+    int i;
+    pthread_mutex_lock(&args->kernel->lock);
+    i = args->kernel_orden_apagado;
+    pthread_mutex_unlock(&args->kernel->lock);
+    return i;
 }
 
-int obtener_key_finalizacion_algoritmo(hilos_args *args)
+int obtener_key_detencion_algoritmo(hilos_args *args)
 {
-    return args->kernel->continuar_planificador;
+    int i;
+    pthread_mutex_lock(&args->kernel->lock);
+    i = args->kernel->detener_planificador;
+    pthread_mutex_unlock(&args->kernel->lock);
+    return i;
 }
 
 t_algoritmo determinar_algoritmo(hilos_args *args)
@@ -416,49 +422,6 @@ void *hilos_atender_memoria(void *args)
     hilos_args *hiloArgs = (hilos_args *)args;
     hilo_ejecutar_kernel(hiloArgs->kernel->sockets.memoria, hiloArgs, "Memoria", switch_case_memoria);
     pthread_exit(0);
-}
-
-void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *args, t_buffer *buffer)
-{
-    switch (codigo_operacion)
-    {
-    case MEMORIA_KERNEL_NUEVO_PROCESO:
-    {
-        t_memoria_kernel_proceso *proceso = deserializar_t_memoria_kernel_proceso(buffer);
-
-        log_debug(logger, "Recibí la respuesta de Memoria acerca de la solicitud de nuevo proceso");
-        log_debug(logger, "PID: %d", proceso->pid);
-        log_debug(logger, "Cantidad de instrucciones: %d", proceso->cantidad_instrucciones);
-        log_debug(logger, "Leido: %d", proceso->leido);
-        if (proceso->leido)
-        {
-            // Enviar a cpu los registros
-            // t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
-            t_pcb *pcb = proceso_buscar_new(args->estados, proceso->pid);
-            // serializar_t_registros_cpu(&paquete, pcb->pid, pcb->registros_cpu);
-            // enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
-            // Buscar proceso
-            pcb->memoria_aceptado = true;
-            log_debug(logger, "Proceso PID:<%d> aceptado en memoria", pcb->pid);
-            log_info(logger, "Se crea el proceso <%d> en NEW", pcb->pid);
-        }
-        else
-        {
-            log_error(logger, "Proceso PID:<%d> rechazado en memoria", proceso->pid);
-            // Eliminar proceso de la cola de new
-            proceso_revertir(args->estados, proceso->pid);
-            log_warning(logger, "Proceso PID:<%d> eliminado de kernel", proceso->pid);
-        };
-        free(proceso);
-        break;
-    }
-    default:
-    {
-        log_warning(args->logger, "[Memoria] Se recibio un codigo de operacion desconocido. Cierro hilo");
-        liberar_conexion(&args->kernel->sockets.memoria);
-        break;
-    }
-    }
 }
 
 /*----CPU----*/
@@ -534,105 +497,19 @@ void *hilos_atender_cpu_dispatch(void *args)
 void *hilos_atender_cpu_interrupt(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
+
+    // // Esto se usa para testear interrupt
+    // sleep(20);
+    // t_kernel_cpu_interrupcion *interrupcion = malloc(sizeof(t_kernel_cpu_interrupcion));
+    // interrupcion->pid = 1;
+    // t_paquete *paquete = crear_paquete(KERNEL_CPU_INTERRUPCION);
+    // serializar_t_kernel_cpu_interrupcion(&paquete, interrupcion);
+    // enviar_paquete(paquete, hiloArgs->kernel->sockets.cpu_interrupt);
+    // free(interrupcion);
+
     hilo_ejecutar_kernel(hiloArgs->kernel->sockets.cpu_interrupt, hiloArgs, "CPU Interrupt", switch_case_cpu_interrupt);
     pthread_exit(0);
 };
-
-void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_args *args, t_buffer *buffer)
-{
-    switch (codigo_operacion)
-    {
-    case PLACEHOLDER:
-        // Placeholder
-        break;
-    default:
-    {
-        log_warning(args->logger, "[CPU Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
-        liberar_conexion(&args->kernel->sockets.cpu_dispatch);
-        break;
-    }
-    }
-}
-
-void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_args *args, t_buffer *buffer)
-{
-    switch (codigo_operacion)
-    {
-    case CPU_KERNEL_PROCESO:
-    {
-        t_cpu_kernel_proceso *proceso = deserializar_t_cpu_kernel_proceso(buffer);
-
-        log_debug(logger, "Recibí la respuesta de CPU acerca de la ejecucion de un proceso");
-        log_debug(logger, "PID: %d", proceso->pid);
-        log_debug(logger, "Cantidad de instrucciones ejecutadas: %d", proceso->registros->pc);
-        log_debug(logger, "Ejecutado completo: %d", proceso->ejecutado);
-
-        // TODO: En CPU implementar lo siguiente: ejecutado = 1 para ejecutado completo, 0 para interrumpido y pendiente, -1 para error.
-
-        if (proceso->ejecutado)
-        {
-            log_debug(logger, "Proceso PID:<%d> ejecutado completo.", proceso->pid);
-
-            log_debug(logger, "Le doy notificacion a Memoria para que elimine el proceso PID:<%d>", proceso->pid);
-
-            t_paquete *paquete_finalizar = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
-            t_kernel_memoria_finalizar_proceso *finalizar_proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
-            finalizar_proceso->pid = proceso->pid;
-            serializar_t_kernel_memoria_finalizar_proceso(&paquete_finalizar, finalizar_proceso);
-            enviar_paquete(paquete_finalizar, args->kernel->sockets.memoria);
-            eliminar_paquete(paquete_finalizar);
-        }
-        else
-        {
-            // Mover proceso a ready
-            t_pcb *pcb = proceso_buscar_new(args->estados, proceso->pid);
-            pcb->memoria_aceptado = false;
-            proceso_push_ready(args->estados, pcb);
-            log_info(logger, "Se mueve el proceso <%d> a READY", proceso->pid);
-        }
-
-        free(proceso);
-        break;
-    }
-    case CPU_KERNEL_IO_GEN_SLEEP:
-    {
-        t_cpu_kernel_io_gen_sleep *sleep = deserializar_t_cpu_kernel_io_gen_sleep(buffer);
-
-        log_debug(logger, "Recibí la solicitud de CPU para activar IO_GEN_SLEEP en la Interfaz %s por %d unidades de trabajo asociado al PID %d", sleep->interfaz, sleep->tiempo, sleep->pid);
-
-        if (args->kernel->sockets.entrada_salida_generic == 0)
-        {
-            log_error(args->logger, "No se pudo enviar el paquete a IO Generic porque aun no se conecto.");
-            break;
-        }
-
-        // TODO: Implementar mapeo de logica de IDs de IO a sockets de IO. Actualmente solo se envia a IO Generic.
-
-        log_debug(args->logger, "Se envia un sleep de 10 segundos a IO Generic ID %s", sleep->interfaz);
-        t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP);
-
-        t_kernel_entrada_salida_unidad_de_trabajo *unidad = malloc(sizeof(t_kernel_entrada_salida_unidad_de_trabajo));
-        unidad->pid = sleep->pid;
-        unidad->unidad_de_trabajo = sleep->tiempo;
-
-        serializar_t_kernel_entrada_salida_unidad_de_trabajo(&paquete, unidad);
-
-        enviar_paquete(paquete, args->kernel->sockets.entrada_salida_generic);
-        log_debug(args->logger, "Se envio el paquete a IO Generic");
-
-        eliminar_paquete(paquete);
-        free(unidad);
-
-        break;
-    }
-    default:
-    {
-        log_warning(args->logger, "[CPU Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
-        liberar_conexion(&args->kernel->sockets.cpu_interrupt);
-        break;
-    }
-    }
-}
 
 /*----IO----*/
 
@@ -697,6 +574,7 @@ void *hilos_esperar_entrada_salida(void *args)
             break;
         }
     }
+    sem_post(&hiloArgs->kernel->sistema_finalizar);
     pthread_exit(0);
 };
 
