@@ -18,20 +18,7 @@
 
 /*Estructura basica del kernel*/
 
-typedef struct t_kernel_sockets
-{
-    int memoria;
-    int cpu_dispatch;
-    int cpu_interrupt;
-    int server;
-    int entrada_salida;
-    int entrada_salida_generic;
-    int entrada_salida_stdin;
-    int entrada_salida_stdout;
-    int entrada_salida_dialfs;
-} t_kernel_sockets;
-
-typedef enum KERNEL_SOCKETS
+typedef enum
 {
     MEMORIA,
     CPU_DISPATCH,
@@ -45,11 +32,32 @@ typedef enum KERNEL_SOCKETS
 
 typedef struct
 {
+    int orden;
+    int socket;
+    char *interfaz;
+    KERNEL_SOCKETS tipo;
+} t_kernel_entrada_salida;
+
+typedef struct t_kernel_sockets
+{
+    int memoria;
+    int cpu_dispatch;
+    int cpu_interrupt;
+    int server;
+    int entrada_salida;
+    int entrada_salida_generic;
+    int entrada_salida_stdin;
+    int entrada_salida_stdout;
+    int entrada_salida_dialfs;
+    int id_entrada_salida;
+    int cantidad_entrada_salida;
+    t_list *list_entrada_salida;
+    t_dictionary *dictionary_entrada_salida;
+} t_kernel_sockets;
+
+typedef struct
+{
     pthread_t thread_atender_entrada_salida;
-    pthread_t thread_atender_entrada_salida_generic;
-    pthread_t thread_atender_entrada_salida_stdin;
-    pthread_t thread_atender_entrada_salida_stdout;
-    pthread_t thread_atender_entrada_salida_dialfs;
     pthread_t thread_atender_cpu_interrupt;
     pthread_t thread_atender_cpu_dispatch;
     pthread_t thread_atender_memoria;
@@ -93,6 +101,7 @@ typedef struct
 {
     hilos_args *args;
     int socket;
+    t_kernel_entrada_salida *entrada_salida;
 } hilos_io_args;
 
 /**

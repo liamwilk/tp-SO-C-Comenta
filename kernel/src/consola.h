@@ -40,12 +40,12 @@ void hilo_ejecutar_kernel(int socket, hilos_args *args, char *modulo, t_funcion_
 /**
  * Agrega un socket al kernel
  *
- * @param kernel El puntero al kernel.
+ * @param args El puntero al hilos_args.
  * @param type El tipo de socket agregar
  * @param socket El socket a agregar
  * @return El struct de sockets actualizado
  */
-t_kernel_sockets kernel_sockets_agregar(t_kernel *kernel, KERNEL_SOCKETS type, int socket);
+t_kernel_sockets kernel_sockets_agregar(hilos_args *args, KERNEL_SOCKETS type, int socket);
 
 /**
  * @fn    kernel_inicializar
@@ -77,7 +77,7 @@ void kernel_log(hilos_args *args);
  */
 t_pcb *kernel_nuevo_proceso(hilos_args *args, t_diagrama_estados *estados, t_log *logger, char *instrucciones);
 
-void kernel_enviar_pcb_cpu(t_kernel *kernel, t_pcb *pcb, KERNEL_SOCKETS cpu);
+void kernel_enviar_pcb_cpu(t_kernel *kernel, t_pcb *pcb, t_kernel_sockets cpu);
 
 /** FUNCIONES DE CONSOLA**/
 
@@ -93,4 +93,10 @@ t_pcb *kernel_transicion_exec_ready(t_diagrama_estados *estados, t_log *logger, 
 
 void kernel_desalojar_proceso(t_diagrama_estados *estados, t_kernel *kernel, t_log *logger, t_pcb *proceso);
 void revisar_paquete_kernel(hilos_args *args, t_paquete *paquete, char *modulo);
+
+t_kernel_entrada_salida *entrada_salida_agregar_interfaz(hilos_args *args, KERNEL_SOCKETS tipo, int socket);
+void entrada_salida_remover_interfaz(hilos_args *args, char *interfaz);
+t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz);
+char *kernel_sockets_agregar_entrada_salida(hilos_args *args, KERNEL_SOCKETS type, int socket);
+
 #endif /* CONSOLA_H_ */
