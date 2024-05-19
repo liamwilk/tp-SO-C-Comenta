@@ -166,7 +166,7 @@ void *atender_kernel_generic()
 		
 		log_debug(logger, "Esperando paquete de Kernel en socket %d", socket_kernel_generic);
 
-		t_paquete *paquete = recibir_paquete(logger, socket_kernel_generic);
+		t_paquete *paquete = recibir_paquete(logger, &socket_kernel_generic);
 		
 		if (paquete == NULL)
         {

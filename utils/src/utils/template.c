@@ -8,7 +8,7 @@ void hilo_ejecutar(t_log *logger, int socket, char *modulo, t_funcion_ptr switch
 
         log_debug(logger, "Esperando paquete de Kernel en socket %d", socket);
 
-        t_paquete *paquete = recibir_paquete(logger, socket);
+        t_paquete *paquete = recibir_paquete(logger, &socket);
 
         if (paquete == NULL)
         {

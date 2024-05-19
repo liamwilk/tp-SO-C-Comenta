@@ -51,38 +51,28 @@ t_handshake esperar_handshake_entrada_salida(t_log *logger, int socket_cliente)
 
 	recv(socket_cliente, &respuesta, sizeof(t_handshake), MSG_WAITALL);
 
-	char *modulo;
-
 	switch (respuesta)
 	{
 	case KERNEL_ENTRADA_SALIDA_GENERIC:
-		modulo = "Entrada/Salida Generico";
 		break;
 	case KERNEL_ENTRADA_SALIDA_STDIN:
-		modulo = "Entrada/Salida STDIN";
 		break;
 	case KERNEL_ENTRADA_SALIDA_STDOUT:
-		modulo = "Entrada/Salida STDOUT";
 		break;
 	case KERNEL_ENTRADA_SALIDA_DIALFS:
-		modulo = "Entrada/Salida DIALFS";
 		break;
 	default:
 		respuesta = ERROR;
-		modulo = "Desconocido";
-		log_error(logger, "Error al recibir handshake. Modulo desconocido");
 		break;
 	}
 
 	if (respuesta != error)
 	{
 		send(socket_cliente, &ok, sizeof(t_handshake), 0);
-		log_info(logger, "[%s] Conexion por handshake recibida y establecida.", modulo);
 	}
 	else
 	{
 		send(socket_cliente, &error, sizeof(t_handshake), 0);
-		log_error(logger, "[%s] Error al recibir handshake.", modulo);
 		respuesta = error;
 	}
 

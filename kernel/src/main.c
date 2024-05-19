@@ -14,6 +14,10 @@ int main()
 
 	kernel_log(&args);
 
+	// Inicializo las estructuras que almacenan e identifican los sockets de entrada/salida
+	kernel.sockets.dictionary_entrada_salida = dictionary_create();
+	kernel.sockets.list_entrada_salida = list_create();
+
 	/*----HILOS----*/
 
 	hilos_memoria_inicializar(&args, thread_conectar_memoria, args.kernel->threads.thread_atender_memoria);
@@ -42,6 +46,7 @@ void inicializar_args()
 	args.kernel->sockets.entrada_salida_stdout = 0;
 	args.kernel->sockets.entrada_salida_dialfs = 0;
 	args.kernel->sockets.entrada_salida = 0;
+	args.kernel->sockets.id_entrada_salida = 1;
 }
 
 void inicializar_semaforos()
