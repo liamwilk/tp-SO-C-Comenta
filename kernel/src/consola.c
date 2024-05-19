@@ -204,7 +204,7 @@ void hilo_ejecutar_kernel(int socket, hilos_args *args, char *modulo, t_funcion_
 
         if (paquete == NULL)
         {
-            log_generic(args, LOG_LEVEL_WARNING, "%s se deconecto.", modulo);
+            log_generic(args, LOG_LEVEL_WARNING, "%s se desconecto.", modulo);
             break;
         }
 
@@ -510,7 +510,7 @@ void kernel_finalizar(hilos_args *args)
             // Liberar la conexion rompe el hilo de entrada/salida y se auto-elimina.
             liberar_conexion(&modulo->socket);
 
-            log_generic(args, LOG_LEVEL_DEBUG, "Se deconectó el modulo de entrada salida %s", interfaz_copia);
+            log_generic(args, LOG_LEVEL_DEBUG, "Se desconectó la interfaz de entrada salida %s", interfaz_copia);
             free(interfaz_copia);
         }
 
