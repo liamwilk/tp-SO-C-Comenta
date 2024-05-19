@@ -394,7 +394,7 @@ void entrada_salida_remover_interfaz(hilos_args *args, char *interfaz)
     // Obtengo el TAD de la lista de entrada/salida
     t_kernel_entrada_salida *entrada_salida = list_get(args->kernel->sockets.list_entrada_salida, *indice);
 
-    log_generic(args, LOG_LEVEL_DEBUG, "Se remueve interfaz de entrada/salida %s en el socket %d", interfaz, entrada_salida->socket);
+    log_generic(args, LOG_LEVEL_DEBUG, "Se remueve interfaz de entrada/salida %s", interfaz);
 
     // Cierro el socket de la entrada/salida del lado de Kernel
     liberar_conexion(&entrada_salida->socket);

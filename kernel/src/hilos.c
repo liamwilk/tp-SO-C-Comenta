@@ -611,7 +611,7 @@ void *hilos_atender_entrada_salida_generic(void *args)
 
         if (paquete == NULL)
         {
-            log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado del socket %d", modulo, interfaz, orden, *socket);
+            log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, interfaz, orden);
             break;
         }
         revisar_paquete(paquete, io_args->args->logger, modulo);
@@ -665,7 +665,7 @@ void *hilos_atender_entrada_salida_stdin(void *args)
 
         if (paquete == NULL)
         {
-            log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado del socket %d", modulo, interfaz, orden, *socket);
+            log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, interfaz, orden);
             break;
         }
         revisar_paquete(paquete, io_args->args->logger, modulo);
@@ -713,7 +713,7 @@ void *hilos_atender_entrada_salida_stdout(void *args)
 
         if (paquete == NULL)
         {
-            log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado del socket %d", modulo, interfaz, orden, *socket);
+            log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, interfaz, orden);
             break;
         }
         revisar_paquete(paquete, io_args->args->logger, modulo);
@@ -761,7 +761,7 @@ void *hilos_atender_entrada_salida_dialfs(void *args)
 
         if (paquete == NULL)
         {
-            log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado del socket %d", modulo, interfaz, orden, *socket);
+            log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, interfaz, orden);
             break;
         }
         revisar_paquete(paquete, io_args->args->logger, modulo);
