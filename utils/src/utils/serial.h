@@ -227,7 +227,7 @@ void eliminar_paquete(t_paquete *paquete);
  * @brief Recibe el buffer entrante
  * @param socket_cliente Socket desde el cual proviene el buffer
  */
-t_buffer *recibir_buffer(t_log *logger, int socket_cliente);
+t_buffer *recibir_buffer(t_log *logger, int *socket_cliente);
 
 /**
  *
@@ -243,7 +243,7 @@ int recibir_operacion(int socket_cliente);
  * @param logger Logger que se usara para reportar errores
  * @param socket_cliente Socket desde el cual proviene el paquete
  */
-t_paquete *recibir_paquete(t_log *logger, int socket_cliente);
+t_paquete *recibir_paquete(t_log *logger, int *socket_cliente);
 
 /**
  * @fn    serializar_bool

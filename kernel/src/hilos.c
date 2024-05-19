@@ -178,6 +178,9 @@ void *hilos_atender_consola(void *args)
             hiloArgs->kernel_orden_apagado = 0;
             pthread_mutex_unlock(&hiloArgs->kernel->lock);
 
+            // Detengo el hilo planificador
+            hilo_planificador_detener(hiloArgs);
+
             kernel_finalizar(hiloArgs);
 
             break;
@@ -330,8 +333,6 @@ void *hilo_planificador(void *args)
         break;
     }
     }
-    log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se cierra Hilo Planificador.");
-    usleep(500);
     sem_post(&hiloArgs->kernel->sistema_finalizar);
     pthread_exit(0);
 }
@@ -549,8 +550,7 @@ void *hilos_esperar_entrada_salida(void *args)
         pthread_t thread_atender_entrada_salida;
         hilos_io_args *io_args = malloc(sizeof(hilos_io_args));
         io_args->args = hiloArgs;
-        io_args->socket = socket_cliente;
-        io_args->entrada_salida = malloc(sizeof(t_kernel_entrada_salida));
+        io_args->entrada_salida = NULL;
         char *interfaz = NULL;
 
         switch (modulo)
@@ -600,16 +600,18 @@ void *hilos_atender_entrada_salida_generic(void *args)
     char *modulo = "I/O Generic";
     char *interfaz = io_args->entrada_salida->interfaz;
     int orden = io_args->entrada_salida->orden;
-    log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, io_args->socket);
+    int *socket = &io_args->entrada_salida->socket;
+
+    log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, *socket);
 
     while (1)
     {
-        log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, io_args->socket);
-        t_paquete *paquete = recibir_paquete(io_args->args->logger, io_args->socket);
+        log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, *socket);
+        t_paquete *paquete = recibir_paquete(io_args->args->logger, socket);
 
         if (paquete == NULL)
         {
-            log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado del socket %d", modulo, interfaz, orden, io_args->socket);
+            log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado del socket %d", modulo, interfaz, orden, *socket);
             break;
         }
         revisar_paquete(paquete, io_args->args->logger, modulo);
@@ -630,12 +632,14 @@ void *hilos_atender_entrada_salida_generic(void *args)
         default:
         {
             log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, interfaz, orden);
-            liberar_conexion(&io_args->socket);
+            liberar_conexion(socket);
             break;
         }
         }
         eliminar_paquete(paquete);
     }
+
+    log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, interfaz, orden);
 
     entrada_salida_remover_interfaz(io_args->args, interfaz);
 
@@ -650,16 +654,18 @@ void *hilos_atender_entrada_salida_stdin(void *args)
     char *modulo = "I/O STDIN";
     char *interfaz = io_args->entrada_salida->interfaz;
     int orden = io_args->entrada_salida->orden;
-    log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, io_args->socket);
+    int *socket = &io_args->entrada_salida->socket;
+
+    log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, *socket);
 
     while (1)
     {
-        log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, io_args->socket);
-        t_paquete *paquete = recibir_paquete(io_args->args->logger, io_args->socket);
+        log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, *socket);
+        t_paquete *paquete = recibir_paquete(io_args->args->logger, socket);
 
         if (paquete == NULL)
         {
-            log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado del socket %d", modulo, interfaz, orden, io_args->socket);
+            log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado del socket %d", modulo, interfaz, orden, *socket);
             break;
         }
         revisar_paquete(paquete, io_args->args->logger, modulo);
@@ -668,20 +674,20 @@ void *hilos_atender_entrada_salida_stdin(void *args)
         {
         case PLACEHOLDER:
         {
-            /*
-            La logica
-            */
+            // Placeholder
             break;
         }
         default:
         {
             log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, interfaz, orden);
-            liberar_conexion(&io_args->socket);
+            liberar_conexion(socket);
             break;
         }
         }
         eliminar_paquete(paquete);
     }
+
+    log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, interfaz, orden);
 
     entrada_salida_remover_interfaz(io_args->args, interfaz);
 
@@ -696,16 +702,18 @@ void *hilos_atender_entrada_salida_stdout(void *args)
     char *modulo = "I/O STDOUT";
     char *interfaz = io_args->entrada_salida->interfaz;
     int orden = io_args->entrada_salida->orden;
-    log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, io_args->socket);
+    int *socket = &io_args->entrada_salida->socket;
+
+    log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, *socket);
 
     while (1)
     {
-        log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, io_args->socket);
-        t_paquete *paquete = recibir_paquete(io_args->args->logger, io_args->socket);
+        log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, *socket);
+        t_paquete *paquete = recibir_paquete(io_args->args->logger, socket);
 
         if (paquete == NULL)
         {
-            log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado del socket %d", modulo, interfaz, orden, io_args->socket);
+            log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado del socket %d", modulo, interfaz, orden, *socket);
             break;
         }
         revisar_paquete(paquete, io_args->args->logger, modulo);
@@ -714,20 +722,20 @@ void *hilos_atender_entrada_salida_stdout(void *args)
         {
         case PLACEHOLDER:
         {
-            /*
-            La logica
-            */
+            // Placeholder
             break;
         }
         default:
         {
             log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, interfaz, orden);
-            liberar_conexion(&io_args->socket);
+            liberar_conexion(socket);
             break;
         }
         }
         eliminar_paquete(paquete);
     }
+
+    log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, interfaz, orden);
 
     entrada_salida_remover_interfaz(io_args->args, interfaz);
 
@@ -742,16 +750,18 @@ void *hilos_atender_entrada_salida_dialfs(void *args)
     char *modulo = "I/O DialFS";
     char *interfaz = io_args->entrada_salida->interfaz;
     int orden = io_args->entrada_salida->orden;
-    log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, io_args->socket);
+    int *socket = &io_args->entrada_salida->socket;
+
+    log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, *socket);
 
     while (1)
     {
-        log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, io_args->socket);
-        t_paquete *paquete = recibir_paquete(io_args->args->logger, io_args->socket);
+        log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, *socket);
+        t_paquete *paquete = recibir_paquete(io_args->args->logger, socket);
 
         if (paquete == NULL)
         {
-            log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado del socket %d", modulo, interfaz, orden, io_args->socket);
+            log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado del socket %d", modulo, interfaz, orden, *socket);
             break;
         }
         revisar_paquete(paquete, io_args->args->logger, modulo);
@@ -760,20 +770,20 @@ void *hilos_atender_entrada_salida_dialfs(void *args)
         {
         case PLACEHOLDER:
         {
-            /*
-            La logica
-            */
+            // Placeholder
             break;
         }
         default:
         {
             log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, interfaz, orden);
-            liberar_conexion(&io_args->socket);
+            liberar_conexion(socket);
             break;
         }
         }
         eliminar_paquete(paquete);
     }
+
+    log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, interfaz, orden);
 
     entrada_salida_remover_interfaz(io_args->args, interfaz);
 

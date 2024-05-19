@@ -47,7 +47,6 @@ void inicializar_args()
 	args.kernel->sockets.entrada_salida_dialfs = 0;
 	args.kernel->sockets.entrada_salida = 0;
 	args.kernel->sockets.id_entrada_salida = 1;
-	args.kernel->sockets.cantidad_entrada_salida = 0;
 }
 
 void inicializar_semaforos()

@@ -198,13 +198,13 @@ void hilo_ejecutar_kernel(int socket, hilos_args *args, char *modulo, t_funcion_
 {
     while (1)
     {
-        log_generic(args, LOG_LEVEL_DEBUG, "Esperando paquete de Kernel en socket %d", socket);
+        log_generic(args, LOG_LEVEL_DEBUG, "Esperando paquete de %s en socket %d", modulo, socket);
 
-        t_paquete *paquete = recibir_paquete(args->logger, socket);
+        t_paquete *paquete = recibir_paquete(args->logger, &socket);
 
         if (paquete == NULL)
         {
-            log_generic(args, LOG_LEVEL_WARNING, "%s se deconecto del socket %d", modulo, socket);
+            log_generic(args, LOG_LEVEL_WARNING, "%s se deconecto.", modulo);
             break;
         }
 
@@ -214,9 +214,9 @@ void hilo_ejecutar_kernel(int socket, hilos_args *args, char *modulo, t_funcion_
 
         eliminar_paquete(paquete);
     }
+    sem_post(&args->kernel->sistema_finalizar);
 
     log_generic(args, LOG_LEVEL_DEBUG, "Finalizando hilo de atencion a %s", modulo);
-    sem_post(&args->kernel->sistema_finalizar);
 }
 
 void revisar_paquete_kernel(hilos_args *args, t_paquete *paquete, char *modulo)
@@ -344,9 +344,6 @@ char *kernel_sockets_agregar_entrada_salida(hilos_args *args, KERNEL_SOCKETS typ
 
 t_kernel_entrada_salida *entrada_salida_agregar_interfaz(hilos_args *args, KERNEL_SOCKETS tipo, int socket)
 {
-    // Incremento la cantidad de entradas/salidas (empieza en 0 para saber si hay alguan conectada)
-    args->kernel->sockets.cantidad_entrada_salida++;
-
     // Asigno memoria para el socket de entrada/salida (no debo liberarla porque se guarda dentro de la lista la referencia)
     t_kernel_entrada_salida *entrada_salida = malloc(sizeof(t_kernel_entrada_salida));
 
@@ -397,26 +394,24 @@ void entrada_salida_remover_interfaz(hilos_args *args, char *interfaz)
     // Obtengo el TAD de la lista de entrada/salida
     t_kernel_entrada_salida *entrada_salida = list_get(args->kernel->sockets.list_entrada_salida, *indice);
 
-    log_generic(args, LOG_LEVEL_DEBUG, "Se elimina el modulo de entrada/salida en el socket %d asociado a la interfaz %s", entrada_salida->socket, interfaz);
+    log_generic(args, LOG_LEVEL_DEBUG, "Se remueve interfaz de entrada/salida %s en el socket %d", interfaz, entrada_salida->socket);
+
+    // Cierro el socket de la entrada/salida del lado de Kernel
+    liberar_conexion(&entrada_salida->socket);
 
     // Elimino la interfaz del diccionario
     dictionary_remove(args->kernel->sockets.dictionary_entrada_salida, interfaz);
 
-    // Cierro el socket de la entrada/salida
-    liberar_conexion(&entrada_salida->socket);
+    // Libero la memoria de la interfaz
+    free(entrada_salida->interfaz);
 
     // Libero la memoria del TAD
     free(entrada_salida);
 
-    // Libero el indice
+    // Libero el indice guardado en el diccionario
     free(indice);
 
-    // Libero la memoria de la interfaz
-    free(entrada_salida->interfaz);
-
-    args->kernel->sockets.cantidad_entrada_salida--;
-
-    // No lo elimino de la lista porque no se puede hacer un list_remove sin reorganizar los indices. Lo dejo en la lista pero no se puede acceder a el porque está vacio. Al finalizar el programa, destruyo la estructura de la lista.
+    // No lo elimino de la lista porque no se puede hacer un list_remove sin reorganizar los indices. Lo dejo en la lista pero no se puede acceder a el porque está vacio. Al finalizar el programa, destruyo la estructura de la lista entera.
 }
 
 t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz)
@@ -475,68 +470,81 @@ t_pcb *kernel_nuevo_proceso(hilos_args *args, t_diagrama_estados *estados, t_log
 
 void kernel_finalizar(hilos_args *args)
 {
+    // Creo el paquete de finalizar
     t_paquete *finalizar = crear_paquete(FINALIZAR_SISTEMA);
-
     t_entrada_salida_kernel_finalizar *finalizar_kernel = malloc(sizeof(t_entrada_salida_kernel_finalizar));
     finalizar_kernel->terminado = true;
     actualizar_buffer(finalizar, sizeof(bool));
     serializar_t_entrada_salida_kernel_finalizar(&finalizar, finalizar_kernel);
 
-    /* TODO: Acá hay que limpiar hilos_args entero menos la parte de kernel
-    que se necesita para enviar el mensaje de finalizar a los modulos. Luego si, finalizar el kernel. Luego limpiar la parte de kernel dentro de kernel_finalizar
+    // Obtengo el valor del semaforo planificador_iniciar, y si está apagado, primero lo prendo para que se termine el hilo planificador y luego espero a que termine
 
-    Desbloqueo el proceso hilo_planificador para que lea la señal de finalizacion de kernel_orden_apagado
-    */
+    int value;
+    sem_getvalue(&args->kernel->planificador_iniciar, &value);
 
-    // Bajo el servidor de atencion de I/O para no aceptar mas conexiones
+    // Si el semaforo esta en 0, debo prenderlo para que el hilo planificador termine
+    if (value == 0)
+    {
+        log_generic(args, LOG_LEVEL_DEBUG, "El hilo planificador se encontraba bloqueado. Lo desbloqueo para poder finalizarlo.");
+        sem_post(&args->kernel->planificador_iniciar);
+    }
+
+    // Espero a que termine el hilo planificador
+    sem_wait(&args->kernel->sistema_finalizar);
+    log_generic(args, LOG_LEVEL_DEBUG, "Hilo planificador finalizado");
+
+    // Recupero todas las interfaces que estan conectadas del diccionario (si estan en el diccionario, estan conectadas)
+    t_list *conectados = dictionary_keys(args->kernel->sockets.dictionary_entrada_salida);
+
+    int cantidad_entrada_salida = list_size(conectados);
+
+    // Si hay entradas y salidas conectadas, debo esperar a que terminen antes de cerrar el sistema
+    if (cantidad_entrada_salida > 0)
+    {
+        for (int i = 0; i < cantidad_entrada_salida; i++)
+        {
+            char *interfaz = list_get(conectados, i);
+            char *interfaz_copia = strdup(interfaz);
+            t_kernel_entrada_salida *modulo = entrada_salida_buscar_interfaz(args, interfaz);
+
+            // Liberar la conexion rompe el hilo de entrada/salida y se auto-elimina.
+            liberar_conexion(&modulo->socket);
+
+            log_generic(args, LOG_LEVEL_DEBUG, "Se deconectó el modulo de entrada salida %s", interfaz_copia);
+            free(interfaz_copia);
+        }
+
+        // Destruyo la lista auxiliar generada a partir de las keys del diccionario
+        list_destroy(conectados);
+    }
+
+    // Destruyo todo lo de entrada/salida
+    list_destroy(args->kernel->sockets.list_entrada_salida);
+    dictionary_destroy(args->kernel->sockets.dictionary_entrada_salida);
+
+    // Bajo el servidor interno de atencion de I/O para no aceptar mas conexiones
     liberar_conexion(&args->kernel->sockets.server);
 
-    if (args->kernel->sockets.entrada_salida_generic > 0)
-    {
-        enviar_paquete(finalizar, args->kernel->sockets.entrada_salida_generic);
-        liberar_conexion(&args->kernel->sockets.entrada_salida_stdin);
-    }
-
-    if (args->kernel->sockets.entrada_salida_stdin > 0)
-    {
-        enviar_paquete(finalizar, args->kernel->sockets.entrada_salida_stdin);
-        liberar_conexion(&args->kernel->sockets.entrada_salida_stdin);
-    }
-
-    if (args->kernel->sockets.entrada_salida_stdout > 0)
-    {
-        enviar_paquete(finalizar, args->kernel->sockets.entrada_salida_stdout);
-        liberar_conexion(&args->kernel->sockets.entrada_salida_stdout);
-    }
-
-    if (args->kernel->sockets.entrada_salida_dialfs > 0)
-    {
-        enviar_paquete(finalizar, args->kernel->sockets.cpu_dispatch);
-        liberar_conexion(&args->kernel->sockets.entrada_salida_dialfs);
-    }
-
-    // Les aviso que se termino el sistema y que se cierren de su lado
+    // Les aviso a Memoria y CPU que se termine el sistema
     enviar_paquete(finalizar, args->kernel->sockets.cpu_interrupt);
     enviar_paquete(finalizar, args->kernel->sockets.memoria);
 
-    // Libero las conexiones en Kernel
+    // Libero las conexiones desde Kernel
     liberar_conexion(&args->kernel->sockets.cpu_dispatch);
     liberar_conexion(&args->kernel->sockets.cpu_interrupt);
     liberar_conexion(&args->kernel->sockets.memoria);
 
-    // Si no fue iniciado la planificacion, debo marcarla como apagada y luego encenderla
-    // hilo_planificador_detener(hiloArgs);
-    // sem_post(&hiloArgs->kernel->planificador_iniciar);
+    // Memoria + CPU dispatch + CPU interrupt + el gestor de hilos de entrada/salida
+    int cantidad_modulos = 4;
 
-    // Espero a que todos los hilos terminen, uno por cada hilo de atencion + hilo planificador
-    // sem_wait(&kernel->sistema_finalizar); // Este es del hilo planificador pero hay que verificar que este prendido antes de esperarlo
+    log_generic(args, LOG_LEVEL_DEBUG, "Esperando a que se cierren los modulos: Memoria, CPU Dispatch, CPU Interrupt y Atencion de Entrada/Salida.");
 
-    sem_wait(&args->kernel->sistema_finalizar); // Memoria
-    sem_wait(&args->kernel->sistema_finalizar); // CPU Dispatch
-    sem_wait(&args->kernel->sistema_finalizar); // CPU Interurpt
-    sem_wait(&args->kernel->sistema_finalizar); // Entrada/Salida conector de hilos (se baja al romper socket server)
-
-    log_generic(args, LOG_LEVEL_INFO, "Finalizando Kernel");
+    for (int i = 0; i < cantidad_modulos; i++)
+    {
+        log_generic(args, LOG_LEVEL_DEBUG, "Esperando a que se cierre un modulo del sistema.");
+        sem_wait(&args->kernel->sistema_finalizar);
+        log_generic(args, LOG_LEVEL_DEBUG, "Un modulo del sistema termino de cerrar.");
+    }
 
     // Borro el comando FINALIZAR de la seccion de texto de la consola antes de terminar.
     pthread_mutex_lock(&args->kernel->lock);
@@ -549,7 +557,6 @@ void kernel_finalizar(hilos_args *args)
     pthread_mutex_destroy(&args->kernel->lock);
 
     sem_destroy(&args->kernel->sistema_finalizar);
-    // sem_destroy(&kernel->planificador_iniciar);
     sem_destroy(&args->kernel->log_lock);
     sem_destroy(&args->kernel->memoria_consola_nuevo_proceso);
 

@@ -50,7 +50,6 @@ typedef struct t_kernel_sockets
     int entrada_salida_stdout;
     int entrada_salida_dialfs;
     int id_entrada_salida;
-    int cantidad_entrada_salida;
     t_list *list_entrada_salida;
     t_dictionary *dictionary_entrada_salida;
 } t_kernel_sockets;
@@ -100,7 +99,6 @@ typedef struct
 typedef struct
 {
     hilos_args *args;
-    int socket;
     t_kernel_entrada_salida *entrada_salida;
 } hilos_io_args;
 

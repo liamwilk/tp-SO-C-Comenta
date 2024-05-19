@@ -52,53 +52,59 @@ void eliminar_paquete(t_paquete *paquete)
 	free(paquete);
 };
 
-t_buffer *recibir_buffer(t_log *logger, int socket_cliente)
+t_buffer *recibir_buffer(t_log *logger, int *socket_cliente)
 {
 	uint32_t size;
 	uint32_t offset;
 	ssize_t bytes_recibidos;
 
-	bytes_recibidos = recv(socket_cliente, &size, sizeof(uint32_t), MSG_WAITALL);
+	bytes_recibidos = recv(*socket_cliente, &size, sizeof(uint32_t), MSG_WAITALL);
 
 	if (bytes_recibidos == -1)
 	{
-		log_warning(logger, "El cliente se desconecto del socket %d mientras recibia el tamaño del stream.", socket_cliente);
+		log_trace(logger, "El cliente se desconecto del socket %d mientras recibia el tamaño del stream.", *socket_cliente);
+		*socket_cliente = -1;
 		return NULL;
 	}
 	else if (bytes_recibidos == 0)
 	{
-		log_warning(logger, "Conexion por socket %d cerrada en el otro extremo mientras recibia el tamaño del stream.", socket_cliente);
+		log_trace(logger, "Conexion por socket %d cerrada en el otro extremo mientras recibia el tamaño del stream.", *socket_cliente);
+		*socket_cliente = -1;
 		return NULL;
 	}
 
-	bytes_recibidos = recv(socket_cliente, &offset, sizeof(uint32_t), MSG_WAITALL);
+	bytes_recibidos = recv(*socket_cliente, &offset, sizeof(uint32_t), MSG_WAITALL);
 	if (bytes_recibidos == -1)
 	{
-		log_warning(logger, "El cliente se desconecto del socket %d mientras recibia el offset del stream.", socket_cliente);
+		log_trace(logger, "El cliente se desconecto del socket %d mientras recibia el offset del stream.", *socket_cliente);
+		*socket_cliente = -1;
 		return NULL;
 	}
 	else if (bytes_recibidos == 0)
 	{
-		log_warning(logger, "Conexion por socket %d cerrada en el otro extremo mientras recibia el offset del stream.", socket_cliente);
+		log_trace(logger, "Conexion por socket %d cerrada en el otro extremo mientras recibia el offset del stream.", *socket_cliente);
+		*socket_cliente = -1;
 		return NULL;
 	}
 
 	void *stream = malloc(size);
 
-	bytes_recibidos = recv(socket_cliente, stream, size, MSG_WAITALL);
+	bytes_recibidos = recv(*socket_cliente, stream, size, MSG_WAITALL);
 
 	if (bytes_recibidos == -1)
 	{
 		free(stream);
-		log_warning(logger, "El cliente se desconecto del socket %d mientras recibia el stream.", socket_cliente);
-		close(socket_cliente);
+		log_trace(logger, "El cliente se desconecto del socket %d mientras recibia el stream.", *socket_cliente);
+		close(*socket_cliente);
+		*socket_cliente = -1;
 		return NULL;
 	}
 	else if (bytes_recibidos == 0)
 	{
 		free(stream);
-		log_warning(logger, "Conexion por socket %d cerrada en el otro extremo.", socket_cliente);
-		close(socket_cliente);
+		log_trace(logger, "Conexion por socket %d cerrada en el otro extremo.", *socket_cliente);
+		close(*socket_cliente);
+		*socket_cliente = -1;
 		return NULL;
 	}
 
@@ -110,36 +116,40 @@ t_buffer *recibir_buffer(t_log *logger, int socket_cliente)
 	return buffer;
 }
 
-t_paquete *recibir_paquete(t_log *logger, int socket_cliente)
+t_paquete *recibir_paquete(t_log *logger, int *socket_cliente)
 {
 	t_paquete *paquete = malloc(sizeof(t_paquete));
 
 	ssize_t bytes_recibidos;
 
-	bytes_recibidos = recv(socket_cliente, &(paquete->codigo_operacion), sizeof(t_op_code), MSG_WAITALL);
+	bytes_recibidos = recv(*socket_cliente, &(paquete->codigo_operacion), sizeof(t_op_code), MSG_WAITALL);
 	if (bytes_recibidos == -1)
 	{
-		log_warning(logger, "El cliente se desconecto del socket %d mientras recibia el codigo de operacion.", socket_cliente);
+		log_trace(logger, "El cliente se desconecto del socket %d mientras recibia el codigo de operacion.", *socket_cliente);
+		*socket_cliente = -1;
 		free(paquete);
 		return NULL;
 	}
 	else if (bytes_recibidos == 0)
 	{
-		log_warning(logger, "Conexion por socket %d cerrada en el otro extremo mientras recibia el codigo de operacion.", socket_cliente);
+		log_trace(logger, "Conexion por socket %d cerrada en el otro extremo mientras recibia el codigo de operacion.", *socket_cliente);
+		*socket_cliente = -1;
 		free(paquete);
 		return NULL;
 	}
 
-	bytes_recibidos = recv(socket_cliente, &(paquete->size_buffer), sizeof(uint32_t), MSG_WAITALL);
+	bytes_recibidos = recv(*socket_cliente, &(paquete->size_buffer), sizeof(uint32_t), MSG_WAITALL);
 	if (bytes_recibidos == -1)
 	{
-		log_warning(logger, "El cliente se desconecto del socket %d mientras recibia el tamaño total del buffer.", socket_cliente);
+		log_trace(logger, "El cliente se desconecto del socket %d mientras recibia el tamaño total del buffer.", *socket_cliente);
+		*socket_cliente = -1;
 		free(paquete);
 		return NULL;
 	}
 	else if (bytes_recibidos == 0)
 	{
-		log_warning(logger, "Conexion por socket %d cerrada en el otro extremo mientras recibia el tamaño total del buffer.", socket_cliente);
+		log_trace(logger, "Conexion por socket %d cerrada en el otro extremo mientras recibia el tamaño total del buffer.", *socket_cliente);
+		*socket_cliente = -1;
 		free(paquete);
 		return NULL;
 	}
