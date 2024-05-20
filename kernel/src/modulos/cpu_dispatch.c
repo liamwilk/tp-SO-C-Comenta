@@ -26,6 +26,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             serializar_t_kernel_memoria_finalizar_proceso(&paquete_finalizar, finalizar_proceso);
             enviar_paquete(paquete_finalizar, args->kernel->sockets.memoria);
             eliminar_paquete(paquete_finalizar);
+
+            sem_post(&args->kernel->planificador_iniciar);
         }
         else
         {

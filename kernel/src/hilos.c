@@ -216,10 +216,11 @@ void hilos_planificador_inicializar(hilos_args *args, pthread_t thread_planifica
 
 void *hilo_planificador(void *args)
 {
+    // TODO: VER LOGICA DE POST EJECUCION DEL PROCESO, NO SE ESTA HACIENDO EL POST CORRECTAMENTE PORQUE SOLO EJECUTA UNO.
+    // TODO: Hacer que se mande 1 a 1, no todos de golpe.
     hilos_args *hiloArgs = (hilos_args *)args;
     while (1)
     {
-
         sem_wait(&hiloArgs->kernel->planificador_hilo);
 
         if (!obtener_key_finalizacion_hilo(hiloArgs))
@@ -254,9 +255,17 @@ void *hilo_planificador(void *args)
                 planificacion_largo_plazo(hiloArgs, hiloArgs->estados, hiloArgs->logger);
                 fifo(hiloArgs, hiloArgs->estados, hiloArgs->logger);
 
+                sem_wait(&hiloArgs->kernel->planificador_iniciar);
+
                 if (list_size(hiloArgs->estados->new) > 0) // Verifico que si post inicio de la planificación llega otro proceso a la cola de new, lo mande a la cola de ready
                 {
-                    planificacion_largo_plazo(hiloArgs, hiloArgs->estados, hiloArgs->logger);
+                    t_pcb *proceso = proceso_pop_new(hiloArgs->estados);
+                    if (proceso->memoria_aceptado == false)
+                    {
+                        log_generic(hiloArgs, LOG_LEVEL_WARNING, "No se puede mover el proceso PID: <%d> a ready, ya que no fue aceptado por memoria", proceso->pid);
+                        continue;
+                    }
+                    proceso_push_ready(hiloArgs->estados, proceso, hiloArgs->logger);
                 }
 
                 // Cada vez que se desbloquea el hilo planificador, revisa el estado de todas las colas y revisa las transiciones que tenga que hacer, luego se bloquea devuelta hasta que llega un nuevo proceso.
