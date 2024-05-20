@@ -124,13 +124,14 @@ void *hilos_atender_consola(void *args)
         case DETENER_PLANIFICACION:
         {
             int iniciar_algoritmo_valor;
-            sem_getvalue(&hiloArgs->kernel->planificador_iniciar, &iniciar_algoritmo_valor);
+            sem_getvalue(&hiloArgs->kernel->planificador_hilo, &iniciar_algoritmo_valor);
             if (iniciar_algoritmo_valor == -1)
             {
                 log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se puede detener la planificacion si no está iniciada");
                 break;
             }
             hilo_planificador_detener(hiloArgs);
+            hilo_planificador_estado(hiloArgs, false);
             log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
             break;
         }
@@ -138,7 +139,9 @@ void *hilos_atender_consola(void *args)
         {
             log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
             hilo_planificador_iniciar(hiloArgs);
+            hilo_planificador_estado(hiloArgs, true);
             sem_post(&hiloArgs->kernel->planificador_iniciar);
+            sem_post(&hiloArgs->kernel->planificador_hilo);
             break;
         }
         case MULTIPROGRAMACION:
@@ -214,124 +217,140 @@ void hilos_planificador_inicializar(hilos_args *args, pthread_t thread_planifica
 void *hilo_planificador(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-    switch (determinar_algoritmo(hiloArgs))
+    while (1)
     {
-    case FIFO:
-    {
-        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
-        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
 
-        while (obtener_key_finalizacion_hilo(hiloArgs))
+        sem_wait(&hiloArgs->kernel->planificador_hilo);
+
+        if (!obtener_key_finalizacion_hilo(hiloArgs))
         {
-            sem_wait(&hiloArgs->kernel->planificador_iniciar);
-
-            if (!obtener_key_finalizacion_hilo(hiloArgs))
-            {
-                break;
-            }
-
-            // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
-            if (obtener_key_detencion_algoritmo(hiloArgs))
-            {
-                log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO pausada.");
-                continue;
-            }
-
-            // Con esto me aseguro que la proxima iteracion se ejecute hasta que se reciba la señal de detencion
-            sem_post(&hiloArgs->kernel->planificador_iniciar);
-
-            log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO continua.");
-
-            sleep(2);
-
-            /* TODO: Manejar solamente la lógica de mover procesos de las colas de estados desde este hilo.
-
-            Todo lo que sea de comunicación con otros módulos, como Memoria, CPU, IO, etc, se debe hacer en los hilos de esos módulos como respuesta a mensajes que se reciban a partir de un flujo activado por la ejecucción de comandos desde consola interactiva.
-
-            El hilo_planificador es un orquestador interno de Kernel, no debe tener comunicación directa con los módulos externos. Cualquier cosa preguntame.
-            */
+            break;
         }
-        break;
-    }
-    case RR:
-    {
-        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
-        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
 
-        while (obtener_key_finalizacion_hilo(hiloArgs))
+        switch (determinar_algoritmo(hiloArgs))
         {
-            sem_wait(&hiloArgs->kernel->planificador_iniciar);
-
-            if (!obtener_key_finalizacion_hilo(hiloArgs))
-            {
-                break;
-            }
-
-            // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
-            if (obtener_key_detencion_algoritmo(hiloArgs))
-            {
-                log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO pausada.");
-                continue;
-            }
-
-            // Con esto me aseguro que la proxima iteracion se ejecute hasta que se reciba la señal de detencion
-            sem_post(&hiloArgs->kernel->planificador_iniciar);
-
-            log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO continua.");
-
-            sleep(2);
-
-            /* TODO: Manejar solamente la lógica de mover procesos de las colas de estados desde este hilo.
-
-            Todo lo que sea de comunicación con otros módulos, como Memoria, CPU, IO, etc, se debe hacer en los hilos de esos módulos como respuesta a mensajes que se reciban a partir de un flujo activado por la ejecucción de comandos desde consola interactiva.
-
-            El hilo_planificador es un orquestador interno de Kernel, no debe tener comunicación directa con los módulos externos. Cualquier cosa preguntame.
-            */
-        }
-        break;
-    }
-    case VRR:
-    {
-        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
-        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
-
-        while (obtener_key_finalizacion_hilo(hiloArgs))
+        case FIFO:
         {
-            sem_wait(&hiloArgs->kernel->planificador_iniciar);
+            // TODO: Hacer una logica de si ya terminó de ejecutar CPU para mover el proceso nuevo de new a ready;
+            log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
+            log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
 
-            if (!obtener_key_finalizacion_hilo(hiloArgs))
+            while (obtener_key_finalizacion_hilo(hiloArgs))
             {
-                break;
+                sem_wait(&hiloArgs->kernel->planificador_iniciar);
+
+                if (!obtener_key_finalizacion_hilo(hiloArgs))
+                {
+                    break;
+                }
+
+                // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
+                if (obtener_key_detencion_algoritmo(hiloArgs))
+                {
+                    log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO pausada.");
+                    continue;
+                }
+
+                planificacion_largo_plazo(hiloArgs, hiloArgs->estados, hiloArgs->logger);
+                fifo(hiloArgs, hiloArgs->estados, hiloArgs->logger);
+
+                if (list_size(hiloArgs->estados->new) > 0) // Verifico que si post inicio de la planificación llega otro proceso a la cola de new, lo mande a la cola de ready
+                {
+                    planificacion_largo_plazo(hiloArgs, hiloArgs->estados, hiloArgs->logger);
+                }
+
+                // Cada vez que se desbloquea el hilo planificador, revisa el estado de todas las colas y revisa las transiciones que tenga que hacer, luego se bloquea devuelta hasta que llega un nuevo proceso.
             }
-
-            // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
-            if (obtener_key_detencion_algoritmo(hiloArgs))
-            {
-                log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO pausada.");
-                continue;
-            }
-
-            // Con esto me aseguro que la proxima iteracion se ejecute hasta que se reciba la señal de detencion
-            sem_post(&hiloArgs->kernel->planificador_iniciar);
-
-            log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion FIFO continua.");
-
-            sleep(2);
-
-            /* TODO: Manejar solamente la lógica de mover procesos de las colas de estados desde este hilo.
-
-            Todo lo que sea de comunicación con otros módulos, como Memoria, CPU, IO, etc, se debe hacer en los hilos de esos módulos como respuesta a mensajes que se reciban a partir de un flujo activado por la ejecucción de comandos desde consola interactiva.
-
-            El hilo_planificador es un orquestador interno de Kernel, no debe tener comunicación directa con los módulos externos. Cualquier cosa preguntame.
-            */
+            break;
         }
-        break;
-    }
-    default:
-    {
-        log_generic(hiloArgs, LOG_LEVEL_ERROR, "Algoritmo de planificacion no reconocido.");
-        break;
-    }
+        case RR:
+        {
+            log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de Round Robin.");
+            log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
+
+            while (obtener_key_finalizacion_hilo(hiloArgs))
+            {
+                sem_wait(&hiloArgs->kernel->planificador_iniciar);
+
+                planificacion_largo_plazo(hiloArgs, hiloArgs->estados, hiloArgs->logger);
+                round_robin(hiloArgs, hiloArgs->estados, hiloArgs->logger);
+
+                if (list_size(hiloArgs->estados->new) > 0) // Verifico que si post inicio de la planificación llega otro proceso a la cola de new, lo mande a la cola de ready
+                {
+                    planificacion_largo_plazo(hiloArgs, hiloArgs->estados, hiloArgs->logger);
+                }
+
+                if (!obtener_key_finalizacion_hilo(hiloArgs))
+                {
+                    break;
+                }
+
+                // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
+                if (obtener_key_detencion_algoritmo(hiloArgs))
+                {
+                    log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion Round Robin pausada.");
+                    continue;
+                }
+
+                // Con esto me aseguro que la proxima iteracion se ejecute hasta que se reciba la señal de detencion
+                sem_post(&hiloArgs->kernel->planificador_iniciar);
+
+                log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion Round Robin continua.");
+
+                sleep(2);
+            }
+            break;
+        }
+        case VRR:
+        {
+            log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de Virtual Round Robin.");
+            log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
+
+            while (obtener_key_finalizacion_hilo(hiloArgs))
+            {
+                sem_wait(&hiloArgs->kernel->planificador_iniciar);
+                planificacion_largo_plazo(hiloArgs, hiloArgs->estados, hiloArgs->logger);
+                // TODO: Implementacion de VRR
+
+                if (list_size(hiloArgs->estados->new) > 0) // Verifico que si post inicio de la planificación llega otro proceso a la cola de new, lo mande a la cola de ready
+                {
+                    planificacion_largo_plazo(hiloArgs, hiloArgs->estados, hiloArgs->logger);
+                }
+
+                if (!obtener_key_finalizacion_hilo(hiloArgs))
+                {
+                    break;
+                }
+
+                // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
+                if (obtener_key_detencion_algoritmo(hiloArgs))
+                {
+                    log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion Virtual Round Robin pausada.");
+                    continue;
+                }
+
+                // Con esto me aseguro que la proxima iteracion se ejecute hasta que se reciba la señal de detencion
+                sem_post(&hiloArgs->kernel->planificador_iniciar);
+
+                log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion Virtual Round Robin continua.");
+
+                sleep(2);
+
+                /* TODO: Manejar solamente la lógica de mover procesos de las colas de estados desde este hilo.
+
+                Todo lo que sea de comunicación con otros módulos, como Memoria, CPU, IO, etc, se debe hacer en los hilos de esos módulos como respuesta a mensajes que se reciban a partir de un flujo activado por la ejecucción de comandos desde consola interactiva.
+
+                El hilo_planificador es un orquestador interno de Kernel, no debe tener comunicación directa con los módulos externos. Cualquier cosa preguntame.
+                */
+            }
+            break;
+        }
+        default:
+        {
+            log_generic(hiloArgs, LOG_LEVEL_ERROR, "Algoritmo de planificacion no reconocido.");
+            break;
+        }
+        }
     }
     sem_post(&hiloArgs->kernel->sistema_finalizar);
     pthread_exit(0);
@@ -348,6 +367,13 @@ void hilo_planificador_iniciar(hilos_args *args)
 {
     pthread_mutex_lock(&args->kernel->lock);
     args->kernel->detener_planificador = false;
+    pthread_mutex_unlock(&args->kernel->lock);
+}
+
+void hilo_planificador_estado(hilos_args *args, bool estado)
+{
+    pthread_mutex_lock(&args->kernel->lock);
+    args->kernel->estado_planificador = estado;
     pthread_mutex_unlock(&args->kernel->lock);
 }
 

@@ -61,6 +61,7 @@ void hilos_cpu_inicializar(hilos_args *args, pthread_t thread_conectar_cpu_dispa
 void hilos_io_inicializar(hilos_args *args, pthread_t thread_esperar_entrada_salida);
 void hilos_consola_inicializar(hilos_args *args, pthread_t thread_atender_consola);
 void hilos_planificador_inicializar(hilos_args *args, pthread_t thread_planificador);
+void hilo_planificador_estado(hilos_args *args, bool estado);
 
 int obtener_key_finalizacion_hilo(hilos_args *args);
 int obtener_key_detencion_algoritmo(hilos_args *args);

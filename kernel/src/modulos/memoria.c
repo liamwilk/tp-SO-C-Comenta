@@ -22,6 +22,8 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *
             pcb->memoria_aceptado = true;
             log_generic(args, LOG_LEVEL_DEBUG, "Proceso PID:<%d> aceptado en memoria", pcb->pid);
             log_generic(args, LOG_LEVEL_INFO, "Proceso PID:<%d> aceptado en memoria", pcb->pid);
+
+            sem_post(&args->kernel->planificador_iniciar);
         }
         else
         {
@@ -41,4 +43,13 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *
         break;
     }
     }
+}
+
+bool hilo_planificador_obtener_estado(hilos_args *args)
+{
+    bool i;
+    pthread_mutex_lock(&args->kernel->lock);
+    i = args->kernel->detener_planificador;
+    pthread_mutex_unlock(&args->kernel->lock);
+    return i;
 }
