@@ -29,6 +29,12 @@ void planificacion_largo_plazo(t_kernel *kernel, t_diagrama_estados *estados, t_
 
 void fifo(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger)
 {
+    if (list_size(estados->ready) == 0)
+    {
+        log_debug(logger, "[FIFO]: No hay procesos en ready");
+        return;
+    }
+
     if (list_size(estados->ready) > 0 && list_size(estados->exec) == 0)
     {
         t_pcb *aux = kernel_transicion_ready_exec(estados, kernel);
