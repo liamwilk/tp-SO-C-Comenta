@@ -236,7 +236,7 @@ void *hilo_planificador(void *args)
             if (hiloArgs->kernel->proceso_termino)
             {
                 kernel_transicion_exec_exit(hiloArgs->estados);
-                hiloArgs->kernel->proceso_termino = false;
+                hiloArgs->kernel->proceso_termino = false; // Verifico la flag que avisa que un proceso termino
             }
 
             if (!obtener_key_finalizacion_hilo(hiloArgs))
