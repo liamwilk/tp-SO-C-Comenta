@@ -573,6 +573,9 @@ t_pcb *kernel_transicion_ready_exec(t_diagrama_estados *estados, t_kernel *kerne
     {
         return NULL;
     }
+
+    printf("PID: <%d> - Se movio de la cola de ready a exec", proceso->pid);
+
     proceso_push_exec(estados, proceso);
 
     pthread_mutex_unlock(&estados->mutex_ready_exec);
@@ -594,6 +597,21 @@ t_pcb *kernel_transicion_exec_block(t_diagrama_estados *estados)
         return NULL;
     }
     proceso_push_block(estados, proceso);
+    return proceso;
+};
+
+t_pcb *kernel_transicion_exec_exit(t_diagrama_estados *estados)
+{
+    pthread_mutex_lock(&estados->mutex_exec_exit);
+
+    t_pcb *proceso = proceso_pop_exec(estados);
+    if (proceso == NULL)
+    {
+        return NULL;
+    }
+    proceso_push_exit(estados, proceso);
+
+    pthread_mutex_unlock(&estados->mutex_exec_exit);
     return proceso;
 };
 

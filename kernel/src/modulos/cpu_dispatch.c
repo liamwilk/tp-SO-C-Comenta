@@ -20,12 +20,16 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
             log_debug(logger, "Le doy notificacion a Memoria para que elimine el proceso PID:<%d>", proceso->pid);
 
+            args->kernel->proceso_termino = true; // Flag que avisa que un proceso termino
+
             t_paquete *paquete_finalizar = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
             t_kernel_memoria_finalizar_proceso *finalizar_proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
             finalizar_proceso->pid = proceso->pid;
             serializar_t_kernel_memoria_finalizar_proceso(&paquete_finalizar, finalizar_proceso);
             enviar_paquete(paquete_finalizar, args->kernel->sockets.memoria);
             eliminar_paquete(paquete_finalizar);
+
+            sem_post(&args->kernel->planificador_iniciar);
         }
         else
         {

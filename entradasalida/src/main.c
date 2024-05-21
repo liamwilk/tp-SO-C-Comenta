@@ -183,7 +183,7 @@ void *atender_kernel_generic()
                 
                 t_kernel_entrada_salida_unidad_de_trabajo* unidades = deserializar_t_kernel_entrada_salida_unidad_de_trabajo(paquete->buffer);
 
-                log_info(logger, "PID : <%u> - Operacion a realizar: KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP", process_getpid());
+                log_info(logger, "PID : <%u> - Operacion a realizar: KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP", unidades->pid);
                                 
                 log_debug(logger, "Durmiendo %d unidades de trabajo", unidades->unidad_de_trabajo);
                 usleep(unidades->unidad_de_trabajo * entradasalida.tiempoUnidadDeTrabajo);
@@ -192,6 +192,7 @@ void *atender_kernel_generic()
 				
 				t_entrada_salida_kernel_unidad_de_trabajo* unidad = malloc(sizeof(t_entrada_salida_kernel_unidad_de_trabajo));
 				unidad->terminado = true;
+				unidad->pid = unidades->pid;
 
 				serializar_t_entrada_salida_kernel_unidad_de_trabajo(&aviso_sleep, unidad);
 

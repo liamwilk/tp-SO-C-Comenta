@@ -33,8 +33,6 @@
 		}
 	],
 	"extensions": {
-		"recommendations": [
-			"github.copilot"
-		]
+		"recommendations": []
 	}
 }

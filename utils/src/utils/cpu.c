@@ -571,6 +571,7 @@ void cpu_ejecutar_instruccion(t_cpu cpu_paquete, t_memoria_cpu_instruccion *dato
         unidad->tiempo = tiempo;
         unidad->size_interfaz = strlen(interfaz) + 1;
         unidad->interfaz = strdup(interfaz);
+        unidad->pid = cpu_proceso->pid;
 
         serializar_t_cpu_kernel_io_gen_sleep(&paquete, unidad);
 

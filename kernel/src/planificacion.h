@@ -10,11 +10,11 @@
  * en el kernel. Recibe como entrada un puntero a la estructura del kernel, un puntero
  * al diagrama de estados y un puntero al logger.
  *
- * @param kernel   Un puntero a la estructura del kernel.
+ * @param hiloArgs   Un puntero a la estructura del kernel.
  * @param estados  Un puntero al diagrama de estados.
  * @param logger   Un puntero al logger.
  */
-void planificacion_largo_plazo(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger);
+void planificacion_largo_plazo(hilos_args *hiloArgs, t_diagrama_estados *estados, t_log *logger);
 
 /**
  * Ejecuta el algoritmo de planificación a corto plazo.
@@ -23,14 +23,14 @@ void planificacion_largo_plazo(t_kernel *kernel, t_diagrama_estados *estados, t_
  * en el kernel. Recibe como entrada un puntero a la estructura del kernel, un puntero
  * al diagrama de estados y un puntero al logger.
  *
- * @param kernel   Un puntero a la estructura del kernel.
+ * @param hiloArgs   Un puntero a la estructura del kernel.
  * @param estados  Un puntero al diagrama de estados.
  * @param logger   Un puntero al logger.
  */
 void planificacion_corto_plazo(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger);
 
-void fifo(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger);
+void fifo(hilos_args *hiloArgs, t_diagrama_estados *estados, t_log *logger);
 
-void round_robin(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger);
+void round_robin(hilos_args *hiloArgs, t_diagrama_estados *estados, t_log *logger);
 
 #endif /* PLANIFICACION_H_ */

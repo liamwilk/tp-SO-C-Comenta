@@ -78,11 +78,14 @@ typedef struct t_kernel
     char *instanciasRecursos;
     int gradoMultiprogramacion;
     sem_t planificador_iniciar;
+    sem_t planificador_hilo;
     sem_t sistema_finalizar;
     sem_t log_lock;
     sem_t memoria_consola_finalizacion_proceso;
     sem_t memoria_consola_nuevo_proceso;
     bool detener_planificador;
+    bool estado_planificador;
+    bool proceso_termino;
     t_kernel_sockets sockets;
     t_kernel_threads threads;
     pthread_mutex_t lock;
