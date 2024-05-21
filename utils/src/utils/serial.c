@@ -416,6 +416,15 @@ void serializar_t_kernel_entrada_salida_unidad_de_trabajo(t_paquete **paquete, t
 
 void serializar_t_cpu_kernel_io_gen_sleep(t_paquete **paquete, t_cpu_kernel_io_gen_sleep *unidad)
 {
+
+	/* typedef struct
+	{
+		uint32_t pid;
+		uint32_t size_interfaz;
+		char *interfaz;
+		uint32_t tiempo;
+	} t_cpu_kernel_io_gen_sleep; */
+
 	actualizar_buffer(*paquete, unidad->size_interfaz + sizeof(uint32_t) * 3);
 	serializar_uint32_t(unidad->pid, *paquete);
 	serializar_uint32_t(unidad->size_interfaz, *paquete);

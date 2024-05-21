@@ -573,6 +573,9 @@ t_pcb *kernel_transicion_ready_exec(t_diagrama_estados *estados, t_kernel *kerne
     {
         return NULL;
     }
+
+    printf("PID: <%d> - Se movio de la cola de ready a exec", proceso->pid);
+
     proceso_push_exec(estados, proceso);
 
     pthread_mutex_unlock(&estados->mutex_ready_exec);

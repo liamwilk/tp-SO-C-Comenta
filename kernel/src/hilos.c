@@ -257,7 +257,6 @@ void *hilo_planificador(void *args)
             {
             case FIFO:
             {
-
                 fifo(hiloArgs, hiloArgs->estados, hiloArgs->logger);
                 break;
             }
@@ -576,9 +575,18 @@ void *hilos_atender_entrada_salida_generic(void *args)
         {
             t_entrada_salida_kernel_unidad_de_trabajo *unidad = deserializar_t_entrada_salida_kernel_unidad_de_trabajo(paquete->buffer);
 
-            // Este mensaje es solo de efecto, no contiene ningun buffer de datos
-
             log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Se recibio respuesta de IO_GEN_SLEEP del PID <%d> : %d", modulo, interfaz, orden, unidad->pid, unidad->terminado);
+
+            if (unidad->terminado)
+            {
+                log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Se transiciona el PID %d a READY por finalizacion de I/O", modulo, interfaz, orden, unidad->pid);
+                t_pcb *pcb_movido = kernel_transicion_block_ready(io_args->args->estados, io_args->args->logger);
+
+                if (pcb_movido->pid != unidad->pid)
+                {
+                    log_generic(io_args->args, LOG_LEVEL_ERROR, "[%s/Interfaz %s/Orden %d] El PID %d que fue recuperado de la lista de BLOCK no coincide con el PID %d que se tendria que haber movido a READY al invocar kernel_transicion_block_ready.", modulo, interfaz, orden, pcb_movido->pid, unidad->pid);
+                }
+            }
 
             free(unidad);
             break;

@@ -31,15 +31,24 @@ void planificacion_largo_plazo(hilos_args *hiloArgs, t_diagrama_estados *estados
 
 void fifo(hilos_args *hiloArgs, t_diagrama_estados *estados, t_log *logger)
 {
+
+    // Obtengo la cantidad real de procesos en ready a través del diccionario, porque el tamaño de la lista nunca disminuye, solo se vacian sus elementos.
+
     if (list_size(estados->ready) == 0)
     {
         log_generic(hiloArgs, LOG_LEVEL_DEBUG, "[FIFO]: No hay procesos en ready");
         return;
     }
 
+    log_generic(hiloArgs, LOG_LEVEL_DEBUG, "[FIFO]: Procesos en ready: %d", list_size(estados->ready));
+    log_generic(hiloArgs, LOG_LEVEL_DEBUG, "[FIFO]: Procesos en exec: %d", list_size(estados->exec));
+
     if (list_size(estados->ready) > 0 && list_size(estados->exec) == 0)
     {
+        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "[FIFO] Entré al segundo IF");
+
         t_pcb *aux = kernel_transicion_ready_exec(estados, hiloArgs->kernel);
+        log_generic(hiloArgs, LOG_LEVEL_DEBUG, "[FIFO]: Procesos en ready LUEGO de transicionar de READY a EXEC: %d", list_size(estados->ready));
         log_generic(hiloArgs, LOG_LEVEL_DEBUG, "[FIFO]: Enviando proceso <PID: %d> a CPU", aux->pid);
         free(aux);
     }
