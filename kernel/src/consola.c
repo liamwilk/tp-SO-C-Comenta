@@ -612,8 +612,7 @@ t_pcb *kernel_transicion_exec_exit(t_diagrama_estados *estados)
     return proceso;
 };
 
-t_pcb *
-kernel_transicion_block_ready(t_diagrama_estados *estados, t_log *logger)
+t_pcb *kernel_transicion_block_ready(t_diagrama_estados *estados, t_log *logger)
 {
     t_pcb *proceso = proceso_pop_block(estados);
     if (proceso == NULL)

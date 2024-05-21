@@ -85,6 +85,7 @@ typedef struct t_kernel
     sem_t memoria_consola_nuevo_proceso;
     bool detener_planificador;
     bool estado_planificador;
+    bool proceso_termino;
     t_kernel_sockets sockets;
     t_kernel_threads threads;
     pthread_mutex_t lock;
