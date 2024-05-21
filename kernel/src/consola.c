@@ -597,7 +597,23 @@ t_pcb *kernel_transicion_exec_block(t_diagrama_estados *estados)
     return proceso;
 };
 
-t_pcb *kernel_transicion_block_ready(t_diagrama_estados *estados, t_log *logger)
+t_pcb *kernel_transicion_exec_exit(t_diagrama_estados *estados)
+{
+    pthread_mutex_lock(&estados->mutex_exec_exit);
+
+    t_pcb *proceso = proceso_pop_exec(estados);
+    if (proceso == NULL)
+    {
+        return NULL;
+    }
+    proceso_push_exit(estados, proceso);
+
+    pthread_mutex_unlock(&estados->mutex_exec_exit);
+    return proceso;
+};
+
+t_pcb *
+kernel_transicion_block_ready(t_diagrama_estados *estados, t_log *logger)
 {
     t_pcb *proceso = proceso_pop_block(estados);
     if (proceso == NULL)

@@ -91,7 +91,10 @@ t_pcb *kernel_transicion_block_ready(t_diagrama_estados *estados, t_log *logger)
 
 t_pcb *kernel_transicion_exec_ready(t_diagrama_estados *estados, t_log *logger, t_kernel *kernel);
 
+t_pcb *kernel_transicion_exec_exit(t_diagrama_estados *estados);
+
 void kernel_desalojar_proceso(t_diagrama_estados *estados, t_kernel *kernel, t_log *logger, t_pcb *proceso);
+
 void revisar_paquete_kernel(hilos_args *args, t_paquete *paquete, char *modulo);
 
 t_kernel_entrada_salida *entrada_salida_agregar_interfaz(hilos_args *args, KERNEL_SOCKETS tipo, int socket);

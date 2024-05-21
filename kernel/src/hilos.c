@@ -216,8 +216,6 @@ void hilos_planificador_inicializar(hilos_args *args, pthread_t thread_planifica
 
 void *hilo_planificador(void *args)
 {
-    // TODO: VER LOGICA DE POST EJECUCION DEL PROCESO, NO SE ESTA HACIENDO EL POST CORRECTAMENTE PORQUE SOLO EJECUTA UNO.
-    // TODO: Hacer que se mande 1 a 1, no todos de golpe.
     hilos_args *hiloArgs = (hilos_args *)args;
     while (1)
     {
@@ -232,7 +230,6 @@ void *hilo_planificador(void *args)
         {
         case FIFO:
         {
-            // TODO: Hacer una logica de si ya terminó de ejecutar CPU para mover el proceso nuevo de new a ready;
             log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Llegue al case de FIFO.");
             log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
 
@@ -255,19 +252,6 @@ void *hilo_planificador(void *args)
                 planificacion_largo_plazo(hiloArgs, hiloArgs->estados, hiloArgs->logger);
                 fifo(hiloArgs, hiloArgs->estados, hiloArgs->logger);
 
-                sem_wait(&hiloArgs->kernel->planificador_iniciar);
-
-                if (list_size(hiloArgs->estados->new) > 0) // Verifico que si post inicio de la planificación llega otro proceso a la cola de new, lo mande a la cola de ready
-                {
-                    t_pcb *proceso = proceso_pop_new(hiloArgs->estados);
-                    if (proceso->memoria_aceptado == false)
-                    {
-                        log_generic(hiloArgs, LOG_LEVEL_WARNING, "No se puede mover el proceso PID: <%d> a ready, ya que no fue aceptado por memoria", proceso->pid);
-                        continue;
-                    }
-                    proceso_push_ready(hiloArgs->estados, proceso, hiloArgs->logger);
-                }
-
                 // Cada vez que se desbloquea el hilo planificador, revisa el estado de todas las colas y revisa las transiciones que tenga que hacer, luego se bloquea devuelta hasta que llega un nuevo proceso.
             }
             break;
@@ -280,9 +264,6 @@ void *hilo_planificador(void *args)
             while (obtener_key_finalizacion_hilo(hiloArgs))
             {
                 sem_wait(&hiloArgs->kernel->planificador_iniciar);
-
-                planificacion_largo_plazo(hiloArgs, hiloArgs->estados, hiloArgs->logger);
-                round_robin(hiloArgs, hiloArgs->estados, hiloArgs->logger);
 
                 if (list_size(hiloArgs->estados->new) > 0) // Verifico que si post inicio de la planificación llega otro proceso a la cola de new, lo mande a la cola de ready
                 {
@@ -301,12 +282,8 @@ void *hilo_planificador(void *args)
                     continue;
                 }
 
-                // Con esto me aseguro que la proxima iteracion se ejecute hasta que se reciba la señal de detencion
-                sem_post(&hiloArgs->kernel->planificador_iniciar);
-
-                log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion Round Robin continua.");
-
-                sleep(2);
+                planificacion_largo_plazo(hiloArgs, hiloArgs->estados, hiloArgs->logger);
+                round_robin(hiloArgs, hiloArgs->estados, hiloArgs->logger);
             }
             break;
         }
@@ -318,8 +295,6 @@ void *hilo_planificador(void *args)
             while (obtener_key_finalizacion_hilo(hiloArgs))
             {
                 sem_wait(&hiloArgs->kernel->planificador_iniciar);
-                planificacion_largo_plazo(hiloArgs, hiloArgs->estados, hiloArgs->logger);
-                // TODO: Implementacion de VRR
 
                 if (list_size(hiloArgs->estados->new) > 0) // Verifico que si post inicio de la planificación llega otro proceso a la cola de new, lo mande a la cola de ready
                 {
@@ -338,13 +313,8 @@ void *hilo_planificador(void *args)
                     continue;
                 }
 
-                // Con esto me aseguro que la proxima iteracion se ejecute hasta que se reciba la señal de detencion
-                sem_post(&hiloArgs->kernel->planificador_iniciar);
-
-                log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion Virtual Round Robin continua.");
-
-                sleep(2);
-
+                planificacion_largo_plazo(hiloArgs, hiloArgs->estados, hiloArgs->logger);
+                // TODO: Implementacion de VRR
                 /* TODO: Manejar solamente la lógica de mover procesos de las colas de estados desde este hilo.
 
                 Todo lo que sea de comunicación con otros módulos, como Memoria, CPU, IO, etc, se debe hacer en los hilos de esos módulos como respuesta a mensajes que se reciban a partir de un flujo activado por la ejecucción de comandos desde consola interactiva.

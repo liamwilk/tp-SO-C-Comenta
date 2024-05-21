@@ -17,6 +17,7 @@ typedef struct t_diagrama_estados
     t_dictionary *procesos; // Diccionario que mapea PID: ESTADO
     pthread_mutex_t mutex_ready_exec;
     pthread_mutex_t mutex_exec_ready;
+    pthread_mutex_t mutex_exec_exit;
     t_dictionary *buffer_procesos;
 } t_diagrama_estados;
 
