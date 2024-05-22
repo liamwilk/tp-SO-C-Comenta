@@ -30,10 +30,11 @@ void proceso_push_ready(t_diagrama_estados *estados, t_pcb *pcb, t_log *logger)
 {
     list_add(estados->ready, pcb);
     char *pid_char = string_itoa(pcb->pid);
-    // Actualizo el diccionario de procesos
+
     char *estado = "READY";
     dictionary_put(estados->procesos, pid_char, estado);
-    // Loggear la cola de ready
+
+    // Obligatorio de la cátedra
     log_info(logger, "Cola Ready <COLA>:");
     for (int i = 0; i < list_size(estados->ready); i++)
     {
@@ -47,7 +48,6 @@ void proceso_push_exec(t_diagrama_estados *estados, t_pcb *pcb)
     list_add(estados->exec, pcb);
     char *pid_char = string_itoa(pcb->pid);
 
-    // Actualizo el diccionario de procesos
     char *estado = "EXEC";
     dictionary_put(estados->procesos, pid_char, estado);
 };

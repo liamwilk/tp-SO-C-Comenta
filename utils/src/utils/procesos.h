@@ -14,11 +14,15 @@ typedef struct t_diagrama_estados
     t_list *exec;
     t_list *block;
     t_list *exit;
-    t_dictionary *procesos; // Diccionario que mapea PID: ESTADO
+    t_dictionary *procesos;
+    t_dictionary *buffer_procesos;
+
+    //********** MUTEX **********//
     pthread_mutex_t mutex_ready_exec;
     pthread_mutex_t mutex_exec_ready;
     pthread_mutex_t mutex_exec_exit;
-    t_dictionary *buffer_procesos;
+    pthread_mutex_t mutex_block_ready;
+    pthread_mutex_t mutex_exec_block;
 } t_diagrama_estados;
 
 typedef struct pcb

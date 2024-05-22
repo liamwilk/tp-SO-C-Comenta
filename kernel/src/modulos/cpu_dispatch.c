@@ -8,17 +8,9 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
     {
         t_cpu_kernel_proceso *proceso = deserializar_t_cpu_kernel_proceso(buffer);
 
-        log_debug(logger, "Recibí la respuesta de CPU acerca de la ejecucion de un proceso");
-        log_debug(logger, "PID: %d", proceso->pid);
-        log_debug(logger, "Cantidad de instrucciones ejecutadas: %d", proceso->registros->pc);
-        log_debug(logger, "Ejecutado completo: %d", proceso->ejecutado);
-
-        // TODO: En CPU implementar lo siguiente: ejecutado = 1 para ejecutado completo, 0 para interrumpido y pendiente, -1 para error.
         if (proceso->ejecutado)
         {
             log_debug(logger, "Proceso PID:<%d> ejecutado completo.", proceso->pid);
-
-            log_debug(logger, "Le doy notificacion a Memoria para que elimine el proceso PID:<%d>", proceso->pid);
 
             args->kernel->proceso_termino = true; // Flag que avisa que un proceso termino
 

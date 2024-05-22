@@ -32,9 +32,6 @@ void imprimir_logo(hilos_args *args);
 void imprimir_header(hilos_args *args);
 t_pcb *buscar_proceso(t_diagrama_estados *estados, uint32_t pid);
 
-void log_generic_rl(hilos_args *args, t_log_level nivel, const char *mensaje);
-void log_generic(hilos_args *args, t_log_level nivel, const char *mensaje, ...) __attribute__((format(printf, 3, 4)));
-
 void hilo_ejecutar_kernel(int socket, hilos_args *args, char *modulo, t_funcion_kernel_ptr switch_case_atencion);
 
 /**
@@ -80,20 +77,6 @@ t_pcb *kernel_nuevo_proceso(hilos_args *args, t_diagrama_estados *estados, t_log
 void kernel_enviar_pcb_cpu(t_kernel *kernel, t_pcb *pcb, t_kernel_sockets cpu);
 
 /** FUNCIONES DE CONSOLA**/
-
-void kernel_finalizar(hilos_args *args);
-
-t_pcb *kernel_transicion_ready_exec(t_diagrama_estados *estados, t_kernel *kernel);
-
-t_pcb *kernel_transicion_exec_block(t_diagrama_estados *estados);
-
-t_pcb *kernel_transicion_block_ready(t_diagrama_estados *estados, t_log *logger);
-
-t_pcb *kernel_transicion_exec_ready(t_diagrama_estados *estados, t_log *logger, t_kernel *kernel);
-
-t_pcb *kernel_transicion_exec_exit(t_diagrama_estados *estados);
-
-void kernel_desalojar_proceso(t_diagrama_estados *estados, t_kernel *kernel, t_log *logger, t_pcb *proceso);
 
 void revisar_paquete_kernel(hilos_args *args, t_paquete *paquete, char *modulo);
 
