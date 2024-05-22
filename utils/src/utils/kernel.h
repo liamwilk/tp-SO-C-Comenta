@@ -135,22 +135,16 @@ t_diagrama_estados kernel_inicializar_estados(t_diagrama_estados *estados);
  * Esta función se encarga de desalojar un proceso del kernel, actualizando el diagrama de estados,
  * Se utiliza principalmente en ROUND ROBIN o VIRTUAL ROUND ROBIN
  *
- * @param estados diagrama de estados del sistema.
- * @param kernel  kernel del sistema.
- * @param logger logger del sistema.
- * @param proceso  PCB del proceso a desalojar.
+ * @param kernel_hilos_args Son los argumentos que recibe cada hilo al momento de ejecutarse
  */
-void kernel_desalojar_proceso(t_diagrama_estados *estados, t_kernel *kernel, t_log *logger, t_pcb *proceso);
+void kernel_desalojar_proceso(hilos_args *kernel_hilos_args);
 
 /**
  * Transiciona un PCB del estado EXEC al estado READY en el diagrama de estados del kernel.
  *
- * @param estados El diagrama de estados que contiene los estados del PCB.
- * @param logger El logger utilizado para registrar información.
- * @param kernel La instancia del kernel.
- * @return El PCB actualizado después de la transición.
+ * @param kernel_hilos_args Son los argumentos que recibe cada hilo al momento de ejecutarse
  */
-t_pcb *kernel_transicion_exec_ready(t_diagrama_estados *estados, t_log *logger, t_kernel *kernel);
+t_pcb *kernel_transicion_exec_ready(hilos_args *kernel_hilos_args);
 
 /**
  * Transiciona un PCB del estado READY al estado EXEC en el kernel.
@@ -158,12 +152,9 @@ t_pcb *kernel_transicion_exec_ready(t_diagrama_estados *estados, t_log *logger, 
  * Esta función toma como parámetros un diagrama de estados y un kernel, y transiciona un Bloque de Control de Proceso (PCB)
  * del estado READY al estado EXEC en el kernel. Retorna un puntero al PCB actualizado.
  *
- * @param estados El diagrama de estados.
- * @param kernel El kernel.
- * @param logger El logger.
- * @return Un puntero al PCB actualizado.
+ * @param kernel_hilos_args Son los argumentos que recibe cada hilo al momento de ejecutarse
  */
-t_pcb *kernel_transicion_ready_exec(t_diagrama_estados *estados, t_kernel *kernel, t_log *logger);
+t_pcb *kernel_transicion_ready_exec(hilos_args *kernel_hilos_args);
 
 /**
  * Transiciona un proceso del estado bloqueado al estado listo en el kernel.
@@ -171,11 +162,11 @@ t_pcb *kernel_transicion_ready_exec(t_diagrama_estados *estados, t_kernel *kerne
  * Esta función toma como parámetros un diagrama de estados y un logger. Extrae un proceso del estado bloqueado,
  * lo coloca en el estado listo y devuelve el proceso. Si no hay procesos en el estado bloqueado, devuelve NULL.
  *
- * @param estados El diagrama de estados.
- * @param logger El logger utilizado para el registro.
- * @return El proceso que se ha transicionado al estado listo, o NULL si no hay procesos en el estado bloqueado.
+ * @param kernel_hilos_args Son los argumentos que recibe cada hilo al momento de ejecutarse
+ * @param modulo
+ * @param unidad
  */
-t_pcb *kernel_transicion_block_ready(t_diagrama_estados *estados, t_log *logger);
+t_pcb *kernel_transicion_block_ready(hilos_io_args *io_args, char *modulo, t_entrada_salida_kernel_unidad_de_trabajo *unidad);
 
 /**
  * @brief Función de transición para ejecutar un bloque en el kernel.
@@ -183,24 +174,32 @@ t_pcb *kernel_transicion_block_ready(t_diagrama_estados *estados, t_log *logger)
  * Esta función realiza la transición del estado exec al estado "block" y devuelve el siguiente PCB (Bloque de Control de Proceso)
  * a ser ejecutado según el diagrama de estados y el logger proporcionados.
  *
- * @param estados El diagrama de estados que contiene los estados actual y siguiente del kernel.
- * @param logger El logger utilizado para registrar información durante la transición.
+ * @param kernel_hilos_args Son los argumentos que recibe cada hilo al momento de ejecutarse
  */
-t_pcb *kernel_transicion_exec_block(t_diagrama_estados *estados, t_log *logger);
+t_pcb *kernel_transicion_exec_block(hilos_args *kernel_hilo_args);
 
 /**
  * @brief Realiza la transición del estado EXEC al estado EXIT en el kernel.
  *
  * Esta función actualiza el diagrama de estados y registra la transición en el logger.
  *
- * @param estados El diagrama de estados.
- * @param logger El logger para registrar la transición.
- * @return El PCB (Bloque de Control de Proceso) actualizado después de la transición.
+ * @param kernel_hilos_args Son los argumentos que recibe cada hilo al momento de ejecutarse
  */
-t_pcb *kernel_transicion_exec_exit(t_diagrama_estados *estados, t_log *logger);
+t_pcb *kernel_transicion_exec_exit(hilos_args *kernel_hilo_args);
+
+/**
+ * @brief Función de transición para ejecutar un bloque en el kernel.
+ *
+ * Esta función realiza la transición del estado new al estado "ready" y devuelve el  PCB (Bloque de Control de Proceso)
+ *
+ * @param kernel_hilos_args Son los argumentos que recibe cada hilo al momento de ejecutarse
+ */
+t_pcb *kernel_transicion_new_ready(hilos_args *kernel_hilo_args);
 
 void kernel_finalizar(hilos_args *args);
 
 t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz);
+
+void log_ready(hilos_args *kernel_hilos_args);
 
 #endif /* KERNEL_H */

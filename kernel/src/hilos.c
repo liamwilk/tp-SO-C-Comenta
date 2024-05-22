@@ -170,6 +170,9 @@ void *hilos_atender_consola(void *args)
             else
             {
                 kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
+                int pid = atoi(separar_linea[1]);
+                char *estado = proceso_estado(hiloArgs->estados, pid);
+                kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "El proceso <%d> se encuentra en estado %s", pid, estado);
                 break;
             }
         }
@@ -235,7 +238,7 @@ void *hilo_planificador(void *args)
 
             if (hiloArgs->kernel->proceso_termino) // Verifico la flag que avisa que un proceso termino
             {
-                kernel_transicion_exec_exit(hiloArgs->estados, hiloArgs->logger);
+                kernel_transicion_exec_exit(hiloArgs);
                 hiloArgs->kernel->proceso_termino = false; // Vuelvo a cambiar a estado inicial la flag
             }
 
@@ -251,18 +254,18 @@ void *hilo_planificador(void *args)
                 continue;
             }
 
-            planificacion_largo_plazo(hiloArgs, hiloArgs->estados, hiloArgs->logger);
+            planificacion_largo_plazo(hiloArgs);
 
             switch (determinar_algoritmo(hiloArgs))
             {
             case FIFO:
             {
-                fifo(hiloArgs, hiloArgs->estados, hiloArgs->logger);
+                fifo(hiloArgs);
                 break;
             }
             case RR:
             {
-                round_robin(hiloArgs, hiloArgs->estados, hiloArgs->logger);
+                round_robin(hiloArgs);
                 break;
             }
             case VRR:
@@ -575,17 +578,9 @@ void *hilos_atender_entrada_salida_generic(void *args)
         {
             t_entrada_salida_kernel_unidad_de_trabajo *unidad = deserializar_t_entrada_salida_kernel_unidad_de_trabajo(paquete->buffer);
 
-            kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Se recibio respuesta de IO_GEN_SLEEP del PID <%d> : %d", modulo, interfaz, orden, unidad->pid, unidad->terminado);
-
             if (unidad->terminado)
             {
-                kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Se transiciona el PID %d a READY por finalizacion de I/O", modulo, interfaz, orden, unidad->pid);
-                t_pcb *pcb_movido = kernel_transicion_block_ready(io_args->args->estados, io_args->args->logger);
-
-                if (pcb_movido->pid != unidad->pid)
-                {
-                    kernel_log_generic(io_args->args, LOG_LEVEL_ERROR, "[%s/Interfaz %s/Orden %d] El PID %d que fue recuperado de la lista de BLOCK no coincide con el PID %d que se tendria que haber movido a READY al invocar kernel_transicion_block_ready.", modulo, interfaz, orden, pcb_movido->pid, unidad->pid);
-                }
+                kernel_transicion_block_ready(io_args, modulo, unidad);
             }
 
             free(unidad);

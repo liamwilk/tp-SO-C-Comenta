@@ -23,6 +23,7 @@ typedef struct t_diagrama_estados
     pthread_mutex_t mutex_exec_exit;
     pthread_mutex_t mutex_block_ready;
     pthread_mutex_t mutex_exec_block;
+    pthread_mutex_t mutext_new_ready;
 } t_diagrama_estados;
 
 typedef struct pcb
@@ -91,7 +92,7 @@ void proceso_push_new(t_diagrama_estados *estados, t_pcb *pcb);
  * @param estados diagrama de 5 estados
  * @param pcb El PCB a agregar.
  */
-void proceso_push_ready(t_diagrama_estados *estados, t_pcb *pcb, t_log *logger);
+void proceso_push_ready(t_diagrama_estados *estados, t_pcb *pcb);
 
 /**
  * Agrega un PCB a la cola "exec".
@@ -172,7 +173,7 @@ t_pcb *proceso_pop_exit(t_diagrama_estados *estados);
  * @param block La cola "block" de la cual eliminar el proceso.
  * @return Un puntero al bloque de control de procesos (PCB) eliminado.
  */
-t_pcb *proceso_pop_block(t_diagrama_estados *estados);
+t_pcb *proceso_remover_block(t_diagrama_estados *estados, uint32_t pid);
 
 /**
  * @brief Revierte la creacion de un proceso en estado new

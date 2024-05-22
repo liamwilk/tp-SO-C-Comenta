@@ -26,21 +26,13 @@ void proceso_push_new(t_diagrama_estados *estados, t_pcb *pcb)
     dictionary_put(estados->procesos, pid_char, estado);
 };
 
-void proceso_push_ready(t_diagrama_estados *estados, t_pcb *pcb, t_log *logger)
+void proceso_push_ready(t_diagrama_estados *estados, t_pcb *pcb)
 {
     list_add(estados->ready, pcb);
     char *pid_char = string_itoa(pcb->pid);
 
     char *estado = "READY";
     dictionary_put(estados->procesos, pid_char, estado);
-
-    // Obligatorio de la cátedra
-    log_info(logger, "Cola Ready <COLA>:");
-    for (int i = 0; i < list_size(estados->ready); i++)
-    {
-        t_pcb *proceso = list_get(estados->ready, i);
-        log_info(logger, "PID: <%d>", proceso->pid);
-    }
 };
 
 void proceso_push_exec(t_diagrama_estados *estados, t_pcb *pcb)
@@ -120,15 +112,22 @@ t_pcb *proceso_pop_exit(t_diagrama_estados *estados)
     return elem;
 };
 
-t_pcb *proceso_pop_block(t_diagrama_estados *estados)
+t_pcb *proceso_remover_block(t_diagrama_estados *estados, uint32_t pid)
 {
     if (list_size(estados->block) == 0)
     {
         return NULL;
     }
-    t_pcb *elem = list_get(estados->block, 0);
-    list_remove(estados->block, 0);
-    return elem;
+    for (int i = 0; i < list_size(estados->block); i++)
+    {
+        t_pcb *proceso = list_get(estados->block, i);
+        if (proceso->pid == pid)
+        {
+            list_remove(estados->block, i);
+            return proceso;
+        }
+    }
+    return NULL;
 };
 
 t_pcb *proceso_buscar_new(t_diagrama_estados *estados, int pid)

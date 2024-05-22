@@ -10,7 +10,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         if (proceso->ejecutado)
         {
-            log_debug(logger, "Proceso PID:<%d> ejecutado completo.", proceso->pid);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso PID:<%d> ejecutado completo. transicionar a exit", proceso->pid);
 
             args->kernel->proceso_termino = true; // Flag que avisa que un proceso termino
 
