@@ -30,6 +30,9 @@ pthread_t thread_conectar_kernel_generic,thread_atender_kernel_generic;
 pthread_t thread_conectar_memoria_stdin,thread_atender_memoria_stdin;
 pthread_t thread_conectar_kernel_stdin,thread_atender_kernel_stdin;
 pthread_t thread_conectar_memoria_stdout,thread_atender_memoria_stdout;
+pthread_t thread_conectar_kernel_stdout,thread_atender_kernel_stdout;
+pthread_t thread_conectar_memoria_dialfs,thread_atender_memoria_dialfs;
+pthread_t thread_conectar_kernel_dialfs,thread_atender_kernel_dialfs;
 
 void* conectar_kernel_stdin();
 void* conectar_memoria_stdin();
@@ -45,6 +48,12 @@ void* atender_kernel_generic();
 
 void* atender_kernel_stdin(); // no está hecha
 void* atender_memoria_stdin();
+
+void* conectar_kernel_dialfs();
+void* conectar_memoria_dialfs();
+
+void* atender_kernel_dialfs(); // no está hecha
+void* atender_memoria_dialfs();
 
 
 int socket_memoria;

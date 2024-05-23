@@ -107,8 +107,6 @@ void *esperar_entrada_salida(void *paquete)
 		switch (modulo)
         {
         case MEMORIA_ENTRADA_SALIDA_STDIN:
-            
-			// TODO: Funciona, falta armar los servidores de atencion para STDOUT y DialFS
 			interfaz = agregar_entrada_salida(&args, STDIN, socket_cliente);
             hilo_args->entrada_salida = buscar_interfaz(&args, interfaz);
             pthread_create(&thread_atender_entrada_salida, NULL, atender_entrada_salida_stdin, hilo_args);
@@ -121,10 +119,10 @@ void *esperar_entrada_salida(void *paquete)
             pthread_detach(thread_atender_entrada_salida);
             break;
         case MEMORIA_ENTRADA_SALIDA_DIALFS:
-            // interfaz = agregar_entrada_salida(&args, DIALFS, socket_cliente);
-            // hilo_args->entrada_salida = buscar_interfaz(&args, interfaz);
-            // pthread_create(&thread_atender_entrada_salida, NULL, atender_entrada_salida_dialfs, hilo_args);
-            // pthread_detach(thread_atender_entrada_salida);
+            interfaz = agregar_entrada_salida(&args, DIALFS, socket_cliente);
+            hilo_args->entrada_salida = buscar_interfaz(&args, interfaz);
+            pthread_create(&thread_atender_entrada_salida, NULL, atender_entrada_salida_dialfs, hilo_args);
+            pthread_detach(thread_atender_entrada_salida);
             break;
         default:
             log_debug(args.logger,"Se conecto un modulo de entrada/salida desconocido. Cerrando...");
@@ -234,15 +232,50 @@ void *atender_entrada_salida_stdout(void *argumentos)
 
 void *atender_entrada_salida_dialfs(void *argumentos)
 {
-	// char *modulo = "I/O DialFS";
+   t_args_hilo *io_args = (t_args_hilo*)argumentos;
 
-	// socket_entrada_salida_dialfs = *(int *)args;
-	// log_debug(logger, "%s conectado en socket %d", modulo, socket_entrada_salida_dialfs);
+    char *modulo = "DIALFS";
+    char *interfaz = io_args->entrada_salida->interfaz;
+    int orden = io_args->entrada_salida->orden;
+    int *socket = &io_args->entrada_salida->socket;
 
-	// hilo_ejecutar(logger, socket_entrada_salida_dialfs, modulo, switch_case_entrada_salida_dialfs);
-	
-	// free(args);
-	pthread_exit(0);
+    log_debug(io_args->argumentos->logger, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, *socket);
+
+    while (1)
+    {
+        log_debug(io_args->argumentos->logger, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, *socket);
+        t_paquete *paquete = recibir_paquete(io_args->argumentos->logger, socket);
+
+        if (paquete == NULL)
+        {
+            log_debug(io_args->argumentos->logger, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, interfaz, orden);
+            break;
+        }
+        revisar_paquete(paquete, io_args->argumentos->logger, modulo);
+
+        switch (paquete->codigo_operacion)
+        {
+        case PLACEHOLDER:
+        {
+            // Placeholder
+            break;
+        }
+        default:
+        {
+            log_warning(io_args->argumentos->logger, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, interfaz, orden);
+            liberar_conexion(socket);
+            break;
+        }
+        }
+        eliminar_paquete(paquete);
+    }
+
+    log_debug(io_args->argumentos->logger, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, interfaz, orden);
+
+    remover_interfaz(io_args->argumentos, interfaz);
+
+    free(io_args);
+    pthread_exit(0);
 }
 
 char *agregar_entrada_salida(t_args *argumentos, t_tipo_entrada_salida type, int socket)
