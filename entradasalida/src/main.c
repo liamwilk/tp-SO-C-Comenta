@@ -123,7 +123,7 @@ void procesar_entradasalida_stdin()
 	pthread_join(thread_conectar_memoria_stdin,NULL);
 
 	pthread_create(&thread_atender_memoria_stdin,NULL,atender_memoria_stdin,NULL);
-	pthread_join(thread_atender_memoria_stdin,NULL);
+	pthread_detach(thread_atender_memoria_stdin);
 
 	pthread_create(&thread_conectar_kernel_stdin,NULL,conectar_kernel_stdin,NULL);
 	pthread_join(thread_conectar_kernel_stdin,NULL);
@@ -141,7 +141,7 @@ void procesar_entradasalida_stdout()
 	pthread_join(thread_conectar_memoria_stdout,NULL);
 
 	pthread_create(&thread_atender_memoria_stdout,NULL,atender_memoria_stdout,NULL);
-	pthread_join(thread_atender_memoria_stdout,NULL);
+	pthread_detach(thread_atender_memoria_stdout);
 
 	pthread_create(&thread_conectar_kernel_stdout,NULL,conectar_kernel_stdout,NULL);
 	pthread_join(thread_conectar_kernel_stdout,NULL);
@@ -159,7 +159,7 @@ void procesar_entradasalida_dialfs()
 	pthread_join(thread_conectar_memoria_dialfs,NULL);
 
 	pthread_create(&thread_atender_memoria_dialfs,NULL,atender_memoria_dialfs,NULL);
-	pthread_join(thread_atender_memoria_dialfs,NULL);
+	pthread_detach(thread_atender_memoria_dialfs);
 
 	pthread_create(&thread_conectar_kernel_dialfs,NULL,conectar_kernel_dialfs,NULL);
 	pthread_join(thread_conectar_kernel_dialfs,NULL);
@@ -214,7 +214,6 @@ void *atender_memoria_stdin()
 	}
 	pthread_exit(0);
 }
-
 
 void *atender_memoria_stdout()
 {

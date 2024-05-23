@@ -512,6 +512,7 @@ void *hilos_esperar_entrada_salida(void *args)
         switch (modulo)
         {
         case KERNEL_ENTRADA_SALIDA_GENERIC:
+            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida generico con socket %d", socket_cliente);
             interfaz = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_GENERIC, socket_cliente);
             io_args->entrada_salida = entrada_salida_buscar_interfaz(hiloArgs, interfaz);
 
@@ -519,6 +520,7 @@ void *hilos_esperar_entrada_salida(void *args)
             pthread_detach(thread_atender_entrada_salida);
             break;
         case KERNEL_ENTRADA_SALIDA_STDIN:
+            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida STDIN con socket %d", socket_cliente);
             interfaz = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_STDIN, socket_cliente);
             io_args->entrada_salida = entrada_salida_buscar_interfaz(hiloArgs, interfaz);
 
@@ -526,6 +528,7 @@ void *hilos_esperar_entrada_salida(void *args)
             pthread_detach(thread_atender_entrada_salida);
             break;
         case KERNEL_ENTRADA_SALIDA_STDOUT:
+            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida STDOUT con socket %d", socket_cliente);
             interfaz = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_STDOUT, socket_cliente);
             io_args->entrada_salida = entrada_salida_buscar_interfaz(hiloArgs, interfaz);
 
@@ -533,6 +536,7 @@ void *hilos_esperar_entrada_salida(void *args)
             pthread_detach(thread_atender_entrada_salida);
             break;
         case KERNEL_ENTRADA_SALIDA_DIALFS:
+            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida DialFS con socket %d", socket_cliente);
             interfaz = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_DIALFS, socket_cliente);
             io_args->entrada_salida = entrada_salida_buscar_interfaz(hiloArgs, interfaz);
 
