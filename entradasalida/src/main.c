@@ -125,10 +125,11 @@ void procesar_entradasalida_stdin()
 	pthread_create(&thread_atender_memoria_stdin,NULL,atender_memoria_stdin,NULL);
 	pthread_join(thread_atender_memoria_stdin,NULL);
 
-	// pthread_create(&thread_conectar_kernel_stdin,NULL,conectar_kernel_stdin,NULL);
-	// pthread_join(thread_conectar_kernel_stdin,NULL);
+	pthread_create(&thread_conectar_kernel_stdin,NULL,conectar_kernel_stdin,NULL);
+	pthread_join(thread_conectar_kernel_stdin,NULL);
 
-	// TODO: Falta el servidor que atiende las solicitudes de Kernel
+	pthread_create(&thread_atender_kernel_stdin,NULL,atender_kernel_stdin,NULL);
+	pthread_join(thread_atender_kernel_stdin,NULL);
 }		
 
 void procesar_entradasalida_stdout()
@@ -142,10 +143,11 @@ void procesar_entradasalida_stdout()
 	pthread_create(&thread_atender_memoria_stdout,NULL,atender_memoria_stdout,NULL);
 	pthread_join(thread_atender_memoria_stdout,NULL);
 
-	// pthread_create(&thread_conectar_kernel_stdout,NULL,conectar_kernel_stdout,NULL);
-	// pthread_join(thread_conectar_kernel_stdout,NULL);
+	pthread_create(&thread_conectar_kernel_stdout,NULL,conectar_kernel_stdout,NULL);
+	pthread_join(thread_conectar_kernel_stdout,NULL);
 
-	// TODO: Falta el servidor que atiende las solicitudes de Kernel
+	pthread_create(&thread_atender_kernel_stdout,NULL,atender_kernel_stdout,NULL);
+	pthread_join(thread_atender_kernel_stdout,NULL);
 }		
 
 void procesar_entradasalida_dialfs()
@@ -159,10 +161,11 @@ void procesar_entradasalida_dialfs()
 	pthread_create(&thread_atender_memoria_dialfs,NULL,atender_memoria_dialfs,NULL);
 	pthread_join(thread_atender_memoria_dialfs,NULL);
 
-	// pthread_create(&thread_conectar_kernel_dialfs,NULL,conectar_kernel_dialfs,NULL);
-	// pthread_join(thread_conectar_kernel_dialfs,NULL);
+	pthread_create(&thread_conectar_kernel_dialfs,NULL,conectar_kernel_dialfs,NULL);
+	pthread_join(thread_conectar_kernel_dialfs,NULL);
 
-	// TODO: Falta el servidor que atiende las solicitudes de Kernel
+	pthread_create(&thread_atender_kernel_dialfs,NULL,atender_kernel_dialfs,NULL);
+	pthread_join(thread_atender_kernel_dialfs,NULL);
 }		
 
 void* conectar_kernel_generic(){
@@ -288,7 +291,6 @@ void* atender_memoria_dialfs()
 				liberar_conexion(&socket_memoria);
 				pthread_exit(0);
 			}
-
 		}
 		eliminar_paquete(paquete);
 	}
@@ -358,6 +360,123 @@ void *atender_kernel_generic()
 			
 		}
 		eliminar_paquete(paquete);
+	}
+	pthread_exit(0);
+}
+
+void *atender_kernel_stdin(){
+	while(1)
+	{
+		pthread_testcancel();
+		
+		log_debug(logger, "Esperando paquete de Kernel en socket %d", socket_kernel_stdin);
+
+		t_paquete *paquete = recibir_paquete(logger, &socket_kernel_stdin);
+		
+		if (paquete == NULL)
+        {
+            log_info(logger, "Kernel se desconecto del socket %d.", socket_kernel_stdin);
+			break;
+        }
+		
+		revisar_paquete(paquete, logger, nombre_modulo);
+
+		switch (paquete->codigo_operacion) 
+		{
+			case FINALIZAR_SISTEMA:
+			{
+				log_info(logger, "Se recibio la señal de desconexión de Kernel. Cierro hilo");
+				pthread_cancel(thread_atender_kernel_stdin);
+				liberar_conexion(&socket_kernel_stdin);
+				break;
+			}
+			default:
+			{
+				log_warning(logger, "[Memoria] Se recibio un codigo de operacion desconocido. Cierro hilo");
+				eliminar_paquete(paquete);
+				liberar_conexion(&socket_kernel_stdin);
+				pthread_exit(0);
+			}
+		}
+				eliminar_paquete(paquete);
+	}
+	pthread_exit(0);
+}
+
+void *atender_kernel_stdout(){
+	while(1)
+	{
+		pthread_testcancel();
+		
+		log_debug(logger, "Esperando paquete de Kernel en socket %d", socket_kernel_stdout);
+
+		t_paquete *paquete = recibir_paquete(logger, &socket_kernel_stdout);
+		
+		if (paquete == NULL)
+        {
+            log_info(logger, "Kernel se desconecto del socket %d.", socket_kernel_stdout);
+			break;
+        }
+		
+		revisar_paquete(paquete, logger, nombre_modulo);
+
+		switch (paquete->codigo_operacion) 
+		{
+			case FINALIZAR_SISTEMA:
+			{
+				log_info(logger, "Se recibio la señal de desconexión de Kernel. Cierro hilo");
+				pthread_cancel(thread_atender_kernel_stdout);
+				liberar_conexion(&socket_kernel_stdout);
+				break;
+			}
+			default:
+			{
+				log_warning(logger, "[Memoria] Se recibio un codigo de operacion desconocido. Cierro hilo");
+				eliminar_paquete(paquete);
+				liberar_conexion(&socket_kernel_stdout);
+				pthread_exit(0);
+			}
+		}
+				eliminar_paquete(paquete);
+	}
+	pthread_exit(0);
+}
+
+void *atender_kernel_dialfs(){
+	while(1)
+	{
+		pthread_testcancel();
+		
+		log_debug(logger, "Esperando paquete de Kernel en socket %d", socket_kernel_dialfs);
+
+		t_paquete *paquete = recibir_paquete(logger, &socket_kernel_dialfs);
+		
+		if (paquete == NULL)
+        {
+            log_info(logger, "Kernel se desconecto del socket %d.", socket_kernel_dialfs);
+			break;
+        }
+		
+		revisar_paquete(paquete, logger, nombre_modulo);
+
+		switch (paquete->codigo_operacion) 
+		{
+			case FINALIZAR_SISTEMA:
+			{
+				log_info(logger, "Se recibio la señal de desconexión de Kernel. Cierro hilo");
+				pthread_cancel(thread_atender_kernel_dialfs);
+				liberar_conexion(&socket_kernel_dialfs);
+				break;
+			}
+			default:
+			{
+				log_warning(logger, "[Memoria] Se recibio un codigo de operacion desconocido. Cierro hilo");
+				eliminar_paquete(paquete);
+				liberar_conexion(&socket_kernel_dialfs);
+				pthread_exit(0);
+			}
+		}
+				eliminar_paquete(paquete);
 	}
 	pthread_exit(0);
 }

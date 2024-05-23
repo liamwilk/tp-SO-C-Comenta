@@ -40,19 +40,19 @@ void* conectar_memoria_stdin();
 void* conectar_kernel_stdout();
 void* conectar_memoria_stdout();
 
-void* atender_kernel_stdout(); // no está hecha
+void* atender_kernel_stdout();
 void* atender_memoria_stdout();
 
 void* conectar_kernel_generic();
 void* atender_kernel_generic();
 
-void* atender_kernel_stdin(); // no está hecha
+void* atender_kernel_stdin();
 void* atender_memoria_stdin();
 
 void* conectar_kernel_dialfs();
 void* conectar_memoria_dialfs();
 
-void* atender_kernel_dialfs(); // no está hecha
+void* atender_kernel_dialfs();
 void* atender_memoria_dialfs();
 
 

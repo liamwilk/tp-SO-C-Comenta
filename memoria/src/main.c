@@ -109,18 +109,21 @@ void *esperar_entrada_salida(void *paquete)
         case MEMORIA_ENTRADA_SALIDA_STDIN:
 			interfaz = agregar_entrada_salida(&args, STDIN, socket_cliente);
             hilo_args->entrada_salida = buscar_interfaz(&args, interfaz);
+
             pthread_create(&thread_atender_entrada_salida, NULL, atender_entrada_salida_stdin, hilo_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
         case MEMORIA_ENTRADA_SALIDA_STDOUT:
             interfaz = agregar_entrada_salida(&args, STDOUT, socket_cliente);
             hilo_args->entrada_salida = buscar_interfaz(&args, interfaz);
+
             pthread_create(&thread_atender_entrada_salida, NULL, atender_entrada_salida_stdout, hilo_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
         case MEMORIA_ENTRADA_SALIDA_DIALFS:
             interfaz = agregar_entrada_salida(&args, DIALFS, socket_cliente);
             hilo_args->entrada_salida = buscar_interfaz(&args, interfaz);
+
             pthread_create(&thread_atender_entrada_salida, NULL, atender_entrada_salida_dialfs, hilo_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
