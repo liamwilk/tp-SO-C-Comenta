@@ -186,7 +186,7 @@ void *atender_memoria_stdin()
 		
 		if (paquete == NULL)
         {
-            log_info(logger, "Memoria se desconecto del socket %d.", socket_memoria);
+            log_info(logger, "Memoria se desconecto");
 			break;
         }
 		
@@ -227,7 +227,7 @@ void *atender_memoria_stdout()
 
 		if (paquete == NULL)
         {
-            log_info(logger, "Memoria se desconecto del socket %d.", socket_memoria);
+            log_info(logger, "Memoria se desconecto.");
 			break;
         }
 
@@ -268,7 +268,7 @@ void* atender_memoria_dialfs()
 
 		if (paquete == NULL)
 		{
-			log_info(logger, "Memoria se desconecto del socket %d.", socket_memoria);
+			log_info(logger, "Memoria se desconecto.");
 			break;
 		}
 
@@ -308,7 +308,7 @@ void *atender_kernel_generic()
 		
 		if (paquete == NULL)
         {
-            log_info(logger, "Kernel se desconecto del socket %d.", socket_kernel_generic);
+            log_info(logger, "Kernel se desconecto.");
 			break;
         }
 		
@@ -374,7 +374,7 @@ void *atender_kernel_stdin(){
 		
 		if (paquete == NULL)
         {
-            log_info(logger, "Kernel se desconecto del socket %d.", socket_kernel_stdin);
+            log_info(logger, "Kernel se desconecto.");
 			break;
         }
 		
@@ -413,7 +413,7 @@ void *atender_kernel_stdout(){
 		
 		if (paquete == NULL)
         {
-            log_info(logger, "Kernel se desconecto del socket %d.", socket_kernel_stdout);
+            log_info(logger, "Kernel se desconecto.");
 			break;
         }
 		
@@ -452,7 +452,7 @@ void *atender_kernel_dialfs(){
 		
 		if (paquete == NULL)
         {
-            log_info(logger, "Kernel se desconecto del socket %d.", socket_kernel_dialfs);
+            log_info(logger, "Kernel se desconecto.");
 			break;
         }
 		
