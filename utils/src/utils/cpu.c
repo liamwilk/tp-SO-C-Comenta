@@ -799,7 +799,6 @@ uint8_t *determinar_tipo_registro_uint8_t(char *instruccion, t_cpu_proceso *proc
 t_instruccion determinar_codigo_instruccion(char *instruccion)
 {
     /* Todas las posibles instrucciones:
-    typedef enum
     {
         SET,
         SUM,
@@ -820,7 +819,6 @@ t_instruccion determinar_codigo_instruccion(char *instruccion)
         WAIT,
         SIGNAL,
         EXIT
-    } t_instruccion;
 
     */
 

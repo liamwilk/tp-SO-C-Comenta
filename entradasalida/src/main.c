@@ -82,6 +82,16 @@ void* conectar_kernel_stdin(){
 	pthread_exit(0);
 }
 
+void* conectar_memoria_stdout(){
+	conexion_crear(logger,entradasalida.ipMemoria,entradasalida.puertoMemoria,&socket_memoria,"Memoria",MEMORIA_ENTRADA_SALIDA_STDOUT);
+	pthread_exit(0);
+}
+
+void* conectar_kernel_stdout(){
+	conexion_crear(logger,entradasalida.ipKernel,entradasalida.puertoKernel,&socket_kernel_stdout,"Kernel",KERNEL_ENTRADA_SALIDA_STDOUT);
+	pthread_exit(0);
+}
+
 void procesar_entradasalida_generic()
 {
 	entradasalida = entradasalida_generic_inicializar(config);
@@ -113,16 +123,14 @@ void procesar_entradasalida_stdin()
 
 void procesar_entradasalida_stdout()
 {
-	// Cuando haga handhsake con Memoria, tiene que mandar el codigo de operacion MEMORIA_ENTRADA_SALIDA_STDIN
-	// Cuando haga handhsake con Kernel, tiene que mandar el codigo de operacion KERNEL_ENTRADA_SALIDA_STDIN
-
 	entradasalida = entradasalida_stdout_inicializar(config);
 	entradasalida_stdout_log(entradasalida,logger);
 
-	// pthread_create(&thread_conectar_memoria_stdout,NULL,conectar_memoria_stdout,NULL);
-	// pthread_join(thread_conectar_memoria_stdout,NULL);
+	pthread_create(&thread_conectar_memoria_stdout,NULL,conectar_memoria_stdout,NULL);
+	pthread_join(thread_conectar_memoria_stdout,NULL);
 
-	// TODO: Falta el servidor que atiende las solicitudes de Memoria
+	pthread_create(&thread_atender_memoria_stdout,NULL,atender_memoria_stdout,NULL);
+	pthread_join(thread_atender_memoria_stdout,NULL);
 
 	// pthread_create(&thread_conectar_kernel_stdout,NULL,conectar_kernel_stdout,NULL);
 	// pthread_join(thread_conectar_kernel_stdout,NULL);
@@ -190,6 +198,48 @@ void *atender_memoria_stdin()
 				pthread_exit(0);
 			}
 			
+		}
+		eliminar_paquete(paquete);
+	}
+	pthread_exit(0);
+}
+
+
+void *atender_memoria_stdout()
+{
+	while (1)
+	{
+		pthread_testcancel();
+
+		log_debug(logger, "Esperando paquete de Memoria en socket %d", socket_memoria);
+
+		t_paquete *paquete = recibir_paquete(logger, &socket_memoria);
+
+		if (paquete == NULL)
+        {
+            log_info(logger, "Memoria se desconecto del socket %d.", socket_memoria);
+			break;
+        }
+
+		revisar_paquete(paquete, logger, nombre_modulo);
+
+		switch (paquete->codigo_operacion)
+		{
+			case FINALIZAR_SISTEMA:
+			{
+				log_info(logger, "Se recibio la señal de desconexión de Kernel. Cierro hilo");
+				pthread_cancel(thread_atender_memoria_stdout);
+				liberar_conexion(&socket_memoria);
+				break;
+			}
+			default:
+			{
+				log_warning(logger, "[Memoria] Se recibio un codigo de operacion desconocido. Cierro hilo");
+				eliminar_paquete(paquete);
+				liberar_conexion(&socket_memoria);
+				pthread_exit(0);
+			}
+
 		}
 		eliminar_paquete(paquete);
 	}
