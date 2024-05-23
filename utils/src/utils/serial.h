@@ -112,6 +112,7 @@ typedef struct
 	uint32_t size_interfaz;
 	char *interfaz;
 	uint32_t tiempo;
+	t_registros_cpu registros; // Registros de la CPU para la vuelta de IO_GEN_SLEEP
 } t_cpu_kernel_io_gen_sleep;
 
 typedef struct
