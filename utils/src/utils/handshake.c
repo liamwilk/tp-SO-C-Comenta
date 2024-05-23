@@ -61,6 +61,12 @@ t_handshake esperar_handshake_entrada_salida(t_log *logger, int socket_cliente)
 		break;
 	case KERNEL_ENTRADA_SALIDA_DIALFS:
 		break;
+	case MEMORIA_ENTRADA_SALIDA_STDIN:
+		break;
+	case MEMORIA_ENTRADA_SALIDA_STDOUT:
+		break;
+	case MEMORIA_ENTRADA_SALIDA_DIALFS:
+		break;
 	default:
 		respuesta = ERROR;
 		break;

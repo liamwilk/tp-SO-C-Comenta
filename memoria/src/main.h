@@ -21,6 +21,24 @@
 #include "serial.h"
 #include <utils/template.h>
 
+
+typedef enum
+{
+    STDIN,
+    STDOUT,
+    DIALFS
+} t_tipo_entrada_salida;
+
+typedef struct
+{
+	int ocupado;
+	int pid;
+	int orden;
+    int socket;
+    char *interfaz;
+    t_tipo_entrada_salida tipo;
+} t_entrada_salida;
+
 typedef struct
 {
 	uint32_t pid;	
@@ -28,11 +46,59 @@ typedef struct
     t_list* instrucciones;
 } t_proceso;
 
-t_log* logger;
-t_config* config;
-t_memoria memoria;
-t_list* lista_procesos;
-t_dictionary* diccionario_procesos;
+typedef struct
+{
+	pthread_t thread_atender_cpu;
+	pthread_t thread_atender_kernel;
+	pthread_t thread_atender_entrada_salida;
+	pthread_t thread_esperar_cpu;
+	pthread_t thread_conectar_kernel;
+	pthread_t thread_atender_entrada_salida_stdin;
+	pthread_t thread_atender_entrada_salida_stdout;
+	pthread_t thread_atender_entrada_salida_dialfs;
+} t_threads;
+typedef struct
+{
+	int socket_cpu;
+	int socket_kernel;
+	int socket_server_memoria;
+	int socket_entrada_salida_stdin;
+	int socket_entrada_salida_stdout;
+	int socket_entrada_salida_dialfs;
+	int id_entrada_salida;
+} t_sockets;
+
+typedef struct
+{
+	t_log* logger;
+	t_config* config;
+	t_list* lista_procesos;
+	t_list* lista_entrada_salida;
+	t_dictionary* diccionario_procesos;
+	t_dictionary* diccionario_entrada_salida;
+	t_sockets sockets;
+	t_threads threads;
+
+	int tamMemoria;
+	int tamPagina;
+	int retardoRespuesta;
+	int puertoEscucha;
+	char* pathInstrucciones;
+} t_memoria;
+typedef struct
+{
+    t_log *logger;
+    t_memoria memoria;
+} t_args;
+
+typedef struct
+{
+    t_args *argumentos;
+	t_entrada_salida *entrada_salida;
+} t_args_hilo;
+
+t_args args;
+
 
 void* esperar_cpu();
 void* esperar_kernel();
@@ -86,14 +152,15 @@ void switch_case_cpu(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer
 void switch_case_entrada_salida_stdin(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer);
 void switch_case_entrada_salida_stdout(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer);
 void switch_case_entrada_salida_dialfs(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer);
+void memoria_inicializar();
+void memoria_log();
 
-pthread_t thread_atender_cpu,thread_atender_kernel,thread_atender_entrada_salida,thread_esperar_cpu,thread_conectar_kernel,thread_atender_entrada_salida_stdin,thread_atender_entrada_salida_stdout,thread_atender_entrada_salida_dialfs;
+char *agregar_entrada_salida(t_args *argumentos, t_tipo_entrada_salida type, int socket);
 
-int socket_cpu = 0;
-int socket_kernel = 0;
-int socket_server_memoria = 0;
-int socket_entrada_salida_stdin = 0;
-int socket_entrada_salida_stdout = 0;
-int socket_entrada_salida_dialfs = 0;
+t_entrada_salida *agregar_interfaz(t_args *argumentos, t_tipo_entrada_salida tipo, int socket);
+
+void remover_interfaz(t_args *argumentos, char *interfaz);
+
+t_entrada_salida *buscar_interfaz(t_args *argumentos, char *interfaz);
 
 #endif /* MAIN_H_ */

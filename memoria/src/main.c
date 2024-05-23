@@ -2,111 +2,133 @@
 #include "main.h"
 
 int main()
-{
-	logger = iniciar_logger("memoria", LOG_LEVEL_DEBUG);
-	config = iniciar_config(logger);
-	memoria = memoria_inicializar(config);
-	memoria_log(memoria, logger);
-
-	lista_procesos = list_create();
-	diccionario_procesos = dictionary_create();
-
-	socket_server_memoria = iniciar_servidor(logger, memoria.puertoEscucha);
+{	
+	args.logger = iniciar_logger("memoria", LOG_LEVEL_DEBUG);
+	args.memoria.config = iniciar_config(args.logger);
+	memoria_inicializar(args.memoria.config);
+	memoria_log(args.memoria, args.logger);
 	
-	pthread_create(&thread_esperar_cpu, NULL, esperar_cpu, NULL);
-	pthread_join(thread_esperar_cpu, NULL);
+	args.memoria.lista_procesos = list_create();
+	args.memoria.diccionario_procesos = dictionary_create();
 
-	pthread_create(&thread_atender_cpu, NULL, atender_cpu, NULL);
-	pthread_detach(thread_atender_cpu);
+	args.memoria.diccionario_entrada_salida = dictionary_create();
+	args.memoria.lista_entrada_salida = list_create();
 
-	pthread_create(&thread_conectar_kernel, NULL, esperar_kernel, NULL);
-	pthread_join(thread_conectar_kernel, NULL);
+	args.memoria.sockets.id_entrada_salida = 1;
 
-	pthread_create(&thread_atender_entrada_salida, NULL, esperar_entrada_salida, NULL);
-	pthread_detach(thread_atender_entrada_salida);
-
-	pthread_create(&thread_atender_kernel, NULL, atender_kernel, NULL);
-	pthread_join(thread_atender_kernel, NULL);
-
-	eliminar_procesos(lista_procesos);
+	args.memoria.sockets.socket_server_memoria = iniciar_servidor(args.logger, args.memoria.puertoEscucha);
 	
-	config_destroy(config);
-	log_destroy(logger);
+	pthread_create(&args.memoria.threads.thread_esperar_cpu, NULL, esperar_cpu, NULL);
+	pthread_join(args.memoria.threads.thread_esperar_cpu, NULL);
+
+	pthread_create(&args.memoria.threads.thread_atender_cpu, NULL, atender_cpu, NULL);
+	pthread_detach(args.memoria.threads.thread_atender_cpu);
+
+	pthread_create(&args.memoria.threads.thread_conectar_kernel, NULL, esperar_kernel, NULL);
+	pthread_join(args.memoria.threads.thread_conectar_kernel, NULL);
+
+	pthread_create(&args.memoria.threads.thread_atender_entrada_salida, NULL, esperar_entrada_salida, NULL);
+	pthread_detach(args.memoria.threads.thread_atender_entrada_salida);
+
+	pthread_create(&args.memoria.threads.thread_atender_kernel, NULL, atender_kernel, NULL);
+	pthread_join(args.memoria.threads.thread_atender_kernel, NULL);
+
+	eliminar_procesos(args.memoria.lista_procesos);
+	
+	config_destroy(args.memoria.config);
+	log_destroy(args.logger);
 
 	return 0;
 }
 
+void inicializar_sockets(){
+	args.memoria.sockets.socket_cpu = 0;
+	args.memoria.sockets.socket_kernel = 0;
+	args.memoria.sockets.socket_server_memoria = 0;
+}
+
 void *esperar_cpu()
 {
-	conexion_recibir(logger, socket_server_memoria, &socket_cpu, "CPU", MEMORIA_CPU);
+	conexion_recibir(args.logger, args.memoria.sockets.socket_server_memoria, &args.memoria.sockets.socket_cpu, "CPU", MEMORIA_CPU);
 	pthread_exit(0);
 }
 
 void *atender_cpu()
 {
-	hilo_ejecutar(logger, socket_cpu, "CPU", switch_case_cpu);
+	hilo_ejecutar(args.logger, args.memoria.sockets.socket_cpu, "CPU", switch_case_cpu);
 	pthread_exit(0);
 }
 
 void *esperar_kernel()
 {
-	conexion_recibir(logger, socket_server_memoria, &socket_kernel, "Kernel", MEMORIA_KERNEL);
+	conexion_recibir(args.logger, args.memoria.sockets.socket_server_memoria, &args.memoria.sockets.socket_kernel, "Kernel", MEMORIA_KERNEL);
 	pthread_exit(0);
 }
 
 void *atender_kernel()
 {
-	hilo_ejecutar(logger, socket_kernel, "Kernel", switch_case_kernel);
+	hilo_ejecutar(args.logger, args.memoria.sockets.socket_kernel, "Kernel", switch_case_kernel);
 	pthread_exit(0);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
-void *esperar_entrada_salida()
+void *esperar_entrada_salida(void *paquete)
 {
+	// t_args *io_args = (t_args *)paquete;
+
 	while (1)
 	{
-		int socket_cliente = conexion_socket_recibir(socket_server_memoria);
+		int socket_cliente = conexion_socket_recibir(args.memoria.sockets.socket_server_memoria);
 
 		if (socket_cliente == -1)
 		{
-            log_error(logger, "Error al esperar conexion de modulo de Entrada/Salida");
+            log_error(args.logger, "Error al esperar conexion de modulo de Entrada/Salida");
 			break;
 		}
 
-		t_handshake modulo = esperar_handshake_entrada_salida(logger, socket_cliente);
+		t_handshake modulo = esperar_handshake_entrada_salida(args.logger, socket_cliente);
 
         if (modulo == ERROR)
         {
-            log_error(logger, "Error al recibir handshake de modulo de Entrada/Salida");
+            log_error(args.logger, "Error al recibir handshake de modulo de Entrada/Salida");
             liberar_conexion(&socket_cliente);
             break;
         }
 
-		int *args = malloc(sizeof(int));
-		*args = socket_cliente;
+		log_debug(args.logger, "Conexion por handshake recibida y estrablecido con modulo de Entrada/Salida en socket %d", socket_cliente);
+
+		pthread_t thread_atender_entrada_salida;
+        t_args_hilo *hilo_args = malloc(sizeof(t_args_hilo));
+        hilo_args->argumentos = &args;
+        hilo_args->entrada_salida = NULL;
+        char *interfaz = NULL;
 
 		switch (modulo)
         {
         case MEMORIA_ENTRADA_SALIDA_STDIN:
-            log_debug(logger, "Se conecto un modulo de entrada/salida STDIN");
-            pthread_create(&thread_atender_entrada_salida_stdin, NULL, atender_entrada_salida_stdin, args);
-            pthread_detach(thread_atender_entrada_salida_stdin);
+            
+			// TODO: Funciona, falta armar los servidores de atencion para STDOUT y DialFS
+			interfaz = agregar_entrada_salida(&args, STDIN, socket_cliente);
+            hilo_args->entrada_salida = buscar_interfaz(&args, interfaz);
+            pthread_create(&thread_atender_entrada_salida, NULL, atender_entrada_salida_stdin, hilo_args);
+            pthread_detach(thread_atender_entrada_salida);
             break;
         case MEMORIA_ENTRADA_SALIDA_STDOUT:
-            log_debug(logger, "Se conecto un modulo de entrada/salida STDOUT");
-            pthread_create(&thread_atender_entrada_salida_stdout, NULL, atender_entrada_salida_stdout, args);
-            pthread_detach(thread_atender_entrada_salida_stdout);
+            // interfaz = agregar_entrada_salida(&args, STDOUT, socket_cliente);
+            // hilo_args->entrada_salida = buscar_interfaz(&args, interfaz);
+            // pthread_create(&thread_atender_entrada_salida, NULL, atender_entrada_salida_stdout, hilo_args);
+            // pthread_detach(thread_atender_entrada_salida);
             break;
         case MEMORIA_ENTRADA_SALIDA_DIALFS:
-            log_debug(logger, "Se conecto un modulo de entrada/salida DIALFS");
-            pthread_create(&thread_atender_entrada_salida_dialfs, NULL, atender_entrada_salida_dialfs, args);
-            pthread_detach(thread_atender_entrada_salida_dialfs);
+            // interfaz = agregar_entrada_salida(&args, DIALFS, socket_cliente);
+            // hilo_args->entrada_salida = buscar_interfaz(&args, interfaz);
+            // pthread_create(&thread_atender_entrada_salida, NULL, atender_entrada_salida_dialfs, hilo_args);
+            // pthread_detach(thread_atender_entrada_salida);
             break;
         default:
-            log_error(logger, "Se conecto un modulo de entrada/salida desconocido. Desconectando...");
+            log_debug(args.logger,"Se conecto un modulo de entrada/salida desconocido. Cerrando...");
             liberar_conexion(&socket_cliente);
-            free(args);
             break;
         }
 	}
@@ -114,43 +136,203 @@ void *esperar_entrada_salida()
 	pthread_exit(0);
 }
 
-void *atender_entrada_salida_stdin(void *args)
+void *atender_entrada_salida_stdin(void *argumentos)
 {
-	char *modulo = "I/O STDIN";
+    t_args_hilo *io_args = (t_args_hilo*)argumentos;
 
-	socket_entrada_salida_stdin = *(int *)args;
-	log_debug(logger, "%s conectado en socket %d", modulo, socket_entrada_salida_stdin);
+    char *modulo = "STDIN";
+    char *interfaz = io_args->entrada_salida->interfaz;
+    int orden = io_args->entrada_salida->orden;
+    int *socket = &io_args->entrada_salida->socket;
 
-	hilo_ejecutar(logger, socket_entrada_salida_stdin, modulo, switch_case_entrada_salida_stdin);
+    log_debug(io_args->argumentos->logger, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, *socket);
+
+    while (1)
+    {
+        log_debug(io_args->argumentos->logger, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, *socket);
+        t_paquete *paquete = recibir_paquete(io_args->argumentos->logger, socket);
+
+        if (paquete == NULL)
+        {
+            log_debug(io_args->argumentos->logger, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, interfaz, orden);
+            break;
+        }
+        revisar_paquete(paquete, io_args->argumentos->logger, modulo);
+
+        switch (paquete->codigo_operacion)
+        {
+        case PLACEHOLDER:
+        {
+            // Placeholder
+            break;
+        }
+        default:
+        {
+            log_warning(io_args->argumentos->logger, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, interfaz, orden);
+            liberar_conexion(socket);
+            break;
+        }
+        }
+        eliminar_paquete(paquete);
+    }
+
+    log_debug(io_args->argumentos->logger, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, interfaz, orden);
+
+    remover_interfaz(io_args->argumentos, interfaz);
+
+    free(io_args);
+    pthread_exit(0);
+}
+
+void *atender_entrada_salida_stdout(void *argumentos)
+{
+	//char *modulo = "I/O STDOUT";
+
+	//socket_entrada_salida_stdout = *(int *)args;
+	//log_debug(args.logger, "%s conectado en socket %d", modulo, socket_entrada_salida_stdout);
+
+	// hilo_ejecutar(logger, socket_entrada_salida_stdout, modulo, switch_case_entrada_salida_stdout);
 	
-	free(args);
+	//free(args);
 	pthread_exit(0);
 }
 
-void *atender_entrada_salida_stdout(void *args)
+void *atender_entrada_salida_dialfs(void *argumentos)
 {
-	char *modulo = "I/O STDOUT";
+	// char *modulo = "I/O DialFS";
 
-	socket_entrada_salida_stdout = *(int *)args;
-	log_debug(logger, "%s conectado en socket %d", modulo, socket_entrada_salida_stdout);
+	// socket_entrada_salida_dialfs = *(int *)args;
+	// log_debug(logger, "%s conectado en socket %d", modulo, socket_entrada_salida_dialfs);
 
-	hilo_ejecutar(logger, socket_entrada_salida_stdout, modulo, switch_case_entrada_salida_stdout);
+	// hilo_ejecutar(logger, socket_entrada_salida_dialfs, modulo, switch_case_entrada_salida_dialfs);
 	
-	free(args);
+	// free(args);
 	pthread_exit(0);
 }
 
-void *atender_entrada_salida_dialfs(void *args)
+char *agregar_entrada_salida(t_args *argumentos, t_tipo_entrada_salida type, int socket)
 {
-	char *modulo = "I/O DialFS";
+    t_entrada_salida *entrada_salida = NULL;
+    switch (type)
+    {
+    case STDIN:
+        entrada_salida = agregar_interfaz(argumentos, STDIN, socket);
+        break;
+    case STDOUT:
+        entrada_salida = agregar_interfaz(argumentos, STDOUT, socket);
+        break;
+    case DIALFS:
+        entrada_salida = agregar_interfaz(argumentos, DIALFS, socket);
+        break;
+    default:
+        log_error(argumentos->logger, "Tipo de socket de entrada/salida no reconocido");
+        break;
+    }
 
-	socket_entrada_salida_dialfs = *(int *)args;
-	log_debug(logger, "%s conectado en socket %d", modulo, socket_entrada_salida_dialfs);
+    if (entrada_salida == NULL)
+    {
+        log_error(argumentos->logger, "Error al agregar el socket de entrada/salida");
+        return NULL;
+    }
 
-	hilo_ejecutar(logger, socket_entrada_salida_dialfs, modulo, switch_case_entrada_salida_dialfs);
-	
-	free(args);
-	pthread_exit(0);
+    return entrada_salida->interfaz;
+};
+
+t_entrada_salida *agregar_interfaz(t_args *argumentos, t_tipo_entrada_salida tipo, int socket)
+{
+    // Asigno memoria para el socket de entrada/salida (no debo liberarla porque se guarda dentro de la lista la referencia)
+    t_entrada_salida *entrada_salida = malloc(sizeof(t_entrada_salida));
+
+    // Guardo el socket en el cual se conecto el modulo de entrada/salida
+    entrada_salida->socket = socket;
+    entrada_salida->tipo = tipo;
+    entrada_salida->orden = argumentos->memoria.sockets.id_entrada_salida;
+
+    // Calculo el tamaño que necesito para almacenar el identificador de la interfaz
+    int size_necesario = snprintf(NULL, 0, "Int%d", argumentos->memoria.sockets.id_entrada_salida) + 1;
+
+    // Reservo memoria para la interfaz (no debo liberarla porque se guarda dentro del diccionario)
+    char *interfaz = malloc(size_necesario);
+
+    // Imprimo sobre la variable interfaz el identificador de la interfaz
+    sprintf(interfaz, "Int%d", argumentos->memoria.sockets.id_entrada_salida);
+
+    // Duplico la cadena para guardarla en el TAD y poder identificar la IO (esto pide malloc y hay que liberarlo cuando se desconecta la IO)
+    entrada_salida->interfaz = strdup(interfaz);
+
+    int *index = malloc(sizeof(int));
+
+    // Agrego el TAD a la lista de entrada/salida y guardo el indice en el que se encuentra
+    *index = list_add(args.memoria.lista_entrada_salida, entrada_salida);
+
+    // Guardo en el diccionario la key interfaz y el value indice para ubicarlo en la lista luego
+    dictionary_put(args.memoria.diccionario_entrada_salida, interfaz, index);
+
+    log_debug(argumentos->logger, "Se conecto un modulo de entrada/salida en el socket %d con la interfaz %s", socket, interfaz);
+
+   	argumentos->memoria.sockets.id_entrada_salida++;
+
+	return entrada_salida;
+}
+
+void remover_interfaz(t_args *argumentos, char *interfaz)
+{
+    // Busco el indice en la lista de entrada/salida
+    int *indice = dictionary_get(argumentos->memoria.diccionario_entrada_salida, interfaz);
+
+    // Si no se encuentra la interfaz en el diccionario, no se puede desconectar
+    if (indice == NULL)
+    {
+        log_debug(argumentos->logger, "No se encontro la interfaz %s en el diccionario de entrada/salida", interfaz);
+        return;
+    }
+
+    // Obtengo el TAD de la lista de entrada/salida
+    t_entrada_salida *entrada_salida = list_get(argumentos->memoria.lista_entrada_salida, *indice);
+
+    log_debug(argumentos->logger, "Se remueve interfaz de entrada/salida %s", interfaz);
+
+    // Cierro el socket de la entrada/salida del lado de Kernel
+    liberar_conexion(&entrada_salida->socket);
+
+    // Elimino la interfaz del diccionario
+    dictionary_remove(argumentos->memoria.diccionario_entrada_salida, interfaz);
+
+    // Libero la memoria de la interfaz
+    free(entrada_salida->interfaz);
+
+    // Libero la memoria del TAD
+    free(entrada_salida);
+
+    // Libero el indice guardado en el diccionario
+    free(indice);
+
+    // No lo elimino de la lista porque no se puede hacer un list_remove sin reorganizar los indices. Lo dejo en la lista pero no se puede acceder a el porque está vacio. Al finalizar el programa, destruyo la estructura de la lista entera.
+}
+
+t_entrada_salida *buscar_interfaz(t_args *argumentos, char *interfaz)
+{
+    // Busco el indice en la lista de entrada/salida
+    int *indice = dictionary_get(argumentos->memoria.diccionario_entrada_salida, interfaz);
+
+    // Si no se encuentra la interfaz en el diccionario, no se puede buscar
+    if (indice == NULL)
+    {
+        log_error(argumentos->logger, "No se encontro la interfaz %s en el diccionario de entrada/salida", interfaz);
+        return NULL;
+    }
+
+    // Obtengo el TAD de la lista de entrada/salida
+    t_entrada_salida *entrada_salida = list_get(argumentos->memoria.lista_entrada_salida, *indice);
+
+    if (entrada_salida == NULL)
+    {
+        log_error(argumentos->logger, "No se encontro la interfaz %s en la lista de entrada/salida", interfaz);
+    }
+
+    log_debug(argumentos->logger, "Se encontro el modulo de entrada/salida en el socket %d asociado a la interfaz %s", entrada_salida->socket, interfaz);
+
+    return entrada_salida;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -161,11 +343,11 @@ void eliminar_procesos(t_list *lista_procesos) {
 		for (int i = 0; i < list_size(lista_procesos); i++){
 			t_proceso *proceso = list_get(lista_procesos, i);
 			if(!list_is_empty(proceso->instrucciones)){
-				log_debug(logger, "Proceso con PID <%d> encontrado en la lista de procesos global.", proceso->pid);
-				log_debug(logger,"Tamaño de la lista de instrucciones: %d", list_size(proceso->instrucciones));
+				log_debug(args.logger, "Proceso con PID <%d> encontrado en la lista de procesos global.", proceso->pid);
+				log_debug(args.logger,"Tamaño de la lista de instrucciones: %d", list_size(proceso->instrucciones));
 				char* pid = string_itoa(proceso->pid);
 				eliminar_instrucciones(proceso->instrucciones);
-				log_info(logger, "Proceso con PID <%s> que fue cargado pero no finalizado, ahora fue eliminado de Memoria.", pid);
+				log_info(args.logger, "Proceso con PID <%s> que fue cargado pero no finalizado, ahora fue eliminado de Memoria.", pid);
 				free(pid);
 				free(proceso);
 			}
@@ -175,12 +357,12 @@ void eliminar_procesos(t_list *lista_procesos) {
 	// Libero la memoria de la lista de procesos
 	list_destroy(lista_procesos);
 
-	if(!dictionary_is_empty(diccionario_procesos)){
-		dictionary_clean_and_destroy_elements(diccionario_procesos, free);
+	if(!dictionary_is_empty(args.memoria.diccionario_procesos)){
+		dictionary_clean_and_destroy_elements(args.memoria.diccionario_procesos, free);
 	}
 
 	// Libero la memoria del diccionario de procesos
-	dictionary_destroy(diccionario_procesos);
+	dictionary_destroy(args.memoria.diccionario_procesos);
 }
 
 void eliminar_instrucciones(t_list *lista_instrucciones) {
@@ -190,7 +372,7 @@ void eliminar_instrucciones(t_list *lista_instrucciones) {
 			t_memoria_cpu_instruccion *instruccion = list_get(lista_instrucciones, i);
 			for(int j = 0; j < instruccion->cantidad_elementos; j++){
 				if(instruccion->array[j] != NULL){
-					log_debug(logger, "Liberando instruccion en posicion %d: %s", j, instruccion->array[j]);
+					log_debug(args.logger, "Liberando instruccion en posicion %d: %s", j, instruccion->array[j]);
 					free(instruccion->array[j]);
 				}
 			}
@@ -213,7 +395,7 @@ char *armar_ruta(char *ruta1, char *ruta2)
 t_list *leer_instrucciones(char *path_instrucciones, uint32_t pid)
 {	
 	if(path_instrucciones == NULL){
-		log_error(logger, "Path de instrucciones nulo. No se puede leer el archivo");
+		log_error(args.logger, "Path de instrucciones nulo. No se puede leer el archivo");
 		return NULL;
 	}
 
@@ -222,7 +404,7 @@ t_list *leer_instrucciones(char *path_instrucciones, uint32_t pid)
 
 	if (file == NULL)
 	{	
-		log_error(logger, "No se pudo abrir el archivo de instrucciones <%s>", path_instrucciones);
+		log_error(args.logger, "No se pudo abrir el archivo de instrucciones <%s>", path_instrucciones);
 		return NULL;
 	}
 
@@ -238,18 +420,18 @@ t_list *leer_instrucciones(char *path_instrucciones, uint32_t pid)
 	// ssize_t es un tipo de dato que se usa para representar el tamaño de bloques de memoria
 	ssize_t read;
 
-	log_debug(logger, "Leyendo archivo de instrucciones...");
+	log_debug(args.logger, "Leyendo archivo de instrucciones...");
 
 	// Getline lee la linea entera, hasta el \n inclusive
 	while ((read = getline(&line, &len, file)) != -1)
 	{
-		log_debug(logger, "Linea leida: %s", line);
+		log_debug(args.logger, "Linea leida: %s", line);
 
 		t_memoria_cpu_instruccion *instruccion = malloc(sizeof(t_memoria_cpu_instruccion));
 		
 		if (instruccion == NULL)
 		{
-			log_error(logger, "No se pudo reservar memoria para la instruccion");
+			log_error(args.logger, "No se pudo reservar memoria para la instruccion");
 			fclose(file);
 			free(line);
 		}
@@ -258,7 +440,7 @@ t_list *leer_instrucciones(char *path_instrucciones, uint32_t pid)
 		char **separar_linea = string_split(line, " ");
 
 		if(separar_linea[0] == NULL){
-			log_error(logger, "Instruccion vacia. Cierro el archivo y libero memoria");
+			log_error(args.logger, "Instruccion vacia. Cierro el archivo y libero memoria");
 			fclose(file);
 			free(line);
 			free(instruccion);
@@ -276,7 +458,7 @@ t_list *leer_instrucciones(char *path_instrucciones, uint32_t pid)
 		instruccion->array = malloc(cantidad_elementos * sizeof(char*));
 
 		if (instruccion->array == NULL) {
-			log_error(logger, "No se pudo reservar memoria para instruccion->array");
+			log_error(args.logger, "No se pudo reservar memoria para instruccion->array");
 			fclose(file);
 			free(line);
 			free(instruccion);
@@ -288,7 +470,7 @@ t_list *leer_instrucciones(char *path_instrucciones, uint32_t pid)
 
 		for (int i = 0; i < cantidad_elementos; i++) {
 			instruccion->array[i] = strdup(separar_linea[i]);
-			log_debug(logger, "Posicion %d: %s",i, instruccion->array[i]);
+			log_debug(args.logger, "Posicion %d: %s",i, instruccion->array[i]);
 		}
 
 		// Agrego la instruccion a la lista
@@ -305,7 +487,7 @@ t_list *leer_instrucciones(char *path_instrucciones, uint32_t pid)
 
 	free(line);
 
-	log_debug(logger, "Tamaño de la lista de instrucciones: %d", list_size(lista));
+	log_debug(args.logger, "Tamaño de la lista de instrucciones: %d", list_size(lista));
 
 	return lista;
 }
@@ -313,16 +495,16 @@ t_list *leer_instrucciones(char *path_instrucciones, uint32_t pid)
 t_proceso *buscar_proceso(uint32_t pid)
 {	
 	char* pid_char = string_itoa(pid);
-	char* indice = dictionary_get(diccionario_procesos, pid_char);
+	char* indice = dictionary_get(args.memoria.diccionario_procesos, pid_char);
 	
 	if (indice == NULL) {
-		log_error(logger, "No se encontro el proceso con PID <%s>", pid_char);
+		log_error(args.logger, "No se encontro el proceso con PID <%s>", pid_char);
 		return NULL;
 	}
 	
 	free(pid_char);
 
-	return list_get(lista_procesos, atoi(indice));
+	return list_get(args.memoria.lista_procesos, atoi(indice));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -340,7 +522,7 @@ void switch_case_kernel(t_log *logger, t_op_code codigo_operacion, t_buffer *buf
 				log_debug(logger, "Program counter: %d", dato->program_counter);
 				log_debug(logger, "PID: %d", dato->pid);
 				
-				char *path_completo = armar_ruta(memoria.pathInstrucciones, dato->path_instrucciones);
+				char *path_completo = armar_ruta(args.memoria.pathInstrucciones, dato->path_instrucciones);
 
 				log_debug(logger, "Path completo de instrucciones: %s", path_completo);
 				
@@ -363,7 +545,7 @@ void switch_case_kernel(t_log *logger, t_op_code codigo_operacion, t_buffer *buf
 					
 					serializar_t_memoria_kernel_proceso(&respuesta_paquete, respuesta_proceso);
 
-					enviar_paquete(respuesta_paquete, socket_kernel);
+					enviar_paquete(respuesta_paquete, args.memoria.sockets.socket_kernel);
 
 					log_error(logger,"No se pudieron leer las instrucciones.");
 					
@@ -391,16 +573,16 @@ void switch_case_kernel(t_log *logger, t_op_code codigo_operacion, t_buffer *buf
 				}
 
 				// Guardo el proceso en la lista de procesos
-				int index = list_add(lista_procesos, proceso);
+				int index = list_add(args.memoria.lista_procesos, proceso);
 				
 				log_info(logger, "Proceso <%d> agregado a la lista de procesos global en la posicion %d", proceso->pid,index);
 
 				// Añado el proceso al diccionario de procesos, mapeando el PID a el indice en la lista de procesos
-				dictionary_put(diccionario_procesos, string_itoa(proceso->pid), string_itoa(index));
+				dictionary_put(args.memoria.diccionario_procesos, string_itoa(proceso->pid), string_itoa(index));
 
 				{ // Reviso que se haya guardado correctamente en el diccionario de procesos y en la lista de procesos
-					char* indice = dictionary_get(diccionario_procesos, string_itoa(proceso->pid));
-					t_proceso* proceso_encontrado = list_get(lista_procesos, atoi(indice));
+					char* indice = dictionary_get(args.memoria.diccionario_procesos, string_itoa(proceso->pid));
+					t_proceso* proceso_encontrado = list_get(args.memoria.lista_procesos, atoi(indice));
 
 					log_debug(logger,"Reviso que se haya guardado correctamente en el diccionario de procesos y en la lista de procesos");
 					log_debug(logger, "Proceso encontrado:");
@@ -422,7 +604,7 @@ void switch_case_kernel(t_log *logger, t_op_code codigo_operacion, t_buffer *buf
 					respuesta_proceso->leido = true;
 
 					serializar_t_memoria_kernel_proceso(&respuesta_paquete, respuesta_proceso);
-					enviar_paquete(respuesta_paquete, socket_kernel);
+					enviar_paquete(respuesta_paquete, args.memoria.sockets.socket_kernel);
 
 					free(path_completo);
 					free(dato->path_instrucciones);
@@ -477,7 +659,7 @@ void switch_case_kernel(t_log *logger, t_op_code codigo_operacion, t_buffer *buf
 				char* pid_char = string_itoa(proceso_encontrado->pid);
 				
 				// Remuevo el proceso del diccionario de procesos
-				dictionary_remove_and_destroy(diccionario_procesos, pid_char, free);
+				dictionary_remove_and_destroy(args.memoria.diccionario_procesos, pid_char, free);
 
 				log_info(logger, "Se elimino el proceso con PID <%d> de Memoria.\n", pid);
 
@@ -488,36 +670,21 @@ void switch_case_kernel(t_log *logger, t_op_code codigo_operacion, t_buffer *buf
 			}
 			case FINALIZAR_SISTEMA:
 			{
-				pthread_cancel(thread_atender_cpu);
-				pthread_cancel(thread_atender_entrada_salida);
-
-				if(socket_entrada_salida_stdin > 0){
-					pthread_cancel(thread_atender_entrada_salida_stdin);
-					liberar_conexion(&socket_entrada_salida_stdin);
-				}
-				
-				if(socket_entrada_salida_stdout > 0){
-					pthread_cancel(thread_atender_entrada_salida_stdout);
-					liberar_conexion(&socket_entrada_salida_stdout);
-				}
-				
-				if(socket_entrada_salida_dialfs > 0){
-					pthread_cancel(thread_atender_entrada_salida_dialfs);
-					liberar_conexion(&socket_entrada_salida_dialfs);
-				}
+				pthread_cancel(args.memoria.threads.thread_atender_cpu);
+				pthread_cancel(args.memoria.threads.thread_atender_entrada_salida);
 			
-				pthread_cancel(thread_atender_kernel);
+				pthread_cancel(args.memoria.threads.thread_atender_kernel);
 				
-				liberar_conexion(&socket_cpu);
-				liberar_conexion(&socket_server_memoria);
-				liberar_conexion(&socket_kernel);
+				liberar_conexion(&args.memoria.sockets.socket_cpu);
+				liberar_conexion(&args.memoria.sockets.socket_server_memoria);
+				liberar_conexion(&args.memoria.sockets.socket_kernel);
 
 				break;
 			}
 			default:
 			{
 				log_warning(logger, "[Kernel] Se recibio un codigo de operacion desconocido. Cierro hilo");
-				liberar_conexion(&socket_cpu);
+				liberar_conexion(&args.memoria.sockets.socket_cpu);
 				break;
 			}
 			
@@ -531,7 +698,7 @@ void switch_case_cpu(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer
 		case CPU_MEMORIA_PROXIMA_INSTRUCCION:
 			{
 			// Simulo el retardo de acceso a memoria en milisegundos
-			sleep(memoria.retardoRespuesta/1000);
+			sleep(args.memoria.retardoRespuesta/1000);
 
 			t_cpu_memoria_instruccion *instruccion_recibida = deserializar_t_cpu_memoria_instruccion(buffer);
 
@@ -581,7 +748,7 @@ void switch_case_cpu(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer
 				instruccion_nula->array = string_split("EXIT", " ");
 
 				serializar_t_memoria_cpu_instruccion(&paquete_instruccion, instruccion_nula);
-				enviar_paquete(paquete_instruccion, socket_cpu);
+				enviar_paquete(paquete_instruccion, args.memoria.sockets.socket_cpu);
 
 				free(instruccion_recibida);
 				break;
@@ -598,7 +765,7 @@ void switch_case_cpu(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer
 			
 			t_paquete *paquete_instruccion = crear_paquete(MEMORIA_CPU_PROXIMA_INSTRUCCION);
 			serializar_t_memoria_cpu_instruccion(&paquete_instruccion, instruccion_proxima);
-			enviar_paquete(paquete_instruccion, socket_cpu);
+			enviar_paquete(paquete_instruccion, args.memoria.sockets.socket_cpu);
 
 			log_info(logger, "Instruccion con PID %d enviada a CPU", instruccion_recibida->pid);
 
@@ -609,7 +776,7 @@ void switch_case_cpu(t_log* logger, t_op_code codigo_operacion, t_buffer* buffer
 		default:
 		{	
 			log_warning(logger, "[CPU] Se recibio un codigo de operacion desconocido. Cierro hilo");
-			liberar_conexion(&socket_cpu);
+			liberar_conexion(&args.memoria.sockets.socket_cpu);
 			break;
 		}
 	}
@@ -627,7 +794,7 @@ void switch_case_entrada_salida_stdin(t_log *logger, t_op_code codigo_operacion,
 		default:
 			{
 			log_warning(logger, "[STDIN] Se recibio un codigo de operacion desconocido. Cierro hilo");
-			liberar_conexion(&socket_entrada_salida_stdin);
+			liberar_conexion(&args.memoria.sockets.socket_entrada_salida_stdin);
 			break;
 			}
 	}
@@ -645,7 +812,7 @@ void switch_case_entrada_salida_stdout(t_log *logger, t_op_code codigo_operacion
 		default:
 			{
 			log_warning(logger, "[STDOUT] Se recibio un codigo de operacion desconocido. Cierro hilo");
-			liberar_conexion(&socket_entrada_salida_stdin);
+			liberar_conexion(&args.memoria.sockets.socket_entrada_salida_stdin);
 			break;
 			}
 	}
@@ -663,8 +830,27 @@ void switch_case_entrada_salida_dialfs(t_log *logger, t_op_code codigo_operacion
 		default:
 			{
 			log_warning(logger, "[DialFS] Se recibio un codigo de operacion desconocido. Cierro hilo");
-			liberar_conexion(&socket_entrada_salida_stdin);
+			liberar_conexion(&args.memoria.sockets.socket_entrada_salida_stdin);
 			break;
 			}
 	}
+}
+
+void memoria_inicializar()
+{
+    args.memoria.puertoEscucha = config_get_int_value(args.memoria.config, "PUERTO_ESCUCHA");
+    args.memoria.tamMemoria = config_get_int_value(args.memoria.config, "TAM_MEMORIA");
+    args.memoria.tamPagina = config_get_int_value(args.memoria.config, "TAM_PAGINA");
+    args.memoria.pathInstrucciones = config_get_string_value(args.memoria.config, "PATH_INSTRUCCIONES");
+    args.memoria.retardoRespuesta = config_get_int_value(args.memoria.config, "RETARDO_RESPUESTA");
+}
+
+void memoria_log()
+{
+    log_info(args.logger, "PUERTO_ESCUCHA: %d", args.memoria.puertoEscucha);
+    log_info(args.logger, "TAM_MEMORIA: %d", args.memoria.tamMemoria);
+    log_info(args.logger, "TAM_PAGINA: %d", args.memoria.tamPagina);
+    log_info(args.logger, "PATH_INSTRUCCIONES: %s", args.memoria.pathInstrucciones);
+    log_info(args.logger, "RETARDO_RESPUESTA: %d", args.memoria.retardoRespuesta);
+    printf("\n");
 }
