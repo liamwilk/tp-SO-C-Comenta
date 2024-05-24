@@ -30,6 +30,15 @@ typedef enum
     ENTRADA_SALIDA_DIALFS
 } KERNEL_SOCKETS;
 
+typedef enum
+{
+    SUCCESS,
+    INVALID_RESOURCE,
+    INVALID_INTERFACE,
+    OUT_OF_MEMORY,
+    INTERRUPTED_BY_USER
+} KERNEL_MOTIVO_FINALIZACION;
+
 typedef struct
 {
     int orden;
@@ -85,7 +94,6 @@ typedef struct t_kernel
     sem_t memoria_consola_nuevo_proceso;
     bool detener_planificador;
     bool estado_planificador;
-    bool proceso_termino;
     t_kernel_sockets sockets;
     t_kernel_threads threads;
     pthread_mutex_t lock;
@@ -201,5 +209,7 @@ void kernel_finalizar(hilos_args *args);
 t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz);
 
 void log_ready(hilos_args *kernel_hilos_args);
+
+bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNEL_MOTIVO_FINALIZACION MOTIVO);
 
 #endif /* KERNEL_H */

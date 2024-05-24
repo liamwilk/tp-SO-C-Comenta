@@ -24,20 +24,27 @@ void planificacion_largo_plazo(hilos_args *hiloArgs)
 
 void fifo(hilos_args *kernel_hilos_args)
 {
-    if (list_size(kernel_hilos_args->estados->exec) == 0)
+    if (list_size(kernel_hilos_args->estados->exec) == 0 && list_size(kernel_hilos_args->estados->ready) > 0)
     {
         t_pcb *aux = kernel_transicion_ready_exec(kernel_hilos_args);
-        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "[FIFO]: Enviando proceso <PID: %d> a CPU", aux->pid);
+        if (aux != NULL)
+        {
+            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "[FIFO]: Enviando proceso <PID: %d> a CPU", aux->pid);
+        }
+        return;
     }
 }
 
 void round_robin(hilos_args *kernel_hilos_args)
 {
-    if (list_size(kernel_hilos_args->estados->exec) == 0)
+    if (list_size(kernel_hilos_args->estados->exec) == 0 && list_size(kernel_hilos_args->estados->ready) > 0)
     {
         t_pcb *aux = kernel_transicion_ready_exec(kernel_hilos_args);
-        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "[ROUND ROBIN]: Enviando proceso <PID: %d> a CPU", aux->pid);
-        kernel_desalojar_proceso(kernel_hilos_args);
+        if (aux != NULL)
+        {
+            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "[ROUND ROBIN]: Enviando proceso <PID: %d> a CPU", aux->pid);
+            kernel_desalojar_proceso(kernel_hilos_args);
+        }
         return;
     }
 }

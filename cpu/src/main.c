@@ -118,7 +118,7 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 		cpu_ejecutar_instruccion(cpu, &instruccion, *tipo_instruccion, &proceso, logger);
 
 		// TODO: Esto podria necesitar un mutex
-		if(flag_interrupt)
+		if (flag_interrupt)
 		{
 			cpu_procesar_interrupt(logger, cpu, proceso);
 			flag_interrupt = 0;

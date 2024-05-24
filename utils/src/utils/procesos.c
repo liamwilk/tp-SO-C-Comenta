@@ -248,8 +248,8 @@ bool proceso_matar(t_diagrama_estados *estados, char *pid)
             t_pcb *proceso = list_get(estados->new, i);
             if (proceso->pid == pidNumber)
             {
+                proceso_push_exit(estados, proceso);
                 list_remove_and_destroy_element(estados->new, i, free);
-                dictionary_remove(estados->procesos, pid);
                 return true;
             }
         }
@@ -261,8 +261,8 @@ bool proceso_matar(t_diagrama_estados *estados, char *pid)
             t_pcb *proceso = list_get(estados->ready, i);
             if (proceso->pid == pidNumber)
             {
+                proceso_push_exit(estados, proceso);
                 list_remove_and_destroy_element(estados->ready, i, free);
-                dictionary_remove(estados->procesos, pid);
                 return true;
             }
         }
@@ -274,8 +274,8 @@ bool proceso_matar(t_diagrama_estados *estados, char *pid)
             t_pcb *proceso = list_get(estados->exec, i);
             if (proceso->pid == pidNumber)
             {
+                proceso_push_exit(estados, proceso);
                 list_remove_and_destroy_element(estados->exec, i, free);
-                dictionary_remove(estados->procesos, pid);
                 return true;
             }
         }
@@ -287,8 +287,8 @@ bool proceso_matar(t_diagrama_estados *estados, char *pid)
             t_pcb *proceso = list_get(estados->block, i);
             if (proceso->pid == pidNumber)
             {
+                proceso_push_exit(estados, proceso);
                 list_remove_and_destroy_element(estados->block, i, free);
-                dictionary_remove(estados->procesos, pid);
                 return true;
             }
         }
@@ -301,7 +301,6 @@ bool proceso_matar(t_diagrama_estados *estados, char *pid)
             if (proceso->pid == pidNumber)
             {
                 list_remove_and_destroy_element(estados->exit, i, free);
-                dictionary_remove(estados->procesos, pid);
                 return true;
             }
         }
@@ -310,6 +309,9 @@ bool proceso_matar(t_diagrama_estados *estados, char *pid)
     {
         return false;
     };
+
+    // Actualizar direccion del proceso y dejarlo en estado EXIT
+
     return true;
 }
 

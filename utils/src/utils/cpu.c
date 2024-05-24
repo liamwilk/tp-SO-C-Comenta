@@ -75,23 +75,6 @@ void cpu_ejecutar_instruccion(t_cpu cpu_paquete, t_memoria_cpu_instruccion *dato
         log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s> - <%s> - <%s> - <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2], datos_instruccion->array[3], datos_instruccion->array[4], datos_instruccion->array[5]);
     }
 
-    /*
-    SUM AX EAX
-    SUB BX EBX
-    */
-
-    // Añado valores para probar.
-    cpu_proceso->registros.eax = 6;
-    cpu_proceso->registros.ebx = 256;
-    cpu_proceso->registros.ecx = 0;
-    cpu_proceso->registros.edx = 0;
-    cpu_proceso->registros.ax = 250;
-    cpu_proceso->registros.bx = 255;
-    cpu_proceso->registros.cx = 0;
-    cpu_proceso->registros.dx = 0;
-    cpu_proceso->registros.si = 0;
-    cpu_proceso->registros.di = 0;
-
     switch (instruccion)
     {
     case SET:

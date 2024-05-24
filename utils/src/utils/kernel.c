@@ -394,7 +394,7 @@ t_pcb *kernel_transicion_new_ready(hilos_args *kernel_hilo_args)
     proceso_pop_new(kernel_hilo_args->estados);
     proceso_push_ready(kernel_hilo_args->estados, proceso);
 
-    pthread_mutex_unlock(&kernel_hilo_args->estados->mutex_exec_exit);
+    pthread_mutex_unlock(&kernel_hilo_args->estados->mutext_new_ready);
 
     // log oficial de la catedra
     kernel_log_generic(kernel_hilo_args, LOG_LEVEL_INFO, "PID: <%d> - Estado Anterior: <NEW> - Estado Actual: <READY>", proceso->pid);
@@ -417,4 +417,24 @@ void log_ready(hilos_args *kernel_hilos_args)
     }
     msg = string_from_format("%s ]", msg);
     kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "%s", msg);
+}
+
+bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNEL_MOTIVO_FINALIZACION MOTIVO)
+{
+    switch (MOTIVO)
+    {
+    case INTERRUPTED_BY_USER:
+    {
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INTERRUPTED_BY_USER>", pid);
+        return proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+    }
+    case SUCCESS:
+    {
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <SUCCESS>", pid);
+        return proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+    }
+    default:
+
+        return false;
+    }
 }

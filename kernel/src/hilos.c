@@ -100,8 +100,8 @@ void *hilos_atender_consola(void *args)
             else
             {
                 kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-                bool existe = proceso_matar(hiloArgs->estados, separar_linea[1]);
                 int pidReceived = atoi(separar_linea[1]);
+                bool existe = kernel_finalizar_proceso(hiloArgs, pidReceived, INTERRUPTED_BY_USER);
 
                 if (!existe)
                 {
@@ -162,19 +162,19 @@ void *hilos_atender_consola(void *args)
         }
         case PROCESO_ESTADO:
         {
-            if (separar_linea[1] == 0)
+            t_list *keys = dictionary_keys(hiloArgs->estados->procesos);
+            if (list_size(keys) == 0)
             {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un PID para consultar el proceso. Vuelva a intentar");
+                kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "No hay procesos en el sistema");
                 break;
             }
-            else
+            for (int i = 0; i < list_size(keys); i++)
             {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-                int pid = atoi(separar_linea[1]);
-                char *estado = proceso_estado(hiloArgs->estados, pid);
-                kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "El proceso <%d> se encuentra en estado %s", pid, estado);
-                break;
+                char *key = list_get(keys, i);
+                char *estado = proceso_estado(hiloArgs->estados, atoi(key));
+                kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "PID: %s - Estado: %s", key, estado);
             }
+            break;
         }
         case FINALIZAR_CONSOLA:
         {
@@ -220,7 +220,6 @@ void hilos_planificador_inicializar(hilos_args *args, pthread_t thread_planifica
 void *hilo_planificador(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-    hiloArgs->kernel->proceso_termino = false;
     while (1)
     {
         sem_wait(&hiloArgs->kernel->planificador_hilo);
@@ -236,12 +235,6 @@ void *hilo_planificador(void *args)
         {
             sem_wait(&hiloArgs->kernel->planificador_iniciar);
 
-            if (hiloArgs->kernel->proceso_termino) // Verifico la flag que avisa que un proceso termino
-            {
-                kernel_transicion_exec_exit(hiloArgs);
-                hiloArgs->kernel->proceso_termino = false; // Vuelvo a cambiar a estado inicial la flag
-            }
-
             if (!obtener_key_finalizacion_hilo(hiloArgs))
             {
                 break;
@@ -252,6 +245,13 @@ void *hilo_planificador(void *args)
             {
                 kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion %s pausada.", hiloArgs->kernel->algoritmoPlanificador);
                 continue;
+            }
+
+            int cant_en_new = list_size(hiloArgs->estados->new);
+            if (cant_en_new == 0)
+            {
+                kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "[PLANIFICADOR LARGO PLAZO] No hay procesos en new");
+                break;
             }
 
             planificacion_largo_plazo(hiloArgs);

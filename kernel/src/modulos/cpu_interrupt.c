@@ -49,7 +49,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se transiciona el PID <%d> a BLOCK por ejecucion de IO_GEN_SLEEP.", sleep->pid);
         kernel_transicion_exec_block(args);
-
+        sem_post(&args->kernel->planificador_iniciar);
         eliminar_paquete(paquete);
         free(unidad);
 
