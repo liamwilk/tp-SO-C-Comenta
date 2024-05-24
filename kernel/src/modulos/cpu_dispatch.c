@@ -32,6 +32,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             // log_info(logger, "Se mueve el proceso <%d> a READY", proceso->pid);
             log_warning(logger, "Mandar proceso PID: %d a READY", proceso->pid);
             kernel_transicion_exec_ready(args);
+            sem_post(&args->kernel->planificador_iniciar);
         }
 
         free(proceso);

@@ -247,7 +247,10 @@ void *hilo_planificador(void *args)
                 continue;
             }
 
-            planificacion_largo_plazo(hiloArgs);
+            if (list_size(hiloArgs->estados->new) > 0)
+            {
+                planificacion_largo_plazo(hiloArgs);
+            }
 
             switch (determinar_algoritmo(hiloArgs))
             {
@@ -578,6 +581,7 @@ void *hilos_atender_entrada_salida_generic(void *args)
             if (unidad->terminado)
             {
                 kernel_transicion_block_ready(io_args, modulo, unidad);
+                sem_post(&io_args->args->kernel->planificador_iniciar);
             }
 
             free(unidad);

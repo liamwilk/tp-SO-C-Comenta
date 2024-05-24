@@ -109,13 +109,24 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 
 		if (debeTerminar)
 		{
-			// TODO: este socket deberia ser el de dispatch
+			log_debug(logger, "Avisando a kernel de finalizacion de proceso");
 			cpu_kernel_avisar_finalizacion(proceso, cpu.socket_kernel_dispatch);
 			break;
 		}
 
 		// EXECUTE:
-		cpu_ejecutar_instruccion(cpu, &instruccion, *tipo_instruccion, &proceso, logger);
+		int hayInterrupcion = cpu_ejecutar_instruccion(cpu, &instruccion, *tipo_instruccion, &proceso, logger);
+
+		if (hayInterrupcion < 0)
+		{
+			log_error(logger, "[CPU] Ocurrio un problema al ejecutar la instrucción.");
+			break;
+		}
+		if (hayInterrupcion == 1)
+		{
+			log_debug(logger, "[CPU] Se ejecuto una instruccion de IO. Se avisa a kernel y se termina ciclo de instruccion");
+			break;
+		}
 
 		// TODO: Esto podria necesitar un mutex
 		if (flag_interrupt)

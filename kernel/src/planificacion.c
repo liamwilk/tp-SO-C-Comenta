@@ -4,7 +4,6 @@ void planificacion_largo_plazo(hilos_args *hiloArgs)
 {
     int cant_en_new = list_size(hiloArgs->estados->new);
     int cant_en_ready = list_size(hiloArgs->estados->ready);
-
     if (cant_en_ready < hiloArgs->kernel->gradoMultiprogramacion)
     {
         while (cant_en_ready < (hiloArgs->kernel->gradoMultiprogramacion) && cant_en_new > 0)

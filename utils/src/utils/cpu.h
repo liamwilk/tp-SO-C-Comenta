@@ -56,7 +56,7 @@ void cpu_log(t_cpu cpu, t_log *logger);
  */
 void cpu_memoria_pedir_proxima_instruccion(t_cpu_proceso *proceso, int socket_memoria);
 
-void cpu_ejecutar_instruccion(t_cpu paquete, t_memoria_cpu_instruccion *datos_instruccion, t_instruccion INSTRUCCION, t_cpu_proceso *cpu_proceso, t_log *logger);
+int cpu_ejecutar_instruccion(t_cpu paquete, t_memoria_cpu_instruccion *datos_instruccion, t_instruccion INSTRUCCION, t_cpu_proceso *cpu_proceso, t_log *logger);
 
 int cpu_memoria_recibir_instruccion(t_buffer *buffer, t_log *logger, t_memoria_cpu_instruccion *datos_instruccion, t_instruccion *INSTRUCCION, t_cpu_proceso *proceso);
 
