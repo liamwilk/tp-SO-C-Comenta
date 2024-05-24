@@ -247,13 +247,6 @@ void *hilo_planificador(void *args)
                 continue;
             }
 
-            int cant_en_new = list_size(hiloArgs->estados->new);
-            if (cant_en_new == 0)
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "[PLANIFICADOR LARGO PLAZO] No hay procesos en new");
-                break;
-            }
-
             planificacion_largo_plazo(hiloArgs);
 
             switch (determinar_algoritmo(hiloArgs))
