@@ -279,4 +279,6 @@ void hilo_planificador_estado(hilos_args *args, bool estado);
 
 void hilo_planificador_detener(hilos_args *args);
 
+void remover_salto_linea(char *argumento_origen);
+
 #endif /* KERNEL_H */

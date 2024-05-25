@@ -8,12 +8,19 @@ void ejecutar_script(char *path_instrucciones, hilos_args *hiloArgs)
         return;
     }
 
+    char *current_dir = getcwd(NULL, 0);
+
+    char ruta_completa[PATH_MAX];
+    sprintf(ruta_completa, "%s/%s", current_dir, path_instrucciones);
+
+    kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Ruta completa del archivo de instrucciones: %s", ruta_completa);
+
     // Abro el archivo de instrucciones
-    FILE *file = fopen(path_instrucciones, "r");
+    FILE *file = fopen(ruta_completa, "r");
 
     if (file == NULL)
     {
-        kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se pudo abrir el archivo de instrucciones <%s>", path_instrucciones);
+        kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se pudo abrir el archivo de instrucciones <%s>", ruta_completa);
         return;
     }
 
@@ -31,8 +38,6 @@ void ejecutar_script(char *path_instrucciones, hilos_args *hiloArgs)
     // Getline lee la linea entera, hasta el \n inclusive
     while ((read = getline(&line, &len, file)) != -1)
     {
-        kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Linea leida: %s", line);
-
         // Separo la línea en palabras
         char **separar_linea = string_split(line, " ");
 
@@ -51,6 +56,9 @@ void ejecutar_script(char *path_instrucciones, hilos_args *hiloArgs)
         {
             cantidad_elementos++;
         }
+
+        // Saco el salto de linea del ultimo elemento
+        remover_salto_linea(separar_linea[cantidad_elementos - 1]);
 
         switch (obtener_operacion(separar_linea[0]))
         {
