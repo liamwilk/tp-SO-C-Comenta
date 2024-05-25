@@ -193,7 +193,6 @@ void *hilos_atender_consola(void *args)
         }
         default:
         {
-            // kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "Comando no reconocido. Vuelva a intentar.");
             break;
         }
         }
