@@ -403,15 +403,13 @@ void memoria_inicializar_hilos(t_args *argumentos)
 
 void memoria_inicializar(t_args *argumentos)
 {
-    argumentos->logger = iniciar_logger("memoria", LOG_LEVEL_DEBUG);
-    argumentos->memoria.config = iniciar_config(argumentos->logger);
     memoria_inicializar_config(argumentos);
     memoria_inicializar_argumentos(argumentos);
     memoria_imprimir_config(argumentos);
     memoria_inicializar_hilos(argumentos);
 }
 
-void modulo_memoria(t_args *argumentos)
+void inicializar_modulo(t_args *argumentos)
 {
     memoria_inicializar(argumentos);
     memoria_finalizar(argumentos);
@@ -431,7 +429,6 @@ void memoria_imprimir_config(t_args *argumentos)
     log_info(argumentos->logger, "TAM_PAGINA: %d", argumentos->memoria.tamPagina);
     log_info(argumentos->logger, "PATH_INSTRUCCIONES: %s", argumentos->memoria.pathInstrucciones);
     log_info(argumentos->logger, "RETARDO_RESPUESTA: %d", argumentos->memoria.retardoRespuesta);
-    printf("\n");
 }
 
 void *esperar_entrada_salida(void *paquete)
@@ -575,4 +572,16 @@ void memoria_hilo_ejecutar_entrada_salida(t_args_hilo *io_args, char *modulo, t_
     remover_interfaz(io_args->argumentos, io_args->entrada_salida->interfaz);
 
     free(io_args);
+}
+
+void inicializar_logger(t_args *argumentos, t_log_level nivel)
+{
+    argumentos->logger = iniciar_logger("memoria", nivel);
+}
+
+void inicializar(t_args *argumentos, t_log_level nivel, int argc, char *argv[])
+{
+    inicializar_logger(argumentos, nivel);
+    inicializar_config(&argumentos->memoria.config, argumentos->logger, argc, argv);
+    inicializar_modulo(argumentos);
 }

@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
 	nombre_modulo = strdup(argv[1]);
 	
 	logger = iniciar_logger(nombre_modulo, LOG_LEVEL_DEBUG);
-	config = iniciar_config_entrada_salida(logger, argv[2]);
+	config = crear_config_parametro(logger, argv[2]);
 
 	log_debug(logger, "Nombre del modulo inicializado: %s\n", nombre_modulo);
     

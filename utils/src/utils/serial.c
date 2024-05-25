@@ -209,17 +209,17 @@ void revisar_paquete(t_paquete *paquete, t_log *logger, char *modulo)
 {
 	if (paquete->codigo_operacion != FINALIZAR_SISTEMA)
 	{
-		log_trace(logger, "Paquete recibido de modulo %s\n", modulo);
-		log_trace(logger, "Deserializado del paquete:");
-		log_trace(logger, "Codigo de operacion: %d", paquete->codigo_operacion);
-		log_trace(logger, "Size del buffer en paquete: %d", paquete->size_buffer);
-		log_trace(logger, "Deserializado del buffer:");
-		log_trace(logger, "Size del stream: %d", paquete->buffer->size);
-		log_trace(logger, "Offset del stream: %d", paquete->buffer->offset);
+		log_debug(logger, "Paquete recibido de modulo %s\n", modulo);
+		// log_trace(logger, "Deserializado del paquete:");
+		log_debug(logger, "Codigo de operacion: %d", paquete->codigo_operacion);
+		// log_trace(logger, "Size del buffer en paquete: %d", paquete->size_buffer);
+		// log_trace(logger, "Deserializado del buffer:");
+		// log_trace(logger, "Size del stream: %d", paquete->buffer->size);
+		// log_trace(logger, "Offset del stream: %d", paquete->buffer->offset);
 
 		if (paquete->size_buffer != paquete->buffer->size + (2 * sizeof(uint32_t)))
 		{
-			log_warning(logger, "Error en el tamaño del buffer. Se esperaba %d y se recibio %ld", paquete->size_buffer, paquete->buffer->size + (2 * sizeof(uint32_t)));
+			log_error(logger, "Error en el tamaño del buffer. Se esperaba %d y se recibio %ld", paquete->size_buffer, paquete->buffer->size + (2 * sizeof(uint32_t)));
 		}
 	}
 	else

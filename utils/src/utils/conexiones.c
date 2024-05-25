@@ -1,9 +1,10 @@
 #include "conexiones.h"
 
-int crear_conexion(char *ip, int puerto)
+int crear_conexion(t_log *logger, char *ip, int puerto)
 {
     struct addrinfo hints;
     struct addrinfo *server_info;
+    const int enable = 1;
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
@@ -16,10 +17,25 @@ int crear_conexion(char *ip, int puerto)
 
     int socket_cliente = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);
 
-    connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen);
+    if (setsockopt(socket_cliente, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+    {
+        log_error(logger, "Error en setsockopt(SO_REUSEADDR)");
+        freeaddrinfo(server_info);
+        free(puerto_str);
+        close(socket_cliente);
+        return -1;
+    }
+
+    if (connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen) < 0)
+    {
+        log_error(logger, "Error al conectar con el servidor");
+        freeaddrinfo(server_info);
+        free(puerto_str);
+        close(socket_cliente);
+        return -1;
+    }
 
     freeaddrinfo(server_info);
-
     free(puerto_str);
 
     return socket_cliente;
@@ -28,8 +44,8 @@ int crear_conexion(char *ip, int puerto)
 int iniciar_servidor(t_log *logger, int puerto)
 {
     char *puerto_str = string_itoa(puerto);
-
     struct addrinfo hints, *servinfo;
+    const int enable = 1;
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
@@ -38,23 +54,47 @@ int iniciar_servidor(t_log *logger, int puerto)
 
     getaddrinfo(NULL, puerto_str, &hints, &servinfo);
 
-    int socket_servidor = socket(servinfo->ai_family,
-                                 servinfo->ai_socktype,
-                                 servinfo->ai_protocol);
+    int socket_servidor = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
 
     if (socket_servidor == -1)
     {
         log_error(logger, "Error al crear el socket servidor");
+        freeaddrinfo(servinfo);
+        free(puerto_str);
         return EXIT_FAILURE;
     }
 
-    bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen);
+    if (setsockopt(socket_servidor, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+    {
+        log_error(logger, "Error en setsockopt(SO_REUSEADDR)");
+        freeaddrinfo(servinfo);
+        free(puerto_str);
+        close(socket_servidor);
+        return EXIT_FAILURE;
+    }
 
-    listen(socket_servidor, SOMAXCONN);
+    if (bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen) == -1)
+    {
+        log_error(logger, "Error al hacer bind en el socket servidor");
+        freeaddrinfo(servinfo);
+        free(puerto_str);
+        close(socket_servidor);
+        return EXIT_FAILURE;
+    }
+
+    if (listen(socket_servidor, SOMAXCONN) == -1)
+    {
+        log_error(logger, "Error al hacer listen en el socket servidor");
+        freeaddrinfo(servinfo);
+        free(puerto_str);
+        close(socket_servidor);
+        return EXIT_FAILURE;
+    }
 
     log_info(logger, "Servidor escuchando en puerto %d", puerto);
 
     freeaddrinfo(servinfo);
+    free(puerto_str);
 
     return socket_servidor;
 }
