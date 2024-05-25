@@ -350,7 +350,7 @@ void hilos_memoria_inicializar(hilos_args *args, pthread_t thread_conectar_memor
 void *hilos_conectar_memoria(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-    int socket = crear_conexion(hiloArgs->kernel->ipMemoria, hiloArgs->kernel->puertoMemoria);
+    int socket = crear_conexion(hiloArgs->logger, hiloArgs->kernel->ipMemoria, hiloArgs->kernel->puertoMemoria);
 
     if (socket == -1)
     {
@@ -396,7 +396,7 @@ void hilos_cpu_inicializar(hilos_args *args, pthread_t thread_conectar_cpu_dispa
 void *hilos_conectar_cpu_dispatch(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-    int socket = crear_conexion(hiloArgs->kernel->ipCpu, hiloArgs->kernel->puertoCpuDispatch);
+    int socket = crear_conexion(hiloArgs->logger, hiloArgs->kernel->ipCpu, hiloArgs->kernel->puertoCpuDispatch);
 
     if (socket == -1)
     {
@@ -420,7 +420,7 @@ void *hilos_conectar_cpu_dispatch(void *args)
 void *hilos_conectar_cpu_interrupt(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-    int socket = crear_conexion(hiloArgs->kernel->ipCpu, hiloArgs->kernel->puertoCpuInterrupt);
+    int socket = crear_conexion(hiloArgs->logger, hiloArgs->kernel->ipCpu, hiloArgs->kernel->puertoCpuInterrupt);
 
     if (socket == -1)
     {
