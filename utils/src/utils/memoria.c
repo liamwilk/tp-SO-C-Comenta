@@ -153,32 +153,57 @@ t_entrada_salida *buscar_interfaz(t_args *argumentos, char *interfaz)
 
 void eliminar_procesos(t_args *argumentos)
 {
+    // Cuento las keys del diccionario de procesos
+    int cantidad_procesos = dictionary_size(argumentos->memoria.diccionario_procesos);
 
-    if (!list_is_empty(argumentos->memoria.lista_procesos))
+    if (cantidad_procesos != 0)
     {
-        for (int i = 0; i < list_size(argumentos->memoria.lista_procesos); i++)
+        // Obtengo las keys del diccionario de procesos
+        t_list *lista_procesos_actuales = dictionary_keys(argumentos->memoria.diccionario_procesos);
+
+        // Recorro la lista de keys
+        for (int i = 0; i < cantidad_procesos; i++)
         {
-            t_proceso *proceso = list_get(argumentos->memoria.lista_procesos, i);
-            if (!list_is_empty(proceso->instrucciones))
+            // Obtengo la key
+            char *pid = list_get(lista_procesos_actuales, i);
+            char *pid_copia = strdup(pid);
+
+            // Busco el proceso en la lista de procesos
+            t_proceso *proceso = list_get(argumentos->memoria.lista_procesos, atoi(dictionary_get(argumentos->memoria.diccionario_procesos, pid)));
+
+            // Si el proceso no se encuentra en la lista de procesos, no se puede eliminar, aunque no debería de pasar en esta instancia. Igualmente, acá esta el caso borde.
+            if (proceso == NULL)
             {
-                log_debug(argumentos->logger, "Proceso con PID <%d> encontrado en la lista de procesos global.", proceso->pid);
-                log_debug(argumentos->logger, "Tamaño de la lista de instrucciones: %d", list_size(proceso->instrucciones));
-                char *pid = string_itoa(proceso->pid);
-                eliminar_instrucciones(argumentos, proceso->instrucciones);
-                log_info(argumentos->logger, "Proceso con PID <%s> que fue cargado pero no finalizado, ahora fue eliminado de Memoria.", pid);
-                free(pid);
-                free(proceso);
+                log_error(argumentos->logger, "No se encontro el proceso con PID <%s> en la lista de procesos", pid);
+                continue;
             }
+
+            // Si el proceso no tiene instrucciones, no se puede eliminar. Otro caso borde más.
+            if (list_is_empty(proceso->instrucciones))
+            {
+                log_error(argumentos->logger, "No se encontraron instrucciones para el proceso con PID <%s>", pid);
+                continue;
+            }
+
+            // Elimino las instrucciones del proceso
+            eliminar_instrucciones(argumentos, proceso->instrucciones);
+
+            // Elimino el proceso de la lista de procesos
+            // list_remove(argumentos->memoria.lista_procesos, atoi(dictionary_get(argumentos->memoria.diccionario_procesos, pid)));
+
+            // Libero los recursos del proceso, pero no lo saco de la lista para no cambiar los indices.
+            free(proceso);
+
+            // Elimino el proceso del diccionario de procesos
+            dictionary_remove(argumentos->memoria.diccionario_procesos, pid);
+
+            log_debug(argumentos->logger, "Se elimino el proceso con PID <%s> de Memoria.", pid_copia);
+            free(pid_copia);
         }
     }
 
     // Libero la memoria de la lista de procesos
     list_destroy(argumentos->memoria.lista_procesos);
-
-    if (!dictionary_is_empty(argumentos->memoria.diccionario_procesos))
-    {
-        dictionary_clean_and_destroy_elements(argumentos->memoria.diccionario_procesos, free);
-    }
 
     // Libero la memoria del diccionario de procesos
     dictionary_destroy(argumentos->memoria.diccionario_procesos);
