@@ -64,8 +64,8 @@ void *hilos_atender_consola(void *args)
             {
                 kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
 
-                // char *pathInstrucciones = separar_linea[1];
-                //  ejecutar_sript(pathInstrucciones, hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
+                char *pathInstrucciones = separar_linea[1];
+                ejecutar_script(pathInstrucciones, hiloArgs);
                 break;
             }
             else
@@ -75,120 +75,34 @@ void *hilos_atender_consola(void *args)
             }
         }
         case INICIAR_PROCESO:
-        {
-            if (separar_linea[1] == 0)
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un path. Vuelva a intentar");
-                break;
-            }
-            else
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-                char *pathInstrucciones = separar_linea[1];
-                kernel_nuevo_proceso(hiloArgs, hiloArgs->estados, hiloArgs->logger, pathInstrucciones);
-                sem_wait(&hiloArgs->kernel->memoria_consola_nuevo_proceso);
-                break;
-            }
-        }
+            iniciar_proceso(separar_linea, hiloArgs);
+            break;
         case FINALIZAR_PROCESO:
-        {
-            if (separar_linea[1] == 0)
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "Falta proporcionar un numero de PID para eliminar. Vuelva a intentar.");
-                break;
-            }
-            else
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-                int pidReceived = atoi(separar_linea[1]);
-                bool existe = kernel_finalizar_proceso(hiloArgs, pidReceived, INTERRUPTED_BY_USER);
-
-                if (!existe)
-                {
-                    kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "El PID <%d> no existe", pidReceived);
-                    break;
-                }
-
-                t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
-                t_kernel_memoria_finalizar_proceso *proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
-                proceso->pid = pidReceived;
-                serializar_t_kernel_memoria_finalizar_proceso(&paquete, proceso);
-                enviar_paquete(paquete, hiloArgs->kernel->sockets.memoria);
-
-                kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se elimino el proceso <%d>", pidReceived);
-                eliminar_paquete(paquete);
-                free(proceso);
-                break;
-            }
-        }
+            finalizar_proceso(separar_linea, hiloArgs);
+            break;
         case DETENER_PLANIFICACION:
         {
-            int iniciar_algoritmo_valor;
-            sem_getvalue(&hiloArgs->kernel->planificador_hilo, &iniciar_algoritmo_valor);
-            if (iniciar_algoritmo_valor == -1)
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se puede detener la planificacion si no está iniciada");
-                break;
-            }
-            hilo_planificador_detener(hiloArgs);
-            hilo_planificador_estado(hiloArgs, false);
-            kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
+            detener_planificacion(separar_linea, hiloArgs);
             break;
         }
         case INICIAR_PLANIFICACION:
         {
-            kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
-            hilo_planificador_iniciar(hiloArgs);
-            hilo_planificador_estado(hiloArgs, true);
-            sem_post(&hiloArgs->kernel->planificador_iniciar);
-            sem_post(&hiloArgs->kernel->planificador_hilo);
+            iniciar_planificacion(separar_linea, hiloArgs);
             break;
         }
         case MULTIPROGRAMACION:
         {
-            if (separar_linea[1] == 0)
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un numero para el grado de multiprogramacion. Vuelva a intentar");
-                break;
-            }
-            else
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-                int grado_multiprogramacion = atoi(separar_linea[1]);
-                hiloArgs->kernel->gradoMultiprogramacion = grado_multiprogramacion;
-                kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se cambio el grado de multiprogramacion a %d", grado_multiprogramacion);
-                break;
-            }
+            multiprogramacion(separar_linea, hiloArgs);
+            break;
         }
         case PROCESO_ESTADO:
         {
-            t_list *keys = dictionary_keys(hiloArgs->estados->procesos);
-            if (list_size(keys) == 0)
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "No hay procesos en el sistema");
-                break;
-            }
-            for (int i = 0; i < list_size(keys); i++)
-            {
-                char *key = list_get(keys, i);
-                char *estado = proceso_estado(hiloArgs->estados, atoi(key));
-                kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "PID: %s - Estado: %s", key, estado);
-            }
+            procesos_estados(hiloArgs);
             break;
         }
         case FINALIZAR_CONSOLA:
         {
-            kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
-
-            pthread_mutex_lock(&hiloArgs->kernel->lock);
-            hiloArgs->kernel_orden_apagado = 0;
-            pthread_mutex_unlock(&hiloArgs->kernel->lock);
-
-            // Detengo el hilo planificador
-            hilo_planificador_detener(hiloArgs);
-
-            kernel_finalizar(hiloArgs);
-
+            finalizar_consola(separar_linea, hiloArgs);
             break;
         }
         default:
@@ -279,27 +193,6 @@ void *hilo_planificador(void *args)
         pthread_exit(0);
     }
     return NULL;
-}
-
-void hilo_planificador_detener(hilos_args *args)
-{
-    pthread_mutex_lock(&args->kernel->lock);
-    args->kernel->detener_planificador = true;
-    pthread_mutex_unlock(&args->kernel->lock);
-}
-
-void hilo_planificador_iniciar(hilos_args *args)
-{
-    pthread_mutex_lock(&args->kernel->lock);
-    args->kernel->detener_planificador = false;
-    pthread_mutex_unlock(&args->kernel->lock);
-}
-
-void hilo_planificador_estado(hilos_args *args, bool estado)
-{
-    pthread_mutex_lock(&args->kernel->lock);
-    args->kernel->estado_planificador = estado;
-    pthread_mutex_unlock(&args->kernel->lock);
 }
 
 int obtener_key_finalizacion_hilo(hilos_args *args)

@@ -32,6 +32,19 @@ typedef enum
 
 typedef enum
 {
+    PROCESO_ESTADO,
+    EJECUTAR_SCRIPT,
+    INICIAR_PROCESO,
+    MULTIPROGRAMACION,
+    FINALIZAR_PROCESO,
+    FINALIZAR_CONSOLA,
+    DETENER_PLANIFICACION,
+    INICIAR_PLANIFICACION,
+    TOPE_ENUM_CONSOLA // siempre mantener este al final para saber el tamaño del enum
+} t_consola_operacion;
+
+typedef enum
+{
     SUCCESS,
     INVALID_RESOURCE,
     INVALID_INTERFACE,
@@ -206,8 +219,22 @@ t_pcb *kernel_transicion_exec_exit(hilos_args *kernel_hilo_args);
  */
 t_pcb *kernel_transicion_new_ready(hilos_args *kernel_hilo_args);
 
+/**
+ * Finaliza el kernel.
+ *
+ * Esta función se encarga de finalizar el kernel y realizar cualquier limpieza necesaria.
+ *
+ * @param args Los argumentos para el kernel.
+ */
 void kernel_finalizar(hilos_args *args);
 
+/**
+ * Busca una interfaz en las estructuras de entrada/salida del kernel.
+ *
+ * @param args Los argumentos para el hilo.
+ * @param interfaz El nombre de la interfaz a buscar.
+ * @return Un puntero a la estructura de entrada/salida encontrada, o NULL si no se encuentra.
+ */
 t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz);
 
 void log_ready(hilos_args *kernel_hilos_args);
@@ -215,5 +242,41 @@ void log_ready(hilos_args *kernel_hilos_args);
 bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNEL_MOTIVO_FINALIZACION MOTIVO);
 
 void kernel_revisar_paquete(t_paquete *paquete, hilos_args *args, char *modulo);
+
+void iniciar_proceso(char **separar_linea, hilos_args *hiloArgs);
+
+void finalizar_proceso(char **separar_linea, hilos_args *hiloArgs);
+
+void iniciar_planificacion(char **separar_linea, hilos_args *hiloArgs);
+
+void detener_planificacion(char **separar_linea, hilos_args *hiloArgs);
+
+void multiprogramacion(char **separar_linea, hilos_args *hiloArgs);
+
+void procesos_estados(hilos_args *hiloArgs);
+
+void finalizar_consola(char **separar_linea, hilos_args *hiloArgs);
+
+/**
+ * @brief Crea un nuevo proceso en el kernel.
+ *
+ * Esta función se encarga de crear un nuevo proceso en el kernel. Envia el struct t_kernel_memoria_proceso al modulo memoria
+ *
+ * @param kernel Un puntero a la estructura del kernel.
+ * @param new  Un puntero a la cola de new.
+ * @param logger Un puntero al logger.
+ * @param instrucciones Una cadena de caracteres que contiene las instrucciones para el nuevo proceso.
+ */
+t_pcb *kernel_nuevo_proceso(hilos_args *args, t_diagrama_estados *estados, t_log *logger, char *instrucciones);
+
+t_consola_operacion obtener_operacion(char *funcion);
+
+void ejecutar_script(char *path_instrucciones, hilos_args *hiloArgs);
+
+void hilo_planificador_iniciar(hilos_args *args);
+
+void hilo_planificador_estado(hilos_args *args, bool estado);
+
+void hilo_planificador_detener(hilos_args *args);
 
 #endif /* KERNEL_H */
