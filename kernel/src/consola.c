@@ -1,28 +1,6 @@
 #include "consola.h"
 #include <utils/procesos.h>
 
-t_consola_operacion obtener_operacion(char *funcion)
-{
-    char *operacionesStrings[] = {
-        "PROCESO_ESTADO",
-        "EJECUTAR_SCRIPT",
-        "INICIAR_PROCESO",
-        "MULTIPROGRAMACION",
-        "FINALIZAR_PROCESO",
-        "FINALIZAR",
-        "DETENER_PLANIFICACION",
-        "INICIAR_PLANIFICACION",
-    };
-    for (int i = 0; i < TOPE_ENUM_CONSOLA; i++)
-    {
-        if (strcmp(operacionesStrings[i], funcion) == 0)
-        {
-            return i;
-        }
-    }
-    return TOPE_ENUM_CONSOLA;
-}
-
 t_pcb *buscar_proceso(t_diagrama_estados *estados, uint32_t pid)
 {
     t_pcb *pcb = proceso_buscar_new(estados, pid);
@@ -284,31 +262,4 @@ void entrada_salida_remover_interfaz(hilos_args *args, char *interfaz)
     free(indice);
 
     // No lo elimino de la lista porque no se puede hacer un list_remove sin reorganizar los indices. Lo dejo en la lista pero no se puede acceder a el porque está vacio. Al finalizar el programa, destruyo la estructura de la lista entera.
-}
-
-t_pcb *kernel_nuevo_proceso(hilos_args *args, t_diagrama_estados *estados, t_log *logger, char *instrucciones)
-{
-    t_pcb *nuevaPcb = pcb_crear(logger, args->kernel->quantum);
-    // TODO: esto hay que pasarlo a imprimimr_log para que no rompa la consola
-    kernel_log_generic(args, LOG_LEVEL_DEBUG, "[PCB] Program Counter: %d", nuevaPcb->registros_cpu->pc);
-    kernel_log_generic(args, LOG_LEVEL_DEBUG, "[PCB] Quantum: %d", nuevaPcb->quantum);
-    kernel_log_generic(args, LOG_LEVEL_DEBUG, "[PCB] PID: %d", nuevaPcb->pid);
-    kernel_log_generic(args, LOG_LEVEL_DEBUG, "[PROCESO] Instrucciones: %s", instrucciones);
-
-    /**----ENVIAR A MEMORIA----**/
-    t_kernel_memoria_proceso *proceso = malloc(sizeof(t_kernel_memoria_proceso));
-    proceso->path_instrucciones = strdup(instrucciones);
-    proceso->pid = nuevaPcb->pid;
-    proceso->size_path = strlen(instrucciones) + 1;
-    proceso->program_counter = nuevaPcb->registros_cpu->pc;
-
-    t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_NUEVO_PROCESO);
-    serializar_t_kernel_memoria_proceso(&paquete, proceso);
-    enviar_paquete(paquete, args->kernel->sockets.memoria);
-
-    eliminar_paquete(paquete);
-    free(proceso);
-    proceso_push_new(estados, nuevaPcb);
-
-    return nuevaPcb;
 }

@@ -13,19 +13,6 @@
 
 typedef void (*t_funcion_kernel_ptr)(t_log *, t_op_code, hilos_args *, t_buffer *);
 
-typedef enum
-{
-    PROCESO_ESTADO,
-    EJECUTAR_SCRIPT,
-    INICIAR_PROCESO,
-    MULTIPROGRAMACION,
-    FINALIZAR_PROCESO,
-    FINALIZAR_CONSOLA,
-    DETENER_PLANIFICACION,
-    INICIAR_PLANIFICACION,
-    TOPE_ENUM_CONSOLA // siempre mantener este al final para saber el tamaño del enum
-} t_consola_operacion;
-
 t_consola_operacion obtener_operacion(char *funcion);
 void imprimir_comandos(hilos_args *args);
 void imprimir_logo(hilos_args *args);
@@ -61,18 +48,6 @@ t_kernel kernel_inicializar(t_config *config);
 void kernel_log(hilos_args *args);
 
 /**----PROCESOS Y ESTADOS----**/
-
-/**
- * @brief Crea un nuevo proceso en el kernel.
- *
- * Esta función se encarga de crear un nuevo proceso en el kernel. Envia el struct t_kernel_memoria_proceso al modulo memoria
- *
- * @param kernel Un puntero a la estructura del kernel.
- * @param new  Un puntero a la cola de new.
- * @param logger Un puntero al logger.
- * @param instrucciones Una cadena de caracteres que contiene las instrucciones para el nuevo proceso.
- */
-t_pcb *kernel_nuevo_proceso(hilos_args *args, t_diagrama_estados *estados, t_log *logger, char *instrucciones);
 
 void kernel_enviar_pcb_cpu(t_kernel *kernel, t_pcb *pcb, t_kernel_sockets cpu);
 

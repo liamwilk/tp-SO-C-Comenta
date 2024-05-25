@@ -637,4 +637,6 @@ void serializar_t_memoria_kernel_proceso(t_paquete **paquete, t_memoria_kernel_p
 
 t_kernel_memoria_finalizar_proceso *deserializar_t_kernel_memoria_finalizar_proceso(t_buffer *buffer);
 
+void remover_salto_linea(char *argumento_origen);
+
 #endif
