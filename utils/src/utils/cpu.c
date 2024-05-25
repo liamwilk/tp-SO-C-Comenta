@@ -638,6 +638,7 @@ int cpu_ejecutar_instruccion(t_cpu cpu_paquete, t_memoria_cpu_instruccion *datos
 
         enviar_paquete(paquete, cpu_paquete.socket_kernel_dispatch);
 
+        free(nombre_recurso);
         free(contexto->nombre_recurso);
         free(contexto);
 
@@ -647,8 +648,27 @@ int cpu_ejecutar_instruccion(t_cpu cpu_paquete, t_memoria_cpu_instruccion *datos
     }
     case SIGNAL:
     {
-        log_debug(logger, "reconoci un SIGNAL");
-        break;
+        char *nombre_recurso = strdup(datos_instruccion->array[1]);
+        log_debug(logger, "Recurso a liberar: %s", nombre_recurso);
+
+        t_paquete *paquete = crear_paquete(CPU_KERNEL_SIGNAL);
+
+        t_cpu_kernel_solicitud_recurso *contexto = malloc(sizeof(t_cpu_kernel_solicitud_recurso));
+        contexto->pid = cpu_proceso->pid;
+        contexto->registros = &(cpu_proceso->registros);
+        contexto->size_nombre_recurso = strlen(nombre_recurso) + 1;
+        contexto->nombre_recurso = strdup(nombre_recurso);
+
+        serializar_t_cpu_kernel_solicitud_recurso(&paquete, contexto);
+
+        enviar_paquete(paquete, cpu_paquete.socket_kernel_dispatch);
+
+        free(nombre_recurso);
+        free(contexto->nombre_recurso);
+        free(contexto);
+        eliminar_paquete(paquete);
+
+        return 2;
     }
     default:
     {

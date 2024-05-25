@@ -131,7 +131,7 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 		}
 		if(hayInterrupcion == 2)
 		{
-			log_debug(logger, "[CPU] Proceso desalojado por solicitud de instancia de recurso");
+			log_debug(logger, "[CPU] Proceso desalojado por funcion implicada en manejo de recursos.");
 			break;
 		}
 

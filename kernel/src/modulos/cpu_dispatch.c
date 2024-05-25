@@ -52,6 +52,19 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         break;
     }
+    case CPU_KERNEL_SIGNAL:
+    {
+        t_cpu_kernel_solicitud_recurso *solicitud_recurso = malloc(sizeof(t_cpu_kernel_solicitud_recurso));
+        solicitud_recurso = deserializar_t_cpu_kernel_solicitud_recurso(buffer);
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Recurso liberado (SIGNAL) por CPU para el proceso <PID: %d>: %s", solicitud_recurso->pid, solicitud_recurso->nombre_recurso);
+
+        // TODO: Implementar logica del manejo de SIGNAL en kernel.
+
+        free(solicitud_recurso->nombre_recurso);
+        free(solicitud_recurso);
+        break;
+    }
     default:
     {
         log_warning(args->logger, "[CPU Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
