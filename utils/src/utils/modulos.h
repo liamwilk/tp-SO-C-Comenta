@@ -21,26 +21,10 @@ typedef struct
 
 // FUNCIONES DE ENTRADA SALIDA ESTAN EN ENTRADASALIDA/SRC/INIT.H
 
-/*--------Memoria--------*/
-typedef struct t_memoria
-{
-    int tamMemoria, tamPagina, retardoRespuesta, puertoEscucha;
-    char *pathInstrucciones;
-} t_memoria;
-
-/**
- * @fn    memoria_inicializar
- * @brief Inicializa la memoria junto con todas sus configuraciones
- * @param config Instancia de module.config
- * @return config
- */
-t_memoria memoria_inicializar(t_config *config);
-
-/**
- * @fn    memoria_log
- * @brief Logs necesarios para memoria
- * @param config Instancia de module.config
- */
-void memoria_log(t_memoria memoria, t_log *logger);
-
+// /*--------Memoria--------*/
+// typedef struct t_memoria
+// {
+//     int tamMemoria, tamPagina, retardoRespuesta, puertoEscucha;
+//     char *pathInstrucciones;
+// } t_memoria;
 #endif /* MODULOS_H_ */

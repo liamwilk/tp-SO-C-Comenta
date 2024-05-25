@@ -26,20 +26,13 @@ void proceso_push_new(t_diagrama_estados *estados, t_pcb *pcb)
     dictionary_put(estados->procesos, pid_char, estado);
 };
 
-void proceso_push_ready(t_diagrama_estados *estados, t_pcb *pcb, t_log *logger)
+void proceso_push_ready(t_diagrama_estados *estados, t_pcb *pcb)
 {
     list_add(estados->ready, pcb);
     char *pid_char = string_itoa(pcb->pid);
-    // Actualizo el diccionario de procesos
+
     char *estado = "READY";
     dictionary_put(estados->procesos, pid_char, estado);
-    // Loggear la cola de ready
-    log_info(logger, "Cola Ready <COLA>:");
-    for (int i = 0; i < list_size(estados->ready); i++)
-    {
-        t_pcb *proceso = list_get(estados->ready, i);
-        log_info(logger, "PID: <%d>", proceso->pid);
-    }
 };
 
 void proceso_push_exec(t_diagrama_estados *estados, t_pcb *pcb)
@@ -47,7 +40,6 @@ void proceso_push_exec(t_diagrama_estados *estados, t_pcb *pcb)
     list_add(estados->exec, pcb);
     char *pid_char = string_itoa(pcb->pid);
 
-    // Actualizo el diccionario de procesos
     char *estado = "EXEC";
     dictionary_put(estados->procesos, pid_char, estado);
 };
@@ -120,15 +112,22 @@ t_pcb *proceso_pop_exit(t_diagrama_estados *estados)
     return elem;
 };
 
-t_pcb *proceso_pop_block(t_diagrama_estados *estados)
+t_pcb *proceso_remover_block(t_diagrama_estados *estados, uint32_t pid)
 {
     if (list_size(estados->block) == 0)
     {
         return NULL;
     }
-    t_pcb *elem = list_get(estados->block, 0);
-    list_remove(estados->block, 0);
-    return elem;
+    for (int i = 0; i < list_size(estados->block); i++)
+    {
+        t_pcb *proceso = list_get(estados->block, i);
+        if (proceso->pid == pid)
+        {
+            list_remove(estados->block, i);
+            return proceso;
+        }
+    }
+    return NULL;
 };
 
 t_pcb *proceso_buscar_new(t_diagrama_estados *estados, int pid)
@@ -249,8 +248,8 @@ bool proceso_matar(t_diagrama_estados *estados, char *pid)
             t_pcb *proceso = list_get(estados->new, i);
             if (proceso->pid == pidNumber)
             {
+                proceso_push_exit(estados, proceso);
                 list_remove_and_destroy_element(estados->new, i, free);
-                dictionary_remove(estados->procesos, pid);
                 return true;
             }
         }
@@ -262,8 +261,8 @@ bool proceso_matar(t_diagrama_estados *estados, char *pid)
             t_pcb *proceso = list_get(estados->ready, i);
             if (proceso->pid == pidNumber)
             {
+                proceso_push_exit(estados, proceso);
                 list_remove_and_destroy_element(estados->ready, i, free);
-                dictionary_remove(estados->procesos, pid);
                 return true;
             }
         }
@@ -275,8 +274,8 @@ bool proceso_matar(t_diagrama_estados *estados, char *pid)
             t_pcb *proceso = list_get(estados->exec, i);
             if (proceso->pid == pidNumber)
             {
+                proceso_push_exit(estados, proceso);
                 list_remove_and_destroy_element(estados->exec, i, free);
-                dictionary_remove(estados->procesos, pid);
                 return true;
             }
         }
@@ -288,8 +287,8 @@ bool proceso_matar(t_diagrama_estados *estados, char *pid)
             t_pcb *proceso = list_get(estados->block, i);
             if (proceso->pid == pidNumber)
             {
+                proceso_push_exit(estados, proceso);
                 list_remove_and_destroy_element(estados->block, i, free);
-                dictionary_remove(estados->procesos, pid);
                 return true;
             }
         }
@@ -302,7 +301,6 @@ bool proceso_matar(t_diagrama_estados *estados, char *pid)
             if (proceso->pid == pidNumber)
             {
                 list_remove_and_destroy_element(estados->exit, i, free);
-                dictionary_remove(estados->procesos, pid);
                 return true;
             }
         }
@@ -311,6 +309,9 @@ bool proceso_matar(t_diagrama_estados *estados, char *pid)
     {
         return false;
     };
+
+    // Actualizar direccion del proceso y dejarlo en estado EXIT
+
     return true;
 }
 

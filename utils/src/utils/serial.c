@@ -1,5 +1,46 @@
 #include "serial.h"
 
+t_kernel_memoria_proceso *deserializar_t_kernel_memoria(t_buffer *buffer)
+{
+	t_kernel_memoria_proceso *dato = malloc(sizeof(t_kernel_memoria_proceso));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(dato->size_path));
+	deserializar_char(&stream, &(dato->path_instrucciones), dato->size_path);
+	deserializar_uint32_t(&stream, &(dato->program_counter));
+	deserializar_uint32_t(&stream, &(dato->pid));
+
+	return dato;
+}
+
+t_cpu_memoria_instruccion *deserializar_t_cpu_memoria_instruccion(t_buffer *buffer)
+{
+	t_cpu_memoria_instruccion *dato = malloc(sizeof(t_cpu_memoria_instruccion));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(dato->program_counter));
+	deserializar_uint32_t(&stream, &(dato->pid));
+	return dato;
+}
+
+t_kernel_memoria_finalizar_proceso *deserializar_t_kernel_memoria_finalizar_proceso(t_buffer *buffer)
+{
+	t_kernel_memoria_finalizar_proceso *dato = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(dato->pid));
+
+	return dato;
+}
+
+void serializar_t_memoria_kernel_proceso(t_paquete **paquete, t_memoria_kernel_proceso *proceso)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 2 + sizeof(bool));
+	serializar_uint32_t(proceso->pid, *paquete);
+	serializar_uint32_t(proceso->cantidad_instrucciones, *paquete);
+	serializar_bool(proceso->leido, *paquete);
+}
+
 void *serializar_paquete(t_paquete *paquete, uint32_t bytes)
 {
 	void *buffer = malloc(bytes);
@@ -168,13 +209,13 @@ void revisar_paquete(t_paquete *paquete, t_log *logger, char *modulo)
 {
 	if (paquete->codigo_operacion != FINALIZAR_SISTEMA)
 	{
-		log_debug(logger, "Paquete recibido de modulo %s\n", modulo);
-		log_debug(logger, "Deserializado del paquete:");
-		log_debug(logger, "Codigo de operacion: %d", paquete->codigo_operacion);
-		log_debug(logger, "Size del buffer en paquete: %d", paquete->size_buffer);
-		log_debug(logger, "Deserializado del buffer:");
-		log_debug(logger, "Size del stream: %d", paquete->buffer->size);
-		log_debug(logger, "Offset del stream: %d", paquete->buffer->offset);
+		log_trace(logger, "Paquete recibido de modulo %s\n", modulo);
+		log_trace(logger, "Deserializado del paquete:");
+		log_trace(logger, "Codigo de operacion: %d", paquete->codigo_operacion);
+		log_trace(logger, "Size del buffer en paquete: %d", paquete->size_buffer);
+		log_trace(logger, "Deserializado del buffer:");
+		log_trace(logger, "Size del stream: %d", paquete->buffer->size);
+		log_trace(logger, "Offset del stream: %d", paquete->buffer->offset);
 
 		if (paquete->size_buffer != paquete->buffer->size + (2 * sizeof(uint32_t)))
 		{
@@ -425,11 +466,22 @@ void serializar_t_cpu_kernel_io_gen_sleep(t_paquete **paquete, t_cpu_kernel_io_g
 		uint32_t tiempo;
 	} t_cpu_kernel_io_gen_sleep; */
 
-	actualizar_buffer(*paquete, unidad->size_interfaz + sizeof(uint32_t) * 3);
+	actualizar_buffer(*paquete, unidad->size_interfaz + sizeof(uint32_t) * 3 + sizeof(uint32_t) * 7 + sizeof(uint8_t) * 4);
 	serializar_uint32_t(unidad->pid, *paquete);
 	serializar_uint32_t(unidad->size_interfaz, *paquete);
 	serializar_char(unidad->interfaz, *paquete);
 	serializar_uint32_t(unidad->tiempo, *paquete);
+	serializar_uint32_t(unidad->registros.pc, *paquete);
+	serializar_uint32_t(unidad->registros.eax, *paquete);
+	serializar_uint32_t(unidad->registros.ebx, *paquete);
+	serializar_uint32_t(unidad->registros.ecx, *paquete);
+	serializar_uint32_t(unidad->registros.edx, *paquete);
+	serializar_uint32_t(unidad->registros.si, *paquete);
+	serializar_uint32_t(unidad->registros.di, *paquete);
+	serializar_uint8_t(unidad->registros.ax, *paquete);
+	serializar_uint8_t(unidad->registros.bx, *paquete);
+	serializar_uint8_t(unidad->registros.cx, *paquete);
+	serializar_uint8_t(unidad->registros.dx, *paquete);
 }
 
 t_cpu_kernel_io_gen_sleep *deserializar_t_cpu_kernel_io_gen_sleep(t_buffer *buffer)
@@ -440,6 +492,17 @@ t_cpu_kernel_io_gen_sleep *deserializar_t_cpu_kernel_io_gen_sleep(t_buffer *buff
 	deserializar_uint32_t(&stream, &(dato->size_interfaz));
 	deserializar_char(&stream, &(dato->interfaz), dato->size_interfaz);
 	deserializar_uint32_t(&stream, &(dato->tiempo));
+	deserializar_uint32_t(&stream, &(dato->registros.pc));
+	deserializar_uint32_t(&stream, &(dato->registros.eax));
+	deserializar_uint32_t(&stream, &(dato->registros.ebx));
+	deserializar_uint32_t(&stream, &(dato->registros.ecx));
+	deserializar_uint32_t(&stream, &(dato->registros.edx));
+	deserializar_uint32_t(&stream, &(dato->registros.si));
+	deserializar_uint32_t(&stream, &(dato->registros.di));
+	deserializar_uint8_t(&stream, &(dato->registros.ax));
+	deserializar_uint8_t(&stream, &(dato->registros.bx));
+	deserializar_uint8_t(&stream, &(dato->registros.cx));
+	deserializar_uint8_t(&stream, &(dato->registros.dx));
 
 	return dato;
 }

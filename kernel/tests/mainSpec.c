@@ -38,7 +38,7 @@ context(test_kernel)
         it("Muevo un proceso de new a ready")
         {
             t_pcb *proceso1 = proceso_pop_new(&estados);
-            proceso_push_ready(&estados, proceso1, logger);
+            proceso_push_ready(&estados, proceso1);
             // Tamaño de la cola de new tiene que ser 2
             should_int(list_size(estados.new)) be equal to(2);
             // Tamaño de la cola de ready tiene que ser 1
