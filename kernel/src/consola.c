@@ -107,16 +107,16 @@ void revisar_paquete_kernel(hilos_args *args, t_paquete *paquete, char *modulo)
     if (paquete->codigo_operacion != FINALIZAR_SISTEMA)
     {
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Paquete recibido de modulo %s", modulo);
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Deserializado del paquete:");
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Codigo de operacion: %d", paquete->codigo_operacion);
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Size del buffer en paquete: %d", paquete->size_buffer);
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Deserializado del buffer:");
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Size del stream: %d", paquete->buffer->size);
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Offset del stream: %d", paquete->buffer->offset);
+        // kernel_log_generic(args, LOG_LEVEL_TRACE, "Deserializado del paquete:");
+        kernel_log_generic(args, LOG_LEVEL_TRACE, "Codigo de operacion: %d", paquete->codigo_operacion);
+        // kernel_log_generic(args, LOG_LEVEL_TRACE, "Size del buffer en paquete: %d", paquete->size_buffer);
+        // kernel_log_generic(args, LOG_LEVEL_TRACE, "Deserializado del buffer:");
+        // kernel_log_generic(args, LOG_LEVEL_TRACE, "Size del stream: %d", paquete->buffer->size);
+        // kernel_log_generic(args, LOG_LEVEL_TRACE, "Offset del stream: %d", paquete->buffer->offset);
 
         if (paquete->size_buffer != paquete->buffer->size + (2 * sizeof(uint32_t)))
         {
-            kernel_log_generic(args, LOG_LEVEL_WARNING, "Error en el tamaño del buffer. Se esperaba %d y se recibio %ld", paquete->size_buffer, paquete->buffer->size + (2 * sizeof(uint32_t)));
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "Error en el tamaño del buffer. Se esperaba %d y se recibio %ld", paquete->size_buffer, paquete->buffer->size + (2 * sizeof(uint32_t)));
         }
     }
     else

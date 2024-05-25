@@ -926,6 +926,14 @@ t_registro obtener_tipo_registro(char *nombre_registro)
     {
         return REGISTRO_8;
     }
+    if (!strcmp(nombre_registro, "DI"))
+    {
+        return REGISTRO_32;
+    }
+    if (!strcmp(nombre_registro, "SI"))
+    {
+        return REGISTRO_32;
+    }
     else
     {
         return INVALIDO;
