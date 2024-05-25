@@ -956,14 +956,6 @@ void imprimir_registros(t_log *logger, t_cpu_proceso *cpu_proceso)
     log_debug(logger, "DX: %d", cpu_proceso->registros.dx);
 }
 
-void remover_salto_linea(char *argumento_origen)
-{
-    if (argumento_origen[strlen(argumento_origen) - 1] == '\n')
-    {
-        argumento_origen[strlen(argumento_origen) - 1] = '\0';
-    }
-}
-
 bool casteo_verificar_uint_8t_valido(uint32_t valor)
 {
     return valor <= UINT8_MAX;

@@ -5,8 +5,8 @@
 #include <commons/log.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "serial.h"
-#include "instrucciones.h"
+#include <utils/serial.h>
+#include <utils/instrucciones.h>
 
 /*Estructura basica de la CPU*/
 
@@ -71,7 +71,6 @@ t_instruccion determinar_codigo_instruccion(char *instruccion);
 
 t_registro obtener_tipo_registro(char *nombre_registro);
 void imprimir_registros(t_log *logger, t_cpu_proceso *cpu_proceso);
-void remover_salto_linea(char *argumento_origen);
 
 bool casteo_verificar_uint_8t_valido(uint32_t valor);
 uint8_t casteo_uint8_t(uint32_t valor);

@@ -535,11 +535,3 @@ t_pcb *kernel_nuevo_proceso(hilos_args *args, t_diagrama_estados *estados, t_log
 
     return nuevaPcb;
 }
-
-void remover_salto_linea(char *argumento_origen)
-{
-    if (argumento_origen[strlen(argumento_origen) - 1] == '\n')
-    {
-        argumento_origen[strlen(argumento_origen) - 1] = '\0';
-    }
-}

@@ -769,3 +769,11 @@ t_kernel_cpu_interrupcion *deserializar_t_kernel_cpu_interrupcion(t_buffer *buff
 
 	return interrupcion;
 }
+
+void remover_salto_linea(char *argumento_origen)
+{
+	if (argumento_origen[strlen(argumento_origen) - 1] == '\n')
+	{
+		argumento_origen[strlen(argumento_origen) - 1] = '\0';
+	}
+}
