@@ -76,7 +76,6 @@ typedef struct
     t_dictionary *diccionario_entrada_salida;
     t_sockets sockets;
     t_threads threads;
-
     int tamMemoria;
     int tamPagina;
     int retardoRespuesta;
@@ -131,5 +130,7 @@ void memoria_inicializar_argumentos(t_args *argumentos);
 void memoria_inicializar_hilos(t_args *argumentos);
 void memoria_inicializar(t_args *argumentos);
 void memoria_finalizar(t_args *argumentos);
-void modulo_memoria(t_args *argumentos);
+void inicializar_modulo(t_args *argumentos);
+void inicializar_logger(t_args *argumentos, t_log_level nivel);
+void inicializar(t_args *args, t_log_level nivel, int argc, char *argv[]);
 #endif // MEMORIA_H

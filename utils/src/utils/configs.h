@@ -10,13 +10,15 @@
 #include "conexiones.h"
 
 /**
- * @fn    iniciar_config
+ * @fn    crear_config
  * @brief Inicializacion de la config de module.config
  * @param logger Instancia de t_log
  */
-t_config *iniciar_config(t_log *logger);
+t_config *crear_config(t_log *logger);
 
-t_config *iniciar_config_entrada_salida(t_log *logger, char *path);
+void inicializar_config(t_config **config, t_log *logger, int argc, char *argv[]);
+
+t_config *crear_config_parametro(t_log *logger, char *path);
 
 /**
  * @fn    iniciar_logger
