@@ -129,6 +129,11 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 			log_debug(logger, "[CPU] Se ejecuto una instruccion de IO. Se avisa a kernel y se termina ciclo de instruccion");
 			break;
 		}
+		if(hayInterrupcion == 2)
+		{
+			log_debug(logger, "[CPU] Proceso desalojado por solicitud de instancia de recurso");
+			break;
+		}
 
 		// TODO: Esto podria necesitar un mutex
 		if (flag_interrupt)

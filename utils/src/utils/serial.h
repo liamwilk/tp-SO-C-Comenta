@@ -25,6 +25,7 @@ typedef enum
 	KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP,
 	ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP,
 	KERNEL_CPU_INTERRUPCION,
+	CPU_KERNEL_WAIT,
 	PLACEHOLDER
 } t_op_code;
 
@@ -164,6 +165,14 @@ typedef struct
 	uint32_t ejecutado;
 	t_registros_cpu *registros;
 } t_cpu_kernel_proceso;
+
+typedef struct
+{
+	uint32_t pid;
+	t_registros_cpu *registros;
+	uint32_t size_nombre_recurso;
+	char *nombre_recurso;
+} t_cpu_kernel_solicitud_recurso;
 
 /**
  * @fn    *crear_paquete
@@ -636,5 +645,9 @@ t_cpu_memoria_instruccion *deserializar_t_cpu_memoria_instruccion(t_buffer *buff
 void serializar_t_memoria_kernel_proceso(t_paquete **paquete, t_memoria_kernel_proceso *proceso);
 
 t_kernel_memoria_finalizar_proceso *deserializar_t_kernel_memoria_finalizar_proceso(t_buffer *buffer);
+
+void serializar_t_cpu_kernel_solicitud_recurso(t_paquete **paquete, t_cpu_kernel_solicitud_recurso *contexto);
+
+t_cpu_kernel_solicitud_recurso *deserializar_t_cpu_kernel_solicitud_recurso(t_buffer *buffer);
 
 #endif
