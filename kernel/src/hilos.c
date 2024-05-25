@@ -193,7 +193,7 @@ void *hilos_atender_consola(void *args)
         }
         default:
         {
-            kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "Comando no reconocido. Vuelva a intentar.");
+            // kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "Comando no reconocido. Vuelva a intentar.");
             break;
         }
         }
@@ -570,7 +570,8 @@ void *hilos_atender_entrada_salida_generic(void *args)
             kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, interfaz, orden);
             break;
         }
-        revisar_paquete(paquete, io_args->args->logger, modulo);
+
+        kernel_revisar_paquete(paquete, io_args->args, modulo);
 
         switch (paquete->codigo_operacion)
         {
@@ -580,6 +581,7 @@ void *hilos_atender_entrada_salida_generic(void *args)
 
             if (unidad->terminado)
             {
+                io_args->entrada_salida->ocupado = 0;
                 kernel_transicion_block_ready(io_args, modulo, unidad);
                 sem_post(&io_args->args->kernel->planificador_iniciar);
             }

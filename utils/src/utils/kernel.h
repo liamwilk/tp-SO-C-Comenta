@@ -41,6 +41,8 @@ typedef enum
 
 typedef struct
 {
+    int pid;
+    int ocupado;
     int orden;
     int socket;
     char *interfaz;
@@ -211,5 +213,7 @@ t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *
 void log_ready(hilos_args *kernel_hilos_args);
 
 bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNEL_MOTIVO_FINALIZACION MOTIVO);
+
+void kernel_revisar_paquete(t_paquete *paquete, hilos_args *args, char *modulo);
 
 #endif /* KERNEL_H */

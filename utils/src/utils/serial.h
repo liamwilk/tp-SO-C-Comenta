@@ -611,5 +611,30 @@ void serializar_t_cpu_kernel_io_gen_sleep(t_paquete **paquete, t_cpu_kernel_io_g
 
 void serializar_t_kernel_cpu_interrupcion(t_paquete **paquete, t_kernel_cpu_interrupcion *interrupcion);
 t_kernel_cpu_interrupcion *deserializar_t_kernel_cpu_interrupcion(t_buffer *buffer);
+/**
+ * @fn    *deserializar_t_kernel_memoria
+ * @brief Deserializa un buffer en un t_kernel_memoria_proceso
+ * @param buffer El buffer a deserializar
+ */
+t_kernel_memoria_proceso *deserializar_t_kernel_memoria(t_buffer *buffer);
+
+/**
+ * @fn    *deserializar_t_cpu_memoria_instruccion
+ * @brief Deserializa un buffer en un t_cpu_memoria_instruccion
+ * @param buffer El buffer a deserializar
+ * @return *t_cpu_memoria_instruccion
+ */
+t_cpu_memoria_instruccion *deserializar_t_cpu_memoria_instruccion(t_buffer *buffer);
+
+/**
+ * @fn    serializar_t_memoria_cpu_instruccion
+ * @brief Serializa un t_memoria_cpu_instruccion en un paquete
+ * @param paquete_instruccion El paquete a serializar
+ * @param instruccion La instruccion a serializar
+ * @return *t_cpu_memoria_instruccion
+ */
+void serializar_t_memoria_kernel_proceso(t_paquete **paquete, t_memoria_kernel_proceso *proceso);
+
+t_kernel_memoria_finalizar_proceso *deserializar_t_kernel_memoria_finalizar_proceso(t_buffer *buffer);
 
 #endif

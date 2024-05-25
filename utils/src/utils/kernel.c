@@ -250,6 +250,10 @@ t_pcb *kernel_transicion_exec_exit(hilos_args *kernel_hilo_args)
 
     // log oficial de la catedra
     kernel_log_generic(kernel_hilo_args, LOG_LEVEL_INFO, "PID: <%d> - Estado Anterior: <EXEC> - Estado Actual: <EXIT>", proceso->pid);
+
+    // Se añade el signal para que siga ejecutando el planificador
+    sem_post(&kernel_hilo_args->kernel->planificador_iniciar);
+
     return proceso;
 };
 
@@ -436,5 +440,28 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
     default:
 
         return false;
+    }
+}
+
+void kernel_revisar_paquete(t_paquete *paquete, hilos_args *args, char *modulo)
+{
+    if (paquete->codigo_operacion != FINALIZAR_SISTEMA)
+    {
+        kernel_log_generic(args, LOG_LEVEL_TRACE, "Paquete recibido de modulo %s", modulo);
+        kernel_log_generic(args, LOG_LEVEL_TRACE, "Deserializado del paquete:");
+        kernel_log_generic(args, LOG_LEVEL_TRACE, "Codigo de operacion: %d", paquete->codigo_operacion);
+        kernel_log_generic(args, LOG_LEVEL_TRACE, "Size del buffer en paquete: %d", paquete->size_buffer);
+        kernel_log_generic(args, LOG_LEVEL_TRACE, "Deserializado del buffer:");
+        kernel_log_generic(args, LOG_LEVEL_TRACE, "Size del stream: %d", paquete->buffer->size);
+        kernel_log_generic(args, LOG_LEVEL_TRACE, "Offset del stream: %d", paquete->buffer->offset);
+
+        if (paquete->size_buffer != paquete->buffer->size + (2 * sizeof(uint32_t)))
+        {
+            kernel_log_generic(args, LOG_LEVEL_WARNING, "Error en el tamaño del buffer. Se esperaba %d y se recibio %ld", paquete->size_buffer, paquete->buffer->size + (2 * sizeof(uint32_t)));
+        }
+    }
+    else
+    {
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Kernel solicito el apagado del modulo.");
     }
 }

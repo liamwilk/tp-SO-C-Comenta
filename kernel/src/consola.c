@@ -221,6 +221,8 @@ t_kernel_entrada_salida *entrada_salida_agregar_interfaz(hilos_args *args, KERNE
     entrada_salida->socket = socket;
     entrada_salida->tipo = tipo;
     entrada_salida->orden = args->kernel->sockets.id_entrada_salida;
+    entrada_salida->ocupado = 0;
+    entrada_salida->pid = 0;
 
     // Calculo el tamaño que necesito para almacenar el identificador de la interfaz
     int size_necesario = snprintf(NULL, 0, "Int%d", args->kernel->sockets.id_entrada_salida) + 1;

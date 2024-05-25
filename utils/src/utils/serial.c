@@ -1,5 +1,46 @@
 #include "serial.h"
 
+t_kernel_memoria_proceso *deserializar_t_kernel_memoria(t_buffer *buffer)
+{
+	t_kernel_memoria_proceso *dato = malloc(sizeof(t_kernel_memoria_proceso));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(dato->size_path));
+	deserializar_char(&stream, &(dato->path_instrucciones), dato->size_path);
+	deserializar_uint32_t(&stream, &(dato->program_counter));
+	deserializar_uint32_t(&stream, &(dato->pid));
+
+	return dato;
+}
+
+t_cpu_memoria_instruccion *deserializar_t_cpu_memoria_instruccion(t_buffer *buffer)
+{
+	t_cpu_memoria_instruccion *dato = malloc(sizeof(t_cpu_memoria_instruccion));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(dato->program_counter));
+	deserializar_uint32_t(&stream, &(dato->pid));
+	return dato;
+}
+
+t_kernel_memoria_finalizar_proceso *deserializar_t_kernel_memoria_finalizar_proceso(t_buffer *buffer)
+{
+	t_kernel_memoria_finalizar_proceso *dato = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(dato->pid));
+
+	return dato;
+}
+
+void serializar_t_memoria_kernel_proceso(t_paquete **paquete, t_memoria_kernel_proceso *proceso)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 2 + sizeof(bool));
+	serializar_uint32_t(proceso->pid, *paquete);
+	serializar_uint32_t(proceso->cantidad_instrucciones, *paquete);
+	serializar_bool(proceso->leido, *paquete);
+}
+
 void *serializar_paquete(t_paquete *paquete, uint32_t bytes)
 {
 	void *buffer = malloc(bytes);
@@ -168,13 +209,13 @@ void revisar_paquete(t_paquete *paquete, t_log *logger, char *modulo)
 {
 	if (paquete->codigo_operacion != FINALIZAR_SISTEMA)
 	{
-		log_debug(logger, "Paquete recibido de modulo %s\n", modulo);
-		log_debug(logger, "Deserializado del paquete:");
-		log_debug(logger, "Codigo de operacion: %d", paquete->codigo_operacion);
-		log_debug(logger, "Size del buffer en paquete: %d", paquete->size_buffer);
-		log_debug(logger, "Deserializado del buffer:");
-		log_debug(logger, "Size del stream: %d", paquete->buffer->size);
-		log_debug(logger, "Offset del stream: %d", paquete->buffer->offset);
+		log_trace(logger, "Paquete recibido de modulo %s\n", modulo);
+		log_trace(logger, "Deserializado del paquete:");
+		log_trace(logger, "Codigo de operacion: %d", paquete->codigo_operacion);
+		log_trace(logger, "Size del buffer en paquete: %d", paquete->size_buffer);
+		log_trace(logger, "Deserializado del buffer:");
+		log_trace(logger, "Size del stream: %d", paquete->buffer->size);
+		log_trace(logger, "Offset del stream: %d", paquete->buffer->offset);
 
 		if (paquete->size_buffer != paquete->buffer->size + (2 * sizeof(uint32_t)))
 		{

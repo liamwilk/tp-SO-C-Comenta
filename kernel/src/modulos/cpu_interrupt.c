@@ -13,9 +13,27 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
 
         if (entrada_salida == NULL)
         {
-            log_error(args->logger, "No se pudo enviar el paquete a la interfaz %s porque aun no se conecto.", sleep->interfaz);
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque no existe.", sleep->interfaz);
+            kernel_transicion_exec_exit(args);
             break;
         }
+
+        if (entrada_salida->tipo != ENTRADA_SALIDA_GENERIC)
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque no es del tipo IO_GENERIC.", sleep->interfaz);
+            kernel_transicion_exec_exit(args);
+            break;
+        }
+
+        if (entrada_salida->ocupado)
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque esta ocupada con el proceso %d.", sleep->interfaz, entrada_salida->pid);
+            kernel_transicion_exec_exit(args);
+            break;
+        }
+
+        entrada_salida->ocupado = 1;
+        entrada_salida->pid = sleep->pid;
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envia el paquete a la interfaz %s", sleep->interfaz);
 
