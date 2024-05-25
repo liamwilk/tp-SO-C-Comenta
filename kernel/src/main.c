@@ -1,88 +1,59 @@
 /* Módulo Kernel */
-
 #include "main.h"
 
-int main() {
+int main()
+{
+	logger = iniciar_logger("kernel", LOG_LEVEL_DEBUG);
+	config = iniciar_config(logger);
+	kernel = kernel_inicializar(config);
+	estados = kernel_inicializar_estados(&estados);
 
-    logger_info = iniciar_logger("kernel" , LOG_LEVEL_INFO);
-	logger_debug = iniciar_logger("kernel" , LOG_LEVEL_DEBUG);
-	logger_warning = iniciar_logger("kernel" , LOG_LEVEL_WARNING);
-	logger_error = iniciar_logger("kernel" , LOG_LEVEL_ERROR);
-	logger_trace = iniciar_logger("kernel" , LOG_LEVEL_TRACE);
+	inicializar_args();
+	inicializar_semaforos();
+	pthread_mutex_init(&kernel.lock, NULL);
 
-    config = iniciar_config(logger_error);
-    kernel = kernel_inicializar(config);
-	kernel_log(kernel, logger_info);
+	kernel_log(&args);
 
-	// Creo las conexiones a Memoria, CPU Dispatch y CPU Interrupt
+	// Inicializo las estructuras que almacenan e identifican los sockets de entrada/salida
+	kernel.sockets.dictionary_entrada_salida = dictionary_create();
+	kernel.sockets.list_entrada_salida = list_create();
 
-	pthread_create(&thread_conectar_memoria,NULL,conectar_memoria,NULL);
-	pthread_join(thread_conectar_memoria,NULL);
+	/*----HILOS----*/
 
-	pthread_create(&thread_conectar_cpu_dispatch,NULL,conectar_cpu_dispatch,NULL);
-	pthread_join(thread_conectar_cpu_dispatch,NULL);
+	hilos_memoria_inicializar(&args, thread_conectar_memoria, args.kernel->threads.thread_atender_memoria);
+	hilos_cpu_inicializar(&args, thread_conectar_cpu_dispatch, args.kernel->threads.thread_atender_cpu_dispatch, thread_conectar_cpu_interrupt, args.kernel->threads.thread_atender_cpu_interrupt);
+	kernel.sockets.server = iniciar_servidor(logger, kernel.puertoEscucha);
+	hilos_io_inicializar(&args, args.kernel->threads.thread_atender_entrada_salida);
+	hilos_planificador_inicializar(&args, args.kernel->threads.thread_planificador);
+	hilos_consola_inicializar(&args, args.kernel->threads.thread_atender_consola);
 
-	pthread_create(&thread_conectar_cpu_interrupt,NULL,conectar_cpu_interrupt,NULL);
-	pthread_join(thread_conectar_cpu_interrupt,NULL);
+	/*----LIBERO----*/
 
-    // Inicio server Kernel
-
-	socket_server_kernel = iniciar_servidor(logger_info,kernel.puertoEscucha);
-	log_info(logger_info, "Servidor listo para recibir clientes.");
-
-	// Atendemos las conexiones entrantes a Kernel desde IO
-
-	pthread_create(&thread_atender_io,NULL,atender_io,NULL);
-	pthread_join(thread_atender_io,NULL);
-
-	/*
-	Aca va lo que hace Kernel, una vez que ya tiene todas las conexiones con todos los modulos establecidas.
-	*/
-
-	// Libero
-
-	liberar_conexion(socket_server_kernel);
-	liberar_conexion(socket_memoria);
-	liberar_conexion(socket_cpu_interrupt);
-	liberar_conexion(socket_cpu_dispatch);
-
-	log_destroy(logger_info);
-	log_destroy(logger_debug);	
-	log_destroy(logger_warning);		
-	log_destroy(logger_error);
-	log_destroy(logger_trace);
-
-
-
+	printf("\n");
+	log_destroy(logger);
 	config_destroy(config);
-
-    return 0;
+	return 0;
 }
 
-void* atender_io(){
-	socket_io = esperar_cliente(logger_info,socket_server_kernel);
-	esperar_handshake(socket_io);
-	log_info(logger_info,"I/O conectado en socket %d",socket_io);
-	pthread_exit(0);
+void inicializar_args()
+{
+	args.logger = logger;
+	args.kernel = &kernel;
+	args.estados = &estados;
+	args.kernel_orden_apagado = 1;
+	args.kernel->sockets.entrada_salida_generic = 0;
+	args.kernel->sockets.entrada_salida_stdin = 0;
+	args.kernel->sockets.entrada_salida_stdout = 0;
+	args.kernel->sockets.entrada_salida_dialfs = 0;
+	args.kernel->sockets.entrada_salida = 0;
+	args.kernel->sockets.id_entrada_salida = 1;
 }
 
-void* conectar_memoria(){
-	socket_memoria = crear_conexion(logger_info,kernel.ipMemoria,kernel.puertoMemoria);
-	handshake(logger_info,  logger_error,socket_memoria,1,"Memoria");
-	log_info(logger_info,"Conectado a Memoria en socket %d",socket_memoria);
-	pthread_exit(0);
-}
-
-void* conectar_cpu_dispatch(){
-	socket_cpu_dispatch = crear_conexion(logger_info,kernel.ipCpu,kernel.puertoCpuDispatch);
-	handshake(logger_info,  logger_error,socket_cpu_dispatch,1,"CPU Dispatch");
-	log_info(logger_info,"Conectado a CPU por Dispatch en socket %d",socket_cpu_dispatch);
-	pthread_exit(0);
-}
-
-void* conectar_cpu_interrupt(){
-	socket_cpu_interrupt = crear_conexion(logger_info,kernel.ipCpu,kernel.puertoCpuInterrupt);
-	handshake(logger_info,  logger_error,socket_cpu_interrupt,1,"CPU Interrupt");
-	log_info(logger_info,"Conectado a CPU por Interrupt en socket %d",socket_cpu_interrupt);
-	pthread_exit(0);
+void inicializar_semaforos()
+{
+	sem_init(&kernel.planificador_iniciar, 0, 0);
+	sem_init(&kernel.memoria_consola_nuevo_proceso, 0, 0);
+	sem_init(&kernel.sistema_finalizar, 0, 4);
+	sem_init(&kernel.log_lock, 0, 1);
+	sem_init(&kernel.planificador_hilo, 0, 0);
 }

@@ -14,23 +14,49 @@
 #include <limits.h>
 #include <utils/modulos.h>
 
-/**
- * @fn handshake
- * @brief Realiza el handshake con el servidor
- * @param t_log* logger: logger del modulo
- * @param conexion: socket de conexion
- * @param envio: mensaje a enviar
- * @param modulo: nombre del modulo
- * @return uint32_t
- */
-uint32_t handshake(t_log *logger_info, t_log *logger_error, int conexion, uint32_t envio, char *modulo);
+typedef enum
+{ // Nomenclatura: SERVIDOR_CLIENTE
+    CORRECTO,
+    ERROR,
+    SERVIDOR,
+    CLIENTE,
+    MEMORIA_CPU,
+    MEMORIA_KERNEL,
+    CPU_DISPATCH_KERNEL,
+    CPU_INTERRUPT_KERNEL,
+    CPU_ENTRADA_SALIDA,
+    KERNEL_ENTRADA_SALIDA_GENERIC,
+    KERNEL_ENTRADA_SALIDA_STDIN,
+    KERNEL_ENTRADA_SALIDA_STDOUT,
+    KERNEL_ENTRADA_SALIDA_DIALFS,
+    MEMORIA_ENTRADA_SALIDA_STDIN,
+    MEMORIA_ENTRADA_SALIDA_STDOUT,
+    MEMORIA_ENTRADA_SALIDA_DIALFS,
+    ENTRADA_SALIDA_KERNEL
+} t_handshake;
 
 /**
- * @fn    esperar_handshake
- * @brief Espera el handshake del cliente
- * @param nuevoSocket socket de conexion
- * @return int
+ * @fn crear_handshake
+ * @brief Realiza el handshake con el servidor
+ * @param t_log* logger: logger del modulo
+ * @param socket_servidor: El socket del servidor
+ * @param codigo_a_recibir: Codigo de handshake a recibir en el servidor
+ * @param modulo: Nombre del modulo que recibe el handshake
+ * @return t_handshake
  */
-int esperar_handshake(int nuevoSocket);
+t_handshake crear_handshake(t_log *logger, int socket_servidor, t_handshake codigo_a_recibir, char *modulo);
+
+/**
+ * @fn conexion_handshake_recibir
+ * @brief Espera el handshake del cliente
+ * @param t_log* logger: logger del modulo
+ * @param socket_cliente: El socket del cliente
+ * @param codigo_a_recibir: Codigo de handshake a recibir del cliente
+ * @param modulo: Nombre del modulo que se quiere conectar con el servidor
+ * @return t_handshake
+ */
+t_handshake conexion_handshake_recibir(t_log *logger, int socket_cliente, t_handshake codigo_esperado, char *modulo);
+
+t_handshake esperar_handshake_entrada_salida(t_log *logger, int socket_cliente);
 
 #endif /* HANDSHAKE_H_ */

@@ -7,51 +7,191 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <string.h>
+#include <errno.h>
 #include <commons/log.h>
 #include <commons/collections/list.h>
 
-/*--------Serializacion y paquetes--------*/
+typedef enum
+{
+	FINALIZAR_SISTEMA,
+	CPU_MEMORIA_PROXIMA_INSTRUCCION,
+	CPU_KERNEL_IO_GEN_SLEEP,
+	CPU_KERNEL_PROCESO,
+	MEMORIA_CPU_PROXIMA_INSTRUCCION,
+	KERNEL_MEMORIA_NUEVO_PROCESO,
+	KERNEL_MEMORIA_FINALIZAR_PROCESO,
+	MEMORIA_KERNEL_NUEVO_PROCESO,
+	KERNEL_CPU_EJECUTAR_PROCESO,
+	KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP,
+	ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP,
+	KERNEL_CPU_INTERRUPCION,
+	PLACEHOLDER
+} t_op_code;
 
 typedef enum
 {
-	MENSAJE,
-	PAQUETE
-} op_code;
+	SET,
+	SUM,
+	SUB,
+	JNZ,
+	IO_GEN_SLEEP,
+	MOV_IN,
+	MOV_OUT,
+	RESIZE,
+	COPY_STRING,
+	IO_STDIN_READ,
+	IO_STDOUT_WRITE,
+	IO_FS_CREATE,
+	IO_FS_DELETE,
+	IO_FS_TRUNCATE,
+	IO_FS_WRITE,
+	IO_FS_READ,
+	WAIT,
+	SIGNAL,
+	EXIT
+} t_instruccion;
+
+typedef enum
+{
+	INVALIDO,
+	REGISTRO_32,
+	REGISTRO_8,
+	EAX,
+	EBX,
+	ECX,
+	EDX,
+	SI,
+	DI,
+	AX,
+	BX,
+	CX,
+	DX
+} t_registro;
 
 typedef struct
 {
-	int size;
+	uint32_t size;
+	uint32_t offset;
 	void *stream;
 } t_buffer;
 
 typedef struct
 {
-	op_code codigo_operacion;
+	t_op_code codigo_operacion;
+	uint32_t size_buffer;
 	t_buffer *buffer;
 } t_paquete;
 
-t_paquete *crear_paquete(void);
+typedef struct
+{
+	uint32_t pid;
+	uint32_t cantidad_elementos;
+	char **array;
+} t_memoria_cpu_instruccion;
+
+typedef struct t_registros_cpu
+{
+	uint32_t pc, eax, ebx, ecx, edx, si, di;
+	uint8_t ax, bx, cx, dx;
+} t_registros_cpu;
+
+typedef struct
+{
+	uint32_t program_counter;
+	uint32_t pid;
+} t_cpu_memoria_instruccion;
+
+typedef struct
+{
+	uint32_t pid;
+} t_kernel_cpu_interrupcion;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t size_interfaz;
+	char *interfaz;
+	uint32_t tiempo;
+	t_registros_cpu registros; // Registros de la CPU para la vuelta de IO_GEN_SLEEP
+} t_cpu_kernel_io_gen_sleep;
+
+typedef struct
+{
+	uint32_t size_path;
+	char *path_instrucciones;
+	uint32_t program_counter;
+	uint32_t pid;
+} t_kernel_memoria_proceso;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t cantidad_instrucciones;
+	bool leido;
+} t_memoria_kernel_proceso;
+
+typedef struct
+{
+	uint32_t pid;
+} t_kernel_memoria_finalizar_proceso;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t unidad_de_trabajo;
+} t_kernel_entrada_salida_unidad_de_trabajo;
+
+typedef struct
+{
+	uint32_t pid;
+	bool terminado;
+} t_entrada_salida_kernel_unidad_de_trabajo;
+
+typedef struct
+{
+	bool terminado;
+} t_entrada_salida_kernel_finalizar;
+
+typedef struct
+{
+	uint32_t pid;
+	t_registros_cpu registros;
+} t_kernel_cpu_proceso;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t ejecutado;
+	t_registros_cpu *registros;
+} t_cpu_kernel_proceso;
 
 /**
- * @fn    serializar_paquete
- * @brief Implementacion de la serializacion de un paquete (strings)
- * @param paquete Paquete con buffer y su op_code
+ * @fn    *crear_paquete
+ * @brief Crea un paquete, y le asigna un buffer.
+ * @param codigo_de_operacion t_op_code que va a tener el paquete.
+ */
+t_paquete *crear_paquete(t_op_code codigo_de_operacion);
+
+/**
+ * @fn    *serializar_paquete
+ * @brief Implementacion de la serializacion de un paquete
+ * @param paquete Paquete con buffer y su t_op_code
  * @param bytes
  */
-void *serializar_paquete(t_paquete *paquete, int bytes);
+void *serializar_paquete(t_paquete *paquete, uint32_t bytes);
 
 /**
  * @fn    enviar_mensaje
  * @brief Envia un mensaje `mensaje` al modulo conectado
- * @param mensaje Paquete con buffer y su op_code
+ * @param mensaje Paquete con buffer y su t_op_code
  * @param socket_cliente
  */
 void enviar_mensaje(char *mensaje, int socket_cliente);
 
 /**
- *
  * @fn    crear_buffer
  * @brief Crea un buffer y lo agrega al paquete
+ * @param paquete Puntero al paquete donde se va a crear el buffer
  */
 void crear_buffer(t_paquete *paquete);
 
@@ -84,19 +224,11 @@ void eliminar_paquete(t_paquete *paquete);
 
 /**
  *
- * @fn    recibir_buffer
- * @brief Elimina el paquete para no generar memory leak
- * @param paquete Paquete de datos
+ * @fn    *recibir_buffer
+ * @brief Recibe el buffer entrante
+ * @param socket_cliente Socket desde el cual proviene el buffer
  */
-void *recibir_buffer(int *size, int socket_cliente);
-
-/**
- *
- * @fn    recibir_mensaje
- * @brief Invoca la funcion recv y recibe los datos desde el socket
- * @param socket_cliente
- */
-void recibir_mensaje(t_log *logger, int socket_cliente);
+t_buffer *recibir_buffer(t_log *logger, int *socket_cliente);
 
 /**
  *
@@ -106,63 +238,403 @@ void recibir_mensaje(t_log *logger, int socket_cliente);
  */
 int recibir_operacion(int socket_cliente);
 
-/*--------BUFFERS--------*/
+/**
+ * @fn    *recibir_paquete
+ * @brief Invoca la funcion recv y recibe todo el paquete.
+ * @param logger Logger que se usara para reportar errores
+ * @param socket_cliente Socket desde el cual proviene el paquete
+ */
+t_paquete *recibir_paquete(t_log *logger, int *socket_cliente);
 
 /**
- *
- * @fn    buffer_create
- * @brief Crea un buffer vacío de tamaño size y offset 0
- * @param size
+ * @fn    serializar_bool
+ * @brief Serializa un bool en el paquete
+ * @param valor El valor a serializar
+ * @param paquete El puntero al paquete donde se serializara
  */
-t_buffer *buffer_create(uint32_t size);
+void serializar_bool(bool valor, t_paquete *paquete);
 
 /**
+ * @brief deserializar_bool
  *
- * @fn    buffer_add
- * @brief Agrega un stream al buffer en la posición actual y avanza el offset
- * @param buffer
- * @param data
- * @param size
+ * Esta función se encarga de deserializar un bool de un flujo de datos.
+ *
+ * @param flujo Puntero a punteor al flujo de datos.
+ * @param destino_del_dato Puntero al destino donde se guardará el dato deserializado.
  */
-void buffer_add(t_buffer *buffer, void *data, uint32_t size);
+void deserializar_bool(void **flujo, bool *destino_del_dato);
 
 /**
- *
- * @fn    buffer_destroy
- * @brief Libera la memoria asociada al buffer
- * @param buffer
+ * @fn    serializar_uint8_t
+ * @brief Serializa un uint8_t en el paquete
+ * @param valor El valor a serializar
+ * @param paquete El puntero al paquete donde se serializara
  */
-void buffer_destroy(t_buffer *buffer);
+void serializar_uint8_t(uint8_t valor, t_paquete *paquete);
 
 /**
- *
- * @fn    buffer_destroy
- * @brief Guarda size bytes del principio del buffer en la dirección data y avanza el offset
- * @param buffer
- * @param data
- * @param size
+ * @fn    serializar_uint16_t
+ * @brief Serializa un uint16_t en el paquete
+ * @param valor El valor a serializar
+ * @param paquete El puntero al paquete donde se serializara
  */
-void buffer_read(t_buffer *buffer, void *data, uint32_t size);
+void serializar_uint16_t(uint16_t valor, t_paquete *paquete);
 
-// con el debido casting de tipos de datos, ninguna de todas estas funciones sería necesaria
+/**
+ * @fn    serializar_uint32_t
+ * @brief Serializa un uint32_t en el paquete
+ * @param valor El valor a serializar
+ * @param paquete El puntero al paquete donde se serializara
+ */
+void serializar_uint32_t(uint32_t valor, t_paquete *paquete);
 
-//
-//// Agrega un uint32_t al buffer
-// void buffer_add_uint32(t_buffer *buffer, uint32_t data);
-//
-//// Lee un uint32_t del buffer y avanza el offset
-// uint32_t buffer_read_uint32(t_buffer *buffer);
-//
-//// Agrega un uint8_t al buffer
-// void buffer_add_uint8(t_buffer *buffer, uint8_t data);
-//
-//// Lee un uint8_t del buffer y avanza el offset
-// uint8_t buffer_read_uint8(t_buffer *buffer);
-//
-//// Agrega string al buffer con un uint32_t adelante indicando su longitud
-// void buffer_add_string(t_buffer *buffer, uint32_t length, char *string);
-//
-//// Lee un string y su longitud del buffer y avanza el offset
-// char *buffer_read_string(t_buffer *buffer, uint32_t *length);
+/**
+ * @fn    serializar_uint64_t
+ * @brief Serializa un uint64_t en el paquete
+ * @param valor El valor a serializar
+ * @param paquete El puntero al paquete donde se serializara
+ */
+void serializar_uint64_t(uint64_t valor, t_paquete *paquete);
+
+/**
+ * @fn    serializar_char
+ * @brief Serializa un char en el paquete
+ * @param valor El valor a serializar
+ * @param paquete El puntero al paquete donde se serializara
+ */
+void serializar_char(char *valor, t_paquete *paquete);
+
+/**
+ * @fn    actualizar_buffer
+ * @brief En base a los valores cargados en el paquete, actualiza el buffer
+ * @param paquete El paquete que se va a actualizar
+ * @param size El tamaño total del stream. Es decir, el tamaño total de lo que contiene nuestro struct que queremos enviar.
+ *
+ * Ejemplo:
+ * struct t_kernel_memoria_proceso {
+ * 	uint32_t size_path;
+ * 	char* path_instrucciones;
+ * 	uint32_t program_counter;
+ * 	uint32_t pid;
+ * }
+ *
+ * En este caso, el size seria sizeof(uint32_t) + strlen(path_instrucciones) + 1 + sizeof(uint32_t) + sizeof(uint32_t)
+ */
+void actualizar_buffer(t_paquete *paquete, uint32_t size);
+
+/**
+ * @brief Revisar un paquete.
+ *
+ * Esta función se encarga de revisar un paquete y realizar las acciones necesarias
+ * según el contenido del paquete. Recibe como parámetros un puntero al paquete a revisar
+ * y un puntero al logger donde se registrarán los eventos.
+ *
+ * @param paquete Puntero al paquete a revisar.
+ * @param logger Puntero al logger donde se registrarán los eventos.
+ * @param flag Flag que indica si se debe revisar el tamaño del buffer.
+ * @param modulo Nombre del módulo que está revisando el paquete.
+ */
+void revisar_paquete(t_paquete *paquete, t_log *logger, char *modulo);
+
+/**
+ * @brief deserializar_uint32_t
+ *
+ * Esta función se encarga de deserializar un uint32_t de un flujo de datos.
+ *
+ * @param flujo Puntero a punteor al flujo de datos.
+ * @param destino_del_dato Puntero al destino donde se guardará el dato deserializado.
+ */
+void deserializar_uint32_t(void **flujo, uint32_t *destino_del_dato);
+
+/**
+ * @brief deserializar_char
+ *
+ * Esta función se encarga de deserializar un char de un flujo de datos.
+ *
+ * @param flujo Puntero a punteor al flujo de datos.
+ * @param destino_del_dato Puntero al destino donde se guardará el dato deserializado.
+ * @param size_del_dato Tamaño del dato a deserializar.
+ */
+void deserializar_char(void **flujo, char **destino_del_dato, uint32_t size_del_dato);
+
+/**
+ * @brief deserializar_uint64_t
+ *
+ * Esta función se encarga de deserializar un uint64_t de un flujo de datos.
+ *
+ * @param flujo Puntero a punteor al flujo de datos.
+ * @param destino_del_dato Puntero al destino donde se guardará el dato deserializado.
+ */
+void deserializar_uint64_t(void **flujo, uint64_t *destino_del_dato);
+
+/**
+ * @brief deserializar_uint16_t
+ *
+ * Esta función se encarga de deserializar un uint16_t de un flujo de datos.
+ *
+ * @param flujo Puntero a punteor al flujo de datos.
+ * @param destino_del_dato Puntero al destino donde se guardará el dato deserializado.
+ */
+void deserializar_uint16_t(void **flujo, uint16_t *destino_del_dato);
+
+/**
+ * @brief deserializar_uint8_t
+ *
+ * Esta función se encarga de deserializar un uint8_t de un flujo de datos.
+ *
+ * @param flujo Puntero a punteor al flujo de datos.
+ * @param destino_del_dato Puntero al destino donde se guardará el dato deserializado.
+ */
+void deserializar_uint8_t(void **flujo, uint8_t *destino_del_dato);
+
+/**
+ * @fn    serializar_op_code
+ * @brief Serializa un t_op_code en el paquete
+ * @param valor El valor a serializar
+ * @param paquete El puntero al paquete donde se serializara
+ */
+void serializar_op_code(t_op_code valor, t_paquete *paquete);
+
+/**
+ * @brief deserializar_op_code
+ *
+ * Esta función se encarga de deserializar un t_op_code de un flujo de datos.
+ *
+ * @param flujo Puntero a punteor al flujo de datos.
+ * @param destino_del_dato Puntero al destino donde se guardará el dato deserializado.
+ */
+void deserializar_op_code(void **flujo, t_op_code *destino_del_dato);
+
+/**
+ * @fn    serializar_t_kernel_memoria_proceso
+ * @brief Serializa un t_kernel_memoria_proceso en un paquete
+ * @param buffer El paquete a serializar
+ */
+void serializar_t_kernel_memoria_proceso(t_paquete **paquete, t_kernel_memoria_proceso *proceso);
+
+/**
+ * @fn    serializar_t_memoria_kernel_proceso
+ * @brief Serializa un t_memoria_kernel_proceso en un paquete
+ * @param buffer El paquete a serializar
+ */
+void serializar_t_memoria_kernel_proceso(t_paquete **paquete, t_memoria_kernel_proceso *proceso);
+
+/**
+ * @fn    serializar_t_registros_cpu
+ * @brief Serializa un t_registros_cpu en un paquete
+ * @param buffer El paquete a serializar
+ */
+void serializar_t_registros_cpu(t_paquete **paquete, uint32_t pid, t_registros_cpu *registros);
+
+/**
+ * @fn    serializar_t_kernel_memoria_finalizar_proceso
+ * @brief Serializa un t_kernel_memoria_finalizar_proceso en un paquete
+ * @param buffer El paquete a serializar
+ */
+void serializar_t_kernel_memoria_finalizar_proceso(t_paquete **paquete, t_kernel_memoria_finalizar_proceso *proceso);
+
+/**
+ * @fn    deserializar_t_memoria_kernel_proceso
+ * @brief Deserializa un t_memoria_kernel_proceso en un paquete
+ * @param buffer El paquete a serializar
+ * @return *t_memoria_kernel_proceso
+ */
+t_memoria_kernel_proceso *deserializar_t_memoria_kernel_proceso(t_buffer *buffer);
+
+/**
+ * @fn    serializar_t_kernel_entrada_salida_unidad_de_trabajo
+ * @brief Serializa un t_kernel_entrada_salida_unidad_de_trabajo en un paquete
+ * @param buffer El paquete a serializar
+ * @param unidad El dato a serializar
+ */
+void serializar_t_kernel_entrada_salida_unidad_de_trabajo(t_paquete **paquete, t_kernel_entrada_salida_unidad_de_trabajo *unidad);
+
+/**
+ * @fn    deserializar_t_kernel_entrada_salida_unidad_de_trabajo
+ * @brief Deserializa un t_entrada_salida_kernel_unidad_de_trabajo en un paquete
+ * @param buffer El paquete a serializar
+ * @return *t_kernel_entrada_salida_unidad_de_trabajo
+ */
+t_kernel_entrada_salida_unidad_de_trabajo *deserializar_t_kernel_entrada_salida_unidad_de_trabajo(t_buffer *buffer);
+
+/**
+ * @fn    serializar_t_entrada_salida_kernel_unidad_de_trabajo
+ * @brief Serializa un t_entrada_salida_kernel_unidad_de_trabajo en un paquete
+ * @param buffer El paquete a serializar
+ * @param unidad El dato a serializar
+ */
+void serializar_t_entrada_salida_kernel_unidad_de_trabajo(t_paquete **paquete, t_entrada_salida_kernel_unidad_de_trabajo *unidad);
+
+/**
+ * @fn    deserializar_t_entrada_salida_kernel_unidad_de_trabajo
+ * @brief Deserializa un t_entrada_salida_kernel_unidad_de_trabajo en un paquete
+ * @param buffer El paquete a serializar
+ * @return *t_entrada_salida_kernel_unidad_de_trabajo
+ */
+t_entrada_salida_kernel_unidad_de_trabajo *deserializar_t_entrada_salida_kernel_unidad_de_trabajo(t_buffer *buffer);
+
+/**
+ * @fn    deserializar_t_entrada_salida_kernel_finalizar
+ * @brief Deserializa un t_entrada_salida_kernel_finalizar en un paquete
+ * @param buffer El paquete a serializar
+ * @return *t_entrada_salida_kernel_finalizar
+ */
+t_entrada_salida_kernel_finalizar *deserializar_t_entrada_salida_kernel_finalizar(t_buffer *buffer);
+
+/**
+ * @fn    serializar_t_entrada_salida_kernel_finalizar
+ * @brief Serializa un t_entrada_salida_kernel_finalizar en un paquete
+ * @param buffer El paquete a serializar
+ * @param unidad El dato a serializar
+ */
+void serializar_t_entrada_salida_kernel_finalizar(t_paquete **paquete, t_entrada_salida_kernel_finalizar *unidad);
+
+/**
+ * @fn    deserializar_t_memoria_cpu_instruccion
+ * @brief Deserializa un t_memoria_cpu_instruccion en un paquete
+ * @param buffer El paquete a serializar
+ * @return *t_memoria_cpu_instruccion
+ */
+t_memoria_cpu_instruccion *deserializar_t_memoria_cpu_instruccion(t_buffer *buffer);
+
+/**
+ * @fn    serializar_t_memoria_cpu_instruccion
+ * @brief Serializa un t_memoria_cpu_instruccion en un paquete
+ * @param paquete El paquete a serializar
+ * @param proceso La instruccion a serializar
+ */
+void serializar_t_memoria_cpu_instruccion(t_paquete **paquete, t_memoria_cpu_instruccion *proceso);
+
+/**
+ * @fn    serializar_char_array
+ * @brief Serializa un array de char en el paquete
+ * @param array El array que se quiere serializar
+ * @param cantidad_elementos La cantidad de elementos del array
+ * @param paquete El puntero al paquete donde se serializara
+ */
+void serializar_char_array(char **array, uint32_t cantidad_elementos, t_paquete *paquete);
+
+/**
+ * @brief deserializar_char_array
+ *
+ * Esta función se encarga de deserializar un array de char de un flujo de datos.
+ * @param array Puntero triple al array de char donde se guardará el dato deserializado.
+ * @param cantidad_elementos Puntero donde se guardará la cantidad de elementos del array.
+ * @param buffer Buffer de los datos a deserializar.
+ */
+void deserializar_char_array(char ***array, uint32_t *cantidad_elementos, void **buffer);
+
+/**
+ * @fn    serializar_uint8_t_array
+ * @brief Serializa un array de uint8_t en el paquete
+ * @param array El array que se quiere serializar
+ * @param cantidad_elementos La cantidad de elementos del array
+ * @param paquete El puntero al paquete donde se serializara
+ */
+void serializar_uint8_t_array(uint8_t *array, uint32_t cantidad_elementos, t_paquete *paquete);
+
+/**
+ * @brief deserializar_uint8_t_array
+ *
+ * Esta función se encarga de deserializar un array de uint8_t de un flujo de datos.
+ * @param array Puntero de puntero al array de uint8_t donde se guardará el dato deserializado.
+ * @param cantidad_elementos Puntero donde se guardará la cantidad de elementos del array.
+ * @param buffer Buffer de los datos a deserializar.
+ */
+void deserializar_uint8_t_array(uint8_t **array, uint8_t *cantidad_elementos, void **buffer);
+
+/**
+ * @fn    serializar_uint16_t_array
+ * @brief Serializa un array de uint16_t en el paquete
+ * @param array El array que se quiere serializar
+ * @param cantidad_elementos La cantidad de elementos del array
+ * @param paquete El puntero al paquete donde se serializara
+ */
+void serializar_uint16_t_array(uint16_t *array, uint32_t cantidad_elementos, t_paquete *paquete);
+
+/**
+ * @brief deserializar_uint16_t_array
+ *
+ * Esta función se encarga de deserializar un array de uint16_t de un flujo de datos.
+ * @param array Puntero de puntero al array de uint16_t donde se guardará el dato deserializado.
+ * @param cantidad_elementos Puntero donde se guardará la cantidad de elementos del array.
+ * @param buffer Buffer de los datos a deserializar.
+ */
+void deserializar_uint16_t_array(uint16_t **array, uint16_t *cantidad_elementos, void **buffer);
+
+/**
+ * @fn    serializar_uint32_t_array
+ * @brief Serializa un array de uint32_t en el paquete
+ * @param array El array que se quiere serializar
+ * @param cantidad_elementos La cantidad de elementos del array
+ * @param paquete El puntero al paquete donde se serializara
+ */
+void serializar_uint32_t_array(uint32_t *array, uint32_t cantidad_elementos, t_paquete *paquete);
+
+/**
+ * @brief deserializar_uint32_t_array
+ *
+ * Esta función se encarga de deserializar un array de uint32_t de un flujo de datos.
+ * @param array Puntero de puntero al array de uint32_t donde se guardará el dato deserializado.
+ * @param cantidad_elementos Puntero donde se guardará la cantidad de elementos del array.
+ * @param buffer Buffer de los datos a deserializar.
+ */
+void deserializar_uint32_t_array(uint32_t **array, uint32_t *cantidad_elementos, void **buffer);
+
+/**
+ * @fn    serializar_uint64_t_array
+ * @brief Serializa un array de uint64_t en el paquete
+ * @param array El array que se quiere serializar
+ * @param cantidad_elementos La cantidad de elementos del array
+ * @param paquete El puntero al paquete donde se serializara
+ */
+void serializar_uint64_t_array(uint64_t *array, uint32_t cantidad_elementos, t_paquete *paquete);
+
+/**
+ * @brief deserializar_uint64_t_array
+ *
+ * Esta función se encarga de deserializar un array de uint64_t de un flujo de datos.
+ * @param array Puntero de puntero al array de uint64_t donde se guardará el dato deserializado.
+ * @param cantidad_elementos Puntero donde se guardará la cantidad de elementos del array.
+ * @param buffer Buffer de los datos a deserializar.
+ */
+void deserializar_uint64_t_array(uint64_t **array, uint64_t *cantidad_elementos, void **buffer);
+
+void serializar_t_cpu_memoria_instruccion(t_paquete **paquete, t_cpu_memoria_instruccion *proceso);
+
+t_cpu_kernel_proceso *deserializar_t_cpu_kernel_proceso(t_buffer *buffer);
+void serializar_t_cpu_kernel_proceso(t_paquete **paquete, t_cpu_kernel_proceso *proceso);
+t_kernel_cpu_proceso *deserializar_t_kernel_cpu_proceso(t_buffer *buffer);
+
+t_cpu_kernel_io_gen_sleep *deserializar_t_cpu_kernel_io_gen_sleep(t_buffer *buffer);
+void serializar_t_cpu_kernel_io_gen_sleep(t_paquete **paquete, t_cpu_kernel_io_gen_sleep *unidad);
+
+void serializar_t_kernel_cpu_interrupcion(t_paquete **paquete, t_kernel_cpu_interrupcion *interrupcion);
+t_kernel_cpu_interrupcion *deserializar_t_kernel_cpu_interrupcion(t_buffer *buffer);
+/**
+ * @fn    *deserializar_t_kernel_memoria
+ * @brief Deserializa un buffer en un t_kernel_memoria_proceso
+ * @param buffer El buffer a deserializar
+ */
+t_kernel_memoria_proceso *deserializar_t_kernel_memoria(t_buffer *buffer);
+
+/**
+ * @fn    *deserializar_t_cpu_memoria_instruccion
+ * @brief Deserializa un buffer en un t_cpu_memoria_instruccion
+ * @param buffer El buffer a deserializar
+ * @return *t_cpu_memoria_instruccion
+ */
+t_cpu_memoria_instruccion *deserializar_t_cpu_memoria_instruccion(t_buffer *buffer);
+
+/**
+ * @fn    serializar_t_memoria_cpu_instruccion
+ * @brief Serializa un t_memoria_cpu_instruccion en un paquete
+ * @param paquete_instruccion El paquete a serializar
+ * @param instruccion La instruccion a serializar
+ * @return *t_cpu_memoria_instruccion
+ */
+void serializar_t_memoria_kernel_proceso(t_paquete **paquete, t_memoria_kernel_proceso *proceso);
+
+t_kernel_memoria_finalizar_proceso *deserializar_t_kernel_memoria_finalizar_proceso(t_buffer *buffer);
 
 #endif

@@ -1,31 +1,86 @@
 #include "handshake.h"
 
-uint32_t handshake(t_log* logger_info,t_log* logger_error,int conexion, uint32_t envio, char *modulo){
-	uint32_t result;
+t_handshake crear_handshake(t_log *logger, int socket_servidor, t_handshake codigo_a_recibir, char *modulo)
+{
+	t_handshake respuesta;
 
-	send(conexion, &envio, sizeof(uint32_t), 0);
-	recv(conexion, &result, sizeof(uint32_t), MSG_WAITALL);
+	send(socket_servidor, &codigo_a_recibir, sizeof(t_handshake), 0);
+	recv(socket_servidor, &respuesta, sizeof(t_handshake), MSG_WAITALL);
 
-	if(result == 0) {
-		log_info(logger_info, "[%s] Conexion establecida.", modulo);
-	} else {
-		log_error(logger_error, "[%s] Error en la conexión.", modulo);
-		return -1;
+	if (respuesta == CORRECTO)
+	{
+		log_info(logger, "[%s] Conexion por handshake realizada y establecida.", modulo);
 	}
-	return result;
+	else
+	{
+		log_error(logger, "[%s] Error al crear handshake.", modulo);
+	}
+
+	return respuesta;
 }
 
-int esperar_handshake(int nuevoSocket){
-	uint32_t ok = 0;
-	uint32_t error = -1;
-	int respuesta;
-	recv(nuevoSocket, &respuesta, sizeof(uint32_t), MSG_WAITALL);
-	if(respuesta == 1){
-	   send(nuevoSocket, &ok, sizeof(uint32_t), 0);
-	   }
-	else{
-	   send(nuevoSocket, &error, sizeof(uint32_t), 0);
-	   //log_error(logger,"Error en el manejo de handshake.");
-	   }
-	return nuevoSocket;
+t_handshake conexion_handshake_recibir(t_log *logger, int socket_cliente, t_handshake codigo_esperado, char *modulo)
+{
+	t_handshake respuesta;
+	t_handshake ok = CORRECTO;
+	t_handshake error = ERROR;
+
+	recv(socket_cliente, &respuesta, sizeof(t_handshake), MSG_WAITALL);
+
+	if (respuesta == codigo_esperado)
+	{
+		send(socket_cliente, &ok, sizeof(t_handshake), 0);
+		log_info(logger, "[%s] Conexion por handshake recibida y establecida.", modulo);
+		respuesta = ok;
+	}
+	else
+	{
+		send(socket_cliente, &error, sizeof(t_handshake), 0);
+		log_error(logger, "[%s] Error al recibir handshake.", modulo);
+		respuesta = error;
+	}
+
+	return respuesta;
+}
+
+t_handshake esperar_handshake_entrada_salida(t_log *logger, int socket_cliente)
+{
+	t_handshake respuesta;
+	t_handshake ok = CORRECTO;
+	t_handshake error = ERROR;
+
+	recv(socket_cliente, &respuesta, sizeof(t_handshake), MSG_WAITALL);
+
+	switch (respuesta)
+	{
+	case KERNEL_ENTRADA_SALIDA_GENERIC:
+		break;
+	case KERNEL_ENTRADA_SALIDA_STDIN:
+		break;
+	case KERNEL_ENTRADA_SALIDA_STDOUT:
+		break;
+	case KERNEL_ENTRADA_SALIDA_DIALFS:
+		break;
+	case MEMORIA_ENTRADA_SALIDA_STDIN:
+		break;
+	case MEMORIA_ENTRADA_SALIDA_STDOUT:
+		break;
+	case MEMORIA_ENTRADA_SALIDA_DIALFS:
+		break;
+	default:
+		respuesta = ERROR;
+		break;
+	}
+
+	if (respuesta != error)
+	{
+		send(socket_cliente, &ok, sizeof(t_handshake), 0);
+	}
+	else
+	{
+		send(socket_cliente, &error, sizeof(t_handshake), 0);
+		respuesta = error;
+	}
+
+	return respuesta;
 }

@@ -2,96 +2,225 @@
 
 #include "main.h"
 
-int main() {
-    
-    logger_info = iniciar_logger("cpu" , LOG_LEVEL_INFO);
-	logger_debug = iniciar_logger("cpu" , LOG_LEVEL_DEBUG);
-	logger_warning = iniciar_logger("cpu" , LOG_LEVEL_WARNING);
-	logger_error = iniciar_logger("cpu" , LOG_LEVEL_ERROR);
-	logger_trace = iniciar_logger("cpu" , LOG_LEVEL_TRACE);
+int main()
+{
+	logger = iniciar_logger("cpu", LOG_LEVEL_DEBUG);
+	config = iniciar_config(logger);
+	cpu = cpu_inicializar(config);
+	cpu_log(cpu, logger);
 
-    config = iniciar_config(logger_error);
-    cpu = cpu_inicializar(config);
-    cpu_log(cpu, logger_info);
+	cpu.socket_server_dispatch = iniciar_servidor(logger, cpu.puertoEscuchaDispatch);
+	cpu.socket_server_interrupt = iniciar_servidor(logger, cpu.puertoEscuchaInterrupt);
 
-	// Abrimos los sockets de conexion
+	pthread_create(&thread_conectar_memoria, NULL, conectar_memoria, NULL);
+	pthread_join(thread_conectar_memoria, NULL);
 
-	pthread_create(&thread_conectar_memoria_dispatch,NULL,conectar_memoria_dispatch,NULL);
-	pthread_join(thread_conectar_memoria_dispatch,NULL);
-	
-	pthread_create(&thread_conectar_memoria_interrupt,NULL,conectar_memoria_interrupt,NULL);
-	pthread_join(thread_conectar_memoria_interrupt,NULL);
+	pthread_create(&thread_atender_memoria, NULL, atender_memoria, NULL);
+	pthread_detach(thread_atender_memoria);
 
-	// Iniciamos los servidores de CPU (Dispatch y Interrupt)
+	pthread_create(&thread_esperar_kernel_dispatch, NULL, esperar_kernel_dispatch, NULL);
+	pthread_join(thread_esperar_kernel_dispatch, NULL);
 
-    socket_server_dispatch = iniciar_servidor(logger_info,cpu.puertoEscuchaDispatch);
-	log_info(logger_info, "Servidor Dispatch listo para recibir al cliente en Dispatch.");
+	pthread_create(&thread_atender_kernel_dispatch, NULL, atender_kernel_dispatch, NULL);
+	pthread_detach(thread_atender_kernel_dispatch);
 
-	socket_server_interrupt = iniciar_servidor(logger_info,cpu.puertoEscuchaInterrupt);
-	log_info(logger_info, "Servidor Interrupt listo para recibir al cliente en Interrupt.");
+	pthread_create(&thread_esperar_kernel_interrupt, NULL, esperar_kernel_interrupt, NULL);
+	pthread_join(thread_esperar_kernel_interrupt, NULL);
 
-	// Atendemos las conexiones entrantes a CPU desde Kernel
+	/* Ejemplo de envio de instruccion a Memoria
+	sleep(15);
 
-	pthread_create(&thread_atender_kernel_dispatch,NULL,atender_kernel_dispatch,NULL);
-	pthread_join(thread_atender_kernel_dispatch,NULL);
+	t_paquete *paquete = crear_paquete(CPU_MEMORIA_PROXIMA_INSTRUCCION);
+	t_cpu_memoria_instruccion instruccion;
 
-	pthread_create(&thread_atender_kernel_interrupt,NULL,atender_kernel_interrupt,NULL);
-	pthread_join(thread_atender_kernel_interrupt,NULL);
+	instruccion.pid = 1;
+	instruccion.program_counter = 17;
 
-	/*
-	Aca va el resto de lo que falta hacer en CPU despues, en este punto ya tenemos las conexiones bidireccionales con Memoria y Kernel abiertas en sus sockets.
+	actualizar_buffer(paquete, sizeof(uint32_t) + sizeof(uint32_t));
+
+	serializar_uint32_t(instruccion.program_counter, paquete);
+
+	serializar_uint32_t(instruccion.pid, paquete);
+
+	// Envio la instruccion a Memoria
+	enviar_paquete(paquete, socket_memoria);
+
+	log_debug(logger,"Paquete enviado a Memoria");
+
+	// Libero la memoria del paquete de instruccion
+	eliminar_paquete(paquete);
 	*/
 
-	// Libero
+	pthread_create(&thread_atender_kernel_interrupt, NULL, atender_kernel_interrupt, NULL);
+	pthread_join(thread_atender_kernel_interrupt, NULL);
 
-	log_destroy(logger_info);
-	log_destroy(logger_debug);
-	log_destroy(logger_warning);
-	log_destroy(logger_error);
-	log_destroy(logger_trace);
-
-
-
-
+	log_destroy(logger);
 	config_destroy(config);
-
-	liberar_conexion(socket_memoria_dispatch);
-	liberar_conexion(socket_memoria_interrupt);
-	liberar_conexion(socket_kernel_dispatch);
-	liberar_conexion(socket_kernel_interrupt);
-	liberar_conexion(socket_server_dispatch);
-	liberar_conexion(socket_server_interrupt);
 
 	return 0;
 }
-void* conectar_memoria_dispatch(){
-	socket_memoria_dispatch = crear_conexion(logger_info,cpu.ipMemoria,cpu.puertoMemoria);
-	handshake(logger_info, logger_error,socket_memoria_dispatch,1,"Memoria por Dispatch");
-	log_info(logger_info,"Conectado a Memoria por Dispatch en socket %d",socket_memoria_dispatch);
+
+void *conectar_memoria()
+{
+	conexion_crear(logger, cpu.ipMemoria, cpu.puertoMemoria, &cpu.socket_memoria, "Memoria", MEMORIA_CPU);
 	pthread_exit(0);
 }
 
-void* conectar_memoria_interrupt(){
-	socket_memoria_interrupt = crear_conexion(logger_info,cpu.ipMemoria,cpu.puertoMemoria);
-	handshake(logger_info, logger_error,socket_memoria_interrupt,1,"Memoria por Interrupt");
-	log_info(logger_info,"Conectado a Memoria por Interrupt en socket %d",socket_memoria_interrupt);
+void *atender_memoria()
+{
+	hilo_ejecutar(logger, cpu.socket_memoria, "Memoria", switch_case_memoria);
 	pthread_exit(0);
 }
 
-void* atender_kernel_dispatch(){
-	socket_kernel_dispatch = esperar_cliente(logger_info,socket_server_dispatch);
-	esperar_handshake(socket_kernel_dispatch);
-	log_info(logger_info,"Kernel conectado por Dispatch en socket %d",socket_kernel_dispatch);
+void *esperar_kernel_dispatch()
+{
+	conexion_recibir(logger, cpu.socket_server_dispatch, &cpu.socket_kernel_dispatch, "Kernel por Dispatch", CPU_DISPATCH_KERNEL);
 	pthread_exit(0);
 }
 
-void* atender_kernel_interrupt(){
-	socket_kernel_interrupt = esperar_cliente(logger_info,socket_server_interrupt);
-	esperar_handshake(socket_kernel_interrupt);
-	log_info(logger_info,"Kernel conectado por Interrupt en socket %d",socket_kernel_interrupt);
+void *atender_kernel_dispatch()
+{
+	hilo_ejecutar(logger, cpu.socket_kernel_dispatch, "Kernel Dispatch", switch_case_kernel_dispatch);
 	pthread_exit(0);
 }
 
+void *esperar_kernel_interrupt()
+{
+	conexion_recibir(logger, cpu.socket_server_interrupt, &cpu.socket_kernel_interrupt, "Kernel por Interrupt", CPU_INTERRUPT_KERNEL);
+	pthread_exit(0);
+}
 
+void *atender_kernel_interrupt()
+{
+	hilo_ejecutar(logger, cpu.socket_kernel_interrupt, "Kernel Interrupt", switch_case_kernel_interrupt);
+	pthread_exit(0);
+}
 
+void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer)
+{
+	switch (codigo_operacion)
+	{
+	case MEMORIA_CPU_PROXIMA_INSTRUCCION:
+	{
+		// FETCH
+		t_instruccion *tipo_instruccion = malloc(sizeof(t_instruccion));
 
+		int debeTerminar = cpu_memoria_recibir_instruccion(buffer, logger, &instruccion, tipo_instruccion, &proceso);
+
+		if (debeTerminar)
+		{
+			log_debug(logger, "Avisando a kernel de finalizacion de proceso");
+			cpu_kernel_avisar_finalizacion(proceso, cpu.socket_kernel_dispatch);
+			break;
+		}
+
+		// EXECUTE:
+		int hayInterrupcion = cpu_ejecutar_instruccion(cpu, &instruccion, *tipo_instruccion, &proceso, logger);
+
+		if (hayInterrupcion < 0)
+		{
+			log_error(logger, "[CPU] Ocurrio un problema al ejecutar la instrucción.");
+			break;
+		}
+		if (hayInterrupcion == 1)
+		{
+			log_debug(logger, "[CPU] Se ejecuto una instruccion de IO. Se avisa a kernel y se termina ciclo de instruccion");
+			break;
+		}
+
+		// TODO: Esto podria necesitar un mutex
+		if (flag_interrupt)
+		{
+			cpu_procesar_interrupt(logger, cpu, proceso);
+			flag_interrupt = 0;
+			break;
+		}
+
+		cpu_memoria_pedir_proxima_instruccion(&proceso, cpu.socket_memoria);
+		log_debug(logger, "Instruccion pedida a Memoria");
+		free(tipo_instruccion);
+		break;
+	}
+	case PLACEHOLDER:
+	{
+		// PLACEHOLDER
+	}
+	default:
+	{
+		log_warning(logger, "[Memoria] Se recibio un codigo de operacion desconocido. Cierro hilo");
+		liberar_conexion(&cpu.socket_memoria);
+		break;
+	}
+	}
+}
+
+void switch_case_kernel_dispatch(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer)
+{
+
+	switch (codigo_operacion)
+	{
+	case PLACEHOLDER:
+	{
+		/*
+		La logica
+		*/
+		break;
+	}
+	case KERNEL_CPU_EJECUTAR_PROCESO:
+	{
+		/*RECIBIR PROCESO*/
+		proceso = cpu_kernel_recibir_proceso(buffer, logger);
+		/*PEDIR INSTRUCCION*/
+		cpu_memoria_pedir_proxima_instruccion(&proceso, cpu.socket_memoria);
+		log_debug(logger, "Instruccion pedida a Memoria");
+		break;
+	}
+	default:
+	{
+		log_warning(logger, "[Kernel Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
+		liberar_conexion(&cpu.socket_kernel_dispatch);
+		break;
+	}
+	}
+}
+
+void switch_case_kernel_interrupt(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer)
+{
+
+	switch (codigo_operacion)
+	{
+	case PLACEHOLDER:
+	{
+		/*
+		La logica
+		*/
+		break;
+	}
+	case FINALIZAR_SISTEMA:
+	{
+		pthread_cancel(thread_atender_memoria);
+		pthread_cancel(thread_atender_kernel_dispatch);
+		pthread_cancel(thread_atender_kernel_interrupt);
+
+		liberar_conexion(&cpu.socket_memoria);
+		liberar_conexion(&cpu.socket_kernel_dispatch);
+		liberar_conexion(&cpu.socket_kernel_interrupt);
+
+		break;
+	}
+	case KERNEL_CPU_INTERRUPCION:
+	{
+		// TODO_ esto podria necesitar un mutex
+		flag_interrupt = cpu_recibir_interrupcion(logger, buffer, proceso);
+		log_warning(logger, "Valor del flag ahora en: %d", flag_interrupt);
+		break;
+	}
+
+	default:
+	{
+		log_warning(logger, "[Kernel Interrupt] Se recibio un codigo de operacion desconocido. Cierro hilo");
+		liberar_conexion(&cpu.socket_kernel_interrupt);
+		break;
+	}
+	}
+}

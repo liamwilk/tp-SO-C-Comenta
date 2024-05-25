@@ -1,8 +1,16 @@
-# tp-scaffold
+# redonditOS
 
-Esta es una plantilla de proyecto diseñada para generar un TP de Sistemas
-Operativos de la UTN FRBA.
+Implementación de [C-Comenta](https://faq.utnso.com.ar/tp-c-comenta/) - Sistemas Operativos - 1C 2024 - UTN FRBA
 
+## Test cases
+
+En este tp utilizamos  `mumuki/cspec`, se tiene que habilitar globalmente como una biblioteca:
+
+```bash
+git clone https://github.com/mumuki/cspec.git
+cd cspec
+make install
+```
 
 ## Git hooks
 Para utilizar los pre-commits & git hooks:
@@ -15,7 +23,7 @@ sh hooks.sh
 Si queres saltearte las verificaciones:
 
 ```bash
-git commit -m "Mensaje comit" --no-verify
+git commit -m "Mensaje commit" --no-verify
 ```
 
 ## Dependencias
@@ -89,3 +97,10 @@ Ante cualquier duda, podés consultar la documentación en el repositorio de
 
 [so-commons-library]: https://github.com/sisoputnfrba/so-commons-library
 [so-deploy]: https://github.com/sisoputnfrba/so-deploy
+
+<hr>
+<div id="footer" align="center">
+  <a href="https://www.frba.utn.edu.ar/">
+  <img src="https://github.com/sisoputnfrba/tp-2024-1c-Operativos-y-los-Redonditos-de-Ricota/assets/94919997/e11f9148-822e-427d-b593-f12d608b0693" style="width:70%; height:auto;">
+  </a>
+</div>
