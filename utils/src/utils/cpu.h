@@ -79,5 +79,6 @@ uint32_t casteo_uint32_t(uint8_t valor);
 
 int cpu_recibir_interrupcion(t_log *logger, t_buffer *buffer, t_cpu_proceso proceso);
 void cpu_procesar_interrupt(t_log *logger, t_cpu cpu, t_cpu_proceso proceso);
+void log_instruccion(t_log *logger, t_cpu_proceso *cpu_proceso, t_memoria_cpu_instruccion *datos_instruccion);
 
 #endif /* CPU_H_ */

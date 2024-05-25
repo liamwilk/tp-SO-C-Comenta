@@ -34,46 +34,23 @@ void cpu_memoria_pedir_proxima_instruccion(t_cpu_proceso *proceso, int socket_me
     eliminar_paquete(paquete);
 }
 
+void log_instruccion(t_log *logger, t_cpu_proceso *cpu_proceso, t_memoria_cpu_instruccion *datos_instruccion)
+{
+    char log_message[256] = {0};
+    int offset = snprintf(log_message, sizeof(log_message), "PID: <%d> - Ejecutando:", cpu_proceso->pid);
+
+    for (int i = 0; i < datos_instruccion->cantidad_elementos; i++)
+    {
+        offset += snprintf(log_message + offset, sizeof(log_message) - offset, " <%s>", datos_instruccion->array[i]);
+    }
+
+    log_info(logger, "%s", log_message);
+}
+
 int cpu_ejecutar_instruccion(t_cpu cpu_paquete, t_memoria_cpu_instruccion *datos_instruccion, t_instruccion instruccion, t_cpu_proceso *cpu_proceso, t_log *logger)
 {
-
-    // Todas instrucciones vienen con un salto de linea en el ultimo argumento, lo remuevo para que funcionen las comparaciones
     remover_salto_linea(datos_instruccion->array[datos_instruccion->cantidad_elementos - 1]);
-
-    /* TODO: Refactorear este log para que cumpla la misma funcion de una forma mas limpia. Daba segmentation fault el log original porque
-    cuando llegaba una instruccion de un solo elemento y queria forzar a imprimir array[2] estaba accediendo a una posicion
-    de memoria que no era del array.
-    */
-
-    if (datos_instruccion->cantidad_elementos == 1)
-    {
-        log_info(logger, "PID: <%d> - Ejecutando: <%s>", cpu_proceso->pid, datos_instruccion->array[0]);
-    }
-
-    if (datos_instruccion->cantidad_elementos == 2)
-    {
-        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1]);
-    }
-
-    if (datos_instruccion->cantidad_elementos == 3)
-    {
-        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2]);
-    }
-
-    if (datos_instruccion->cantidad_elementos == 4)
-    {
-        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s> - <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2], datos_instruccion->array[3]);
-    }
-
-    if (datos_instruccion->cantidad_elementos == 5)
-    {
-        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s> - <%s> - <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2], datos_instruccion->array[3], datos_instruccion->array[4]);
-    }
-
-    if (datos_instruccion->cantidad_elementos == 6)
-    {
-        log_info(logger, "PID: <%d> - Ejecutando: <%s> - <%s> - <%s> - <%s> - <%s> - <%s>", cpu_proceso->pid, datos_instruccion->array[0], datos_instruccion->array[1], datos_instruccion->array[2], datos_instruccion->array[3], datos_instruccion->array[4], datos_instruccion->array[5]);
-    }
+    log_instruccion(logger, cpu_proceso, datos_instruccion);
 
     switch (instruccion)
     {
