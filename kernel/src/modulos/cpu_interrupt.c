@@ -49,9 +49,10 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio la instruccion de IO_GEN_SLEEP de %d segundos para el PID %d en la interfaz %s", sleep->tiempo, sleep->pid, sleep->interfaz);
 
-        t_pcb *pcb = proceso_buscar_exec(args->estados, sleep->pid);
-
         // Hago adapter de los registros de la CPU (no puntero) a los registros del PCB (puntero)
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se transiciona el PID <%d> a BLOCK por ejecucion de IO_GEN_SLEEP.", sleep->pid);
+        t_pcb *pcb = kernel_transicion_exec_block(args);
 
         pcb->registros_cpu->pc = sleep->registros.pc;
         pcb->registros_cpu->eax = sleep->registros.eax;
@@ -65,8 +66,6 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         pcb->registros_cpu->cx = sleep->registros.cx;
         pcb->registros_cpu->dx = sleep->registros.dx;
 
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se transiciona el PID <%d> a BLOCK por ejecucion de IO_GEN_SLEEP.", sleep->pid);
-        kernel_transicion_exec_block(args);
         sem_post(&args->kernel->planificador_iniciar);
         eliminar_paquete(paquete);
         free(unidad);

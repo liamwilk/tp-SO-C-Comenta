@@ -538,6 +538,8 @@ int cpu_ejecutar_instruccion(t_cpu cpu_paquete, t_memoria_cpu_instruccion *datos
 
         enviar_paquete(paquete, cpu_paquete.socket_kernel_interrupt);
 
+        imprimir_registros(logger, cpu_proceso);
+
         free(unidad->interfaz);
         free(unidad);
         eliminar_paquete(paquete);
@@ -677,30 +679,13 @@ t_cpu_proceso cpu_kernel_recibir_proceso(t_buffer *buffer, t_log *logger)
 
 void cpu_kernel_avisar_finalizacion(t_cpu_proceso proceso, int socket_kernel_dispatch)
 {
-    t_paquete *paquete_proceso = crear_paquete(CPU_KERNEL_PROCESO);
-    t_cpu_kernel_proceso *fin_proceso = malloc(sizeof(t_cpu_kernel_proceso));
-    fin_proceso->registros = malloc(sizeof(t_registros_cpu));
+    t_paquete *paquete = crear_paquete(CPU_KERNEL_PROCESO);
+    t_cpu_kernel_proceso fin_proceso = {
+        .ejecutado = 1, .pid = proceso.pid, .registros = {.pc = proceso.registros.pc, .eax = proceso.registros.eax, .ebx = proceso.registros.ebx, .ecx = proceso.registros.ecx, .edx = proceso.registros.edx, .si = proceso.registros.si, .di = proceso.registros.di, .ax = proceso.registros.ax, .bx = proceso.registros.bx, .cx = proceso.registros.cx, .dx = proceso.registros.dx}};
 
-    fin_proceso->ejecutado = 1;
-    fin_proceso->pid = proceso.pid;
-    fin_proceso->registros->pc = proceso.registros.pc;
-    fin_proceso->registros->eax = proceso.registros.eax;
-    fin_proceso->registros->ebx = proceso.registros.ebx;
-    fin_proceso->registros->ecx = proceso.registros.ecx;
-    fin_proceso->registros->edx = proceso.registros.edx;
-    fin_proceso->registros->si = proceso.registros.si;
-    fin_proceso->registros->di = proceso.registros.di;
-    fin_proceso->registros->ax = proceso.registros.ax;
-    fin_proceso->registros->bx = proceso.registros.bx;
-    fin_proceso->registros->cx = proceso.registros.cx;
-    fin_proceso->registros->dx = proceso.registros.dx;
-
-    serializar_t_cpu_kernel_proceso(&paquete_proceso, fin_proceso);
-    enviar_paquete(paquete_proceso, socket_kernel_dispatch);
-
-    eliminar_paquete(paquete_proceso);
-    free(fin_proceso->registros);
-    free(fin_proceso);
+    serializar_t_cpu_kernel_proceso(&paquete, &fin_proceso);
+    enviar_paquete(paquete, socket_kernel_dispatch);
+    eliminar_paquete(paquete);
 };
 
 uint32_t *determinar_tipo_registro_uint32_t(char *instruccion, t_cpu_proceso *proceso)
@@ -957,13 +942,13 @@ int cpu_recibir_interrupcion(t_log *logger, t_buffer *buffer, t_cpu_proceso proc
     t_kernel_cpu_interrupcion *interrupcion = deserializar_t_kernel_cpu_interrupcion(buffer);
     if (interrupcion->pid == proceso.pid)
     {
-        log_debug(logger, "Se detecto una solicitud de interrupcion para el proceso de PID: %d. Actualizando flag de interrupt...", interrupcion->pid);
+        log_debug(logger, "Se detecto una solicitud de interrupcion para el proceso de PID: %d", interrupcion->pid);
         free(interrupcion);
         return 1;
     }
     else
     {
-        log_debug(logger, "El PID recibido (%d) no se corresponde con el que se esta ejecutando (%d). Se ignora la interrupcion.", interrupcion->pid, proceso.pid);
+        log_error(logger, "El PID recibido (%d) no se corresponde con el que se esta ejecutando (%d)", interrupcion->pid, proceso.pid);
         free(interrupcion);
         return 0;
     }
@@ -971,16 +956,13 @@ int cpu_recibir_interrupcion(t_log *logger, t_buffer *buffer, t_cpu_proceso proc
 
 void cpu_procesar_interrupt(t_log *logger, t_cpu cpu, t_cpu_proceso proceso)
 {
-    log_debug(logger, "Se atiende interrupcion");
+    log_debug(logger, "Se procede a interrumpir el proceso de PID <%d> y enviar el contexto de ejecucion a Kernel", proceso.pid);
 
-    t_cpu_kernel_proceso *proceso_interrumpido = malloc(sizeof(t_cpu_kernel_proceso));
-    proceso_interrumpido->ejecutado = 0; // Desalojado por interrupcion
-    proceso_interrumpido->pid = proceso.pid;
-    proceso_interrumpido->registros = &proceso.registros;
+    t_cpu_kernel_proceso proceso_interrumpido = {
+        .ejecutado = 0, .pid = proceso.pid, .registros = {.ax = proceso.registros.ax, .bx = proceso.registros.bx, .cx = proceso.registros.cx, .dx = proceso.registros.dx, .eax = proceso.registros.eax, .ebx = proceso.registros.ebx, .ecx = proceso.registros.ecx, .edx = proceso.registros.edx, .si = proceso.registros.si, .di = proceso.registros.di, .pc = proceso.registros.pc}};
 
-    // TODO: preguntar si este es el opcode que se usa
     t_paquete *paquete = crear_paquete(CPU_KERNEL_PROCESO);
-    serializar_t_cpu_kernel_proceso(&paquete, proceso_interrumpido);
-    // TODO: esto cambiarlo a interrupt en el testeo
+    serializar_t_cpu_kernel_proceso(&paquete, &proceso_interrumpido);
     enviar_paquete(paquete, cpu.socket_kernel_dispatch);
+    eliminar_paquete(paquete);
 }

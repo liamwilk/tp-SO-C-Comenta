@@ -6,5 +6,4 @@ void iniciar_planificacion(char **separar_linea, hilos_args *hiloArgs)
     hilo_planificador_iniciar(hiloArgs);
     hilo_planificador_estado(hiloArgs, true);
     sem_post(&hiloArgs->kernel->planificador_iniciar);
-    sem_post(&hiloArgs->kernel->planificador_hilo);
 }

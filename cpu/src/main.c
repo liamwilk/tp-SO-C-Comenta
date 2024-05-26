@@ -139,13 +139,9 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 		}
 
 		cpu_memoria_pedir_proxima_instruccion(&proceso, cpu.socket_memoria);
-		log_debug(logger, "Instruccion pedida a Memoria");
+		log_debug(logger, "Instruccion PC %d de PID <%d> pedida a Memoria",proceso.registros.pc,proceso.pid);
 		free(tipo_instruccion);
 		break;
-	}
-	case PLACEHOLDER:
-	{
-		// PLACEHOLDER
 	}
 	default:
 	{
@@ -158,23 +154,15 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 
 void switch_case_kernel_dispatch(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer)
 {
-
 	switch (codigo_operacion)
 	{
-	case PLACEHOLDER:
-	{
-		/*
-		La logica
-		*/
-		break;
-	}
 	case KERNEL_CPU_EJECUTAR_PROCESO:
 	{
 		/*RECIBIR PROCESO*/
 		proceso = cpu_kernel_recibir_proceso(buffer, logger);
 		/*PEDIR INSTRUCCION*/
 		cpu_memoria_pedir_proxima_instruccion(&proceso, cpu.socket_memoria);
-		log_debug(logger, "Instruccion pedida a Memoria");
+		log_debug(logger, "Instruccion PC %d de PID <%d> pedida a Memoria",proceso.registros.pc,proceso.pid);
 		break;
 	}
 	default:
@@ -188,16 +176,8 @@ void switch_case_kernel_dispatch(t_log *logger, t_op_code codigo_operacion, t_bu
 
 void switch_case_kernel_interrupt(t_log *logger, t_op_code codigo_operacion, t_buffer *buffer)
 {
-
 	switch (codigo_operacion)
 	{
-	case PLACEHOLDER:
-	{
-		/*
-		La logica
-		*/
-		break;
-	}
 	case FINALIZAR_SISTEMA:
 	{
 		pthread_cancel(thread_atender_memoria);
@@ -217,7 +197,6 @@ void switch_case_kernel_interrupt(t_log *logger, t_op_code codigo_operacion, t_b
 		log_warning(logger, "Valor del flag ahora en: %d", flag_interrupt);
 		break;
 	}
-
 	default:
 	{
 		log_warning(logger, "[Kernel Interrupt] Se recibio un codigo de operacion desconocido. Cierro hilo");

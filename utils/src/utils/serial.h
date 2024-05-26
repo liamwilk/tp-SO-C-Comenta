@@ -162,7 +162,7 @@ typedef struct
 {
 	uint32_t pid;
 	uint32_t ejecutado;
-	t_registros_cpu *registros;
+	t_registros_cpu registros;
 } t_cpu_kernel_proceso;
 
 /**
