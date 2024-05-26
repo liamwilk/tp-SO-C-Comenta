@@ -9,9 +9,6 @@
 #include <commons/string.h>
 #include <readline/readline.h>
 #include <readline/history.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <unistd.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +22,8 @@
 #include "modulos/cpu_dispatch.h"
 #include "modulos/cpu_interrupt.h"
 #include "modulos/memoria.h"
-
+#include <utils/kernel.h>
+#include <dirent.h>
 typedef enum
 {
     FIFO,
@@ -62,4 +60,9 @@ void hilos_planificador_inicializar(hilos_args *args, pthread_t thread_planifica
 
 int obtener_key_finalizacion_hilo(hilos_args *args);
 int obtener_key_detencion_algoritmo(hilos_args *args);
+char *generar_prompt();
+char *autocompletado_instruccion(const char *input_text, int state);
+char **autocompletado(const char *text, int start, int end);
+char *autocompletado_argumento(const char *input_text, int state);
+
 #endif /* HILOS_H_ */

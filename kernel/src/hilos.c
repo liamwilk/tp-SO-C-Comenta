@@ -7,36 +7,14 @@ void *hilos_atender_consola(void *args)
     hilos_args *hiloArgs = (hilos_args *)args;
     imprimir_header(hiloArgs);
 
-    const char *username = getenv("USER");
-    if (username == NULL)
+    char *prompt = generar_prompt();
+    if (prompt == NULL)
     {
-        struct passwd *pw = getpwuid(getuid());
-        username = pw->pw_name;
+        pthread_exit(0);
     }
 
-    char hostname[HOST_NAME_MAX];
-    gethostname(hostname, sizeof(hostname));
-
-    char cwd[PATH_MAX];
-    if (getcwd(cwd, sizeof(cwd)) == NULL)
-    {
-        perror("getcwd() error");
-    }
-
-    const char *home_dir = getenv("HOME");
-    if (home_dir != NULL && strstr(cwd, home_dir) == cwd)
-    {
-        size_t home_len = strlen(home_dir);
-        memmove(cwd + 1, cwd + home_len, strlen(cwd) - home_len + 1);
-        cwd[0] = '~';
-    }
-
-    char prompt[PATH_MAX + HOST_NAME_MAX + 50];
-    const char *green_bold = "\001\x1b[1;32m\002";
-    const char *blue_bold = "\001\x1b[1;34m\002";
-    const char *reset = "\001\x1b[0m\002";
-
-    snprintf(prompt, sizeof(prompt), "%s%s@%s%s:%s%s%s$ ", green_bold, username, hostname, reset, blue_bold, cwd, reset);
+    // Configurar la función de autocompletado
+    rl_attempted_completion_function = autocompletado;
 
     char *linea = NULL;
 
@@ -55,6 +33,13 @@ void *hilos_atender_consola(void *args)
         {
             add_history(linea);
         }
+
+        if (linea == NULL || *linea == '\0')
+        {
+            free(linea);
+            continue;
+        }
+
         char **separar_linea = string_split(linea, " ");
         switch (obtener_operacion(separar_linea[0]))
         {
@@ -75,11 +60,15 @@ void *hilos_atender_consola(void *args)
             }
         }
         case INICIAR_PROCESO:
+        {
             iniciar_proceso(separar_linea, hiloArgs);
             break;
+        }
         case FINALIZAR_PROCESO:
+        {
             finalizar_proceso(separar_linea, hiloArgs);
             break;
+        }
         case DETENER_PLANIFICACION:
         {
             detener_planificacion(separar_linea, hiloArgs);
@@ -107,6 +96,7 @@ void *hilos_atender_consola(void *args)
         }
         default:
         {
+            kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "Comando no reconocido: %s", separar_linea[0]);
             break;
         }
         }
@@ -641,4 +631,134 @@ void *hilos_atender_entrada_salida_dialfs(void *args)
 
     free(io_args);
     pthread_exit(0);
+}
+
+char *generar_prompt()
+{
+    const char *username = getenv("USER");
+    if (username == NULL)
+    {
+        struct passwd *pw = getpwuid(getuid());
+        username = pw->pw_name;
+    }
+
+    char hostname[HOST_NAME_MAX];
+    gethostname(hostname, sizeof(hostname));
+
+    char cwd[PATH_MAX];
+    if (getcwd(cwd, sizeof(cwd)) == NULL)
+    {
+        perror("getcwd() error");
+        return NULL;
+    }
+
+    const char *home_dir = getenv("HOME");
+    if (home_dir != NULL && strstr(cwd, home_dir) == cwd)
+    {
+        size_t home_len = strlen(home_dir);
+        memmove(cwd + 1, cwd + home_len, strlen(cwd) - home_len + 1);
+        cwd[0] = '~';
+    }
+
+    const char *green_bold = "\001\x1b[1;32m\002";
+    const char *blue_bold = "\001\x1b[1;34m\002";
+    const char *reset = "\001\x1b[0m\002";
+
+    char *prompt = malloc(PATH_MAX + HOST_NAME_MAX + 50);
+    if (prompt == NULL)
+    {
+        perror("malloc() error");
+        return NULL;
+    }
+
+    snprintf(prompt, PATH_MAX + HOST_NAME_MAX + 50, "%s%s@%s%s:%s%s%s$ ", green_bold, username, hostname, reset, blue_bold, cwd, reset);
+
+    return prompt;
+}
+
+char *autocompletado_instruccion(const char *input_text, int state)
+{
+    // Lista de comandos disponibles para autocompletar
+    static char *comandos[] = {
+        "EJECUTAR_SCRIPT",
+        "INICIAR_PROCESO",
+        "FINALIZAR_PROCESO",
+        "DETENER_PLANIFICACION",
+        "INICIAR_PLANIFICACION",
+        "MULTIPROGRAMACION",
+        "PROCESO_ESTADO",
+        "FINALIZAR",
+        NULL};
+
+    static int command_index, input_length;
+    char *command;
+
+    // Inicialización en la primera llamada (state == 0)
+    if (state == 0)
+    {
+        command_index = 0;                 // Reinicia el índice de los comandos
+        input_length = strlen(input_text); // Longitud del texto ingresado
+    }
+
+    // Recorre la lista de comandos buscando coincidencias
+    while ((command = comandos[command_index++]))
+    {
+        // Devuelve el comando si coincide con el texto ingresado
+        if (strncmp(command, input_text, input_length) == 0)
+        {
+            return strdup(command); // Retorna una copia del comando encontrado
+        }
+    }
+
+    return NULL; // No se encontraron más comandos coincidentes
+}
+
+char *autocompletado_argumento(const char *input_text, int state)
+{
+    static DIR *dir;
+    static struct dirent *entry;
+    static int input_length;
+
+    // Inicializa en la primera llamada (state == 0)
+    if (state == 0)
+    {
+        if (dir)
+        {
+            closedir(dir);
+        }
+        dir = opendir(".");
+        input_length = strlen(input_text);
+    }
+
+    // Recorre el directorio buscando coincidencias
+    while ((entry = readdir(dir)) != NULL)
+    {
+        if (strncmp(entry->d_name, input_text, input_length) == 0)
+        {
+            // Retorna una copia del nombre del archivo/directorio encontrado
+            return strdup(entry->d_name);
+        }
+    }
+
+    // No se encontraron más archivos/directorios coincidentes
+    closedir(dir);
+    dir = NULL;
+    return NULL;
+}
+
+char **autocompletado(const char *text, int start, int end)
+{
+    // Determinar si estamos completando un comando o un parámetro
+    if (start == 0)
+    {
+        // Completando un comando
+        rl_completion_append_character = ' ';
+        return rl_completion_matches(text, autocompletado_instruccion);
+    }
+    else
+    {
+        // Completando un parámetro (archivo/directorio)
+        rl_completion_append_character = '\0';
+        return rl_completion_matches(text, autocompletado_argumento);
+    }
 }
