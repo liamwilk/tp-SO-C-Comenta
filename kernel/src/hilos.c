@@ -123,66 +123,54 @@ void hilos_planificador_inicializar(hilos_args *args, pthread_t thread_planifica
 void *hilo_planificador(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-    while (1)
+
+    while (obtener_key_finalizacion_hilo(hiloArgs))
     {
-        sem_wait(&hiloArgs->kernel->planificador_hilo);
+        sem_wait(&hiloArgs->kernel->planificador_iniciar);
 
         if (!obtener_key_finalizacion_hilo(hiloArgs))
         {
             break;
         }
 
-        kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
-
-        while (obtener_key_finalizacion_hilo(hiloArgs))
+        // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
+        if (obtener_key_detencion_algoritmo(hiloArgs))
         {
-            sem_wait(&hiloArgs->kernel->planificador_iniciar);
-
-            if (!obtener_key_finalizacion_hilo(hiloArgs))
-            {
-                break;
-            }
-
-            // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
-            if (obtener_key_detencion_algoritmo(hiloArgs))
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion %s pausada.", hiloArgs->kernel->algoritmoPlanificador);
-                continue;
-            }
-
-            if (list_size(hiloArgs->estados->new) > 0)
-            {
-                planificacion_largo_plazo(hiloArgs);
-            }
-
-            switch (determinar_algoritmo(hiloArgs))
-            {
-            case FIFO:
-            {
-                fifo(hiloArgs);
-                break;
-            }
-            case RR:
-            {
-                round_robin(hiloArgs);
-                break;
-            }
-            case VRR:
-            {
-                // TODO: algoritmo
-                break;
-            }
-            default:
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "Algoritmo de planificacion no reconocido.");
-                break;
-            }
-            }
+            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion %s pausada.", hiloArgs->kernel->algoritmoPlanificador);
+            continue;
         }
-        sem_post(&hiloArgs->kernel->sistema_finalizar);
-        pthread_exit(0);
+
+        if (list_size(hiloArgs->estados->new) > 0)
+        {
+            planificacion_largo_plazo(hiloArgs);
+        }
+
+        switch (determinar_algoritmo(hiloArgs))
+        {
+        case FIFO:
+        {
+            fifo(hiloArgs);
+            break;
+        }
+        case RR:
+        {
+            round_robin(hiloArgs);
+            break;
+        }
+        case VRR:
+        {
+            // TODO: algoritmo
+            break;
+        }
+        default:
+        {
+            kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "Algoritmo de planificacion no reconocido.");
+            break;
+        }
+        }
     }
-    return NULL;
+    sem_post(&hiloArgs->kernel->sistema_finalizar);
+    pthread_exit(0);
 }
 
 int obtener_key_finalizacion_hilo(hilos_args *args)

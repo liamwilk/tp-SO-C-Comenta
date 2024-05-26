@@ -13,8 +13,6 @@ void ejecutar_script(char *path_instrucciones, hilos_args *hiloArgs)
     char ruta_completa[PATH_MAX];
     sprintf(ruta_completa, "%s/%s", current_dir, path_instrucciones);
 
-    kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Ruta completa del archivo de instrucciones: %s", ruta_completa);
-
     // Abro el archivo de instrucciones
     FILE *file = fopen(ruta_completa, "r");
 

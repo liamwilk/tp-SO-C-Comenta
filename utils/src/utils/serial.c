@@ -353,23 +353,21 @@ t_memoria_kernel_proceso *deserializar_t_memoria_kernel_proceso(t_buffer *buffer
 t_cpu_kernel_proceso *deserializar_t_cpu_kernel_proceso(t_buffer *buffer)
 {
 	t_cpu_kernel_proceso *proceso = malloc(sizeof(t_cpu_kernel_proceso));
-	proceso->registros = malloc(sizeof(t_registros_cpu));
-
 	void *stream = buffer->stream;
 
 	deserializar_uint32_t(&stream, &(proceso->ejecutado));
 	deserializar_uint32_t(&stream, &(proceso->pid));
-	deserializar_uint32_t(&stream, &(proceso->registros->pc));
-	deserializar_uint32_t(&stream, &(proceso->registros->eax));
-	deserializar_uint32_t(&stream, &(proceso->registros->ebx));
-	deserializar_uint32_t(&stream, &(proceso->registros->ecx));
-	deserializar_uint32_t(&stream, &(proceso->registros->edx));
-	deserializar_uint32_t(&stream, &(proceso->registros->si));
-	deserializar_uint32_t(&stream, &(proceso->registros->di));
-	deserializar_uint8_t(&stream, &(proceso->registros->ax));
-	deserializar_uint8_t(&stream, &(proceso->registros->bx));
-	deserializar_uint8_t(&stream, &(proceso->registros->cx));
-	deserializar_uint8_t(&stream, &(proceso->registros->dx));
+	deserializar_uint32_t(&stream, &(proceso->registros.pc));
+	deserializar_uint32_t(&stream, &(proceso->registros.eax));
+	deserializar_uint32_t(&stream, &(proceso->registros.ebx));
+	deserializar_uint32_t(&stream, &(proceso->registros.ecx));
+	deserializar_uint32_t(&stream, &(proceso->registros.edx));
+	deserializar_uint32_t(&stream, &(proceso->registros.si));
+	deserializar_uint32_t(&stream, &(proceso->registros.di));
+	deserializar_uint8_t(&stream, &(proceso->registros.ax));
+	deserializar_uint8_t(&stream, &(proceso->registros.bx));
+	deserializar_uint8_t(&stream, &(proceso->registros.cx));
+	deserializar_uint8_t(&stream, &(proceso->registros.dx));
 
 	return proceso;
 }
@@ -432,20 +430,19 @@ void serializar_t_kernel_memoria_finalizar_proceso(t_paquete **paquete, t_kernel
 void serializar_t_cpu_kernel_proceso(t_paquete **paquete, t_cpu_kernel_proceso *proceso)
 {
 	actualizar_buffer(*paquete, sizeof(uint32_t) * 13);
-
 	serializar_uint32_t(proceso->ejecutado, *paquete);
 	serializar_uint32_t(proceso->pid, *paquete);
-	serializar_uint32_t(proceso->registros->pc, *paquete);
-	serializar_uint32_t(proceso->registros->eax, *paquete);
-	serializar_uint32_t(proceso->registros->ebx, *paquete);
-	serializar_uint32_t(proceso->registros->ecx, *paquete);
-	serializar_uint32_t(proceso->registros->edx, *paquete);
-	serializar_uint32_t(proceso->registros->si, *paquete);
-	serializar_uint32_t(proceso->registros->di, *paquete);
-	serializar_uint8_t(proceso->registros->ax, *paquete);
-	serializar_uint8_t(proceso->registros->bx, *paquete);
-	serializar_uint8_t(proceso->registros->cx, *paquete);
-	serializar_uint8_t(proceso->registros->dx, *paquete);
+	serializar_uint32_t(proceso->registros.pc, *paquete);
+	serializar_uint32_t(proceso->registros.eax, *paquete);
+	serializar_uint32_t(proceso->registros.ebx, *paquete);
+	serializar_uint32_t(proceso->registros.ecx, *paquete);
+	serializar_uint32_t(proceso->registros.edx, *paquete);
+	serializar_uint32_t(proceso->registros.si, *paquete);
+	serializar_uint32_t(proceso->registros.di, *paquete);
+	serializar_uint8_t(proceso->registros.ax, *paquete);
+	serializar_uint8_t(proceso->registros.bx, *paquete);
+	serializar_uint8_t(proceso->registros.cx, *paquete);
+	serializar_uint8_t(proceso->registros.dx, *paquete);
 }
 
 void serializar_t_kernel_entrada_salida_unidad_de_trabajo(t_paquete **paquete, t_kernel_entrada_salida_unidad_de_trabajo *unidad)
