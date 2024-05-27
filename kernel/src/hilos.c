@@ -7,6 +7,9 @@ void *hilos_atender_consola(void *args)
     hilos_args *hiloArgs = (hilos_args *)args;
     imprimir_header(hiloArgs);
 
+    char *comandos_archivo_historial = "comandos.log";
+    int comandos_archivo_limite = 20;
+
     char *prompt = generar_prompt();
     if (prompt == NULL)
     {
@@ -15,6 +18,12 @@ void *hilos_atender_consola(void *args)
 
     // Configurar la función de autocompletado
     rl_attempted_completion_function = autocompletado;
+
+    // Limitar el tamaño del historial a HISTORY_LIMIT
+    stifle_history(comandos_archivo_limite);
+
+    // Leer el historial desde el archivo
+    read_history(comandos_archivo_historial);
 
     char *linea = NULL;
 
@@ -103,6 +112,10 @@ void *hilos_atender_consola(void *args)
         free(separar_linea);
         free(linea);
     }
+
+    write_history(comandos_archivo_historial);
+
+    free(prompt);
     pthread_exit(0);
 }
 
