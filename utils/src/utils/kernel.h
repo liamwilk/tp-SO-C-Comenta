@@ -15,6 +15,9 @@
 #include "procesos.h"
 #include "conexiones.h"
 #include <semaphore.h>
+#include <sys/ioctl.h>
+#include <dirent.h>
+#include <pwd.h>
 
 /*Estructura basica del kernel*/
 
@@ -278,5 +281,14 @@ void hilo_planificador_iniciar(hilos_args *args);
 void hilo_planificador_estado(hilos_args *args, bool estado);
 
 void hilo_planificador_detener(hilos_args *args);
+
+char *autocompletado_instruccion(const char *input_text, int state);
+char **autocompletado(const char *text, int start, int end);
+char *autocompletado_argumento(const char *input_text, int state);
+int obtener_ancho_terminal();
+void actualizar_prompt(int signal);
+void registrar_manejador_senales();
+char *generar_prompt();
+void reiniciar_prompt(hilos_args *hiloArgs);
 
 #endif /* KERNEL_H */
