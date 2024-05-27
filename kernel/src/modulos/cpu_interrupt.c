@@ -45,8 +45,6 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
 
         serializar_t_kernel_entrada_salida_unidad_de_trabajo(&paquete, unidad);
 
-        enviar_paquete(paquete, entrada_salida->socket);
-
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio la instruccion de IO_GEN_SLEEP de %d segundos para el PID %d en la interfaz %s", sleep->tiempo, sleep->pid, sleep->interfaz);
 
         // Hago adapter de los registros de la CPU (no puntero) a los registros del PCB (puntero)
@@ -65,6 +63,8 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         pcb->registros_cpu->bx = sleep->registros.bx;
         pcb->registros_cpu->cx = sleep->registros.cx;
         pcb->registros_cpu->dx = sleep->registros.dx;
+
+        enviar_paquete(paquete, entrada_salida->socket);
 
         sem_post(&args->kernel->planificador_iniciar);
         eliminar_paquete(paquete);

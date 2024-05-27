@@ -126,21 +126,23 @@ void kernel_log_generic_rl(hilos_args *args, t_log_level nivel, const char *mens
     free(saved_line);
 }
 
-void kernel_desalojar_proceso(hilos_args *kernel_hilos_args)
+void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, uint32_t pid)
 {
-    // Kernel desalojara el proceso SI Y SOLO SI el proceso se encuentra en la cola de exec
-    // Esto es para evitar que termine el quantum y el proceso se vaya a una io, este en estado block y se haga un llamado innecesario a memoria
-    usleep(kernel_hilos_args->kernel->quantum * 1000);
+    sleep(kernel_hilos_args->kernel->quantum / 1000);
+    t_pcb *proceso = proceso_buscar_exec(kernel_hilos_args->estados, pid);
 
-    // // Imprimo el tamaño de la cola de exec y ready
-    // kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "[ROUND ROBIN]: Tamaño de la cola de exec: %d", list_size(kernel_hilos_args->estados->exec));
-    // kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "[ROUND ROBIN]: Tamaño de la cola de ready: %d", list_size(kernel_hilos_args->estados->ready));
-
-    // Verifico que efectivamente haya un proceso en EXEC antes de desalojar.
-    if (list_size(kernel_hilos_args->estados->exec) > 0)
+    if (proceso == NULL)
     {
-        kernel_transicion_exec_ready(kernel_hilos_args);
+        return;
     }
+
+    t_paquete *paquete = crear_paquete(KERNEL_CPU_INTERRUPCION);
+    t_kernel_cpu_interrupcion interrupcion = {.pid = pid};
+    serializar_t_kernel_cpu_interrupcion(&paquete, &interrupcion);
+    enviar_paquete(paquete, kernel_hilos_args->kernel->sockets.cpu_interrupt);
+    kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Desalojado por fin de Quantum", pid);
+
+    free(paquete);
 }
 
 t_pcb *kernel_transicion_exec_ready(hilos_args *kernel_hilos_args)
@@ -161,17 +163,6 @@ t_pcb *kernel_transicion_exec_ready(hilos_args *kernel_hilos_args)
     // Log oficial de la catedra (En procedimiento)
     log_ready(kernel_hilos_args);
     pthread_mutex_unlock(&kernel_hilos_args->estados->mutex_exec_ready);
-    if (strcmp(kernel_hilos_args->kernel->algoritmoPlanificador, "RR") == 0 || strcmp(kernel_hilos_args->kernel->algoritmoPlanificador, "VRR") == 0)
-    {
-        // Log oficial de la catedra
-        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Desalojado por fin de Quantum", proceso->pid);
-
-        t_paquete *paquete = crear_paquete(KERNEL_CPU_INTERRUPCION);
-        t_kernel_cpu_interrupcion interrupcion = {.pid = proceso->pid};
-        serializar_t_kernel_cpu_interrupcion(&paquete, &interrupcion);
-        enviar_paquete(paquete, kernel_hilos_args->kernel->sockets.cpu_interrupt);
-        free(paquete);
-    }
     return proceso;
 };
 
