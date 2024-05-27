@@ -26,26 +26,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             // Actualizo los registros del proceso en exec con los que me envia la CPU
             kernel_log_generic(args, LOG_LEVEL_DEBUG, "Actualizo registros recibidos de PID <%d> por interrupcion.", proceso->pid);
 
-            // Busco el proceso en exec o en ready ya que hay variantes y puede estar en uno o el otro.
-            // Es un tema de sincronizacion, porque estoy recibiendo de CPU que el proceso fue desalojado, asi que
-            // tecnicamente no está ejecutando.
-            // TODO: Hay que revisar esto.
-
-            t_pcb *pcb1 = proceso_buscar_exec(args->estados, proceso->pid);
-            t_pcb *pcb2 = proceso_buscar_ready(args->estados, proceso->pid);
-            t_pcb *pcb = pcb1;
-
-            if (pcb2 == NULL && pcb1 == NULL)
-            {
-                kernel_log_generic(args, LOG_LEVEL_ERROR, "No se encontro el proceso PID <%d> en exec ni en ready", proceso->pid);
-                break;
-            }
-
-            // Si no se encontro en exec, se encontro en ready
-            if (pcb1 == NULL)
-            {
-                pcb = pcb2;
-            }
+            // Envio el proceso a ready desde exec
+            t_pcb *pcb = kernel_transicion_exec_ready(args);
 
             // Actualizo los registros del pcb por los recibios de CPU
             pcb->registros_cpu->ax = proceso->registros.ax;

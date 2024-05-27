@@ -158,8 +158,9 @@ t_diagrama_estados kernel_inicializar_estados(t_diagrama_estados *estados);
  * Se utiliza principalmente en ROUND ROBIN o VIRTUAL ROUND ROBIN
  *
  * @param kernel_hilos_args Son los argumentos que recibe cada hilo al momento de ejecutarse
+ * @param pid Proceso a desalojar
  */
-void kernel_desalojar_proceso(hilos_args *kernel_hilos_args);
+void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, uint32_t pid);
 
 /**
  * Transiciona un PCB del estado EXEC al estado READY en el diagrama de estados del kernel.
