@@ -68,6 +68,7 @@ typedef struct
 
 typedef struct
 {
+    void *marcos;
     t_log *logger;
     t_config *config;
     t_list *lista_procesos;
@@ -133,4 +134,7 @@ void memoria_finalizar(t_args *argumentos);
 void inicializar_modulo(t_args *argumentos);
 void inicializar_logger(t_args *argumentos, t_log_level nivel);
 void inicializar(t_args *args, t_log_level nivel, int argc, char *argv[]);
+
+void memoria_inicializar_marcos(t_args *args);
+
 #endif // MEMORIA_H
