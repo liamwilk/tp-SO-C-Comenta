@@ -404,6 +404,7 @@ void memoria_inicializar_hilos(t_args *argumentos)
 void memoria_inicializar(t_args *argumentos)
 {
     memoria_inicializar_config(argumentos);
+    memoria_inicializar_marcos(argumentos);
     memoria_inicializar_argumentos(argumentos);
     memoria_imprimir_config(argumentos);
     memoria_inicializar_hilos(argumentos);
@@ -418,6 +419,8 @@ void inicializar_modulo(t_args *argumentos)
 void memoria_finalizar(t_args *argumentos)
 {
     eliminar_procesos(argumentos);
+    memoria_liberar_marcos(argumentos);
+    memoria_liberar_bitmap(argumentos);
     config_destroy(argumentos->memoria.config);
     log_destroy(argumentos->logger);
 }
