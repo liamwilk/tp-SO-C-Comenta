@@ -4,7 +4,7 @@
 
 int main(int argc, char *argv[])
 {
-	logger = iniciar_logger("cpu", LOG_LEVEL_DEBUG);
+	logger = iniciar_logger("cpu", LOG_LEVEL_INFO);
 
 	inicializar_config(&config, logger, argc, argv);
 
@@ -107,12 +107,9 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 		// FETCH
 		t_instruccion *tipo_instruccion = malloc(sizeof(t_instruccion));
 
-		int debeTerminar = cpu_memoria_recibir_instruccion(buffer, logger, &instruccion, tipo_instruccion, &proceso);
-
-		if (debeTerminar)
+		if (cpu_memoria_recibir_instruccion(buffer, logger, &instruccion, tipo_instruccion, &proceso) == -1)
 		{
-			log_debug(logger, "Avisando a kernel de finalizacion de proceso");
-			cpu_kernel_avisar_finalizacion(proceso, cpu.socket_kernel_dispatch);
+	        log_error(logger, "Instruccion invalida");
 			break;
 		}
 
@@ -127,6 +124,11 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 		if (hayInterrupcion == 1)
 		{
 			log_debug(logger, "[CPU] Se ejecuto una instruccion de IO. Se avisa a kernel y se termina ciclo de instruccion");
+			break;
+		}
+		if(hayInterrupcion == 3)
+		{
+			log_debug(logger, "[CPU] Avisando a kernel de la finalizacion de un proceso.");
 			break;
 		}
 
