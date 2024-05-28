@@ -419,9 +419,7 @@ void inicializar_modulo(t_args *argumentos)
 void memoria_finalizar(t_args *argumentos)
 {
     eliminar_procesos(argumentos);
-    // Imprimo los bytes liberados de memoria
-    log_debug(argumentos->logger, "Se liberaron %d bytes reservados para el espacio contiguo de memoria", argumentos->memoria.tamMemoria);
-    free(argumentos->memoria.marcos);
+    memoria_liberar_marcos(argumentos);
     config_destroy(argumentos->memoria.config);
     log_destroy(argumentos->logger);
 }

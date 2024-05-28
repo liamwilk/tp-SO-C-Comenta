@@ -69,6 +69,7 @@ typedef struct
 typedef struct
 {
     void *marcos;
+    t_list *bitmap;
     t_log *logger;
     t_config *config;
     t_list *lista_procesos;
@@ -136,5 +137,8 @@ void inicializar_logger(t_args *argumentos, t_log_level nivel);
 void inicializar(t_args *args, t_log_level nivel, int argc, char *argv[]);
 
 void memoria_inicializar_marcos(t_args *args);
+void memoria_liberar_marcos(t_args *args);
+void memoria_inicializar_bitmap(t_args *args);
+void memoria_imprimir_bitmap(t_args *args);
 
 #endif // MEMORIA_H
