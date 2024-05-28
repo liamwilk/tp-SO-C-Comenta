@@ -420,6 +420,7 @@ void memoria_finalizar(t_args *argumentos)
 {
     eliminar_procesos(argumentos);
     memoria_liberar_marcos(argumentos);
+    memoria_liberar_bitmap(argumentos);
     config_destroy(argumentos->memoria.config);
     log_destroy(argumentos->logger);
 }

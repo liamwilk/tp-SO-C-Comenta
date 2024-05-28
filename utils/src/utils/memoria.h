@@ -140,5 +140,6 @@ void memoria_inicializar_marcos(t_args *args);
 void memoria_liberar_marcos(t_args *args);
 void memoria_inicializar_bitmap(t_args *args);
 void memoria_imprimir_bitmap(t_args *args);
+void memoria_liberar_bitmap(t_args *args);
 
 #endif // MEMORIA_H

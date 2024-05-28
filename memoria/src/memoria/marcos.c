@@ -27,6 +27,12 @@ void memoria_liberar_marcos(t_args *args)
     log_debug(args->logger, "Se liberaron %d bytes reservados para el espacio contiguo de memoria", args->memoria.tamMemoria);
 }
 
+void memoria_liberar_bitmap(t_args *args)
+{
+    list_destroy_and_destroy_elements(args->memoria.bitmap, free);
+    log_debug(args->logger, "Se liberaron los elementos del bitmap");
+}
+
 void memoria_inicializar_bitmap(t_args *args)
 {
     args->memoria.bitmap = list_create();
