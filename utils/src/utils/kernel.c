@@ -761,3 +761,31 @@ void reiniciar_prompt(hilos_args *hiloArgs)
     rl_redisplay();
     sem_post(&hiloArgs->kernel->log_lock);
 }
+
+void *hilos_atender_entrada_salida_dialfs(void *args)
+{
+    hilos_io_args *io_args = (hilos_io_args *)args;
+    hilos_ejecutar_entrada_salida(io_args, "I/O DialFS", switch_case_kernel_entrada_salida_dialfs);
+    pthread_exit(0);
+}
+
+void *hilos_atender_entrada_salida_generic(void *args)
+{
+    hilos_io_args *io_args = (hilos_io_args *)args;
+    hilos_ejecutar_entrada_salida(io_args, "I/O Generic", switch_case_kernel_entrada_salida_generic);
+    pthread_exit(0);
+}
+
+void *hilos_atender_entrada_salida_stdin(void *args)
+{
+    hilos_io_args *io_args = (hilos_io_args *)args;
+    hilos_ejecutar_entrada_salida(io_args, "I/O STDIN", switch_case_kernel_entrada_salida_stdin);
+    pthread_exit(0);
+}
+
+void *hilos_atender_entrada_salida_stdout(void *args)
+{
+    hilos_io_args *io_args = (hilos_io_args *)args;
+    hilos_ejecutar_entrada_salida(io_args, "I/O STDOUT", switch_case_kernel_entrada_salida_stdout);
+    pthread_exit(0);
+}

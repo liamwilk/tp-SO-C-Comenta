@@ -4,9 +4,10 @@ void switch_case_memoria_stdout(t_io *args, t_op_code codigo_operacion, t_buffer
 {
     switch (codigo_operacion)
     {
-    case PLACEHOLDER:
+    case MEMORIA_ENTRADA_SALIDA_IDENTIFICACION_RECHAZO:
     {
-        // Placeholder
+        log_error(args->logger, "Memoria rechazó la identificación de Entrada/Salida porque ya se encontraba conectada.");
+        liberar_conexion(&args->sockets.socket_kernel_dialfs);
         break;
     }
     default:
