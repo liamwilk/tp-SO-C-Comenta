@@ -27,6 +27,8 @@ typedef enum
 	KERNEL_CPU_INTERRUPCION,
 	KERNEL_ENTRADA_SALIDA_IDENTIFICACION,
 	MEMORIA_ENTRADA_SALIDA_IDENTIFICACION,
+	CPU_KERNEL_WAIT,
+	CPU_KERNEL_SIGNAL,
 	PLACEHOLDER
 } t_op_code;
 
@@ -174,6 +176,13 @@ typedef struct
 	uint32_t size_identificador;
 	char *identificador;
 } t_entrada_salida_identificacion;
+typedef struct
+{
+	uint32_t pid;
+	t_registros_cpu *registros;
+	uint32_t size_nombre_recurso;
+	char *nombre_recurso;
+} t_cpu_kernel_solicitud_recurso;
 
 /**
  * @fn    *crear_paquete
@@ -652,5 +661,8 @@ void remover_salto_linea(char *argumento_origen);
 void serializar_t_entrada_salida_identificacion(t_paquete **paquete, t_entrada_salida_identificacion *identificacion);
 
 t_entrada_salida_identificacion *deserializar_t_entrada_salida_identificacion(t_buffer *buffer);
+void serializar_t_cpu_kernel_solicitud_recurso(t_paquete **paquete, t_cpu_kernel_solicitud_recurso *contexto);
+
+t_cpu_kernel_solicitud_recurso *deserializar_t_cpu_kernel_solicitud_recurso(t_buffer *buffer);
 
 #endif
