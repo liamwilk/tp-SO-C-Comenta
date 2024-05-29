@@ -131,11 +131,6 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 			log_debug(logger, "[CPU] Proceso desalojado por funcion implicada en manejo de recursos.");
 			break;
 		}
-		if (hayInterrupcion == 3)
-		{
-			log_debug(logger, "[CPU] Avisando a kernel de la finalizacion de un proceso.");
-			break;
-		}
 
 		// TODO: Esto podria necesitar un mutex
 		if (flag_interrupt)
