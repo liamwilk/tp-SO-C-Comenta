@@ -224,7 +224,7 @@ int verificar_argumentos(int argc)
     if (argc == 1)
     {
         printf("-----------------------------------------------------------------------------------\n");
-        printf("Error: No se ha ingresado el nombre del modulo ni path al archivo de configuración.\n");
+        printf("Error: No se ha ingresado el identificador ni path al archivo de configuración.\n");
         printf("Ejemplo desde carpeta entradasalida: ./bin/entradasalida \"Int1\" config/gen.config\n");
         printf("-----------------------------------------------------------------------------------\n");
         return EXIT_FAILURE;
