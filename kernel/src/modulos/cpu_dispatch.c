@@ -11,7 +11,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         // Este caso se da cuando el usuario interrumpio a CPU para finalizar un proceso
         t_pcb *pcb = proceso_buscar_exit(args->estados, proceso->pid);
         // Se verifica que el proceso que se deseo eliminar es el que cpu esta devolviendo y que ademas se encuentra en la cola de exit
-        if (pcb != NULL & pcb->pid == proceso->pid)
+        if (pcb != NULL)
         {
             kernel_log_generic(args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INTERRUPTED_BY_USER>", pid);
             proceso_matar(args->estados, string_itoa(pcb->pid));

@@ -649,6 +649,11 @@ int cpu_ejecutar_instruccion(t_cpu cpu_paquete, t_memoria_cpu_instruccion *datos
 
         return 2;
     }
+    case EXIT:
+    {
+        cpu_kernel_avisar_finalizacion(*cpu_proceso, cpu_paquete.socket_kernel_dispatch);
+        return 3;
+    }
     default:
     {
         log_error(logger, "Instruccion invalida");
@@ -666,13 +671,7 @@ int cpu_memoria_recibir_instruccion(t_buffer *buffer, t_log *logger, t_memoria_c
     proceso->registros.pc += 1;
     if (*instruccion == -1)
     {
-        log_error(logger, "Instruccion invalida");
         return -1;
-    }
-    if (*instruccion == EXIT)
-    {
-        log_debug(logger, "Reconoci el EXIT. Termino.");
-        return 1;
     }
     *datos_instruccion = *dato;
     free(dato);
