@@ -62,6 +62,7 @@ typedef struct
     int orden;
     int socket;
     bool identificado;
+    bool valido;
     char *interfaz;
     KERNEL_SOCKETS tipo;
 } t_kernel_entrada_salida;
@@ -130,6 +131,9 @@ typedef struct
     hilos_args *args;
     t_kernel_entrada_salida *entrada_salida;
 } hilos_io_args;
+
+typedef void (*t_funcion_kernel_ptr)(t_log *, t_op_code, hilos_args *, t_buffer *);
+typedef void (*t_funcion_kernel_io_prt)(hilos_io_args *, char *, t_op_code, t_buffer *);
 
 /**
  * @brief Formatea y registra un mensaje genérico con un número variable de argumentos.
@@ -292,6 +296,11 @@ void registrar_manejador_senales();
 char *generar_prompt();
 void reiniciar_prompt(hilos_args *hiloArgs);
 
+void hilos_ejecutar_entrada_salida(hilos_io_args *io_args, char *modulo, t_funcion_kernel_io_prt switch_case_atencion);
+void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *modulo, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_kernel_entrada_salida_stdin(hilos_io_args *io_args, char *modulo, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_kernel_entrada_salida_stdout(hilos_io_args *io_args, char *modulo, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_kernel_entrada_salida_dialfs(hilos_io_args *io_args, char *modulo, t_op_code codigo_operacion, t_buffer *buffer);
 void kernel_interrumpir_cpu(hilos_args *args, uint32_t pid, char *motivo);
 
 void kernel_avisar_memoria_finalizacion_proceso(hilos_args *args, uint32_t pid);
@@ -326,5 +335,4 @@ void kernel_transicion_block_exit(hilos_args *kernel_hilos_args, uint32_t pid);
  * @return Un puntero a la interfaz t_kernel_entrada_salida encontrada, o NULL si no se encuentra.
  */
 t_kernel_entrada_salida *kernel_entrada_salida_buscar_interfaz(hilos_args *args, uint32_t pid);
-
 #endif /* KERNEL_H */
