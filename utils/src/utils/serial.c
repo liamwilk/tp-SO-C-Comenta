@@ -754,9 +754,18 @@ t_kernel_cpu_proceso *deserializar_t_kernel_cpu_proceso(t_buffer *buffer)
 
 void serializar_t_kernel_cpu_interrupcion(t_paquete **paquete, t_kernel_cpu_interrupcion *interrupcion)
 {
-	actualizar_buffer(*paquete, sizeof(uint32_t));
+	actualizar_buffer(*paquete, sizeof(uint32_t) + sizeof(uint32_t) + interrupcion->len_motivo);
 	serializar_uint32_t(interrupcion->pid, *paquete);
+	serializar_uint32_t(interrupcion->len_motivo, *paquete);
+	serializar_char(interrupcion->motivo, *paquete);
 }
+void serializar_t_kernel_io_interrupcion(t_paquete **paquete, t_kernel_io_interrupcion *interrupcion)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) + sizeof(uint32_t) + interrupcion->len_motivo);
+	serializar_uint32_t(interrupcion->pid, *paquete);
+	serializar_uint32_t(interrupcion->len_motivo, *paquete);
+	serializar_char(interrupcion->motivo, *paquete);
+};
 
 void serializar_t_entrada_salida_identificacion(t_paquete **paquete, t_entrada_salida_identificacion *identificacion)
 {
@@ -781,7 +790,8 @@ t_kernel_cpu_interrupcion *deserializar_t_kernel_cpu_interrupcion(t_buffer *buff
 	t_kernel_cpu_interrupcion *interrupcion = malloc(sizeof(t_kernel_cpu_interrupcion));
 	void *stream = buffer->stream;
 	deserializar_uint32_t(&stream, &(interrupcion->pid));
-
+	deserializar_uint32_t(&stream, &(interrupcion->len_motivo));
+	deserializar_char(&stream, &(interrupcion->motivo), interrupcion->len_motivo);
 	return interrupcion;
 }
 
@@ -791,4 +801,61 @@ void remover_salto_linea(char *argumento_origen)
 	{
 		argumento_origen[strlen(argumento_origen) - 1] = '\0';
 	}
+}
+void serializar_t_cpu_kernel_solicitud_recurso(t_paquete **paquete, t_cpu_kernel_solicitud_recurso *contexto)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 9 + sizeof(uint8_t) * 4 + contexto->size_nombre_recurso);
+
+	// PCB:
+	serializar_uint32_t(contexto->pid, *paquete);
+	serializar_uint32_t(contexto->registros->pc, *paquete);
+	serializar_uint32_t(contexto->registros->eax, *paquete);
+	serializar_uint32_t(contexto->registros->ebx, *paquete);
+	serializar_uint32_t(contexto->registros->ecx, *paquete);
+	serializar_uint32_t(contexto->registros->edx, *paquete);
+	serializar_uint32_t(contexto->registros->si, *paquete);
+	serializar_uint32_t(contexto->registros->di, *paquete);
+	serializar_uint8_t(contexto->registros->ax, *paquete);
+	serializar_uint8_t(contexto->registros->bx, *paquete);
+	serializar_uint8_t(contexto->registros->cx, *paquete);
+	serializar_uint8_t(contexto->registros->dx, *paquete);
+
+	serializar_uint32_t(contexto->size_nombre_recurso, *paquete);
+	serializar_char(contexto->nombre_recurso, *paquete);
+}
+
+t_cpu_kernel_solicitud_recurso *deserializar_t_cpu_kernel_solicitud_recurso(t_buffer *buffer)
+{
+	t_cpu_kernel_solicitud_recurso *ret = malloc(sizeof(t_cpu_kernel_solicitud_recurso));
+	ret->registros = malloc(sizeof(t_registros_cpu));
+
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(ret->pid));
+	deserializar_uint32_t(&stream, &(ret->registros->pc));
+	deserializar_uint32_t(&stream, &(ret->registros->eax));
+	deserializar_uint32_t(&stream, &(ret->registros->ebx));
+	deserializar_uint32_t(&stream, &(ret->registros->ecx));
+	deserializar_uint32_t(&stream, &(ret->registros->edx));
+	deserializar_uint32_t(&stream, &(ret->registros->si));
+	deserializar_uint32_t(&stream, &(ret->registros->di));
+	deserializar_uint8_t(&stream, &(ret->registros->ax));
+	deserializar_uint8_t(&stream, &(ret->registros->bx));
+	deserializar_uint8_t(&stream, &(ret->registros->cx));
+	deserializar_uint8_t(&stream, &(ret->registros->dx));
+
+	deserializar_uint32_t(&stream, &(ret->size_nombre_recurso));
+	deserializar_char(&stream, &(ret->nombre_recurso), ret->size_nombre_recurso);
+
+	return ret;
+}
+
+t_kernel_io_interrupcion *deserializar_t_kernel_io_interrupcion(t_buffer *buffer)
+{
+	t_kernel_io_interrupcion *interrupcion = malloc(sizeof(t_kernel_io_interrupcion));
+	void *stream = buffer->stream;
+	deserializar_uint32_t(&stream, &(interrupcion->pid));
+	deserializar_uint32_t(&stream, &(interrupcion->len_motivo));
+	deserializar_char(&stream, &(interrupcion->motivo), interrupcion->len_motivo);
+	return interrupcion;
 }

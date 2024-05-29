@@ -130,7 +130,6 @@ void *hilo_planificador(void *args)
     while (obtener_key_finalizacion_hilo(hiloArgs))
     {
         sem_wait(&hiloArgs->kernel->planificador_iniciar);
-
         if (!obtener_key_finalizacion_hilo(hiloArgs))
         {
             break;

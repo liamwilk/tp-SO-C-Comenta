@@ -8,17 +8,25 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
     {
         t_cpu_kernel_proceso *proceso = deserializar_t_cpu_kernel_proceso(buffer);
 
+        // Este caso se da cuando el usuario interrumpio a CPU para finalizar un proceso
+        t_pcb *pcb = proceso_buscar_exit(args->estados, proceso->pid);
+        // Se verifica que el proceso que se deseo eliminar es el que cpu esta devolviendo y que ademas se encuentra en la cola de exit
+        if (pcb != NULL)
+        {
+            kernel_log_generic(args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INTERRUPTED_BY_USER>", pid);
+            proceso_matar(args->estados, string_itoa(pcb->pid));
+            free(proceso);
+            break;
+        }
+
         if (proceso->ejecutado)
         {
             kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso PID:<%d> ejecutado completo. Transicionar a exit", proceso->pid);
 
-            kernel_transicion_exec_exit(args);
             kernel_finalizar_proceso(args, proceso->pid, SUCCESS);
-            t_paquete *paquete_finalizar = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
-            t_kernel_memoria_finalizar_proceso finalizar_proceso = {.pid = proceso->pid};
-            serializar_t_kernel_memoria_finalizar_proceso(&paquete_finalizar, &finalizar_proceso);
-            enviar_paquete(paquete_finalizar, args->kernel->sockets.memoria);
-            eliminar_paquete(paquete_finalizar);
+
+            kernel_avisar_memoria_finalizacion_proceso(args, proceso->pid);
+
             sem_post(&args->kernel->planificador_iniciar);
         }
         else
@@ -47,6 +55,33 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         }
 
         free(proceso);
+        break;
+    }
+    case CPU_KERNEL_WAIT:
+    {
+        t_cpu_kernel_solicitud_recurso *solicitud_recurso = malloc(sizeof(t_cpu_kernel_solicitud_recurso));
+        solicitud_recurso = deserializar_t_cpu_kernel_solicitud_recurso(buffer);
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Recurso solicitado (WAIT) por CPU para el proceso <PID: %d>: %s", solicitud_recurso->pid, solicitud_recurso->nombre_recurso);
+
+        // TODO: Implementar logica del manejo de WAIT en kernel.
+
+        free(solicitud_recurso->nombre_recurso);
+        free(solicitud_recurso);
+
+        break;
+    }
+    case CPU_KERNEL_SIGNAL:
+    {
+        t_cpu_kernel_solicitud_recurso *solicitud_recurso = malloc(sizeof(t_cpu_kernel_solicitud_recurso));
+        solicitud_recurso = deserializar_t_cpu_kernel_solicitud_recurso(buffer);
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Recurso liberado (SIGNAL) por CPU para el proceso <PID: %d>: %s", solicitud_recurso->pid, solicitud_recurso->nombre_recurso);
+
+        // TODO: Implementar logica del manejo de SIGNAL en kernel.
+
+        free(solicitud_recurso->nombre_recurso);
+        free(solicitud_recurso);
         break;
     }
     default:

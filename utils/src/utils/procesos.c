@@ -221,7 +221,6 @@ t_pcb *proceso_buscar_exit(t_diagrama_estados *estados, int pid)
 
 char *proceso_estado(t_diagrama_estados *estados, int pid)
 {
-    // Busca en estados->procesos
     char *pid_str = string_itoa(pid);
     char *estado = dictionary_get(estados->procesos, pid_str);
     if (estado == NULL)
@@ -231,138 +230,51 @@ char *proceso_estado(t_diagrama_estados *estados, int pid)
     return estado;
 }
 
-bool proceso_matar(t_diagrama_estados *estados, char *pid)
+void proceso_matar(t_diagrama_estados *estados, char *pid)
 {
-    // Obtener en que estado esta el proceso
+    /**LIBERA LA MEMORIA DE ESE PROCESO EN KERNEL**/
+
+    char *estado = proceso_estado(estados, atoi(pid));
+    t_list *cola = proceso_obtener_estado(estados, estado);
     int pidNumber = atoi(pid);
-    char *estado = proceso_estado(estados, pidNumber);
-    if (estado == NULL)
+    for (int i = 0; i < list_size(cola); i++)
     {
-        return false;
+        t_pcb *proceso = list_get(cola, i);
+        if (proceso->pid == pidNumber)
+        {
+            list_remove_and_destroy_element(cola, i, free);
+
+            /**SE AGREGA REFERENCIA A ESTADO EXIT DEL PROCESO EN DICCIONARIO**/
+            dictionary_put(estados->procesos, pid, "EXIT");
+            return;
+        }
     }
+}
+
+t_list *proceso_obtener_estado(t_diagrama_estados *estados, char *estado)
+{
     if (strcmp(estado, "NEW") == 0)
     {
-        // Buscar en la lista de new
-        for (int i = 0; i < list_size(estados->new); i++)
-        {
-            t_pcb *proceso = list_get(estados->new, i);
-            if (proceso->pid == pidNumber)
-            {
-                proceso_push_exit(estados, proceso);
-                list_remove_and_destroy_element(estados->new, i, free);
-                return true;
-            }
-        }
+        return estados->new;
     }
     else if (strcmp(estado, "READY") == 0)
     {
-        for (int i = 0; i < list_size(estados->ready); i++)
-        {
-            t_pcb *proceso = list_get(estados->ready, i);
-            if (proceso->pid == pidNumber)
-            {
-                proceso_push_exit(estados, proceso);
-                list_remove_and_destroy_element(estados->ready, i, free);
-                return true;
-            }
-        }
+        return estados->ready;
     }
     else if (strcmp(estado, "EXEC") == 0)
     {
-        for (int i = 0; i < list_size(estados->exec); i++)
-        {
-            t_pcb *proceso = list_get(estados->exec, i);
-            if (proceso->pid == pidNumber)
-            {
-                proceso_push_exit(estados, proceso);
-                list_remove_and_destroy_element(estados->exec, i, free);
-                return true;
-            }
-        }
+        return estados->exec;
     }
     else if (strcmp(estado, "BLOCK") == 0)
     {
-        for (int i = 0; i < list_size(estados->block); i++)
-        {
-            t_pcb *proceso = list_get(estados->block, i);
-            if (proceso->pid == pidNumber)
-            {
-                proceso_push_exit(estados, proceso);
-                list_remove_and_destroy_element(estados->block, i, free);
-                return true;
-            }
-        }
+        return estados->block;
     }
     else if (strcmp(estado, "EXIT") == 0)
     {
-        for (int i = 0; i < list_size(estados->exit); i++)
-        {
-            t_pcb *proceso = list_get(estados->exit, i);
-            if (proceso->pid == pidNumber)
-            {
-                list_remove_and_destroy_element(estados->exit, i, free);
-                return true;
-            }
-        }
+        return estados->exit;
     }
     else
     {
-        return false;
-    };
-
-    // Actualizar direccion del proceso y dejarlo en estado EXIT
-
-    return true;
-}
-
-void procesos_inicializar_buffer_transiciones(t_dictionary *buffer)
-{
-    char *transiciones[] = {
-        "NEW_READY",
-        "READY_EXEC",
-        "EXEC_BLOCK",
-        "BLOCK_READY",
-        "EXEC_READY",
-        "EXEC_EXIT",
-        "BLOCK_EXIT",
-        "NEW_EXIT",
-        "READY_EXIT",
-        "EXIT_CPU",
-        "EXIT_MEMORIA"};
-    for (int i = 0; i < 11; i++)
-    {
-        dictionary_put(buffer, transiciones[i], list_create());
+        return NULL;
     }
-}
-
-char *obtener_transicion_enum(t_buffer_transicion TRANSICION)
-{
-    // Dada una transicion devolver el char*
-    switch (TRANSICION)
-    {
-    case NEW_READY:
-        return "NEW_READY";
-    case READY_EXEC:
-        return "READY_EXEC";
-    case EXEC_BLOCK:
-        return "EXEC_BLOCK";
-    case BLOCK_READY:
-        return "BLOCK_READY";
-    case EXEC_READY:
-        return "EXEC_READY";
-    case EXEC_EXIT:
-        return "EXEC_EXIT";
-    case NEW_EXIT:
-        return "NEW_EXIT";
-    case READY_EXIT:
-        return "READY_EXIT";
-    case EXIT_CPU:
-        return "EXIT_CPU";
-    case EXIT_MEMORIA:
-        return "EXIT_MEMORIA";
-    case BLOCK_EXIT:
-        return "BLOCK_EXIT";
-    default:
-        return "ERROR";
-    }
-}
+};
