@@ -11,7 +11,7 @@ void switch_case_memoria_entrada_salida_stdout(t_args_hilo *argumentos, char* mo
 		if (buscar_interfaz(argumentos->argumentos, identificacion->identificador) != NULL)
 		{
 			agregar_identificador_rechazado(argumentos, "no identificada");
-			log_warning(argumentos->argumentos->logger,  "[%s/%d] Se rechazo identificacion, identificador %s ocupado. Cierro hilo.", modulo, argumentos->entrada_salida->orden, argumentos->entrada_salida->interfaz);
+			log_warning(argumentos->argumentos->logger,  "[%s/%d] Se rechazo identificacion, identificador %s ocupado. Cierro hilo.", modulo, argumentos->entrada_salida->orden, identificacion->identificador);
 			
 			argumentos->entrada_salida->valido = false;
 			argumentos->argumentos->memoria.sockets.id_entrada_salida--;
@@ -25,6 +25,8 @@ void switch_case_memoria_entrada_salida_stdout(t_args_hilo *argumentos, char* mo
 
 		log_debug(argumentos->argumentos->logger, "[%s/%s/%d] Se recibio identificador válido.", modulo, identificacion->identificador, argumentos->entrada_salida->orden);
 
+		free(identificacion->identificador);
+		free(identificacion);
 		break;
 	}
 	default:
