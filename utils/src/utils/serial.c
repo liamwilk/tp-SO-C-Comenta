@@ -758,6 +758,24 @@ void serializar_t_kernel_cpu_interrupcion(t_paquete **paquete, t_kernel_cpu_inte
 	serializar_uint32_t(interrupcion->pid, *paquete);
 }
 
+void serializar_t_entrada_salida_identificacion(t_paquete **paquete, t_entrada_salida_identificacion *identificacion)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) + identificacion->size_identificador);
+	serializar_uint32_t(identificacion->size_identificador, *paquete);
+	serializar_char(identificacion->identificador, *paquete);
+}
+
+t_entrada_salida_identificacion *deserializar_t_entrada_salida_identificacion(t_buffer *buffer)
+{
+	t_entrada_salida_identificacion *dato = malloc(sizeof(t_kernel_memoria_proceso));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(dato->size_identificador));
+	deserializar_char(&stream, &(dato->identificador), dato->size_identificador);
+
+	return dato;
+}
+
 t_kernel_cpu_interrupcion *deserializar_t_kernel_cpu_interrupcion(t_buffer *buffer)
 {
 	t_kernel_cpu_interrupcion *interrupcion = malloc(sizeof(t_kernel_cpu_interrupcion));
