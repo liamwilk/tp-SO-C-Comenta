@@ -754,8 +754,10 @@ t_kernel_cpu_proceso *deserializar_t_kernel_cpu_proceso(t_buffer *buffer)
 
 void serializar_t_kernel_cpu_interrupcion(t_paquete **paquete, t_kernel_cpu_interrupcion *interrupcion)
 {
-	actualizar_buffer(*paquete, sizeof(uint32_t));
+	actualizar_buffer(*paquete, sizeof(uint32_t) + sizeof(uint32_t) + interrupcion->len_motivo);
 	serializar_uint32_t(interrupcion->pid, *paquete);
+	serializar_uint32_t(interrupcion->len_motivo, *paquete);
+	serializar_char(interrupcion->motivo, *paquete);
 }
 
 t_kernel_cpu_interrupcion *deserializar_t_kernel_cpu_interrupcion(t_buffer *buffer)
@@ -763,7 +765,8 @@ t_kernel_cpu_interrupcion *deserializar_t_kernel_cpu_interrupcion(t_buffer *buff
 	t_kernel_cpu_interrupcion *interrupcion = malloc(sizeof(t_kernel_cpu_interrupcion));
 	void *stream = buffer->stream;
 	deserializar_uint32_t(&stream, &(interrupcion->pid));
-
+	deserializar_uint32_t(&stream, &(interrupcion->len_motivo));
+	deserializar_char(&stream, &(interrupcion->motivo), interrupcion->len_motivo);
 	return interrupcion;
 }
 

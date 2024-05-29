@@ -36,20 +36,8 @@ void fifo(hilos_args *kernel_hilos_args)
 
 void round_robin(hilos_args *kernel_hilos_args)
 {
-    // kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "[ROUND ROBIN]: Tamaño de la cola de exec: %d", list_size(kernel_hilos_args->estados->exec));
-    // kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "[ROUND ROBIN]: Tamaño de la cola de ready: %d", list_size(kernel_hilos_args->estados->ready));
-
     if (list_size(kernel_hilos_args->estados->exec) == 0 && list_size(kernel_hilos_args->estados->ready) > 0)
     {
-        // int size_exec = list_size(kernel_hilos_args->estados->exec);
-        // int size_ready = list_size(kernel_hilos_args->estados->ready);
-        // int element_count_exec = kernel_hilos_args->estados->exec->elements_count;
-        // int element_count_ready = kernel_hilos_args->estados->ready->elements_count;
-        // kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "[ROUND ROBIN]: Tamaño de la cola de exec: %d", size_exec);
-        // kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "[ROUND ROBIN]: Tamaño de la cola de ready: %d", size_ready);
-
-        // kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "[ROUND ROBIN]: Elementos en exec (elemnts count): %d", element_count_exec);
-        // kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "[ROUND ROBIN]: Elementos en ready (elemnts count): %d", element_count_ready);
         t_pcb *aux = kernel_transicion_ready_exec(kernel_hilos_args);
         if (aux != NULL)
         {

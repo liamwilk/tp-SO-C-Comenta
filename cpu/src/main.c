@@ -139,7 +139,7 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 		}
 
 		cpu_memoria_pedir_proxima_instruccion(&proceso, cpu.socket_memoria);
-		log_debug(logger, "Instruccion PC %d de PID <%d> pedida a Memoria",proceso.registros.pc,proceso.pid);
+		log_debug(logger, "Instruccion PC %d de PID <%d> pedida a Memoria", proceso.registros.pc, proceso.pid);
 		free(tipo_instruccion);
 		break;
 	}
@@ -162,7 +162,7 @@ void switch_case_kernel_dispatch(t_log *logger, t_op_code codigo_operacion, t_bu
 		proceso = cpu_kernel_recibir_proceso(buffer, logger);
 		/*PEDIR INSTRUCCION*/
 		cpu_memoria_pedir_proxima_instruccion(&proceso, cpu.socket_memoria);
-		log_debug(logger, "Instruccion PC %d de PID <%d> pedida a Memoria",proceso.registros.pc,proceso.pid);
+		log_debug(logger, "Instruccion PC %d de PID <%d> pedida a Memoria", proceso.registros.pc, proceso.pid);
 		break;
 	}
 	default:

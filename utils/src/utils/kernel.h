@@ -291,4 +291,8 @@ void registrar_manejador_senales();
 char *generar_prompt();
 void reiniciar_prompt(hilos_args *hiloArgs);
 
+void kernel_interrumpir_cpu(hilos_args *args, uint32_t pid, char *motivo);
+
+void kernel_avisar_memoria_finalizacion_proceso(hilos_args *args, uint32_t pid);
+
 #endif /* KERNEL_H */

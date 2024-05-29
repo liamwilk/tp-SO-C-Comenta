@@ -104,6 +104,8 @@ typedef struct
 typedef struct
 {
 	uint32_t pid;
+	uint32_t len_motivo;
+	char *motivo;
 } t_kernel_cpu_interrupcion;
 
 typedef struct

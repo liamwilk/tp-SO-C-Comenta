@@ -14,7 +14,6 @@ t_diagrama_estados kernel_inicializar_estados(t_diagrama_estados *estados)
     exit = list_create();
     // Inicializar diccionario de procesos
     estados->procesos = dictionary_create();
-    estados->buffer_procesos = dictionary_create();
     t_diagrama_estados diagrama = {
         .new = new,
         .ready = ready,
@@ -130,18 +129,20 @@ void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, uint32_t pid)
 {
     sleep(kernel_hilos_args->kernel->quantum / 1000);
     t_pcb *proceso = proceso_buscar_exec(kernel_hilos_args->estados, pid);
-
     if (proceso == NULL)
     {
         return;
     }
+    kernel_interrumpir_cpu(kernel_hilos_args, pid, "QUANTUM");
+    kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Desalojado por fin de Quantum", pid);
+}
 
+void kernel_interrumpir_cpu(hilos_args *kernel_hilos_args, uint32_t pid, char *motivo)
+{
     t_paquete *paquete = crear_paquete(KERNEL_CPU_INTERRUPCION);
-    t_kernel_cpu_interrupcion interrupcion = {.pid = pid};
+    t_kernel_cpu_interrupcion interrupcion = {.pid = pid, .motivo = motivo, .len_motivo = strlen(motivo) + 1};
     serializar_t_kernel_cpu_interrupcion(&paquete, &interrupcion);
     enviar_paquete(paquete, kernel_hilos_args->kernel->sockets.cpu_interrupt);
-    kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Desalojado por fin de Quantum", pid);
-
     free(paquete);
 }
 
@@ -426,17 +427,50 @@ void log_ready(hilos_args *kernel_hilos_args)
 
 bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNEL_MOTIVO_FINALIZACION MOTIVO)
 {
+    char *estado = proceso_estado(kernel_hilos_args->estados, pid);
+
+    if (estado == NULL)
+    {
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "El PID <%d> no existe", pid);
+        return false;
+    }
+
+    if (strcmp(estado, "EXIT") == 0)
+    {
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "El PID <%d> YA ha sido eliminado", pid);
+        return false;
+    }
+
     switch (MOTIVO)
     {
     case INTERRUPTED_BY_USER:
     {
+        if (strcmp(estado, "EXEC") == 0)
+        {
+            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "El proceso <%d> se encuentra en ejecucion, se procede a desalojarlo", pid);
+            kernel_interrumpir_cpu(kernel_hilos_args, pid, "FINALIZAR_PROCESO");
+            kernel_transicion_exec_exit(kernel_hilos_args);
+            return false;
+        }
+        if (strcmp(estado, "BLOCK") == 0)
+        {
+            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "El proceso <%d> se encuentra bloqueado, se procede a desbloquearlo", pid);
+            // kernel_interrumpir_io(kernel_hilos_args, pid, "FINALIZAR_PROCESO");
+            // kernel_transicion_block_exit(kernel_hilos_args, pid);
+            return false;
+        }
+
+        // Esta en ready o en new por lo tanto se puede eliminar tranquilamente
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INTERRUPTED_BY_USER>", pid);
-        return proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+        proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+        return true;
     }
     case SUCCESS:
     {
+        kernel_transicion_exec_exit(kernel_hilos_args);
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <SUCCESS>", pid);
-        return proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+        proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+        return true;
     }
     default:
 
@@ -513,7 +547,7 @@ void hilo_planificador_detener(hilos_args *args)
 t_pcb *kernel_nuevo_proceso(hilos_args *args, t_diagrama_estados *estados, t_log *logger, char *instrucciones)
 {
     t_pcb *nuevaPcb = pcb_crear(logger, args->kernel->quantum);
-    // TODO: esto hay que pasarlo a imprimimr_log para que no rompa la consola
+
     kernel_log_generic(args, LOG_LEVEL_DEBUG, "[PCB] Program Counter: %d", nuevaPcb->registros_cpu->pc);
     kernel_log_generic(args, LOG_LEVEL_DEBUG, "[PCB] Quantum: %d", nuevaPcb->quantum);
     kernel_log_generic(args, LOG_LEVEL_DEBUG, "[PCB] PID: %d", nuevaPcb->pid);
@@ -786,4 +820,15 @@ void reiniciar_prompt(hilos_args *hiloArgs)
     pthread_mutex_unlock(&hiloArgs->kernel->lock);
     rl_redisplay();
     sem_post(&hiloArgs->kernel->log_lock);
+}
+
+void kernel_avisar_memoria_finalizacion_proceso(hilos_args *args, uint32_t pid)
+{
+    t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
+    t_kernel_memoria_finalizar_proceso *proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
+    proceso->pid = pid;
+    serializar_t_kernel_memoria_finalizar_proceso(&paquete, proceso);
+    enviar_paquete(paquete, args->kernel->sockets.memoria);
+    eliminar_paquete(paquete);
+    free(proceso);
 }

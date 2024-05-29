@@ -942,7 +942,7 @@ int cpu_recibir_interrupcion(t_log *logger, t_buffer *buffer, t_cpu_proceso proc
     t_kernel_cpu_interrupcion *interrupcion = deserializar_t_kernel_cpu_interrupcion(buffer);
     if (interrupcion->pid == proceso.pid)
     {
-        log_debug(logger, "Se detecto una solicitud de interrupcion para el proceso de PID: %d", interrupcion->pid);
+        log_debug(logger, "[INTERRUPCION/%s] PID: <%d>", interrupcion->motivo, interrupcion->pid);
         free(interrupcion);
         return 1;
     }
