@@ -376,38 +376,33 @@ void *hilos_esperar_entrada_salida(void *args)
         hilos_io_args *io_args = malloc(sizeof(hilos_io_args));
         io_args->args = hiloArgs;
         io_args->entrada_salida = NULL;
-        char *interfaz = NULL;
 
         switch (modulo)
         {
         case KERNEL_ENTRADA_SALIDA_GENERIC:
             kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida generico con socket %d", socket_cliente);
-            interfaz = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_GENERIC, socket_cliente);
-            io_args->entrada_salida = entrada_salida_buscar_interfaz(hiloArgs, interfaz);
+            io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_GENERIC, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_generic, io_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
         case KERNEL_ENTRADA_SALIDA_STDIN:
             kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida STDIN con socket %d", socket_cliente);
-            interfaz = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_STDIN, socket_cliente);
-            io_args->entrada_salida = entrada_salida_buscar_interfaz(hiloArgs, interfaz);
+            io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_STDIN, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_stdin, io_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
         case KERNEL_ENTRADA_SALIDA_STDOUT:
             kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida STDOUT con socket %d", socket_cliente);
-            interfaz = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_STDOUT, socket_cliente);
-            io_args->entrada_salida = entrada_salida_buscar_interfaz(hiloArgs, interfaz);
+            io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_STDOUT, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_stdout, io_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
         case KERNEL_ENTRADA_SALIDA_DIALFS:
             kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida DialFS con socket %d", socket_cliente);
-            interfaz = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_DIALFS, socket_cliente);
-            io_args->entrada_salida = entrada_salida_buscar_interfaz(hiloArgs, interfaz);
+            io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_DIALFS, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_dialfs, io_args);
             pthread_detach(thread_atender_entrada_salida);
@@ -427,20 +422,33 @@ void *hilos_atender_entrada_salida_generic(void *args)
     hilos_io_args *io_args = (hilos_io_args *)args;
 
     char *modulo = "I/O Generic";
-    char *interfaz = io_args->entrada_salida->interfaz;
     int orden = io_args->entrada_salida->orden;
     int *socket = &io_args->entrada_salida->socket;
 
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, *socket);
-
     while (1)
     {
-        kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, *socket);
+        if (io_args->entrada_salida->identificado)
+        {
+            kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, io_args->entrada_salida->interfaz, orden, *socket);
+        }
+        else
+        {
+            kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Orden %d] Esperando identificador en socket %d", modulo, orden, *socket);
+        }
+
         t_paquete *paquete = recibir_paquete(io_args->args->logger, socket);
 
         if (paquete == NULL)
         {
-            kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, interfaz, orden);
+
+            if (io_args->entrada_salida->identificado)
+            {
+                kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Se desconecto.", modulo, io_args->entrada_salida->interfaz, orden);
+            }
+            else
+            {
+                kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Orden %d] Se desconecto.", modulo, orden);
+            }
             break;
         }
 
@@ -448,6 +456,16 @@ void *hilos_atender_entrada_salida_generic(void *args)
 
         switch (paquete->codigo_operacion)
         {
+        case KERNEL_ENTRADA_SALIDA_IDENTIFICACION:
+        {
+            t_entrada_salida_identificacion *identificacion = deserializar_t_entrada_salida_identificacion(paquete->buffer);
+
+            entrada_salida_agregar_identificador(io_args, identificacion->identificador);
+
+            kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Se recibio identificador.", modulo, identificacion->identificador, orden);
+
+            break;
+        }
         case ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP:
         {
             t_entrada_salida_kernel_unidad_de_trabajo *unidad = deserializar_t_entrada_salida_kernel_unidad_de_trabajo(paquete->buffer);
@@ -464,7 +482,7 @@ void *hilos_atender_entrada_salida_generic(void *args)
         }
         default:
         {
-            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, interfaz, orden);
+            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, io_args->entrada_salida->interfaz, orden);
             liberar_conexion(socket);
             break;
         }
@@ -472,9 +490,9 @@ void *hilos_atender_entrada_salida_generic(void *args)
         eliminar_paquete(paquete);
     }
 
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, interfaz, orden);
+    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, io_args->entrada_salida->interfaz, orden);
 
-    entrada_salida_remover_interfaz(io_args->args, interfaz);
+    entrada_salida_remover_interfaz(io_args->args, io_args->entrada_salida->interfaz);
 
     free(io_args);
     pthread_exit(0);
@@ -485,34 +503,53 @@ void *hilos_atender_entrada_salida_stdin(void *args)
     hilos_io_args *io_args = (hilos_io_args *)args;
 
     char *modulo = "I/O STDIN";
-    char *interfaz = io_args->entrada_salida->interfaz;
     int orden = io_args->entrada_salida->orden;
     int *socket = &io_args->entrada_salida->socket;
 
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, *socket);
-
     while (1)
     {
-        kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, *socket);
+        if (io_args->entrada_salida->identificado)
+        {
+            kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, io_args->entrada_salida->interfaz, orden, *socket);
+        }
+        else
+        {
+            kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Orden %d] Esperando identificador en socket %d", modulo, orden, *socket);
+        }
+
         t_paquete *paquete = recibir_paquete(io_args->args->logger, socket);
 
         if (paquete == NULL)
         {
-            kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, interfaz, orden);
+
+            if (io_args->entrada_salida->identificado)
+            {
+                kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Se desconecto.", modulo, io_args->entrada_salida->interfaz, orden);
+            }
+            else
+            {
+                kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Orden %d] Se desconecto.", modulo, orden);
+            }
             break;
         }
-        revisar_paquete(paquete, io_args->args->logger, modulo);
+
+        kernel_revisar_paquete(paquete, io_args->args, modulo);
 
         switch (paquete->codigo_operacion)
         {
-        case PLACEHOLDER:
+        case KERNEL_ENTRADA_SALIDA_IDENTIFICACION:
         {
-            // Placeholder
+            t_entrada_salida_identificacion *identificacion = deserializar_t_entrada_salida_identificacion(paquete->buffer);
+
+            entrada_salida_agregar_identificador(io_args, identificacion->identificador);
+
+            kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Se recibio identificador.", modulo, identificacion->identificador, orden);
+
             break;
         }
         default:
         {
-            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, interfaz, orden);
+            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, io_args->entrada_salida->interfaz, orden);
             liberar_conexion(socket);
             break;
         }
@@ -520,9 +557,9 @@ void *hilos_atender_entrada_salida_stdin(void *args)
         eliminar_paquete(paquete);
     }
 
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, interfaz, orden);
+    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, io_args->entrada_salida->interfaz, orden);
 
-    entrada_salida_remover_interfaz(io_args->args, interfaz);
+    entrada_salida_remover_interfaz(io_args->args, io_args->entrada_salida->interfaz);
 
     free(io_args);
     pthread_exit(0);
@@ -533,34 +570,53 @@ void *hilos_atender_entrada_salida_stdout(void *args)
     hilos_io_args *io_args = (hilos_io_args *)args;
 
     char *modulo = "I/O STDOUT";
-    char *interfaz = io_args->entrada_salida->interfaz;
     int orden = io_args->entrada_salida->orden;
     int *socket = &io_args->entrada_salida->socket;
 
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, *socket);
-
     while (1)
     {
-        kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, *socket);
+        if (io_args->entrada_salida->identificado)
+        {
+            kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, io_args->entrada_salida->interfaz, orden, *socket);
+        }
+        else
+        {
+            kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Orden %d] Esperando identificador en socket %d", modulo, orden, *socket);
+        }
+
         t_paquete *paquete = recibir_paquete(io_args->args->logger, socket);
 
         if (paquete == NULL)
         {
-            kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, interfaz, orden);
+
+            if (io_args->entrada_salida->identificado)
+            {
+                kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Se desconecto.", modulo, io_args->entrada_salida->interfaz, orden);
+            }
+            else
+            {
+                kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Orden %d] Se desconecto.", modulo, orden);
+            }
             break;
         }
-        revisar_paquete(paquete, io_args->args->logger, modulo);
+
+        kernel_revisar_paquete(paquete, io_args->args, modulo);
 
         switch (paquete->codigo_operacion)
         {
-        case PLACEHOLDER:
+        case KERNEL_ENTRADA_SALIDA_IDENTIFICACION:
         {
-            // Placeholder
+            t_entrada_salida_identificacion *identificacion = deserializar_t_entrada_salida_identificacion(paquete->buffer);
+
+            entrada_salida_agregar_identificador(io_args, identificacion->identificador);
+
+            kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Se recibio identificador.", modulo, identificacion->identificador, orden);
+
             break;
         }
         default:
         {
-            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, interfaz, orden);
+            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, io_args->entrada_salida->interfaz, orden);
             liberar_conexion(socket);
             break;
         }
@@ -568,9 +624,9 @@ void *hilos_atender_entrada_salida_stdout(void *args)
         eliminar_paquete(paquete);
     }
 
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, interfaz, orden);
+    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, io_args->entrada_salida->interfaz, orden);
 
-    entrada_salida_remover_interfaz(io_args->args, interfaz);
+    entrada_salida_remover_interfaz(io_args->args, io_args->entrada_salida->interfaz);
 
     free(io_args);
     pthread_exit(0);
@@ -581,34 +637,53 @@ void *hilos_atender_entrada_salida_dialfs(void *args)
     hilos_io_args *io_args = (hilos_io_args *)args;
 
     char *modulo = "I/O DialFS";
-    char *interfaz = io_args->entrada_salida->interfaz;
     int orden = io_args->entrada_salida->orden;
     int *socket = &io_args->entrada_salida->socket;
 
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, *socket);
-
     while (1)
     {
-        kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, *socket);
+        if (io_args->entrada_salida->identificado)
+        {
+            kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, io_args->entrada_salida->interfaz, orden, *socket);
+        }
+        else
+        {
+            kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Orden %d] Esperando identificador en socket %d", modulo, orden, *socket);
+        }
+
         t_paquete *paquete = recibir_paquete(io_args->args->logger, socket);
 
         if (paquete == NULL)
         {
-            kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, interfaz, orden);
+
+            if (io_args->entrada_salida->identificado)
+            {
+                kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Se desconecto.", modulo, io_args->entrada_salida->interfaz, orden);
+            }
+            else
+            {
+                kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Orden %d] Se desconecto.", modulo, orden);
+            }
             break;
         }
-        revisar_paquete(paquete, io_args->args->logger, modulo);
+
+        kernel_revisar_paquete(paquete, io_args->args, modulo);
 
         switch (paquete->codigo_operacion)
         {
-        case PLACEHOLDER:
+        case KERNEL_ENTRADA_SALIDA_IDENTIFICACION:
         {
-            // Placeholder
+            t_entrada_salida_identificacion *identificacion = deserializar_t_entrada_salida_identificacion(paquete->buffer);
+
+            entrada_salida_agregar_identificador(io_args, identificacion->identificador);
+
+            kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Se recibio identificador.", modulo, identificacion->identificador, orden);
+
             break;
         }
         default:
         {
-            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, interfaz, orden);
+            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, io_args->entrada_salida->interfaz, orden);
             liberar_conexion(socket);
             break;
         }
@@ -616,9 +691,9 @@ void *hilos_atender_entrada_salida_dialfs(void *args)
         eliminar_paquete(paquete);
     }
 
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, interfaz, orden);
+    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, io_args->entrada_salida->interfaz, orden);
 
-    entrada_salida_remover_interfaz(io_args->args, interfaz);
+    entrada_salida_remover_interfaz(io_args->args, io_args->entrada_salida->interfaz);
 
     free(io_args);
     pthread_exit(0);

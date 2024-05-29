@@ -354,31 +354,6 @@ void kernel_finalizar(hilos_args *args)
     eliminar_paquete(finalizar);
 };
 
-t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz)
-{
-    // Busco el indice en la lista de entrada/salida
-    int *indice = dictionary_get(args->kernel->sockets.dictionary_entrada_salida, interfaz);
-
-    // Si no se encuentra la interfaz en el diccionario, no se puede buscar
-    if (indice == NULL)
-    {
-        kernel_log_generic(args, LOG_LEVEL_ERROR, "No se encontro la interfaz %s en el diccionario de entrada/salida", interfaz);
-        return NULL;
-    }
-
-    // Obtengo el TAD de la lista de entrada/salida
-    t_kernel_entrada_salida *entrada_salida = list_get(args->kernel->sockets.list_entrada_salida, *indice);
-
-    if (entrada_salida == NULL)
-    {
-        kernel_log_generic(args, LOG_LEVEL_ERROR, "No se encontro la interfaz %s en la lista de entrada/salida", interfaz);
-    }
-
-    kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se encontro el modulo de entrada/salida en el socket %d asociado a la interfaz %s", entrada_salida->socket, interfaz);
-
-    return entrada_salida;
-}
-
 t_pcb *kernel_transicion_new_ready(hilos_args *kernel_hilo_args)
 {
     pthread_mutex_lock(&kernel_hilo_args->estados->mutext_new_ready);
@@ -513,7 +488,6 @@ void hilo_planificador_detener(hilos_args *args)
 t_pcb *kernel_nuevo_proceso(hilos_args *args, t_diagrama_estados *estados, t_log *logger, char *instrucciones)
 {
     t_pcb *nuevaPcb = pcb_crear(logger, args->kernel->quantum);
-    // TODO: esto hay que pasarlo a imprimimr_log para que no rompa la consola
     kernel_log_generic(args, LOG_LEVEL_DEBUG, "[PCB] Program Counter: %d", nuevaPcb->registros_cpu->pc);
     kernel_log_generic(args, LOG_LEVEL_DEBUG, "[PCB] Quantum: %d", nuevaPcb->quantum);
     kernel_log_generic(args, LOG_LEVEL_DEBUG, "[PCB] PID: %d", nuevaPcb->pid);
