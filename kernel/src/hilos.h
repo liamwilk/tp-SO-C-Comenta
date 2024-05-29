@@ -60,5 +60,6 @@ void hilos_planificador_inicializar(hilos_args *args, pthread_t thread_planifica
 
 int obtener_key_finalizacion_hilo(hilos_args *args);
 int obtener_key_detencion_algoritmo(hilos_args *args);
+void avisar_rechazo_identificador(int socket);
 
 #endif /* HILOS_H_ */

@@ -11,8 +11,6 @@
 #include "utils/procesos.h"
 #include <utils/kernel.h>
 
-typedef void (*t_funcion_kernel_ptr)(t_log *, t_op_code, hilos_args *, t_buffer *);
-
 t_consola_operacion obtener_operacion(char *funcion);
 void imprimir_comandos(hilos_args *args);
 void imprimir_logo(hilos_args *args);
@@ -60,5 +58,6 @@ void entrada_salida_remover_interfaz(hilos_args *args, char *interfaz);
 t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz);
 t_kernel_entrada_salida *kernel_sockets_agregar_entrada_salida(hilos_args *args, KERNEL_SOCKETS type, int socket);
 void entrada_salida_agregar_identificador(hilos_io_args *args, char *identificador);
-
+void hilos_ejecutar_entrada_salida(hilos_io_args *io_args, char *modulo, t_funcion_kernel_io_prt switch_case_atencion);
+void entrada_salida_procesar_rechazado(hilos_io_args *argumentos, char *identificador);
 #endif /* CONSOLA_H_ */

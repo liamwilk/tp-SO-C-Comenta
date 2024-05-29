@@ -31,6 +31,7 @@ typedef struct
 {
     int pid;
     bool identificado;
+    bool valido;
     int ocupado;
     int orden;
     int socket;
@@ -95,7 +96,7 @@ typedef struct
     t_entrada_salida *entrada_salida;
 } t_args_hilo;
 
-typedef void (*t_mem_funcion_hilo_ptr)(t_args_hilo *, t_op_code, t_buffer *);
+typedef void (*t_mem_funcion_hilo_ptr)(t_args_hilo *, char *, t_op_code, t_buffer *);
 typedef void (*t_mem_funcion_ptr)(t_args *, t_op_code, t_buffer *);
 
 t_entrada_salida *agregar_interfaz(t_args *argumentos, t_tipo_entrada_salida tipo, int socket);
@@ -110,10 +111,10 @@ void remover_interfaz(t_args *, char *);
 void eliminar_procesos(t_args *argumentos);
 void eliminar_instrucciones(t_args *argumentos, t_list *lista_instrucciones);
 void *atender_entrada_salida_stdin(void *);
-void switch_case_entrada_salida_stdin(t_args_hilo *argumentos, t_op_code codigo_operacion, t_buffer *buffer);
-void switch_case_entrada_salida_dialfs(t_args_hilo *argumentos, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_memoria_entrada_salida_stdin(t_args_hilo *argumentos, char *modulo, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_memoria_entrada_salida_dialfs(t_args_hilo *argumentos, char *modulo, t_op_code codigo_operacion, t_buffer *buffer);
 void *atender_entrada_salida_dialfs(void *);
-void switch_case_entrada_salida_stdout(t_args_hilo *argumentos, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_memoria_entrada_salida_stdout(t_args_hilo *argumentos, char *modulo, t_op_code codigo_operacion, t_buffer *buffer);
 void *atender_entrada_salida_stdout(void *);
 void *esperar_entrada_salida(void *paquete);
 void *atender_kernel();
@@ -136,5 +137,6 @@ void inicializar_modulo(t_args *argumentos);
 void inicializar_logger(t_args *argumentos, t_log_level nivel);
 void inicializar(t_args *args, t_log_level nivel, int argc, char *argv[]);
 void agregar_identificador(t_args_hilo *argumentos, char *identificador);
-
+void avisar_rechazo_identificador_memoria(int socket);
+void agregar_identificador_rechazado(t_args_hilo *argumentos, char *identificador);
 #endif // MEMORIA_H
