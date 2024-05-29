@@ -22,7 +22,8 @@ void switch_case_kernel_entrada_salida_dialfs(hilos_io_args *io_args, char *modu
         entrada_salida_agregar_identificador(io_args, identificacion->identificador);
 
         kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/%s/%d] Se recibio identificador válido.", modulo, identificacion->identificador, io_args->entrada_salida->orden);
-
+        free(identificacion->identificador);
+        free(identificacion);
         break;
     }
     default:
