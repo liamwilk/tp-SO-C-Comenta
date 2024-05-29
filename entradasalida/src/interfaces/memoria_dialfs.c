@@ -1,44 +1,19 @@
 #include <utils/entradasalida.h>
 
-void *atender_memoria_dialfs(void *args_void)
+void switch_case_memoria_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer *buffer)
 {
-    t_io *args = (t_io *)args_void;
-    while (1)
+    switch (codigo_operacion)
     {
-        pthread_testcancel();
-
-        log_debug(args->logger, "Esperando paquete de Memoria en socket %d", args->sockets.socket_memoria_dialfs);
-
-        interfaz_identificar(MEMORIA_ENTRADA_SALIDA_IDENTIFICACION,args->identificador, args->sockets.socket_memoria_dialfs);
-
-        t_paquete *paquete = recibir_paquete(args->logger, &args->sockets.socket_memoria_dialfs);
-
-        if (paquete == NULL)
-        {
-            log_info(args->logger, "Memoria se desconecto.");
-            break;
-        }
-
-        revisar_paquete(paquete, args->logger, "Memoria");
-
-        switch (paquete->codigo_operacion)
-        {
-        case FINALIZAR_SISTEMA:
-        {
-            log_info(args->logger, "Se recibio la señal de desconexión de Kernel. Cierro hilo");
-            pthread_cancel(args->threads.thread_atender_memoria_dialfs);
-            liberar_conexion(&args->sockets.socket_memoria_dialfs);
-            break;
-        }
-        default:
-        {
-            log_warning(args->logger, "[Memoria] Se recibio un codigo de operacion desconocido. Cierro hilo");
-            eliminar_paquete(paquete);
-            liberar_conexion(&args->sockets.socket_memoria_dialfs);
-            pthread_exit(0);
-        }
-        }
-        eliminar_paquete(paquete);
+    case PLACEHOLDER:
+    {
+        // Placeholder
+        break;
     }
-    pthread_exit(0);
+    default:
+    {
+        log_warning(args->logger, "Se recibio un codigo de operacion desconocido. Cierro hilo");
+        liberar_conexion(&args->sockets.socket_memoria_dialfs);
+        break;
+    }
+    }
 }

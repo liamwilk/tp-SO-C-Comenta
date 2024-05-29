@@ -123,25 +123,9 @@ t_entrada_salida *agregar_interfaz(t_args *args, t_tipo_entrada_salida tipo, int
 
     log_debug(args->logger, "Se conecto un modulo de entrada/salida en el socket %d", socket);
 
+    args->memoria.sockets.id_entrada_salida++;
     return entrada_salida;
 }
-
-// void agregar_identificador(t_args_hilo *argumentos, char *identificador)
-// {
-//     // Duplico la cadena para guardarla en el TAD y poder identificar la IO (esto pide malloc y hay que liberarlo cuando se desconecta la IO)
-//     argumentos->entrada_salida->interfaz = strdup(identificador);
-//     argumentos->entrada_salida->identificado = true;
-
-//     int *index = malloc(sizeof(int));
-
-//     // Agrego el TAD a la lista de entrada/salida y guardo el indice en el que se encuentra
-//     *index = list_add(argumentos->args->kernel->sockets.list_entrada_salida, argumentos->entrada_salida);
-
-//     // Guardo en el diccionario la key socket y el value indice para ubicarlo en la lista luego
-//     dictionary_put(argumentos->args->kernel->sockets.dictionary_entrada_salida, strdup(identificador), index);
-
-//     log_debug(argumentos->argumentos->logger, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida en el socket %d", argumentos->entrada_salida->socket);
-// }
 
 void remover_interfaz(t_args *argumentos, char *interfaz)
 {

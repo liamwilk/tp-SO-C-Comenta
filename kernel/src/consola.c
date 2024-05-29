@@ -205,6 +205,7 @@ t_kernel_entrada_salida *entrada_salida_agregar_interfaz(hilos_args *args, KERNE
 
     kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida en el socket %d", socket);
 
+    args->kernel->sockets.id_entrada_salida++;
     return entrada_salida;
 }
 
