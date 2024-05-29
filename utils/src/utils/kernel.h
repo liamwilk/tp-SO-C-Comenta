@@ -61,6 +61,7 @@ typedef struct
     int ocupado;
     int orden;
     int socket;
+    bool identificado;
     char *interfaz;
     KERNEL_SOCKETS tipo;
 } t_kernel_entrada_salida;

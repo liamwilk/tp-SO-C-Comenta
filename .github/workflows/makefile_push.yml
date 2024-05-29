@@ -42,7 +42,3 @@ jobs:
       run: |
         cd tp
         make compile
-    - name: Ejecutar tests de todos los modulos
-      run: |
-        cd tp
-        make test

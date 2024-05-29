@@ -58,6 +58,7 @@ void revisar_paquete_kernel(hilos_args *args, t_paquete *paquete, char *modulo);
 t_kernel_entrada_salida *entrada_salida_agregar_interfaz(hilos_args *args, KERNEL_SOCKETS tipo, int socket);
 void entrada_salida_remover_interfaz(hilos_args *args, char *interfaz);
 t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz);
-char *kernel_sockets_agregar_entrada_salida(hilos_args *args, KERNEL_SOCKETS type, int socket);
+t_kernel_entrada_salida *kernel_sockets_agregar_entrada_salida(hilos_args *args, KERNEL_SOCKETS type, int socket);
+void entrada_salida_agregar_identificador(hilos_io_args *args, char *identificador);
 
 #endif /* CONSOLA_H_ */
