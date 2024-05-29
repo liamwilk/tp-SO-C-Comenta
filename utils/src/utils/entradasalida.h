@@ -70,6 +70,8 @@ typedef enum
     DIALFS
 } t_interfaz;
 
+typedef void (*t_io_funcion_hilo_ptr)(t_io *, t_op_code, t_buffer *);
+
 void *conectar_kernel_stdin(void *args);
 void *conectar_memoria_stdin(void *args);
 
@@ -113,5 +115,15 @@ void inicializar_argumentos(t_io *args, char *argv[]);
 void inicializar_interfaz(t_io *io);
 void finalizar_interfaz(t_io *args);
 int inicializar_modulo_interfaz(t_io *args, int argc, char *argv[]);
+
+void switch_case_kernel_generic(t_io *args, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_kernel_stdin(t_io *args, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_kernel_stdout(t_io *args, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_memoria_stdin(t_io *args, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_memoria_stdout(t_io *args, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_memoria_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer *buffer);
+
+void hilo_ejecutar_interfaz(t_io *args, int *socket, char *modulo, t_io_funcion_hilo_ptr switch_case_atencion);
 
 #endif // ENTRADASALIDA_H

@@ -1,5 +1,29 @@
 #include "entradasalida.h"
 
+void hilo_ejecutar_interfaz(t_io *args, int *socket, char *modulo, t_io_funcion_hilo_ptr switch_case_atencion)
+{
+    while (1)
+    {
+        pthread_testcancel();
+
+        log_debug(args->logger, "Esperando paquete de %s en socket %d", modulo, *socket);
+
+        t_paquete *paquete = recibir_paquete(args->logger, socket);
+
+        if (paquete == NULL)
+        {
+            log_info(args->logger, "%s se desconecto.", modulo);
+            break;
+        }
+
+        revisar_paquete(paquete, args->logger, modulo);
+
+        switch_case_atencion(args, paquete->codigo_operacion, paquete->buffer);
+
+        eliminar_paquete(paquete);
+    }
+}
+
 void interfaz_generic(t_io *io)
 {
     interfaz_generic_inicializar_config(io);
@@ -306,4 +330,60 @@ int inicializar_modulo_interfaz(t_io *args, int argc, char *argv[])
     inicializar_interfaz(args);
     finalizar_interfaz(args);
     return 0;
+}
+
+void *atender_kernel_generic(void *args_void)
+{
+    t_io *args = (t_io *)args_void;
+    interfaz_identificar(KERNEL_ENTRADA_SALIDA_IDENTIFICACION, args->identificador, args->sockets.socket_kernel_generic);
+    hilo_ejecutar_interfaz(args, &args->sockets.socket_kernel_generic, "Kernel Generic", switch_case_kernel_generic);
+    pthread_exit(0);
+}
+
+void *atender_kernel_dialfs(void *args_void)
+{
+    t_io *args = (t_io *)args_void;
+    interfaz_identificar(KERNEL_ENTRADA_SALIDA_IDENTIFICACION, args->identificador, args->sockets.socket_kernel_dialfs);
+    hilo_ejecutar_interfaz(args, &args->sockets.socket_kernel_dialfs, "Kernel DialFS", switch_case_kernel_dialfs);
+    pthread_exit(0);
+}
+
+void *atender_kernel_stdin(void *args_void)
+{
+    t_io *args = (t_io *)args_void;
+    interfaz_identificar(KERNEL_ENTRADA_SALIDA_IDENTIFICACION, args->identificador, args->sockets.socket_kernel_stdin);
+    hilo_ejecutar_interfaz(args, &args->sockets.socket_kernel_stdin, "Kernel STDIN", switch_case_kernel_stdin);
+    pthread_exit(0);
+}
+
+void *atender_kernel_stdout(void *args_void)
+{
+    t_io *args = (t_io *)args_void;
+    interfaz_identificar(KERNEL_ENTRADA_SALIDA_IDENTIFICACION, args->identificador, args->sockets.socket_kernel_stdout);
+    hilo_ejecutar_interfaz(args, &args->sockets.socket_kernel_stdout, "Kernel STDOUT", switch_case_kernel_stdout);
+    pthread_exit(0);
+}
+
+void *atender_memoria_stdin(void *args_void)
+{
+    t_io *args = (t_io *)args_void;
+    interfaz_identificar(MEMORIA_ENTRADA_SALIDA_IDENTIFICACION, args->identificador, args->sockets.socket_memoria_stdin);
+    hilo_ejecutar_interfaz(args, &args->sockets.socket_memoria_stdin, "Memoria STDIN", switch_case_memoria_stdin);
+    pthread_exit(0);
+}
+
+void *atender_memoria_dialfs(void *args_void)
+{
+    t_io *args = (t_io *)args_void;
+    interfaz_identificar(MEMORIA_ENTRADA_SALIDA_IDENTIFICACION, args->identificador, args->sockets.socket_memoria_dialfs);
+    hilo_ejecutar_interfaz(args, &args->sockets.socket_memoria_dialfs, "Memoria DialFS", switch_case_memoria_dialfs);
+    pthread_exit(0);
+}
+
+void *atender_memoria_stdout(void *args_void)
+{
+    t_io *args = (t_io *)args_void;
+    interfaz_identificar(MEMORIA_ENTRADA_SALIDA_IDENTIFICACION, args->identificador, args->sockets.socket_memoria_stdout);
+    hilo_ejecutar_interfaz(args, &args->sockets.socket_memoria_stdout, "Memoria STDOUT", switch_case_memoria_stdout);
+    pthread_exit(0);
 }
