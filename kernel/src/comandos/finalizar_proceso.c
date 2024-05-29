@@ -8,11 +8,15 @@ void finalizar_proceso(char **separar_linea, hilos_args *hiloArgs)
         return;
     }
     kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-    int pidReceived = atoi(separar_linea[1]);
-    bool debeBorrarMemoria = kernel_finalizar_proceso(hiloArgs, pidReceived, INTERRUPTED_BY_USER);
+
+    int pid = atoi(separar_linea[1]);
+
+    // Este booleano si es el momento de borrar el proceso tambien en Memoria
+    bool debeBorrarMemoria = kernel_finalizar_proceso(hiloArgs, pid, INTERRUPTED_BY_USER);
+
     if (debeBorrarMemoria)
     {
-        kernel_avisar_memoria_finalizacion_proceso(hiloArgs, pidReceived);
+        kernel_avisar_memoria_finalizacion_proceso(hiloArgs, pid);
     }
     return;
 }

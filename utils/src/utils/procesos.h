@@ -21,8 +21,9 @@ typedef struct t_diagrama_estados
     pthread_mutex_t mutex_exec_ready;
     pthread_mutex_t mutex_exec_exit;
     pthread_mutex_t mutex_block_ready;
+    pthread_mutex_t mutex_block_exit;
     pthread_mutex_t mutex_exec_block;
-    pthread_mutex_t mutext_new_ready;
+    pthread_mutex_t mutex_new_ready;
 } t_diagrama_estados;
 
 typedef struct pcb

@@ -9,7 +9,7 @@ void *atender_kernel_generic(void *args_void)
 
         log_debug(args->logger, "Esperando paquete de Kernel en socket %d", args->sockets.socket_kernel_generic);
 
-        interfaz_identificar(KERNEL_ENTRADA_SALIDA_IDENTIFICACION,args->identificador, args->sockets.socket_kernel_generic);
+        interfaz_identificar(KERNEL_ENTRADA_SALIDA_IDENTIFICACION, args->identificador, args->sockets.socket_kernel_generic);
 
         t_paquete *paquete = recibir_paquete(args->logger, &args->sockets.socket_kernel_generic);
 
@@ -54,6 +54,12 @@ void *atender_kernel_generic(void *args_void)
             log_info(args->logger, "Se recibio la señal de desconexión de Kernel. Cierro hilo");
             pthread_cancel(args->threads.thread_atender_kernel_generic);
             liberar_conexion(&args->sockets.socket_kernel_generic);
+            break;
+        }
+        case KERNEL_IO_INTERRUPCION:
+        {
+            t_kernel_io_interrupcion *interrupcion = deserializar_t_kernel_io_interrupcion(paquete->buffer);
+            log_warning(args->logger, "[KERNEL/INTERRUPCION/GENERIC] Se recibio una interrupcion con motivo: %s para el PID %d", interrupcion->motivo, interrupcion->pid);
             break;
         }
         default:

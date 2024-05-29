@@ -9,7 +9,7 @@ void *atender_memoria_dialfs(void *args_void)
 
         log_debug(args->logger, "Esperando paquete de Memoria en socket %d", args->sockets.socket_memoria_dialfs);
 
-        interfaz_identificar(MEMORIA_ENTRADA_SALIDA_IDENTIFICACION,args->identificador, args->sockets.socket_memoria_dialfs);
+        interfaz_identificar(MEMORIA_ENTRADA_SALIDA_IDENTIFICACION, args->identificador, args->sockets.socket_memoria_dialfs);
 
         t_paquete *paquete = recibir_paquete(args->logger, &args->sockets.socket_memoria_dialfs);
 

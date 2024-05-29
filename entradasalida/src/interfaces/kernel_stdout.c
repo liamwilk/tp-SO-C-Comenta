@@ -9,7 +9,7 @@ void *atender_kernel_stdout(void *args_void)
 
         log_debug(args->logger, "Esperando paquete de Kernel en socket %d", args->sockets.socket_kernel_stdout);
 
-        interfaz_identificar(KERNEL_ENTRADA_SALIDA_IDENTIFICACION,args->identificador, args->sockets.socket_kernel_stdout);
+        interfaz_identificar(KERNEL_ENTRADA_SALIDA_IDENTIFICACION, args->identificador, args->sockets.socket_kernel_stdout);
 
         t_paquete *paquete = recibir_paquete(args->logger, &args->sockets.socket_kernel_stdout);
 

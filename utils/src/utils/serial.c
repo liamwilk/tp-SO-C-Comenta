@@ -759,6 +759,13 @@ void serializar_t_kernel_cpu_interrupcion(t_paquete **paquete, t_kernel_cpu_inte
 	serializar_uint32_t(interrupcion->len_motivo, *paquete);
 	serializar_char(interrupcion->motivo, *paquete);
 }
+void serializar_t_kernel_io_interrupcion(t_paquete **paquete, t_kernel_io_interrupcion *interrupcion)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) + sizeof(uint32_t) + interrupcion->len_motivo);
+	serializar_uint32_t(interrupcion->pid, *paquete);
+	serializar_uint32_t(interrupcion->len_motivo, *paquete);
+	serializar_char(interrupcion->motivo, *paquete);
+};
 
 void serializar_t_entrada_salida_identificacion(t_paquete **paquete, t_entrada_salida_identificacion *identificacion)
 {
@@ -841,4 +848,14 @@ t_cpu_kernel_solicitud_recurso *deserializar_t_cpu_kernel_solicitud_recurso(t_bu
 	deserializar_char(&stream, &(ret->nombre_recurso), ret->size_nombre_recurso);
 
 	return ret;
+}
+
+t_kernel_io_interrupcion *deserializar_t_kernel_io_interrupcion(t_buffer *buffer)
+{
+	t_kernel_io_interrupcion *interrupcion = malloc(sizeof(t_kernel_io_interrupcion));
+	void *stream = buffer->stream;
+	deserializar_uint32_t(&stream, &(interrupcion->pid));
+	deserializar_uint32_t(&stream, &(interrupcion->len_motivo));
+	deserializar_char(&stream, &(interrupcion->motivo), interrupcion->len_motivo);
+	return interrupcion;
 }
