@@ -10,6 +10,13 @@ void switch_case_kernel_stdin(t_io *args, t_op_code codigo_operacion, t_buffer *
         liberar_conexion(&args->sockets.socket_kernel_dialfs);
         break;
     }
+    case KERNEL_IO_INTERRUPCION:
+    {
+        t_paquete *paquete = recibir_paquete(args->logger, &args->sockets.socket_kernel_generic);
+        t_kernel_io_interrupcion *interrupcion = deserializar_t_kernel_io_interrupcion(paquete->buffer);
+        log_warning(args->logger, "[KERNEL/INTERRUPCION/STDIN] Se recibio una interrupcion con motivo: %s para el PID %d", interrupcion->motivo, interrupcion->pid);
+        break;
+    }
     case FINALIZAR_SISTEMA:
     {
         log_info(args->logger, "Se recibio la señal de desconexión de Kernel. Cierro hilo");

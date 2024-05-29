@@ -116,6 +116,8 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 		// EXECUTE:
 		int hayInterrupcion = cpu_ejecutar_instruccion(cpu, &instruccion, *tipo_instruccion, &proceso, logger);
 
+		//! TODO: No utilizar magic numbers, definirlos en un enum o en su defecto en un struct
+
 		if (hayInterrupcion < 0)
 		{
 			log_error(logger, "[CPU] Ocurrio un problema al ejecutar la instrucción.");
@@ -129,6 +131,11 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 		if (hayInterrupcion == 2)
 		{
 			log_debug(logger, "[CPU] Proceso desalojado por funcion implicada en manejo de recursos.");
+			break;
+		}
+		if (hayInterrupcion == 3)
+		{
+			log_warning(logger, "[CPU] Se finaliza el ciclo de instruccion de este proceso");
 			break;
 		}
 
