@@ -24,13 +24,6 @@
 #include "modulos/memoria.h"
 #include <utils/kernel.h>
 
-typedef enum
-{
-    FIFO,
-    RR,
-    VRR
-} t_algoritmo;
-
 /*----ATENDER----*/
 
 void *hilos_atender_consola(void *args);
@@ -50,7 +43,6 @@ void *hilos_conectar_cpu_dispatch(void *args);
 void *hilos_conectar_cpu_interrupt(void *args);
 void *hilos_esperar_entrada_salida(void *args);
 void *hilo_planificador(void *args);
-t_algoritmo determinar_algoritmo(hilos_args *args);
 
 void hilos_memoria_inicializar(hilos_args *args, pthread_t thread_conectar_memoria, pthread_t thread_atender_memoria);
 void hilos_cpu_inicializar(hilos_args *args, pthread_t thread_conectar_cpu_dispatch, pthread_t thread_atender_cpu_dispatch, pthread_t thread_conectar_cpu_interrupt, pthread_t thread_atender_cpu_interrupt);

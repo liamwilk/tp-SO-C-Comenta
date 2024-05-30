@@ -26,6 +26,7 @@ t_diagrama_estados kernel_inicializar_estados(t_diagrama_estados *estados)
         .mutex_block_ready = PTHREAD_MUTEX_INITIALIZER,
         .mutex_new_ready = PTHREAD_MUTEX_INITIALIZER,
         .mutex_block_exit = PTHREAD_MUTEX_INITIALIZER,
+        .mutex_new = PTHREAD_MUTEX_INITIALIZER,
     };
     return diagrama;
 }
@@ -523,12 +524,15 @@ void hilo_planificador_detener(hilos_args *args)
 
 t_pcb *kernel_nuevo_proceso(hilos_args *args, t_diagrama_estados *estados, t_log *logger, char *instrucciones)
 {
+    pthread_mutex_lock(&estados->mutex_new);
     t_pcb *nuevaPcb = pcb_crear(logger, args->kernel->quantum);
     kernel_log_generic(args, LOG_LEVEL_DEBUG, "[PCB] Program Counter: %d", nuevaPcb->registros_cpu->pc);
     kernel_log_generic(args, LOG_LEVEL_DEBUG, "[PCB] Quantum: %d", nuevaPcb->quantum);
     kernel_log_generic(args, LOG_LEVEL_DEBUG, "[PCB] PID: %d", nuevaPcb->pid);
     kernel_log_generic(args, LOG_LEVEL_DEBUG, "[PROCESO] Instrucciones: %s", instrucciones);
 
+    proceso_push_new(estados, nuevaPcb);
+    pthread_mutex_unlock(&estados->mutex_new);
     /**----ENVIAR A MEMORIA----**/
     t_kernel_memoria_proceso *proceso = malloc(sizeof(t_kernel_memoria_proceso));
     proceso->path_instrucciones = strdup(instrucciones);
@@ -542,7 +546,6 @@ t_pcb *kernel_nuevo_proceso(hilos_args *args, t_diagrama_estados *estados, t_log
 
     eliminar_paquete(paquete);
     free(proceso);
-    proceso_push_new(estados, nuevaPcb);
 
     return nuevaPcb;
 }

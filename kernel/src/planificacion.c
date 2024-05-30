@@ -4,21 +4,23 @@ void planificacion_largo_plazo(hilos_args *hiloArgs)
 {
     int cant_en_new = list_size(hiloArgs->estados->new);
     int cant_en_ready = list_size(hiloArgs->estados->ready);
-    if (cant_en_ready < hiloArgs->kernel->gradoMultiprogramacion)
+    int cant_en_exec = list_size(hiloArgs->estados->exec);
+    int cant_en_block = list_size(hiloArgs->estados->block);
+    int cantidadDeProcesosEnConcurrente = cant_en_ready + cant_en_exec + cant_en_block;
+
+    if (cantidadDeProcesosEnConcurrente < hiloArgs->kernel->gradoMultiprogramacion)
     {
-        while (cant_en_ready < (hiloArgs->kernel->gradoMultiprogramacion) && cant_en_new > 0)
+        while (cantidadDeProcesosEnConcurrente < (hiloArgs->kernel->gradoMultiprogramacion) && cant_en_new > 0)
         {
             kernel_transicion_new_ready(hiloArgs);
-            cant_en_ready++;
+            cantidadDeProcesosEnConcurrente++;
             cant_en_new--;
         }
     }
-    if (cant_en_new != 0)
+    if (cant_en_new == 0)
     {
-        kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "[PLANIFICADOR LARGO PLAZO] No se pueden mover mas procesos a ready, ya que se alcanzo el grado de multiprogramacion");
+        kernel_log_generic(hiloArgs, LOG_LEVEL_WARNING, "[PLANIFICADOR LARGO PLAZO] No hay mas procesos en new");
     }
-
-    // TODO: Hacer la transición a exit
 };
 
 void fifo(hilos_args *kernel_hilos_args)
@@ -45,5 +47,48 @@ void round_robin(hilos_args *kernel_hilos_args)
             kernel_desalojar_proceso(kernel_hilos_args, aux->pid);
         }
         return;
+    }
+}
+
+t_algoritmo determinar_algoritmo(hilos_args *args)
+{
+    if (strcmp(args->kernel->algoritmoPlanificador, "FIFO") == 0)
+    {
+        return FIFO;
+    }
+    else if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0)
+    {
+        return RR;
+    }
+    else if (strcmp(args->kernel->algoritmoPlanificador, "VRR") == 0)
+    {
+        return VRR;
+    }
+    return -1;
+}
+
+void planificacion_corto_plazo(hilos_args *hiloArgs)
+{
+    switch (determinar_algoritmo(hiloArgs))
+    {
+    case FIFO:
+    {
+        fifo(hiloArgs);
+        break;
+    }
+    case RR:
+    {
+        round_robin(hiloArgs);
+        break;
+    }
+    case VRR:
+    {
+        break;
+    }
+    default:
+    {
+        kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "Algoritmo de planificacion no reconocido.");
+        break;
+    }
     }
 }

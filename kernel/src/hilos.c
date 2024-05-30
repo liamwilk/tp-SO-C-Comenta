@@ -48,7 +48,6 @@ void *hilos_atender_consola(void *args)
             if (!separar_linea[1] == 0)
             {
                 kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-
                 char *pathInstrucciones = separar_linea[1];
                 ejecutar_script(pathInstrucciones, hiloArgs);
                 break;
@@ -147,29 +146,7 @@ void *hilo_planificador(void *args)
             planificacion_largo_plazo(hiloArgs);
         }
 
-        switch (determinar_algoritmo(hiloArgs))
-        {
-        case FIFO:
-        {
-            fifo(hiloArgs);
-            break;
-        }
-        case RR:
-        {
-            round_robin(hiloArgs);
-            break;
-        }
-        case VRR:
-        {
-            // TODO: algoritmo
-            break;
-        }
-        default:
-        {
-            kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "Algoritmo de planificacion no reconocido.");
-            break;
-        }
-        }
+        planificacion_corto_plazo(hiloArgs);
     }
     sem_post(&hiloArgs->kernel->sistema_finalizar);
     pthread_exit(0);
@@ -191,23 +168,6 @@ int obtener_key_detencion_algoritmo(hilos_args *args)
     i = args->kernel->detener_planificador;
     pthread_mutex_unlock(&args->kernel->lock);
     return i;
-}
-
-t_algoritmo determinar_algoritmo(hilos_args *args)
-{
-    if (strcmp(args->kernel->algoritmoPlanificador, "FIFO") == 0)
-    {
-        return FIFO;
-    }
-    else if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0)
-    {
-        return RR;
-    }
-    else if (strcmp(args->kernel->algoritmoPlanificador, "VRR") == 0)
-    {
-        return VRR;
-    }
-    return -1;
 }
 
 /*----MEMORIA----*/
@@ -239,8 +199,7 @@ void *hilos_conectar_memoria(void *args)
         liberar_conexion(&socket);
         pthread_exit(0);
     }
-
-    log_debug(hiloArgs->logger, "Conectado a Memoria en socket %d", socket);
+    kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Conectado a Memoria en socket %d", socket);
     pthread_exit(0);
 }
 
@@ -285,8 +244,7 @@ void *hilos_conectar_cpu_dispatch(void *args)
         liberar_conexion(&socket);
         pthread_exit(0);
     }
-
-    log_debug(hiloArgs->logger, "Conectado a CPU por Dispatch en socket %d", socket);
+    kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Conectado a CPU por Dispatch en socket %d", socket);
     pthread_exit(0);
 };
 
@@ -309,8 +267,7 @@ void *hilos_conectar_cpu_interrupt(void *args)
         liberar_conexion(&socket);
         pthread_exit(0);
     }
-
-    log_debug(hiloArgs->logger, "Conectado a CPU por Interrupt en socket %d", socket);
+    kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Conectado a CPU por Interrupt en socket %d", socket);
     pthread_exit(0);
 };
 
@@ -324,15 +281,6 @@ void *hilos_atender_cpu_dispatch(void *args)
 void *hilos_atender_cpu_interrupt(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-
-    // // Esto se usa para testear interrupt
-    // sleep(20);
-    // t_kernel_cpu_interrupcion *interrupcion = malloc(sizeof(t_kernel_cpu_interrupcion));
-    // interrupcion->pid = 1;
-    // t_paquete *paquete = crear_paquete(KERNEL_CPU_INTERRUPCION);
-    // serializar_t_kernel_cpu_interrupcion(&paquete, interrupcion);
-    // enviar_paquete(paquete, hiloArgs->kernel->sockets.cpu_interrupt);
-    // free(interrupcion);
 
     hilo_ejecutar_kernel(hiloArgs->kernel->sockets.cpu_interrupt, hiloArgs, "CPU Interrupt", switch_case_cpu_interrupt);
     pthread_exit(0);
