@@ -62,18 +62,19 @@ void espacio_usuario_inicializar_bitmap(t_args *args)
     // TODO: Quitar estos casos de prueba.
 
     char *cadena = "CURSADA DE SISTEMAS OPERATIVOS 1c 2024";
-    log_debug(args->logger,"Tamaño de la cadena: %zu", strlen(cadena));
+    log_debug(args->logger,"Tamaño de la cadena: %zu", strlen(cadena)+1);
     escribir_char(args, 0, cadena);
  
-    char cadena_leida[strlen(cadena) + 1];
-    leer_char(args, 0, cadena_leida, strlen(cadena) + 1);
-    log_debug(args->logger,"Cadena leída: %s", cadena_leida);
+    char cadena_leida1[strlen(cadena) + 1];
+    leer_char(args, 0, cadena_leida1, strlen(cadena) + 1);
+    log_debug(args->logger,"Cadena leída: %s", cadena_leida1);
 
-    log_debug(args->logger,"Tamaño de la cadena: %zu", strlen(cadena));
+    log_debug(args->logger,"Tamaño de la cadena: %zu", strlen(cadena)+1);
     escribir_char(args, 39, cadena);
- 
-    leer_char(args, 39, cadena_leida, strlen(cadena) + 1);
-    log_debug(args->logger,"Cadena leída: %s", cadena_leida);
+    
+    char cadena_leida2[strlen(cadena) + 1];
+    leer_char(args, 39, cadena_leida2, strlen(cadena) + 1);
+    log_debug(args->logger,"Cadena leída: %s", cadena_leida2);
 
     espacio_usuario_liberar_frames(args, 0, strlen(cadena) + 1);
     espacio_usuario_liberar_frames(args, 39, strlen(cadena) + 1);
@@ -139,6 +140,9 @@ void espacio_usuario_escribir(t_args *args, uint32_t direccion_fisica, void *dat
         marcar_frame_usado(args, args->memoria.bitmap, frame);
     }
 
+    // Notifico que se escribio el dato
+    log_debug(args->logger, "Se escribió el dato de tamaño %ld en la dirección física %d.", tamano, direccion_fisica);
+
     // Escribo los datos
     memcpy(destino, dato, tamano);
 }
@@ -148,7 +152,7 @@ void espacio_usuario_liberar_frames(t_args *args, uint32_t direccion_fisica, siz
 {
     // Verificar que la operación no se salga de los límites de la memoria
     if (direccion_fisica + tamano > args->memoria.tamMemoria) {
-        log_error(args->logger, "Intento de liberar fuera de los límites de la memoria.");
+        log_error(args->logger, "Se intento liberar %ld bytes del espacio de usuario, pero la direccion fisica %ld queda por fuera del limite de %d bytes.", tamano, direccion_fisica+tamano, args->memoria.tamMemoria);
         return;
     }
 
