@@ -27,12 +27,21 @@ void planificacion_largo_plazo(hilos_args *hiloArgs);
  * @param estados  Un puntero al diagrama de estados.
  * @param logger   Un puntero al logger.
  */
-void planificacion_corto_plazo(t_kernel *kernel, t_diagrama_estados *estados, t_log *logger);
+void planificacion_corto_plazo(hilos_args *hiloArgs);
 
 void fifo(hilos_args *hiloArgs);
 
 void round_robin(hilos_args *hiloArgs);
 
 void avisar_planificador();
+
+typedef enum
+{
+    FIFO,
+    RR,
+    VRR
+} t_algoritmo;
+
+t_algoritmo determinar_algoritmo(hilos_args *args);
 
 #endif /* PLANIFICACION_H_ */
