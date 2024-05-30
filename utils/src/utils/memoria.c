@@ -459,6 +459,7 @@ void memoria_inicializar(t_args *argumentos)
     memoria_inicializar_config(argumentos);
     memoria_inicializar_argumentos(argumentos);
     memoria_imprimir_config(argumentos);
+    espacio_usuario_inicializar_contiguo(argumentos);
     memoria_inicializar_hilos(argumentos);
 }
 
@@ -471,6 +472,8 @@ void inicializar_modulo(t_args *argumentos)
 void memoria_finalizar(t_args *argumentos)
 {
     eliminar_procesos(argumentos);
+    espacio_usuario_liberar_bitmap(argumentos);
+    espacio_usuario_liberar_contiguo(argumentos);
     config_destroy(argumentos->memoria.config);
     log_destroy(argumentos->logger);
 }
