@@ -49,15 +49,74 @@ void kernel_log(hilos_args *args);
 
 /**----PROCESOS Y ESTADOS----**/
 
+/**
+ * Envía un PCB a una CPU en el kernel.
+ *
+ * @param kernel El puntero al kernel.
+ * @param pcb El puntero al PCB a enviar.
+ * @param cpu El socket de la CPU a la que se enviará el PCB.
+ */
 void kernel_enviar_pcb_cpu(t_kernel *kernel, t_pcb *pcb, t_kernel_sockets cpu);
 
 /** FUNCIONES DE CONSOLA**/
 
+/**
+ * @brief Revisa un paquete en el kernel.
+ *
+ * Esta función se encarga de revisar un paquete en el kernel y realizar las acciones correspondientes.
+ *
+ * @param args Los argumentos del hilo.
+ * @param paquete El paquete a revisar.
+ * @param modulo El módulo al que pertenece el paquete.
+ */
 void revisar_paquete_kernel(hilos_args *args, t_paquete *paquete, char *modulo);
 
+/**
+ * @brief Agrega una interfaz de entrada/salida en el kernel.
+ *
+ * Esta función se encarga de agregar una interfaz de entrada/salida en el kernel.
+ *
+ * @param args Los argumentos del hilo.
+ * @param tipo El tipo de socket de la interfaz.
+ * @param socket El socket de la interfaz.
+ *
+ * @return Un puntero a la estructura de entrada/salida creada.
+ */
 t_kernel_entrada_salida *entrada_salida_agregar_interfaz(hilos_args *args, KERNEL_SOCKETS tipo, int socket);
+
+/**
+ * @brief Remueve una interfaz de entrada/salida del kernel.
+ *
+ * Esta función se encarga de remover una interfaz de entrada/salida del kernel.
+ *
+ * @param args Los argumentos del hilo.
+ * @param interfaz La interfaz a remover.
+ */
 void entrada_salida_remover_interfaz(hilos_args *args, char *interfaz);
+
+/**
+ * @brief Busca una interfaz de entrada/salida en el kernel.
+ *
+ * Esta función se encarga de buscar una interfaz de entrada/salida en el kernel.
+ *
+ * @param args Los argumentos del hilo.
+ * @param interfaz La interfaz a buscar.
+ *
+ * @return Un puntero a la estructura de entrada/salida encontrada, o NULL si no se encontró.
+ */
 t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz);
+
+/**
+ * @brief Agrega una entrada/salida de sockets en el kernel.
+ *
+ * Esta función se encarga de agregar una entrada/salida de sockets en el kernel.
+ *
+ * @param args Los argumentos del hilo.
+ * @param type El tipo de entrada/salida de sockets.
+ * @param socket El socket a agregar.
+ *
+ * @return Un puntero a la interfaz de entrada/salida creada.
+ */
 char *kernel_sockets_agregar_entrada_salida(hilos_args *args, KERNEL_SOCKETS type, int socket);
 
 #endif /* CONSOLA_H_ */

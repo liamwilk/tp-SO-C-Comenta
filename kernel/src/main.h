@@ -26,7 +26,14 @@ pthread_t thread_conectar_cpu_dispatch;
 pthread_t thread_conectar_cpu_interrupt;
 pthread_t thread_esperar_entrada_salida;
 
+/**
+ * @brief Inicializa los argumentos.
+ */
 void inicializar_args();
+
+/**
+ * @brief Inicializa los semáforos.
+ */
 void inicializar_semaforos();
 
 #endif /* MAIN_H_ */

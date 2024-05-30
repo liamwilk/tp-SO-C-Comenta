@@ -34,6 +34,12 @@ typedef struct{
     char* nombre;
 } t_entradasalida_identificador;
 
+/**
+ * Identifica el módulo con el nombre dado y envía la información al kernel a través del socket especificado.
+ *
+ * @param nombre_modulo El nombre del módulo a identificar.
+ * @param socket_kernel El socket al que se enviará la información de identificación.
+ */
 void identificar_modulo(char* nombre_modulo, int socket_kernel);
 
 #endif

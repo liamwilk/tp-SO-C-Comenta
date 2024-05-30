@@ -85,6 +85,30 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			eliminar_paquete(paquete_instruccion);
 			break;
 		}
+		case MEMORIA_CPU_TAM_PAGINA:
+			{
+				t_paquete *paquete = crear_paquete(MEMORIA_CPU_TAM_PAGINA);
+				uint32_t sizepagina = argumentos->memoria.tamPagina;
+
+				serializar_t_memoria_cpu_tam_pagina(&paquete, sizepagina);
+
+				enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+				eliminar_paquete(paquete);
+				break;
+			}
+		case MEMORIA_CPU_NUMERO_FRAME:
+			{
+				t_cpu_memoria_numero_marco *proceso = deserializar_t_cpu_memoria_numero_marco(buffer);
+
+				uint32_t numero_marco = memoria_acceder_tabla_paginas(argumentos, proceso->pid, proceso->numero_pagina);
+
+				t_paquete *paquete = crear_paquete(MEMORIA_CPU_NUMERO_FRAME);
+				serializar_t_memoria_cpu_numero_marco(&paquete, numero_marco);
+
+				enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+				free(proceso);
+				eliminar_paquete(paquete);
+			}
 		default:
 		{
 			log_warning(argumentos->logger, "[CPU] Se recibio un codigo de operacion desconocido. Cierro hilo");

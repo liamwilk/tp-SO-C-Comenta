@@ -25,6 +25,8 @@ typedef enum
 	KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP,
 	ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP,
 	KERNEL_CPU_INTERRUPCION,
+	MEMORIA_CPU_TAM_PAGINA,
+	MEMORIA_CPU_NUMERO_FRAME,
 	PLACEHOLDER
 } t_op_code;
 
@@ -164,6 +166,12 @@ typedef struct
 	uint32_t ejecutado;
 	t_registros_cpu registros;
 } t_cpu_kernel_proceso;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t numero_pagina;
+} t_cpu_memoria_numero_marco;
 
 /**
  * @fn    *crear_paquete
@@ -635,8 +643,76 @@ t_cpu_memoria_instruccion *deserializar_t_cpu_memoria_instruccion(t_buffer *buff
  */
 void serializar_t_memoria_kernel_proceso(t_paquete **paquete, t_memoria_kernel_proceso *proceso);
 
+/**
+ * @brief Deserializa un buffer en una estructura t_kernel_memoria_finalizar_proceso.
+ *
+ * @param buffer El buffer a deserializar.
+ * @return Un puntero a la estructura t_kernel_memoria_finalizar_proceso deserializada.
+ */
 t_kernel_memoria_finalizar_proceso *deserializar_t_kernel_memoria_finalizar_proceso(t_buffer *buffer);
 
+/**
+ * @brief Remueve el salto de línea de una cadena de caracteres.
+ *
+ * @param argumento_origen La cadena de caracteres de origen.
+ */
 void remover_salto_linea(char *argumento_origen);
+
+/**
+ * @brief Serializa el tamaño de página de memoria de una CPU en un paquete.
+ *
+ * @param paquete El paquete en el que se serializará el tamaño de página.
+ * @param tam_pagina El tamaño de página de memoria de la CPU.
+ */
+void serializar_t_memoria_cpu_tam_pagina(t_paquete **paquete, uint32_t tam_pagina);
+
+/**
+ * @brief Deserializa un buffer en un puntero a un entero que representa el tamaño de página de memoria de una CPU.
+ *
+ * @param buffer El buffer a deserializar.
+ * @return Un puntero al tamaño de página de memoria deserializado.
+ */
+uint32_t *deserializar_t_memoria_cpu_tam_pagina(t_buffer *buffer);
+
+/**
+ * Serializa un número de marco de memoria CPU en un paquete.
+ *
+ * Esta función serializa el número de marco de memoria CPU dado en un paquete `paquete`.
+ *
+ * @param paquete Un puntero doble al paquete que se va a serializar.
+ * @param numero_marco El número de marco de memoria CPU que se va a serializar.
+ */
+void serializar_t_memoria_cpu_numero_marco(t_paquete **paquete, uint32_t numero_marco);
+
+/**
+ * Deserializa una estructura t_memoria_cpu_numero_marco a partir de un búfer.
+ *
+ * @param buffer El búfer que contiene los datos serializados.
+ * @return Un puntero a la estructura t_memoria_cpu_numero_marco deserializada.
+ */
+uint32_t *deserializar_t_memoria_cpu_numero_marco(t_buffer *buffer);
+
+/**
+ * @brief Serializa un número de página junto con el PID de un proceso en un paquete.
+ *
+ * Esta función toma un puntero a un paquete y los valores del PID y número de página de un proceso.
+ * Luego, serializa estos valores en el paquete para su posterior envío.
+ *
+ * @param paquete Puntero al puntero del paquete donde se almacenarán los datos serializados.
+ * @param pid El ID del proceso.
+ * @param numero_pagina El número de página del proceso.
+ */
+void serializar_t_cpu_memoria_numero_marco(t_paquete **paquete, uint32_t pid, int numero_pagina);
+
+/**
+ * @brief Deserializa un buffer y devuelve una estructura t_cpu_memoria_numero_marco.
+ *
+ * Esta función toma un buffer y extrae los datos necesarios para crear una estructura t_cpu_memoria_numero_marco.
+ * Luego, devuelve la estructura creada.
+ *
+ * @param buffer El buffer que contiene los datos a deserializar.
+ * @return Una estructura t_cpu_memoria_numero_marco con los datos deserializados.
+ */
+t_cpu_memoria_numero_marco *deserializar_t_cpu_memoria_numero_marco(t_buffer *buffer);
 
 #endif

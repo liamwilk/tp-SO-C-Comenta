@@ -43,7 +43,7 @@ void memoria_destruir_tabla_paginas(t_args *argumentos, uint32_t pid)
     list_destroy_and_destroy_elements(proceso->tabla_paginas, free);
 }
 
-int memoria_acceder_tabla_paginas(t_args *argumentos, uint32_t pid, int numero_pagina)
+uint32_t memoria_acceder_tabla_paginas(t_args *argumentos, uint32_t pid, uint32_t numero_pagina)
 {
     t_proceso *proceso = buscar_proceso(argumentos, pid);
     int marco = 0; // Inicializado en 0, debería buscar la página en la tabla de páginas y devolver el marco

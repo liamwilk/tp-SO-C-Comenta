@@ -774,3 +774,50 @@ void remover_salto_linea(char *argumento_origen)
 		argumento_origen[strlen(argumento_origen) - 1] = '\0';
 	}
 }
+
+void serializar_t_memoria_cpu_tam_pagina(t_paquete **paquete, uint32_t tam_pagina)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t));
+	serializar_uint32_t(tam_pagina, *paquete);
+}
+
+uint32_t *deserializar_t_memoria_cpu_tam_pagina(t_buffer *buffer)
+{
+	uint32_t *tam_pagina = malloc(sizeof(uint32_t));
+	void *stream = buffer->stream;
+	deserializar_uint32_t(&stream, tam_pagina);
+
+	return tam_pagina;
+}
+
+void serializar_t_memoria_cpu_numero_marco(t_paquete **paquete, uint32_t numero_marco)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t));
+	serializar_uint32_t(numero_marco, *paquete);
+}
+
+uint32_t *deserializar_t_memoria_cpu_numero_marco(t_buffer *buffer)
+{
+	uint32_t *numero_marco = malloc(sizeof(uint32_t));
+	void *stream = buffer->stream;
+	deserializar_uint32_t(&stream, numero_marco);
+
+	return numero_marco;
+}
+
+void serializar_t_cpu_memoria_numero_marco(t_paquete **paquete, uint32_t pid, int numero_pagina)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) + sizeof(int));
+	serializar_uint32_t(pid, *paquete);
+	serializar_uint32_t(numero_pagina, *paquete);
+}
+
+t_cpu_memoria_numero_marco *deserializar_t_cpu_memoria_numero_marco(t_buffer *buffer)
+{
+	t_cpu_memoria_numero_marco *proceso = malloc(sizeof(t_cpu_memoria_numero_marco));
+	void *stream = buffer->stream;
+	deserializar_uint32_t(&stream, &(proceso->pid));
+	deserializar_uint32_t(&stream, &(proceso->numero_pagina));
+
+	return proceso;
+}
