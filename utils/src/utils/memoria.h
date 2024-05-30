@@ -19,6 +19,7 @@
 #include <utils/serial.h>
 #include <commons/collections/list.h>
 #include <utils/template.h>
+#include <commons/bitarray.h>
 
 typedef enum
 {
@@ -70,6 +71,9 @@ typedef struct
 
 typedef struct
 {
+    void *espacio_usuario;
+    t_bitarray *bitmap;
+    char *bitmap_data;
     t_log *logger;
     t_config *config;
     t_list *lista_procesos;
@@ -139,4 +143,27 @@ void inicializar(t_args *args, t_log_level nivel, int argc, char *argv[]);
 void agregar_identificador(t_args_hilo *argumentos, char *identificador);
 void avisar_rechazo_identificador_memoria(int socket);
 void agregar_identificador_rechazado(t_args_hilo *argumentos, char *identificador);
+
+// Internas de memoria
+void espacio_usuario_inicializar_contiguo(t_args *args);
+void espacio_usuario_liberar_contiguo(t_args *args);
+void espacio_usuario_inicializar_bitmap(t_args *args);
+void espacio_usuario_liberar_bitmap(t_args *args);
+void marcar_frame_usado(t_args *args, t_bitarray *bitmap, uint32_t frame);
+void liberar_frame(t_bitarray *bitmap, uint32_t frame);
+bool frame_esta_libre(t_bitarray *bitmap, uint32_t frame);
+void espacio_usuario_escribir(t_args *args, uint32_t direccion_fisica, void *dato, size_t tamano);
+void espacio_usuario_liberar_frames(t_args *args, uint32_t direccion_fisica, size_t tamano);
+void escribir_int(t_args *args, uint32_t direccion_fisica, int valor);
+void escribir_float(t_args *args, uint32_t direccion_fisica, float valor);
+void escribir_char(t_args *args, uint32_t direccion_fisica, const char *cadena);
+void escribir_generic(t_args *args, uint32_t direccion_fisica, void *estructura, size_t tamano_estructura);
+void escribir_uint32(t_args *args, uint32_t direccion_fisica, uint32_t valor);
+void espacio_usuario_leer(t_args *args, uint32_t direccion_fisica, void *destino, size_t tamano);
+uint32_t leer_uint32(t_args *args, uint32_t direccion_fisica);
+int leer_int(t_args *args, uint32_t direccion_fisica);
+float leer_float(t_args *args, uint32_t direccion_fisica);
+void leer_char(t_args *args, uint32_t direccion_fisica, char *destino, size_t tamano_max);
+void leer_generic(t_args *args, uint32_t direccion_fisica, void *estructura, size_t tamano_estructura);
+
 #endif // MEMORIA_H
