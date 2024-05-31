@@ -4,6 +4,122 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 {
 	switch (codigo_operacion)
 	{
+		case CPU_MEMORIA_RESIZE:
+		{
+			/* TODO: Recibo un PID y un nuevo tamaño para la tabla de paginas del proceso (es decir, una cantidad de frames, que traducen a una cantidad de paginas), y debo verificar que el PID exista en Memoria, y luego si se debe hacer un resize positivo o negativo.
+			
+			Si es positivo hay que verificar si el espacio de marcos solicitados no es mayor a la cantidad de frames totales en Memoria.
+			
+			Si es negativo, se debe verificar que la cantidad de frames en uso no sea mayor a la cantidad de frames a liberar, en caso contrario, ¿no se puede liberar la cantidad de frames solicitados? ¿elimino datos? ¿cierro el proceso?, además, debo liberar y marcar como libres los frames que antes estaban ocupados por ese proceso.
+			
+			Si todo es correcto, se debe enviar un mensaje a CPU con el resultado de la operación, y si no, se debe enviar un mensaje de error "Out of memory" o "No se puede liberar la cantidad de frames solicitados", segun sea el caso. */
+
+			t_cpu_memoria_resize *proceso_recibido = deserializar_t_cpu_memoria_resize(buffer);
+
+			log_debug(argumentos->logger, "Se recibio un pedido de resize de tabla de paginas para el proceso con PID <%d>", proceso_recibido->pid);
+
+			t_proceso *proceso = buscar_proceso(argumentos, proceso_recibido->pid);
+
+			// Si el proceso no existe, envio un mensaje a CPU
+			if (proceso == NULL)
+			{
+				log_error(argumentos->logger, "No se encontro el proceso con PID <%d> para efectuar el resize.", proceso_recibido->pid);
+
+				// Aviso a CPU que no se encontro el proceso
+				t_paquete *paquete = crear_paquete(MEMORIA_CPU_RESIZE);
+				t_memoria_cpu_resize *proceso_enviar = malloc(sizeof(t_memoria_cpu_resize));
+				proceso_enviar->pid = proceso_recibido->pid;
+				proceso_enviar->frames = 0;
+				proceso_enviar->resultado = 0;
+				proceso_enviar->motivo = strdup("No se encontro el proceso con PID solicitado");
+				proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
+
+				serializar_t_memoria_cpu_resize(&paquete, proceso_enviar);
+				enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+
+				free(proceso_enviar->motivo);
+				free(proceso_enviar);
+				eliminar_paquete(paquete);
+				break;
+			}
+
+			if (proceso_recibido->frames > list_size(proceso->tabla_paginas))
+			{
+				log_debug(argumentos->logger, "Se solicito un resize positivo de %d frames", proceso_recibido->frames);
+
+				// Reviso si hay suficientes frames disponibles en sistema para el resize solicitado
+				if (proceso_recibido->frames > (argumentos->memoria.tamMemoria / argumentos->memoria.tamPagina))
+				{
+					log_error(argumentos->logger, "No hay suficientes frames disponibles en sistema para el resize solicitado");
+
+					t_paquete *paquete = crear_paquete(MEMORIA_CPU_RESIZE);
+					t_memoria_cpu_resize *proceso_enviar = malloc(sizeof(t_memoria_cpu_resize));
+					proceso_enviar->pid = proceso_recibido->pid;
+					proceso_enviar->frames = 0;
+					proceso_enviar->resultado = 1;
+					proceso_enviar->motivo = strdup("Out of memory");
+					proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
+					
+					serializar_t_memoria_cpu_resize(&paquete, proceso_enviar);
+					enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+
+					free(proceso_enviar->motivo);
+					free(proceso_enviar);
+					eliminar_paquete(paquete);
+					break;
+				}
+
+				// Realizo el resize positivo
+				
+				// TODO: Aca va la logica para hacer el resize positivo
+
+				log_info(argumentos->logger, "Se realizo un resize positivo de %d frames para el proceso con PID <%d>", proceso_recibido->frames, proceso_recibido->pid);
+			}
+			else
+			{
+				log_debug(argumentos->logger, "Se solicito un resize negativo de %d frames", proceso_recibido->frames);
+
+				int cantidad_frames_en_uso = 0;
+
+				for (int i = 0; i < list_size(proceso->tabla_paginas); i++)
+				{
+					t_pagina *pagina = list_get(proceso->tabla_paginas, i);
+
+					if (pagina->numero_marco != -1)
+					{
+						cantidad_frames_en_uso++;
+					}
+				}
+
+				// Si la cantidad de frames en uso es mayor a la cantidad de frames a liberar, no se pueden liberar los frames solicitados
+				if (cantidad_frames_en_uso > proceso_recibido->frames)
+				{
+					log_error(argumentos->logger, "No se pueden liberar %d frames para el proceso con PID <%d>", proceso_recibido->frames, proceso_recibido->pid);
+
+					t_paquete *paquete = crear_paquete(MEMORIA_CPU_RESIZE);
+					t_memoria_cpu_resize *proceso_enviar = malloc(sizeof(t_memoria_cpu_resize));
+					proceso_enviar->pid = proceso_recibido->pid;
+					proceso_enviar->frames = 0;
+					proceso_enviar->resultado = 2;
+					proceso_enviar->motivo = strdup("No se pueden liberar la cantidad de frames solicitados porque el proceso los esta utilizando");
+					proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
+
+					serializar_t_memoria_cpu_resize(&paquete, proceso_enviar);
+					enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+
+					free(proceso_enviar->motivo);
+					free(proceso_enviar);
+					eliminar_paquete(paquete);
+					break;
+				}
+
+				// Realizo el resize negativo
+
+				// TODO: Aca va la logica para hacer el resize negativo
+			}
+			
+			break;
+		}
 		case CPU_MEMORIA_PROXIMA_INSTRUCCION:
 		{
 			// Simulo el retardo de acceso a memoria en milisegundos
@@ -85,9 +201,9 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			eliminar_paquete(paquete_instruccion);
 			break;
 		}
-		case MEMORIA_CPU_TAM_PAGINA:
+		case CPU_MEMORIA_TAM_PAGINA:
 			{
-				t_paquete *paquete = crear_paquete(MEMORIA_CPU_TAM_PAGINA);
+				t_paquete *paquete = crear_paquete(CPU_MEMORIA_TAM_PAGINA);
 				uint32_t sizepagina = argumentos->memoria.tamPagina;
 
 				serializar_t_memoria_cpu_tam_pagina(&paquete, sizepagina);
@@ -96,9 +212,9 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 				eliminar_paquete(paquete);
 				break;
 			}
-		case MEMORIA_CPU_NUMERO_FRAME:
+		case CPU_MEMORIA_NUMERO_FRAME:
 			{
-				t_cpu_memoria_numero_marco *proceso_recibido = deserializar_t_cpu_memoria_numero_marco(buffer);
+				t_cpu_memoria_numero_frame *proceso_recibido = deserializar_t_cpu_memoria_numero_frame(buffer);
 
 				t_proceso *proceso = NULL;
 				proceso = buscar_proceso(argumentos, proceso->pid);
@@ -112,7 +228,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 
 				uint32_t numero_marco = memoria_acceder_tabla_paginas(argumentos, proceso->pid, proceso_recibido->numero_pagina);
 
-				t_paquete *paquete = crear_paquete(MEMORIA_CPU_NUMERO_FRAME);
+				t_paquete *paquete = crear_paquete(CPU_MEMORIA_NUMERO_FRAME);
 				serializar_t_memoria_cpu_numero_marco(&paquete, numero_marco);
 
 				enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);

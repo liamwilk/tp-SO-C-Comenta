@@ -153,7 +153,7 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 		free(tipo_instruccion);
 		break;
 	}
-	case MEMORIA_CPU_TAM_PAGINA:
+	case CPU_MEMORIA_TAM_PAGINA:
 	{
 		uint32_t *tamPag = deserializar_t_memoria_cpu_tam_pagina(buffer);
 		cpu.tam_pagina = *tamPag;

@@ -517,6 +517,46 @@ void serializar_t_entrada_salida_kernel_finalizar(t_paquete **paquete, t_entrada
 	serializar_bool(unidad->terminado, *paquete);
 }
 
+void serializar_t_cpu_memoria_resize(t_paquete **paquete, t_cpu_memoria_resize *resize)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 2);
+	serializar_uint32_t(resize->pid, *paquete);
+	serializar_uint32_t(resize->frames, *paquete);
+}
+
+t_cpu_memoria_resize *deserializar_t_cpu_memoria_resize(t_buffer *buffer)
+{
+	t_cpu_memoria_resize *dato = malloc(sizeof(t_cpu_memoria_resize));
+	void *stream = buffer->stream;
+	deserializar_uint32_t(&stream, &(dato->pid));
+	deserializar_uint32_t(&stream, &(dato->frames));
+
+	return dato;
+}
+
+void serializar_t_memoria_cpu_resize(t_paquete **paquete, t_memoria_cpu_resize *resize)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 2);
+	serializar_uint32_t(resize->pid, *paquete);
+	serializar_uint32_t(resize->frames, *paquete);
+	serializar_uint32_t(resize->resultado, *paquete);
+	serializar_uint32_t(resize->size_motivo, *paquete);
+	serializar_char(resize->motivo, *paquete);
+}
+
+t_memoria_cpu_resize *deserializar_t_memoria_cpu_resize(t_buffer *buffer)
+{
+	t_memoria_cpu_resize *dato = malloc(sizeof(t_memoria_cpu_resize));
+	void *stream = buffer->stream;
+	deserializar_uint32_t(&stream, &(dato->pid));
+	deserializar_uint32_t(&stream, &(dato->frames));
+	deserializar_uint32_t(&stream, &(dato->resultado));
+	deserializar_uint32_t(&stream, &(dato->size_motivo));
+	deserializar_char(&stream, &(dato->motivo), strlen(dato->motivo) + 1);
+
+	return dato;
+}
+
 t_memoria_cpu_instruccion *deserializar_t_memoria_cpu_instruccion(t_buffer *buffer)
 {
 	t_memoria_cpu_instruccion *dato = malloc(sizeof(t_memoria_cpu_instruccion));
@@ -759,6 +799,7 @@ void serializar_t_kernel_cpu_interrupcion(t_paquete **paquete, t_kernel_cpu_inte
 	serializar_uint32_t(interrupcion->len_motivo, *paquete);
 	serializar_char(interrupcion->motivo, *paquete);
 }
+
 void serializar_t_kernel_io_interrupcion(t_paquete **paquete, t_kernel_io_interrupcion *interrupcion)
 {
 	actualizar_buffer(*paquete, sizeof(uint32_t) + sizeof(uint32_t) + interrupcion->len_motivo);
@@ -840,9 +881,9 @@ void serializar_t_cpu_memoria_numero_marco(t_paquete **paquete, uint32_t pid, in
 	serializar_uint32_t(numero_pagina, *paquete);
 }
 
-t_cpu_memoria_numero_marco *deserializar_t_cpu_memoria_numero_marco(t_buffer *buffer)
+t_cpu_memoria_numero_frame *deserializar_t_cpu_memoria_numero_frame(t_buffer *buffer)
 {
-	t_cpu_memoria_numero_marco *proceso = malloc(sizeof(t_cpu_memoria_numero_marco));
+	t_cpu_memoria_numero_frame *proceso = malloc(sizeof(t_cpu_memoria_numero_frame));
 	void *stream = buffer->stream;
 	deserializar_uint32_t(&stream, &(proceso->pid));
 	deserializar_uint32_t(&stream, &(proceso->numero_pagina));

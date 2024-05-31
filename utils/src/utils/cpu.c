@@ -1007,7 +1007,7 @@ void cpu_procesar_interrupt(t_log *logger, t_cpu cpu, t_cpu_proceso proceso)
 
 void cpu_enviar_aviso_memoria_tam_pagina(t_cpu *cpu)
 {
-    t_paquete *paquete = crear_paquete(MEMORIA_CPU_TAM_PAGINA);
+    t_paquete *paquete = crear_paquete(CPU_MEMORIA_TAM_PAGINA);
     uint32_t aviso = 1;
 
     serializar_t_memoria_cpu_tam_pagina(&paquete, aviso);

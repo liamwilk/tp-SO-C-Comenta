@@ -17,23 +17,25 @@ typedef enum
 	CPU_MEMORIA_PROXIMA_INSTRUCCION,
 	CPU_KERNEL_IO_GEN_SLEEP,
 	CPU_KERNEL_PROCESO,
-	MEMORIA_CPU_PROXIMA_INSTRUCCION,
-	KERNEL_MEMORIA_NUEVO_PROCESO,
-	KERNEL_MEMORIA_FINALIZAR_PROCESO,
-	MEMORIA_KERNEL_NUEVO_PROCESO,
-	KERNEL_CPU_EJECUTAR_PROCESO,
-	KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP,
-	ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP,
-	KERNEL_CPU_INTERRUPCION,
-	MEMORIA_CPU_TAM_PAGINA,
-	MEMORIA_CPU_NUMERO_FRAME,
-	KERNEL_ENTRADA_SALIDA_IDENTIFICACION,
-	MEMORIA_ENTRADA_SALIDA_IDENTIFICACION,
+	CPU_MEMORIA_TAM_PAGINA,
+	CPU_MEMORIA_NUMERO_FRAME,
 	CPU_KERNEL_WAIT,
 	CPU_KERNEL_SIGNAL,
+	CPU_MEMORIA_RESIZE,
+	ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP,
+	MEMORIA_KERNEL_NUEVO_PROCESO,
+	MEMORIA_CPU_PROXIMA_INSTRUCCION,
+	MEMORIA_ENTRADA_SALIDA_IDENTIFICACION_RECHAZO,
+	MEMORIA_ENTRADA_SALIDA_IDENTIFICACION,
+	MEMORIA_CPU_RESIZE,
+	KERNEL_CPU_EJECUTAR_PROCESO,
+	KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP,
+	KERNEL_MEMORIA_NUEVO_PROCESO,
+	KERNEL_MEMORIA_FINALIZAR_PROCESO,
+	KERNEL_CPU_INTERRUPCION,
+	KERNEL_ENTRADA_SALIDA_IDENTIFICACION,
 	KERNEL_IO_INTERRUPCION,
 	KERNEL_ENTRADA_SALIDA_IDENTIFICACION_RECHAZO,
-	MEMORIA_ENTRADA_SALIDA_IDENTIFICACION_RECHAZO,
 	PLACEHOLDER
 } t_op_code;
 
@@ -180,7 +182,7 @@ typedef struct
 {
 	uint32_t pid;
 	uint32_t numero_pagina;
-} t_cpu_memoria_numero_marco;
+} t_cpu_memoria_numero_frame;
 
 typedef struct
 {
@@ -202,6 +204,21 @@ typedef struct
 	uint32_t len_motivo;
 	char *motivo;
 } t_kernel_io_interrupcion;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t frames;
+} t_cpu_memoria_resize;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t frames;
+	uint32_t resultado;
+	uint32_t size_motivo;
+	char *motivo;
+} t_memoria_cpu_resize;
 
 /**
  * @fn    *crear_paquete
@@ -642,14 +659,19 @@ void deserializar_uint64_t_array(uint64_t **array, uint64_t *cantidad_elementos,
 void serializar_t_cpu_memoria_instruccion(t_paquete **paquete, t_cpu_memoria_instruccion *proceso);
 
 t_cpu_kernel_proceso *deserializar_t_cpu_kernel_proceso(t_buffer *buffer);
+
 void serializar_t_cpu_kernel_proceso(t_paquete **paquete, t_cpu_kernel_proceso *proceso);
+
 t_kernel_cpu_proceso *deserializar_t_kernel_cpu_proceso(t_buffer *buffer);
 
 t_cpu_kernel_io_gen_sleep *deserializar_t_cpu_kernel_io_gen_sleep(t_buffer *buffer);
+
 void serializar_t_cpu_kernel_io_gen_sleep(t_paquete **paquete, t_cpu_kernel_io_gen_sleep *unidad);
 
 void serializar_t_kernel_cpu_interrupcion(t_paquete **paquete, t_kernel_cpu_interrupcion *interrupcion);
+
 t_kernel_cpu_interrupcion *deserializar_t_kernel_cpu_interrupcion(t_buffer *buffer);
+
 /**
  * @fn    *deserializar_t_kernel_memoria
  * @brief Deserializa un buffer en un t_kernel_memoria_proceso
@@ -740,20 +762,30 @@ uint32_t *deserializar_t_memoria_cpu_numero_marco(t_buffer *buffer);
 void serializar_t_cpu_memoria_numero_marco(t_paquete **paquete, uint32_t pid, int numero_pagina);
 
 /**
- * @brief Deserializa un buffer y devuelve una estructura t_cpu_memoria_numero_marco.
+ * @brief Deserializa un buffer y devuelve una estructura t_cpu_memoria_numero_frame.
  *
- * Esta función toma un buffer y extrae los datos necesarios para crear una estructura t_cpu_memoria_numero_marco.
+ * Esta función toma un buffer y extrae los datos necesarios para crear una estructura t_cpu_memoria_numero_frame.
  * Luego, devuelve la estructura creada.
  *
  * @param buffer El buffer que contiene los datos a deserializar.
- * @return Una estructura t_cpu_memoria_numero_marco con los datos deserializados.
+ * @return Una estructura t_cpu_memoria_numero_frame con los datos deserializados.
  */
-t_cpu_memoria_numero_marco *deserializar_t_cpu_memoria_numero_marco(t_buffer *buffer);
+t_cpu_memoria_numero_frame *deserializar_t_cpu_memoria_numero_frame(t_buffer *buffer);
+
 void serializar_t_entrada_salida_identificacion(t_paquete **paquete, t_entrada_salida_identificacion *identificacion);
 
 t_entrada_salida_identificacion *deserializar_t_entrada_salida_identificacion(t_buffer *buffer);
+
 void serializar_t_cpu_kernel_solicitud_recurso(t_paquete **paquete, t_cpu_kernel_solicitud_recurso *contexto);
 
 t_cpu_kernel_solicitud_recurso *deserializar_t_cpu_kernel_solicitud_recurso(t_buffer *buffer);
+
+t_cpu_memoria_resize *deserializar_t_cpu_memoria_resize(t_buffer *buffer);
+
+void serializar_t_cpu_memoria_resize(t_paquete **paquete, t_cpu_memoria_resize *resize);
+
+t_memoria_cpu_resize *deserializar_t_memoria_cpu_resize(t_buffer *buffer);
+
+void serializar_t_memoria_cpu_resize(t_paquete **paquete, t_memoria_cpu_resize *resize);
 
 #endif
