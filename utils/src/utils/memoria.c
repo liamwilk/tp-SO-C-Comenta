@@ -52,45 +52,6 @@ t_entrada_salida *agregar_entrada_salida(t_args *argumentos, t_tipo_entrada_sali
     return entrada_salida;
 };
 
-// t_entrada_salida *agregar_interfaz(t_args *argumentos, t_tipo_entrada_salida tipo, int socket)
-// {
-//     // Asigno memoria para el socket de entrada/salida (no debo liberarla porque se guarda dentro de la lista la referencia)
-//     t_entrada_salida *entrada_salida = malloc(sizeof(t_entrada_salida));
-
-//     // Guardo el socket en el cual se conecto el modulo de entrada/salida
-//     entrada_salida->socket = socket;
-//     entrada_salida->tipo = tipo;
-//     entrada_salida->orden = argumentos->memoria.sockets.id_entrada_salida;
-//     entrada_salida->ocupado = 0;
-//     entrada_salida->pid = 0;
-
-//     // Calculo el tamaño que necesito para almacenar el identificador de la interfaz
-//     int size_necesario = snprintf(NULL, 0, "Int%d", argumentos->memoria.sockets.id_entrada_salida) + 1;
-
-//     // Reservo memoria para la interfaz (no debo liberarla porque se guarda dentro del diccionario)
-//     char *interfaz = malloc(size_necesario);
-
-//     // Imprimo sobre la variable interfaz el identificador de la interfaz
-//     sprintf(interfaz, "Int%d", argumentos->memoria.sockets.id_entrada_salida);
-
-//     // Duplico la cadena para guardarla en el TAD y poder identificar la IO (esto pide malloc y hay que liberarlo cuando se desconecta la IO)
-//     entrada_salida->interfaz = strdup(interfaz);
-
-//     int *index = malloc(sizeof(int));
-
-//     // Agrego el TAD a la lista de entrada/salida y guardo el indice en el que se encuentra
-//     *index = list_add(argumentos->memoria.lista_entrada_salida, entrada_salida);
-
-//     // Guardo en el diccionario la key interfaz y el value indice para ubicarlo en la lista luego
-//     dictionary_put(argumentos->memoria.diccionario_entrada_salida, interfaz, index);
-
-//     log_debug(argumentos->logger, "Se conecto un modulo de entrada/salida en el socket %d con la interfaz %s", socket, interfaz);
-
-//     argumentos->memoria.sockets.id_entrada_salida++;
-
-//     return entrada_salida;
-// }
-
 void agregar_identificador(t_args_hilo *argumentos, char *identificador)
 {
     // Duplico la cadena para guardarla en el TAD y poder identificar la IO (esto pide malloc y hay que liberarlo cuando se desconecta la IO)
@@ -459,7 +420,7 @@ void memoria_inicializar(t_args *argumentos)
     memoria_inicializar_config(argumentos);
     memoria_inicializar_argumentos(argumentos);
     memoria_imprimir_config(argumentos);
-    espacio_usuario_inicializar_contiguo(argumentos);
+    espacio_usuario_inicializar(argumentos);
     memoria_inicializar_hilos(argumentos);
 }
 
@@ -472,8 +433,8 @@ void inicializar_modulo(t_args *argumentos)
 void memoria_finalizar(t_args *argumentos)
 {
     eliminar_procesos(argumentos);
-    espacio_usuario_liberar_bitmap(argumentos);
-    espacio_usuario_liberar_contiguo(argumentos);
+    bitmap_liberar(argumentos);
+    espacio_usuario_liberar(argumentos);
     config_destroy(argumentos->memoria.config);
     log_destroy(argumentos->logger);
 }
