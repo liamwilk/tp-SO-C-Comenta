@@ -24,7 +24,7 @@ void memoria_hilo_ejecutar(t_args *argumentos, int socket, char *modulo, t_mem_f
     }
 }
 
-char *agregar_entrada_salida(t_args *argumentos, t_tipo_entrada_salida type, int socket)
+t_entrada_salida *agregar_entrada_salida(t_args *argumentos, t_tipo_entrada_salida type, int socket)
 {
     t_entrada_salida *entrada_salida = NULL;
     switch (type)
@@ -49,10 +49,83 @@ char *agregar_entrada_salida(t_args *argumentos, t_tipo_entrada_salida type, int
         return NULL;
     }
 
-    return entrada_salida->interfaz;
+    return entrada_salida;
 };
 
-t_entrada_salida *agregar_interfaz(t_args *argumentos, t_tipo_entrada_salida tipo, int socket)
+// t_entrada_salida *agregar_interfaz(t_args *argumentos, t_tipo_entrada_salida tipo, int socket)
+// {
+//     // Asigno memoria para el socket de entrada/salida (no debo liberarla porque se guarda dentro de la lista la referencia)
+//     t_entrada_salida *entrada_salida = malloc(sizeof(t_entrada_salida));
+
+//     // Guardo el socket en el cual se conecto el modulo de entrada/salida
+//     entrada_salida->socket = socket;
+//     entrada_salida->tipo = tipo;
+//     entrada_salida->orden = argumentos->memoria.sockets.id_entrada_salida;
+//     entrada_salida->ocupado = 0;
+//     entrada_salida->pid = 0;
+
+//     // Calculo el tamaño que necesito para almacenar el identificador de la interfaz
+//     int size_necesario = snprintf(NULL, 0, "Int%d", argumentos->memoria.sockets.id_entrada_salida) + 1;
+
+//     // Reservo memoria para la interfaz (no debo liberarla porque se guarda dentro del diccionario)
+//     char *interfaz = malloc(size_necesario);
+
+//     // Imprimo sobre la variable interfaz el identificador de la interfaz
+//     sprintf(interfaz, "Int%d", argumentos->memoria.sockets.id_entrada_salida);
+
+//     // Duplico la cadena para guardarla en el TAD y poder identificar la IO (esto pide malloc y hay que liberarlo cuando se desconecta la IO)
+//     entrada_salida->interfaz = strdup(interfaz);
+
+//     int *index = malloc(sizeof(int));
+
+//     // Agrego el TAD a la lista de entrada/salida y guardo el indice en el que se encuentra
+//     *index = list_add(argumentos->memoria.lista_entrada_salida, entrada_salida);
+
+//     // Guardo en el diccionario la key interfaz y el value indice para ubicarlo en la lista luego
+//     dictionary_put(argumentos->memoria.diccionario_entrada_salida, interfaz, index);
+
+//     log_debug(argumentos->logger, "Se conecto un modulo de entrada/salida en el socket %d con la interfaz %s", socket, interfaz);
+
+//     argumentos->memoria.sockets.id_entrada_salida++;
+
+//     return entrada_salida;
+// }
+
+void agregar_identificador(t_args_hilo *argumentos, char *identificador)
+{
+    // Duplico la cadena para guardarla en el TAD y poder identificar la IO (esto pide malloc y hay que liberarlo cuando se desconecta la IO)
+    free(argumentos->entrada_salida->interfaz);
+    argumentos->entrada_salida->interfaz = strdup(identificador);
+    argumentos->entrada_salida->identificado = true;
+
+    int *index = malloc(sizeof(int));
+
+    // Agrego el TAD a la lista de entrada/salida y guardo el indice en el que se encuentra
+    *index = list_add(argumentos->argumentos->memoria.lista_entrada_salida, argumentos->entrada_salida);
+
+    // Guardo en el diccionario la key socket y el value indice para ubicarlo en la lista luego
+    dictionary_put(argumentos->argumentos->memoria.diccionario_entrada_salida, strdup(identificador), index);
+
+    log_debug(argumentos->argumentos->logger, "Se conecto un modulo de entrada/salida en el socket %d", argumentos->entrada_salida->socket);
+}
+
+void agregar_identificador_rechazado(t_args_hilo *argumentos, char *identificador)
+{
+    // Duplico la cadena para guardarla en el TAD y poder identificar la IO (esto pide malloc y hay que liberarlo cuando se desconecta la IO)
+    free(argumentos->entrada_salida->interfaz);
+    argumentos->entrada_salida->interfaz = strdup(identificador);
+    argumentos->entrada_salida->identificado = false;
+
+    int *index = malloc(sizeof(int));
+
+    // Agrego el TAD a la lista de entrada/salida y guardo el indice en el que se encuentra
+    *index = list_add(argumentos->argumentos->memoria.lista_entrada_salida, argumentos->entrada_salida);
+
+    // Guardo en el diccionario la key socket y el value indice para ubicarlo en la lista luego
+    dictionary_put(argumentos->argumentos->memoria.diccionario_entrada_salida, strdup(identificador), index);
+}
+
+t_entrada_salida *agregar_interfaz(t_args *args, t_tipo_entrada_salida tipo, int socket)
 {
     // Asigno memoria para el socket de entrada/salida (no debo liberarla porque se guarda dentro de la lista la referencia)
     t_entrada_salida *entrada_salida = malloc(sizeof(t_entrada_salida));
@@ -60,34 +133,16 @@ t_entrada_salida *agregar_interfaz(t_args *argumentos, t_tipo_entrada_salida tip
     // Guardo el socket en el cual se conecto el modulo de entrada/salida
     entrada_salida->socket = socket;
     entrada_salida->tipo = tipo;
-    entrada_salida->orden = argumentos->memoria.sockets.id_entrada_salida;
+    entrada_salida->orden = args->memoria.sockets.id_entrada_salida;
     entrada_salida->ocupado = 0;
     entrada_salida->pid = 0;
+    entrada_salida->identificado = false;
+    entrada_salida->valido = true;
+    entrada_salida->interfaz = strdup("No identificado");
 
-    // Calculo el tamaño que necesito para almacenar el identificador de la interfaz
-    int size_necesario = snprintf(NULL, 0, "Int%d", argumentos->memoria.sockets.id_entrada_salida) + 1;
+    log_debug(args->logger, "Se conecto un modulo de entrada/salida en el socket %d", socket);
 
-    // Reservo memoria para la interfaz (no debo liberarla porque se guarda dentro del diccionario)
-    char *interfaz = malloc(size_necesario);
-
-    // Imprimo sobre la variable interfaz el identificador de la interfaz
-    sprintf(interfaz, "Int%d", argumentos->memoria.sockets.id_entrada_salida);
-
-    // Duplico la cadena para guardarla en el TAD y poder identificar la IO (esto pide malloc y hay que liberarlo cuando se desconecta la IO)
-    entrada_salida->interfaz = strdup(interfaz);
-
-    int *index = malloc(sizeof(int));
-
-    // Agrego el TAD a la lista de entrada/salida y guardo el indice en el que se encuentra
-    *index = list_add(argumentos->memoria.lista_entrada_salida, entrada_salida);
-
-    // Guardo en el diccionario la key interfaz y el value indice para ubicarlo en la lista luego
-    dictionary_put(argumentos->memoria.diccionario_entrada_salida, interfaz, index);
-
-    log_debug(argumentos->logger, "Se conecto un modulo de entrada/salida en el socket %d con la interfaz %s", socket, interfaz);
-
-    argumentos->memoria.sockets.id_entrada_salida++;
-
+    args->memoria.sockets.id_entrada_salida++;
     return entrada_salida;
 }
 
@@ -99,7 +154,6 @@ void remover_interfaz(t_args *argumentos, char *interfaz)
     // Si no se encuentra la interfaz en el diccionario, no se puede desconectar
     if (indice == NULL)
     {
-        log_debug(argumentos->logger, "No se encontro la interfaz %s en el diccionario de entrada/salida", interfaz);
         return;
     }
 
@@ -134,7 +188,6 @@ t_entrada_salida *buscar_interfaz(t_args *argumentos, char *interfaz)
     // Si no se encuentra la interfaz en el diccionario, no se puede buscar
     if (indice == NULL)
     {
-        log_error(argumentos->logger, "No se encontro la interfaz %s en el diccionario de entrada/salida", interfaz);
         return NULL;
     }
 
@@ -143,7 +196,7 @@ t_entrada_salida *buscar_interfaz(t_args *argumentos, char *interfaz)
 
     if (entrada_salida == NULL)
     {
-        log_error(argumentos->logger, "No se encontro la interfaz %s en la lista de entrada/salida", interfaz);
+        return NULL;
     }
 
     log_debug(argumentos->logger, "Se encontro el modulo de entrada/salida en el socket %d asociado a la interfaz %s", entrada_salida->socket, interfaz);
@@ -404,9 +457,9 @@ void memoria_inicializar_hilos(t_args *argumentos)
 void memoria_inicializar(t_args *argumentos)
 {
     memoria_inicializar_config(argumentos);
-    memoria_inicializar_marcos(argumentos);
     memoria_inicializar_argumentos(argumentos);
     memoria_imprimir_config(argumentos);
+    espacio_usuario_inicializar_contiguo(argumentos);
     memoria_inicializar_hilos(argumentos);
 }
 
@@ -419,8 +472,8 @@ void inicializar_modulo(t_args *argumentos)
 void memoria_finalizar(t_args *argumentos)
 {
     eliminar_procesos(argumentos);
-    memoria_liberar_marcos(argumentos);
-    memoria_liberar_bitmap(argumentos);
+    espacio_usuario_liberar_bitmap(argumentos);
+    espacio_usuario_liberar_contiguo(argumentos);
     config_destroy(argumentos->memoria.config);
     log_destroy(argumentos->logger);
 }
@@ -463,27 +516,23 @@ void *esperar_entrada_salida(void *paquete)
         t_args_hilo *hilo_args = malloc(sizeof(t_args_hilo));
         hilo_args->argumentos = argumentos;
         hilo_args->entrada_salida = NULL;
-        char *interfaz = NULL;
 
         switch (modulo)
         {
         case MEMORIA_ENTRADA_SALIDA_STDIN:
-            interfaz = agregar_entrada_salida(argumentos, STDIN, socket_cliente);
-            hilo_args->entrada_salida = buscar_interfaz(argumentos, interfaz);
+            hilo_args->entrada_salida = agregar_entrada_salida(argumentos, STDIN, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, atender_entrada_salida_stdin, hilo_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
         case MEMORIA_ENTRADA_SALIDA_STDOUT:
-            interfaz = agregar_entrada_salida(argumentos, STDOUT, socket_cliente);
-            hilo_args->entrada_salida = buscar_interfaz(argumentos, interfaz);
+            hilo_args->entrada_salida = agregar_entrada_salida(argumentos, STDOUT, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, atender_entrada_salida_stdout, hilo_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
         case MEMORIA_ENTRADA_SALIDA_DIALFS:
-            interfaz = agregar_entrada_salida(argumentos, DIALFS, socket_cliente);
-            hilo_args->entrada_salida = buscar_interfaz(argumentos, interfaz);
+            hilo_args->entrada_salida = agregar_entrada_salida(argumentos, DIALFS, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, atender_entrada_salida_dialfs, hilo_args);
             pthread_detach(thread_atender_entrada_salida);
@@ -501,8 +550,8 @@ void *esperar_entrada_salida(void *paquete)
 void *atender_entrada_salida_dialfs(void *argumentos)
 {
     t_args_hilo *io_args = (t_args_hilo *)argumentos;
-    char *modulo = "DialFS";
-    memoria_hilo_ejecutar_entrada_salida(io_args, modulo, switch_case_entrada_salida_dialfs);
+    char *modulo = "I/O DialFS";
+    memoria_hilo_ejecutar_entrada_salida(io_args, modulo, switch_case_memoria_entrada_salida_dialfs);
     pthread_exit(0);
 }
 
@@ -523,16 +572,16 @@ void *esperar_kernel(void *paquete)
 void *atender_entrada_salida_stdout(void *argumentos)
 {
     t_args_hilo *io_args = (t_args_hilo *)argumentos;
-    char *modulo = "STDOUT";
-    memoria_hilo_ejecutar_entrada_salida(io_args, modulo, switch_case_entrada_salida_stdout);
+    char *modulo = "I/O STDOUT";
+    memoria_hilo_ejecutar_entrada_salida(io_args, modulo, switch_case_memoria_entrada_salida_stdout);
     pthread_exit(0);
 }
 
 void *atender_entrada_salida_stdin(void *argumentos)
 {
     t_args_hilo *io_args = (t_args_hilo *)argumentos;
-    char *modulo = "STDIN";
-    memoria_hilo_ejecutar_entrada_salida(io_args, modulo, switch_case_entrada_salida_stdin);
+    char *modulo = "I/O STDIN";
+    memoria_hilo_ejecutar_entrada_salida(io_args, modulo, switch_case_memoria_entrada_salida_stdin);
     pthread_exit(0);
 }
 
@@ -550,24 +599,42 @@ void *atender_cpu(void *paquete)
     pthread_exit(0);
 }
 
-void memoria_hilo_ejecutar_entrada_salida(t_args_hilo *io_args, char *modulo, t_mem_funcion_ptr switch_case_atencion)
+void memoria_hilo_ejecutar_entrada_salida(t_args_hilo *io_args, char *modulo, t_mem_funcion_hilo_ptr switch_case_atencion)
 {
-    log_debug(io_args->argumentos->logger, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden, io_args->entrada_salida->socket);
-
     while (1)
     {
-        log_debug(io_args->argumentos->logger, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden, io_args->entrada_salida->socket);
+        if (io_args->entrada_salida->valido)
+        {
+            if (io_args->entrada_salida->identificado)
+            {
+                log_debug(io_args->argumentos->logger, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden, io_args->entrada_salida->socket);
+            }
+            else
+            {
+                log_debug(io_args->argumentos->logger, "[%s/Orden %d] Esperando identificador en socket %d", modulo, io_args->entrada_salida->orden, io_args->entrada_salida->socket);
+            }
+        }
 
         t_paquete *paquete = recibir_paquete(io_args->argumentos->logger, &io_args->entrada_salida->socket);
 
         if (paquete == NULL)
         {
-            log_debug(io_args->argumentos->logger, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden);
+            if (io_args->entrada_salida->valido)
+            {
+                if (io_args->entrada_salida->identificado)
+                {
+                    log_debug(io_args->argumentos->logger, "[%s/Interfaz %s/Orden %d] Se desconecto", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden);
+                }
+                else
+                {
+                    log_debug(io_args->argumentos->logger, "[%s/Orden %d] Se desconecto", modulo, io_args->entrada_salida->orden);
+                }
+            }
             break;
         }
         revisar_paquete(paquete, io_args->argumentos->logger, modulo);
 
-        switch_case_atencion(io_args->argumentos, paquete->codigo_operacion, paquete->buffer);
+        switch_case_atencion(io_args, modulo, paquete->codigo_operacion, paquete->buffer);
     }
 
     log_debug(io_args->argumentos->logger, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden);
@@ -587,4 +654,15 @@ void inicializar(t_args *argumentos, t_log_level nivel, int argc, char *argv[])
     inicializar_logger(argumentos, nivel);
     inicializar_config(&argumentos->memoria.config, argumentos->logger, argc, argv);
     inicializar_modulo(argumentos);
+}
+
+void avisar_rechazo_identificador_memoria(int socket)
+{
+    t_paquete *paquete = crear_paquete(MEMORIA_ENTRADA_SALIDA_IDENTIFICACION_RECHAZO);
+    t_entrada_salida_identificacion *identificacion = malloc(sizeof(t_entrada_salida_identificacion));
+    identificacion->identificador = "Rechazo";
+    identificacion->size_identificador = strlen(identificacion->identificador) + 1;
+    serializar_t_entrada_salida_identificacion(&paquete, identificacion);
+    enviar_paquete(paquete, socket);
+    eliminar_paquete(paquete);
 }

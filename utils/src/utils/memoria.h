@@ -19,6 +19,7 @@
 #include <utils/serial.h>
 #include <commons/collections/list.h>
 #include <utils/template.h>
+#include <commons/bitarray.h>
 
 typedef enum
 {
@@ -30,6 +31,8 @@ typedef enum
 typedef struct
 {
     int pid;
+    bool identificado;
+    bool valido;
     int ocupado;
     int orden;
     int socket;
@@ -76,8 +79,10 @@ typedef struct
 
 typedef struct
 {
-    void *marcos;
-    t_list *bitmap;
+    void *espacio_usuario;
+    int *bytes_usados;
+    t_bitarray *bitmap;
+    char *bitmap_data;
     t_log *logger;
     t_config *config;
     t_list *lista_procesos;
@@ -104,6 +109,7 @@ typedef struct
     t_entrada_salida *entrada_salida;
 } t_args_hilo;
 
+typedef void (*t_mem_funcion_hilo_ptr)(t_args_hilo *, char *, t_op_code, t_buffer *);
 typedef void (*t_mem_funcion_ptr)(t_args *, t_op_code, t_buffer *);
 
 /**
@@ -135,6 +141,8 @@ t_entrada_salida *buscar_interfaz(t_args *argumentos, char *interfaz);
  */
 t_list *leer_instrucciones(t_args *argumentos, char *path_instrucciones, uint32_t pid);
 
+t_entrada_salida *agregar_entrada_salida(t_args *argumentos, t_tipo_entrada_salida type, int socket);
+
 /**
  * @brief Busca un proceso en la lista de procesos.
  *
@@ -161,7 +169,7 @@ char *armar_ruta(char *ruta1, char *ruta2);
  * @param socket El socket de la interfaz.
  * @return Un puntero a la estructura de entrada/salida agregada.
  */
-char *agregar_entrada_salida(t_args *argumentos, t_tipo_entrada_salida type, int socket);
+t_entrada_salida *agregar_entrada_salida(t_args *argumentos, t_tipo_entrada_salida type, int socket);
 
 /**
  * @brief Inicializa la configuración de la memoria.
@@ -215,7 +223,7 @@ void *atender_entrada_salida_stdin(void *paquete);
  * @param codigo_operacion El código de operación.
  * @param buffer El buffer recibido.
  */
-void switch_case_entrada_salida_stdin(t_args *argumentos, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_memoria_entrada_salida_stdin(t_args_hilo *argumentos, char *modulo, t_op_code codigo_operacion, t_buffer *buffer);
 
 /**
  * @brief Función para manejar las operaciones de entrada/salida desde dialfs.
@@ -224,7 +232,7 @@ void switch_case_entrada_salida_stdin(t_args *argumentos, t_op_code codigo_opera
  * @param codigo_operacion El código de operación.
  * @param buffer El buffer recibido.
  */
-void switch_case_entrada_salida_dialfs(t_args *argumentos, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_memoria_entrada_salida_dialfs(t_args_hilo *argumentos, char *modulo, t_op_code codigo_operacion, t_buffer *buffer);
 
 /**
  * @brief Función para atender las entradas/salidas desde dialfs.
@@ -241,7 +249,7 @@ void *atender_entrada_salida_dialfs(void *paquete);
  * @param codigo_operacion El código de operación.
  * @param buffer El buffer recibido.
  */
-void switch_case_entrada_salida_stdout(t_args *argumentos, t_op_code codigo_operacion, t_buffer *buffer);
+void switch_case_memoria_entrada_salida_stdout(t_args_hilo *argumentos, char *modulo, t_op_code codigo_operacion, t_buffer *buffer);
 
 /**
  * @brief Función para atender las entradas/salidas hacia stdout.
@@ -359,7 +367,7 @@ void *esperar_kernel(void *paquete);
  * @param modulo El módulo de la entrada/salida.
  * @param switch_case_atencion La función de manejo de operaciones.
  */
-void memoria_hilo_ejecutar_entrada_salida(t_args_hilo *io_args, char *modulo, t_mem_funcion_ptr switch_case_atencion);
+void memoria_hilo_ejecutar_entrada_salida(t_args_hilo *io_args, char *modulo, t_mem_funcion_hilo_ptr switch_case_atencion);
 
 /**
  * @brief Inicializa los argumentos de la memoria.
@@ -415,41 +423,6 @@ void inicializar_logger(t_args *argumentos, t_log_level nivel);
 void inicializar(t_args *args, t_log_level nivel, int argc, char *argv[]);
 
 /**
- * @brief Inicializa los marcos de memoria.
- *
- * @param args Los argumentos del programa.
- */
-void memoria_inicializar_marcos(t_args *args);
-
-/**
- * @brief Libera los marcos de memoria.
- *
- * @param args Los argumentos del programa.
- */
-void memoria_liberar_marcos(t_args *args);
-
-/**
- * @brief Inicializa el bitmap de memoria.
- *
- * @param args Los argumentos del programa.
- */
-void memoria_inicializar_bitmap(t_args *args);
-
-/**
- * @brief Imprime el bitmap de memoria.
- *
- * @param args Los argumentos del programa.
- */
-void memoria_imprimir_bitmap(t_args *args);
-
-/**
- * @brief Libera el bitmap de memoria.
- *
- * @param args Los argumentos del programa.
- */
-void memoria_liberar_bitmap(t_args *args);
-
-/**
  * @brief Crea una tabla de páginas en memoria.
  *
  * @param argumentos Los argumentos del programa.
@@ -475,5 +448,32 @@ void memoria_destruir_tabla_paginas(t_args *args, uint32_t pid);
  * @return El marco de la página.
  */
 uint32_t memoria_acceder_tabla_paginas(t_args *argumentos, uint32_t pid, uint32_t numero_pagina);
+void agregar_identificador(t_args_hilo *argumentos, char *identificador);
+void avisar_rechazo_identificador_memoria(int socket);
+void agregar_identificador_rechazado(t_args_hilo *argumentos, char *identificador);
+
+// Internas de memoria
+void espacio_usuario_inicializar_contiguo(t_args *args);
+void espacio_usuario_liberar_contiguo(t_args *args);
+void espacio_usuario_inicializar_bitmap(t_args *args);
+void espacio_usuario_liberar_bitmap(t_args *args);
+void marcar_frame_usado(t_args *args, t_bitarray *bitmap, uint32_t frame);
+void liberar_frame(t_bitarray *bitmap, uint32_t frame);
+bool frame_esta_libre(t_bitarray *bitmap, uint32_t frame);
+void espacio_usuario_escribir(t_args *args, uint32_t direccion_fisica, void *dato, size_t tamano);
+void espacio_usuario_liberar(t_args *args, uint32_t direccion_fisica, size_t tamano);
+void escribir_int(t_args *args, uint32_t direccion_fisica, int valor);
+void escribir_float(t_args *args, uint32_t direccion_fisica, float valor);
+void escribir_char(t_args *args, uint32_t direccion_fisica, const char *cadena);
+void escribir_generic(t_args *args, uint32_t direccion_fisica, void *estructura, size_t tamano_estructura);
+void escribir_uint32(t_args *args, uint32_t direccion_fisica, uint32_t valor);
+void espacio_usuario_leer(t_args *args, uint32_t direccion_fisica, void *destino, size_t tamano);
+uint32_t leer_uint32(t_args *args, uint32_t direccion_fisica);
+int leer_int(t_args *args, uint32_t direccion_fisica);
+float leer_float(t_args *args, uint32_t direccion_fisica);
+void leer_char(t_args *args, uint32_t direccion_fisica, char *destino, size_t tamano_max);
+void leer_generic(t_args *args, uint32_t direccion_fisica, void *estructura, size_t tamano_estructura);
+uint32_t buscar_direccion_fisica_con_espacio(t_args *args, size_t tamano);
+int buscar_marco_con_espacio(t_args *args, size_t tamano);
 
 #endif // MEMORIA_H

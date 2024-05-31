@@ -48,7 +48,6 @@ void *hilos_atender_consola(void *args)
             if (!separar_linea[1] == 0)
             {
                 kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-
                 char *pathInstrucciones = separar_linea[1];
                 ejecutar_script(pathInstrucciones, hiloArgs);
                 break;
@@ -130,7 +129,6 @@ void *hilo_planificador(void *args)
     while (obtener_key_finalizacion_hilo(hiloArgs))
     {
         sem_wait(&hiloArgs->kernel->planificador_iniciar);
-
         if (!obtener_key_finalizacion_hilo(hiloArgs))
         {
             break;
@@ -148,29 +146,7 @@ void *hilo_planificador(void *args)
             planificacion_largo_plazo(hiloArgs);
         }
 
-        switch (determinar_algoritmo(hiloArgs))
-        {
-        case FIFO:
-        {
-            fifo(hiloArgs);
-            break;
-        }
-        case RR:
-        {
-            round_robin(hiloArgs);
-            break;
-        }
-        case VRR:
-        {
-            // TODO: algoritmo
-            break;
-        }
-        default:
-        {
-            kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "Algoritmo de planificacion no reconocido.");
-            break;
-        }
-        }
+        planificacion_corto_plazo(hiloArgs);
     }
     sem_post(&hiloArgs->kernel->sistema_finalizar);
     pthread_exit(0);
@@ -192,23 +168,6 @@ int obtener_key_detencion_algoritmo(hilos_args *args)
     i = args->kernel->detener_planificador;
     pthread_mutex_unlock(&args->kernel->lock);
     return i;
-}
-
-t_algoritmo determinar_algoritmo(hilos_args *args)
-{
-    if (strcmp(args->kernel->algoritmoPlanificador, "FIFO") == 0)
-    {
-        return FIFO;
-    }
-    else if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0)
-    {
-        return RR;
-    }
-    else if (strcmp(args->kernel->algoritmoPlanificador, "VRR") == 0)
-    {
-        return VRR;
-    }
-    return -1;
 }
 
 /*----MEMORIA----*/
@@ -240,8 +199,7 @@ void *hilos_conectar_memoria(void *args)
         liberar_conexion(&socket);
         pthread_exit(0);
     }
-
-    log_debug(hiloArgs->logger, "Conectado a Memoria en socket %d", socket);
+    kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Conectado a Memoria en socket %d", socket);
     pthread_exit(0);
 }
 
@@ -286,8 +244,7 @@ void *hilos_conectar_cpu_dispatch(void *args)
         liberar_conexion(&socket);
         pthread_exit(0);
     }
-
-    log_debug(hiloArgs->logger, "Conectado a CPU por Dispatch en socket %d", socket);
+    kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Conectado a CPU por Dispatch en socket %d", socket);
     pthread_exit(0);
 };
 
@@ -310,8 +267,7 @@ void *hilos_conectar_cpu_interrupt(void *args)
         liberar_conexion(&socket);
         pthread_exit(0);
     }
-
-    log_debug(hiloArgs->logger, "Conectado a CPU por Interrupt en socket %d", socket);
+    kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Conectado a CPU por Interrupt en socket %d", socket);
     pthread_exit(0);
 };
 
@@ -325,15 +281,6 @@ void *hilos_atender_cpu_dispatch(void *args)
 void *hilos_atender_cpu_interrupt(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-
-    // // Esto se usa para testear interrupt
-    // sleep(20);
-    // t_kernel_cpu_interrupcion *interrupcion = malloc(sizeof(t_kernel_cpu_interrupcion));
-    // interrupcion->pid = 1;
-    // t_paquete *paquete = crear_paquete(KERNEL_CPU_INTERRUPCION);
-    // serializar_t_kernel_cpu_interrupcion(&paquete, interrupcion);
-    // enviar_paquete(paquete, hiloArgs->kernel->sockets.cpu_interrupt);
-    // free(interrupcion);
 
     hilo_ejecutar_kernel(hiloArgs->kernel->sockets.cpu_interrupt, hiloArgs, "CPU Interrupt", switch_case_cpu_interrupt);
     pthread_exit(0);
@@ -376,38 +323,33 @@ void *hilos_esperar_entrada_salida(void *args)
         hilos_io_args *io_args = malloc(sizeof(hilos_io_args));
         io_args->args = hiloArgs;
         io_args->entrada_salida = NULL;
-        char *interfaz = NULL;
 
         switch (modulo)
         {
         case KERNEL_ENTRADA_SALIDA_GENERIC:
             kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida generico con socket %d", socket_cliente);
-            interfaz = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_GENERIC, socket_cliente);
-            io_args->entrada_salida = entrada_salida_buscar_interfaz(hiloArgs, interfaz);
+            io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_GENERIC, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_generic, io_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
         case KERNEL_ENTRADA_SALIDA_STDIN:
             kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida STDIN con socket %d", socket_cliente);
-            interfaz = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_STDIN, socket_cliente);
-            io_args->entrada_salida = entrada_salida_buscar_interfaz(hiloArgs, interfaz);
+            io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_STDIN, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_stdin, io_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
         case KERNEL_ENTRADA_SALIDA_STDOUT:
             kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida STDOUT con socket %d", socket_cliente);
-            interfaz = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_STDOUT, socket_cliente);
-            io_args->entrada_salida = entrada_salida_buscar_interfaz(hiloArgs, interfaz);
+            io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_STDOUT, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_stdout, io_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
         case KERNEL_ENTRADA_SALIDA_DIALFS:
             kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida DialFS con socket %d", socket_cliente);
-            interfaz = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_DIALFS, socket_cliente);
-            io_args->entrada_salida = entrada_salida_buscar_interfaz(hiloArgs, interfaz);
+            io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_DIALFS, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_dialfs, io_args);
             pthread_detach(thread_atender_entrada_salida);
@@ -422,204 +364,13 @@ void *hilos_esperar_entrada_salida(void *args)
     pthread_exit(0);
 };
 
-void *hilos_atender_entrada_salida_generic(void *args)
+void avisar_rechazo_identificador(int socket)
 {
-    hilos_io_args *io_args = (hilos_io_args *)args;
-
-    char *modulo = "I/O Generic";
-    char *interfaz = io_args->entrada_salida->interfaz;
-    int orden = io_args->entrada_salida->orden;
-    int *socket = &io_args->entrada_salida->socket;
-
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, *socket);
-
-    while (1)
-    {
-        kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, *socket);
-        t_paquete *paquete = recibir_paquete(io_args->args->logger, socket);
-
-        if (paquete == NULL)
-        {
-            kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, interfaz, orden);
-            break;
-        }
-
-        kernel_revisar_paquete(paquete, io_args->args, modulo);
-
-        switch (paquete->codigo_operacion)
-        {
-        case ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP:
-        {
-            t_entrada_salida_kernel_unidad_de_trabajo *unidad = deserializar_t_entrada_salida_kernel_unidad_de_trabajo(paquete->buffer);
-
-            if (unidad->terminado)
-            {
-                io_args->entrada_salida->ocupado = 0;
-                kernel_transicion_block_ready(io_args, modulo, unidad);
-                sem_post(&io_args->args->kernel->planificador_iniciar);
-            }
-
-            free(unidad);
-            break;
-        }
-        default:
-        {
-            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, interfaz, orden);
-            liberar_conexion(socket);
-            break;
-        }
-        }
-        eliminar_paquete(paquete);
-    }
-
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, interfaz, orden);
-
-    entrada_salida_remover_interfaz(io_args->args, interfaz);
-
-    free(io_args);
-    pthread_exit(0);
-}
-
-void *hilos_atender_entrada_salida_stdin(void *args)
-{
-    hilos_io_args *io_args = (hilos_io_args *)args;
-
-    char *modulo = "I/O STDIN";
-    char *interfaz = io_args->entrada_salida->interfaz;
-    int orden = io_args->entrada_salida->orden;
-    int *socket = &io_args->entrada_salida->socket;
-
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, *socket);
-
-    while (1)
-    {
-        kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, *socket);
-        t_paquete *paquete = recibir_paquete(io_args->args->logger, socket);
-
-        if (paquete == NULL)
-        {
-            kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, interfaz, orden);
-            break;
-        }
-        revisar_paquete(paquete, io_args->args->logger, modulo);
-
-        switch (paquete->codigo_operacion)
-        {
-        case PLACEHOLDER:
-        {
-            // Placeholder
-            break;
-        }
-        default:
-        {
-            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, interfaz, orden);
-            liberar_conexion(socket);
-            break;
-        }
-        }
-        eliminar_paquete(paquete);
-    }
-
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, interfaz, orden);
-
-    entrada_salida_remover_interfaz(io_args->args, interfaz);
-
-    free(io_args);
-    pthread_exit(0);
-}
-
-void *hilos_atender_entrada_salida_stdout(void *args)
-{
-    hilos_io_args *io_args = (hilos_io_args *)args;
-
-    char *modulo = "I/O STDOUT";
-    char *interfaz = io_args->entrada_salida->interfaz;
-    int orden = io_args->entrada_salida->orden;
-    int *socket = &io_args->entrada_salida->socket;
-
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, *socket);
-
-    while (1)
-    {
-        kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, *socket);
-        t_paquete *paquete = recibir_paquete(io_args->args->logger, socket);
-
-        if (paquete == NULL)
-        {
-            kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, interfaz, orden);
-            break;
-        }
-        revisar_paquete(paquete, io_args->args->logger, modulo);
-
-        switch (paquete->codigo_operacion)
-        {
-        case PLACEHOLDER:
-        {
-            // Placeholder
-            break;
-        }
-        default:
-        {
-            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, interfaz, orden);
-            liberar_conexion(socket);
-            break;
-        }
-        }
-        eliminar_paquete(paquete);
-    }
-
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, interfaz, orden);
-
-    entrada_salida_remover_interfaz(io_args->args, interfaz);
-
-    free(io_args);
-    pthread_exit(0);
-}
-
-void *hilos_atender_entrada_salida_dialfs(void *args)
-{
-    hilos_io_args *io_args = (hilos_io_args *)args;
-
-    char *modulo = "I/O DialFS";
-    char *interfaz = io_args->entrada_salida->interfaz;
-    int orden = io_args->entrada_salida->orden;
-    int *socket = &io_args->entrada_salida->socket;
-
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, *socket);
-
-    while (1)
-    {
-        kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, *socket);
-        t_paquete *paquete = recibir_paquete(io_args->args->logger, socket);
-
-        if (paquete == NULL)
-        {
-            kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, interfaz, orden);
-            break;
-        }
-        revisar_paquete(paquete, io_args->args->logger, modulo);
-
-        switch (paquete->codigo_operacion)
-        {
-        case PLACEHOLDER:
-        {
-            // Placeholder
-            break;
-        }
-        default:
-        {
-            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, interfaz, orden);
-            liberar_conexion(socket);
-            break;
-        }
-        }
-        eliminar_paquete(paquete);
-    }
-
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, interfaz, orden);
-
-    entrada_salida_remover_interfaz(io_args->args, interfaz);
-
-    free(io_args);
-    pthread_exit(0);
+    t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IDENTIFICACION_RECHAZO);
+    t_entrada_salida_identificacion *identificacion = malloc(sizeof(t_entrada_salida_identificacion));
+    identificacion->identificador = "Rechazo";
+    identificacion->size_identificador = strlen(identificacion->identificador) + 1;
+    serializar_t_entrada_salida_identificacion(&paquete, identificacion);
+    enviar_paquete(paquete, socket);
+    eliminar_paquete(paquete);
 }

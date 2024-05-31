@@ -602,13 +602,57 @@ int cpu_ejecutar_instruccion(t_cpu cpu_paquete, t_memoria_cpu_instruccion *datos
     }
     case WAIT:
     {
-        log_debug(logger, "reconoci un WAIT");
-        break;
+        char *nombre_recurso = strdup(datos_instruccion->array[1]);
+        log_debug(logger, "Recurso a esperar: %s", nombre_recurso);
+
+        t_paquete *paquete = crear_paquete(CPU_KERNEL_WAIT);
+
+        t_cpu_kernel_solicitud_recurso *contexto = malloc(sizeof(t_cpu_kernel_solicitud_recurso));
+        contexto->pid = cpu_proceso->pid;
+        contexto->registros = &(cpu_proceso->registros);
+        contexto->size_nombre_recurso = strlen(nombre_recurso) + 1;
+        contexto->nombre_recurso = strdup(nombre_recurso);
+
+        serializar_t_cpu_kernel_solicitud_recurso(&paquete, contexto);
+
+        enviar_paquete(paquete, cpu_paquete.socket_kernel_dispatch);
+
+        free(nombre_recurso);
+        free(contexto->nombre_recurso);
+        free(contexto);
+
+        eliminar_paquete(paquete);
+
+        return 2; // 2 significa que el proceso debe ser desalojado por haberse ejecutado wait/signal
     }
     case SIGNAL:
     {
-        log_debug(logger, "reconoci un SIGNAL");
-        break;
+        char *nombre_recurso = strdup(datos_instruccion->array[1]);
+        log_debug(logger, "Recurso a liberar: %s", nombre_recurso);
+
+        t_paquete *paquete = crear_paquete(CPU_KERNEL_SIGNAL);
+
+        t_cpu_kernel_solicitud_recurso *contexto = malloc(sizeof(t_cpu_kernel_solicitud_recurso));
+        contexto->pid = cpu_proceso->pid;
+        contexto->registros = &(cpu_proceso->registros);
+        contexto->size_nombre_recurso = strlen(nombre_recurso) + 1;
+        contexto->nombre_recurso = strdup(nombre_recurso);
+
+        serializar_t_cpu_kernel_solicitud_recurso(&paquete, contexto);
+
+        enviar_paquete(paquete, cpu_paquete.socket_kernel_dispatch);
+
+        free(nombre_recurso);
+        free(contexto->nombre_recurso);
+        free(contexto);
+        eliminar_paquete(paquete);
+
+        return 2;
+    }
+    case EXIT:
+    {
+        cpu_kernel_avisar_finalizacion(*cpu_proceso, cpu_paquete.socket_kernel_dispatch);
+        return 3;
     }
     default:
     {
@@ -627,13 +671,7 @@ int cpu_memoria_recibir_instruccion(t_buffer *buffer, t_log *logger, t_memoria_c
     proceso->registros.pc += 1;
     if (*instruccion == -1)
     {
-        log_error(logger, "Instruccion invalida");
         return -1;
-    }
-    if (*instruccion == EXIT)
-    {
-        log_debug(logger, "Reconoci el EXIT. Termino.");
-        return 1;
     }
     *datos_instruccion = *dato;
     free(dato);
@@ -942,7 +980,7 @@ int cpu_recibir_interrupcion(t_log *logger, t_buffer *buffer, t_cpu_proceso proc
     t_kernel_cpu_interrupcion *interrupcion = deserializar_t_kernel_cpu_interrupcion(buffer);
     if (interrupcion->pid == proceso.pid)
     {
-        log_debug(logger, "Se detecto una solicitud de interrupcion para el proceso de PID: %d", interrupcion->pid);
+        log_debug(logger, "[INTERRUPCION/%s] PID: <%d>", interrupcion->motivo, interrupcion->pid);
         free(interrupcion);
         return 1;
     }

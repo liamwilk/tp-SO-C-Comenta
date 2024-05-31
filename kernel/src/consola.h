@@ -11,8 +11,6 @@
 #include "utils/procesos.h"
 #include <utils/kernel.h>
 
-typedef void (*t_funcion_kernel_ptr)(t_log *, t_op_code, hilos_args *, t_buffer *);
-
 t_consola_operacion obtener_operacion(char *funcion);
 void imprimir_comandos(hilos_args *args);
 void imprimir_logo(hilos_args *args);
@@ -105,18 +103,8 @@ void entrada_salida_remover_interfaz(hilos_args *args, char *interfaz);
  * @return Un puntero a la estructura de entrada/salida encontrada, o NULL si no se encontró.
  */
 t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz);
-
-/**
- * @brief Agrega una entrada/salida de sockets en el kernel.
- *
- * Esta función se encarga de agregar una entrada/salida de sockets en el kernel.
- *
- * @param args Los argumentos del hilo.
- * @param type El tipo de entrada/salida de sockets.
- * @param socket El socket a agregar.
- *
- * @return Un puntero a la interfaz de entrada/salida creada.
- */
-char *kernel_sockets_agregar_entrada_salida(hilos_args *args, KERNEL_SOCKETS type, int socket);
-
+t_kernel_entrada_salida *kernel_sockets_agregar_entrada_salida(hilos_args *args, KERNEL_SOCKETS type, int socket);
+void entrada_salida_agregar_identificador(hilos_io_args *args, char *identificador);
+void hilos_ejecutar_entrada_salida(hilos_io_args *io_args, char *modulo, t_funcion_kernel_io_prt switch_case_atencion);
+void entrada_salida_procesar_rechazado(hilos_io_args *argumentos, char *identificador);
 #endif /* CONSOLA_H_ */

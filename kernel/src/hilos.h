@@ -24,13 +24,6 @@
 #include "modulos/memoria.h"
 #include <utils/kernel.h>
 
-typedef enum
-{
-    FIFO,
-    RR,
-    VRR
-} t_algoritmo;
-
 /*----ATENDER----*/
 
 /**
@@ -222,5 +215,6 @@ int obtener_key_finalizacion_hilo(hilos_args *args);
  * @return int Clave de detención del algoritmo.
  */
 int obtener_key_detencion_algoritmo(hilos_args *args);
+void avisar_rechazo_identificador(int socket);
 
 #endif /* HILOS_H_ */

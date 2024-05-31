@@ -27,6 +27,13 @@ typedef enum
 	KERNEL_CPU_INTERRUPCION,
 	MEMORIA_CPU_TAM_PAGINA,
 	MEMORIA_CPU_NUMERO_FRAME,
+	KERNEL_ENTRADA_SALIDA_IDENTIFICACION,
+	MEMORIA_ENTRADA_SALIDA_IDENTIFICACION,
+	CPU_KERNEL_WAIT,
+	CPU_KERNEL_SIGNAL,
+	KERNEL_IO_INTERRUPCION,
+	KERNEL_ENTRADA_SALIDA_IDENTIFICACION_RECHAZO,
+	MEMORIA_ENTRADA_SALIDA_IDENTIFICACION_RECHAZO,
 	PLACEHOLDER
 } t_op_code;
 
@@ -106,6 +113,8 @@ typedef struct
 typedef struct
 {
 	uint32_t pid;
+	uint32_t len_motivo;
+	char *motivo;
 } t_kernel_cpu_interrupcion;
 
 typedef struct
@@ -173,12 +182,34 @@ typedef struct
 	uint32_t numero_pagina;
 } t_cpu_memoria_numero_marco;
 
+typedef struct
+{
+	uint32_t size_identificador;
+	char *identificador;
+} t_entrada_salida_identificacion;
+
+typedef struct
+{
+	uint32_t pid;
+	t_registros_cpu *registros;
+	uint32_t size_nombre_recurso;
+	char *nombre_recurso;
+} t_cpu_kernel_solicitud_recurso;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t len_motivo;
+	char *motivo;
+} t_kernel_io_interrupcion;
+
 /**
  * @fn    *crear_paquete
  * @brief Crea un paquete, y le asigna un buffer.
  * @param codigo_de_operacion t_op_code que va a tener el paquete.
  */
-t_paquete *crear_paquete(t_op_code codigo_de_operacion);
+t_paquete *
+crear_paquete(t_op_code codigo_de_operacion);
 
 /**
  * @fn    *serializar_paquete
@@ -649,6 +680,10 @@ void serializar_t_memoria_kernel_proceso(t_paquete **paquete, t_memoria_kernel_p
  * @param buffer El buffer a deserializar.
  * @return Un puntero a la estructura t_kernel_memoria_finalizar_proceso deserializada.
  */
+void serializar_t_kernel_io_interrupcion(t_paquete **paquete, t_kernel_io_interrupcion *interrupcion);
+
+t_kernel_io_interrupcion *deserializar_t_kernel_io_interrupcion(t_buffer *buffer);
+
 t_kernel_memoria_finalizar_proceso *deserializar_t_kernel_memoria_finalizar_proceso(t_buffer *buffer);
 
 /**
@@ -714,5 +749,11 @@ void serializar_t_cpu_memoria_numero_marco(t_paquete **paquete, uint32_t pid, in
  * @return Una estructura t_cpu_memoria_numero_marco con los datos deserializados.
  */
 t_cpu_memoria_numero_marco *deserializar_t_cpu_memoria_numero_marco(t_buffer *buffer);
+void serializar_t_entrada_salida_identificacion(t_paquete **paquete, t_entrada_salida_identificacion *identificacion);
+
+t_entrada_salida_identificacion *deserializar_t_entrada_salida_identificacion(t_buffer *buffer);
+void serializar_t_cpu_kernel_solicitud_recurso(t_paquete **paquete, t_cpu_kernel_solicitud_recurso *contexto);
+
+t_cpu_kernel_solicitud_recurso *deserializar_t_cpu_kernel_solicitud_recurso(t_buffer *buffer);
 
 #endif

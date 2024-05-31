@@ -1,6 +1,58 @@
 #include "consola.h"
 #include <utils/procesos.h>
 
+void hilos_ejecutar_entrada_salida(hilos_io_args *io_args, char *modulo, t_funcion_kernel_io_prt switch_case_atencion)
+{
+    int orden = io_args->entrada_salida->orden;
+    int *socket = &io_args->entrada_salida->socket;
+
+    while (1)
+    {
+        if (io_args->entrada_salida->valido)
+        {
+            if (io_args->entrada_salida->identificado)
+            {
+                kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/%s/Orden %d] Esperando paquete en socket %d", modulo, io_args->entrada_salida->interfaz, orden, *socket);
+            }
+            else
+            {
+                kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/%d] Esperando identificador en socket %d", modulo, orden, *socket);
+            }
+        }
+
+        t_paquete *paquete = recibir_paquete(io_args->args->logger, socket);
+
+        if (paquete == NULL)
+        {
+
+            if (io_args->entrada_salida->valido)
+            {
+                if (io_args->entrada_salida->identificado)
+                {
+                    kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/%s/%d] Se desconecto.", modulo, io_args->entrada_salida->interfaz, orden);
+                }
+                else
+                {
+                    kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/%d] Se desconecto.", modulo, orden);
+                }
+            }
+            break;
+        }
+
+        kernel_revisar_paquete(paquete, io_args->args, modulo);
+
+        switch_case_atencion(io_args, modulo, paquete->codigo_operacion, paquete->buffer);
+
+        eliminar_paquete(paquete);
+    }
+
+    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/%s/%d] Cerrando hilo", modulo, io_args->entrada_salida->interfaz, orden);
+
+    entrada_salida_remover_interfaz(io_args->args, io_args->entrada_salida->interfaz);
+
+    free(io_args);
+}
+
 t_pcb *buscar_proceso(t_diagrama_estados *estados, uint32_t pid)
 {
     t_pcb *pcb = proceso_buscar_new(estados, pid);
@@ -159,7 +211,7 @@ t_kernel_sockets kernel_sockets_agregar(hilos_args *args, KERNEL_SOCKETS type, i
     return args->kernel->sockets;
 };
 
-char *kernel_sockets_agregar_entrada_salida(hilos_args *args, KERNEL_SOCKETS type, int socket)
+t_kernel_entrada_salida *kernel_sockets_agregar_entrada_salida(hilos_args *args, KERNEL_SOCKETS type, int socket)
 {
     t_kernel_entrada_salida *entrada_salida = NULL;
     switch (type)
@@ -187,7 +239,7 @@ char *kernel_sockets_agregar_entrada_salida(hilos_args *args, KERNEL_SOCKETS typ
         return NULL;
     }
 
-    return entrada_salida->interfaz;
+    return entrada_salida;
 };
 
 t_kernel_entrada_salida *entrada_salida_agregar_interfaz(hilos_args *args, KERNEL_SOCKETS tipo, int socket)
@@ -201,56 +253,37 @@ t_kernel_entrada_salida *entrada_salida_agregar_interfaz(hilos_args *args, KERNE
     entrada_salida->orden = args->kernel->sockets.id_entrada_salida;
     entrada_salida->ocupado = 0;
     entrada_salida->pid = 0;
+    entrada_salida->interfaz = strdup("No identificado");
+    entrada_salida->identificado = false;
+    entrada_salida->valido = true;
 
-    // Calculo el tamaño que necesito para almacenar el identificador de la interfaz
-    int size_necesario = snprintf(NULL, 0, "Int%d", args->kernel->sockets.id_entrada_salida) + 1;
-
-    // Reservo memoria para la interfaz (no debo liberarla porque se guarda dentro del diccionario)
-    char *interfaz = malloc(size_necesario);
-
-    // Imprimo sobre la variable interfaz el identificador de la interfaz
-    sprintf(interfaz, "Int%d", args->kernel->sockets.id_entrada_salida);
-
-    // Duplico la cadena para guardarla en el TAD y poder identificar la IO (esto pide malloc y hay que liberarlo cuando se desconecta la IO)
-    entrada_salida->interfaz = strdup(interfaz);
-
-    int *index = malloc(sizeof(int));
-
-    // Agrego el TAD a la lista de entrada/salida y guardo el indice en el que se encuentra
-    *index = list_add(args->kernel->sockets.list_entrada_salida, entrada_salida);
-
-    // Guardo en el diccionario la key interfaz y el value indice para ubicarlo en la lista luego
-    dictionary_put(args->kernel->sockets.dictionary_entrada_salida, interfaz, index);
-
-    kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida en el socket %d con la interfaz %s", socket, interfaz);
+    kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida en el socket %d", socket);
 
     args->kernel->sockets.id_entrada_salida++;
-
     return entrada_salida;
 }
 
-void entrada_salida_remover_interfaz(hilos_args *args, char *interfaz)
+void entrada_salida_remover_interfaz(hilos_args *args, char *identificador)
 {
     // Busco el indice en la lista de entrada/salida
-    int *indice = dictionary_get(args->kernel->sockets.dictionary_entrada_salida, interfaz);
+    int *indice = dictionary_get(args->kernel->sockets.dictionary_entrada_salida, identificador);
 
     // Si no se encuentra la interfaz en el diccionario, no se puede desconectar
     if (indice == NULL)
     {
-        kernel_log_generic(args, LOG_LEVEL_ERROR, "No se encontro la interfaz %s en el diccionario de entrada/salida", interfaz);
         return;
     }
 
     // Obtengo el TAD de la lista de entrada/salida
     t_kernel_entrada_salida *entrada_salida = list_get(args->kernel->sockets.list_entrada_salida, *indice);
 
-    kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se remueve interfaz de entrada/salida %s", interfaz);
+    kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se remueve interfaz de entrada/salida %s", entrada_salida->interfaz);
 
     // Cierro el socket de la entrada/salida del lado de Kernel
     liberar_conexion(&entrada_salida->socket);
 
     // Elimino la interfaz del diccionario
-    dictionary_remove(args->kernel->sockets.dictionary_entrada_salida, interfaz);
+    dictionary_remove(args->kernel->sockets.dictionary_entrada_salida, identificador);
 
     // Libero la memoria de la interfaz
     free(entrada_salida->interfaz);
@@ -262,4 +295,64 @@ void entrada_salida_remover_interfaz(hilos_args *args, char *interfaz)
     free(indice);
 
     // No lo elimino de la lista porque no se puede hacer un list_remove sin reorganizar los indices. Lo dejo en la lista pero no se puede acceder a el porque está vacio. Al finalizar el programa, destruyo la estructura de la lista entera.
+}
+
+t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz)
+{
+    // Busco el indice en la lista de entrada/salida
+    int *indice = dictionary_get(args->kernel->sockets.dictionary_entrada_salida, interfaz);
+
+    // Si no se encuentra la interfaz en el diccionario, no se puede buscar
+    if (indice == NULL)
+    {
+        return NULL;
+    }
+
+    // Obtengo el TAD de la lista de entrada/salida
+    t_kernel_entrada_salida *entrada_salida = list_get(args->kernel->sockets.list_entrada_salida, *indice);
+
+    if (entrada_salida == NULL)
+    {
+        return NULL;
+    }
+
+    kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se encontro el modulo de entrada/salida en el socket %d asociado a la interfaz %s", entrada_salida->socket, interfaz);
+
+    return entrada_salida;
+}
+
+void entrada_salida_agregar_identificador(hilos_io_args *argumentos, char *identificador)
+{
+    // Duplico la cadena para guardarla en el TAD y poder identificar la IO (esto pide malloc y hay que liberarlo cuando se desconecta la IO)
+
+    free(argumentos->entrada_salida->interfaz);
+    argumentos->entrada_salida->interfaz = strdup(identificador);
+    argumentos->entrada_salida->identificado = true;
+
+    int *index = malloc(sizeof(int));
+
+    // Agrego el TAD a la lista de entrada/salida y guardo el indice en el que se encuentra
+    *index = list_add(argumentos->args->kernel->sockets.list_entrada_salida, argumentos->entrada_salida);
+
+    // Guardo en el diccionario la key socket y el value indice para ubicarlo en la lista luego
+    dictionary_put(argumentos->args->kernel->sockets.dictionary_entrada_salida, strdup(identificador), index);
+
+    kernel_log_generic(argumentos->args, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida en el socket %d", argumentos->entrada_salida->socket);
+}
+
+void entrada_salida_procesar_rechazado(hilos_io_args *argumentos, char *identificador)
+{
+    // Duplico la cadena para guardarla en el TAD y poder identificar la IO (esto pide malloc y hay que liberarlo cuando se desconecta la IO)
+
+    free(argumentos->entrada_salida->interfaz);
+    argumentos->entrada_salida->interfaz = strdup(identificador);
+    argumentos->entrada_salida->identificado = false;
+
+    int *index = malloc(sizeof(int));
+
+    // Agrego el TAD a la lista de entrada/salida y guardo el indice en el que se encuentra para despues poder sacarlo
+    *index = list_add(argumentos->args->kernel->sockets.list_entrada_salida, argumentos->entrada_salida);
+
+    // Guardo en el diccionario la key socket y el value indice para ubicarlo en la lista luego
+    dictionary_put(argumentos->args->kernel->sockets.dictionary_entrada_salida, strdup(identificador), index);
 }

@@ -14,7 +14,6 @@ t_diagrama_estados kernel_inicializar_estados(t_diagrama_estados *estados)
     exit = list_create();
     // Inicializar diccionario de procesos
     estados->procesos = dictionary_create();
-    estados->buffer_procesos = dictionary_create();
     t_diagrama_estados diagrama = {
         .new = new,
         .ready = ready,
@@ -25,7 +24,9 @@ t_diagrama_estados kernel_inicializar_estados(t_diagrama_estados *estados)
         .mutex_exec_ready = PTHREAD_MUTEX_INITIALIZER,
         .mutex_ready_exec = PTHREAD_MUTEX_INITIALIZER,
         .mutex_block_ready = PTHREAD_MUTEX_INITIALIZER,
-        .mutext_new_ready = PTHREAD_MUTEX_INITIALIZER,
+        .mutex_new_ready = PTHREAD_MUTEX_INITIALIZER,
+        .mutex_block_exit = PTHREAD_MUTEX_INITIALIZER,
+        .mutex_new = PTHREAD_MUTEX_INITIALIZER,
     };
     return diagrama;
 }
@@ -130,18 +131,21 @@ void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, uint32_t pid)
 {
     sleep(kernel_hilos_args->kernel->quantum / 1000);
     t_pcb *proceso = proceso_buscar_exec(kernel_hilos_args->estados, pid);
-
     if (proceso == NULL)
     {
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "El proceso PID: <%d> finalizo previamente y le sobra quantum", pid);
         return;
     }
+    kernel_interrumpir_cpu(kernel_hilos_args, pid, "QUANTUM");
+    kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Desalojado por fin de Quantum", pid);
+}
 
+void kernel_interrumpir_cpu(hilos_args *kernel_hilos_args, uint32_t pid, char *motivo)
+{
     t_paquete *paquete = crear_paquete(KERNEL_CPU_INTERRUPCION);
-    t_kernel_cpu_interrupcion interrupcion = {.pid = pid};
+    t_kernel_cpu_interrupcion interrupcion = {.pid = pid, .motivo = motivo, .len_motivo = strlen(motivo) + 1};
     serializar_t_kernel_cpu_interrupcion(&paquete, &interrupcion);
     enviar_paquete(paquete, kernel_hilos_args->kernel->sockets.cpu_interrupt);
-    kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Desalojado por fin de Quantum", pid);
-
     free(paquete);
 }
 
@@ -354,52 +358,27 @@ void kernel_finalizar(hilos_args *args)
     eliminar_paquete(finalizar);
 };
 
-t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz)
-{
-    // Busco el indice en la lista de entrada/salida
-    int *indice = dictionary_get(args->kernel->sockets.dictionary_entrada_salida, interfaz);
-
-    // Si no se encuentra la interfaz en el diccionario, no se puede buscar
-    if (indice == NULL)
-    {
-        kernel_log_generic(args, LOG_LEVEL_ERROR, "No se encontro la interfaz %s en el diccionario de entrada/salida", interfaz);
-        return NULL;
-    }
-
-    // Obtengo el TAD de la lista de entrada/salida
-    t_kernel_entrada_salida *entrada_salida = list_get(args->kernel->sockets.list_entrada_salida, *indice);
-
-    if (entrada_salida == NULL)
-    {
-        kernel_log_generic(args, LOG_LEVEL_ERROR, "No se encontro la interfaz %s en la lista de entrada/salida", interfaz);
-    }
-
-    kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se encontro el modulo de entrada/salida en el socket %d asociado a la interfaz %s", entrada_salida->socket, interfaz);
-
-    return entrada_salida;
-}
-
 t_pcb *kernel_transicion_new_ready(hilos_args *kernel_hilo_args)
 {
-    pthread_mutex_lock(&kernel_hilo_args->estados->mutext_new_ready);
+    pthread_mutex_lock(&kernel_hilo_args->estados->mutex_new_ready);
 
     t_pcb *proceso = list_get(kernel_hilo_args->estados->new, 0);
     if (proceso == NULL)
     {
         kernel_log_generic(kernel_hilo_args, LOG_LEVEL_ERROR, "[ESTADOS/TRANSICION] Transicion de NEW a READY fallida. No hay procesos en exec.");
-        pthread_mutex_unlock(&kernel_hilo_args->estados->mutext_new_ready);
+        pthread_mutex_unlock(&kernel_hilo_args->estados->mutex_new_ready);
         return NULL;
     }
     if (proceso->memoria_aceptado == false)
     {
         kernel_log_generic(kernel_hilo_args, LOG_LEVEL_WARNING, "No se puede mover el proceso PID: <%d> a ready, ya que no fue aceptado por memoria", proceso->pid);
-        pthread_mutex_unlock(&kernel_hilo_args->estados->mutext_new_ready);
+        pthread_mutex_unlock(&kernel_hilo_args->estados->mutex_new_ready);
         return NULL;
     }
     proceso_pop_new(kernel_hilo_args->estados);
     proceso_push_ready(kernel_hilo_args->estados, proceso);
 
-    pthread_mutex_unlock(&kernel_hilo_args->estados->mutext_new_ready);
+    pthread_mutex_unlock(&kernel_hilo_args->estados->mutex_new_ready);
 
     // log oficial de la catedra
     kernel_log_generic(kernel_hilo_args, LOG_LEVEL_INFO, "PID: <%d> - Estado Anterior: <NEW> - Estado Actual: <READY>", proceso->pid);
@@ -426,17 +405,50 @@ void log_ready(hilos_args *kernel_hilos_args)
 
 bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNEL_MOTIVO_FINALIZACION MOTIVO)
 {
+    char *estado = proceso_estado(kernel_hilos_args->estados, pid);
+
+    if (estado == NULL)
+    {
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "El PID <%d> no existe", pid);
+        return false;
+    }
+
+    if (strcmp(estado, "EXIT") == 0)
+    {
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "El PID <%d> YA ha sido eliminado", pid);
+        return false;
+    }
+
     switch (MOTIVO)
     {
     case INTERRUPTED_BY_USER:
     {
+        if (strcmp(estado, "EXEC") == 0)
+        {
+            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "El proceso <%d> se encuentra en ejecucion, se procede a desalojarlo", pid);
+            kernel_interrumpir_cpu(kernel_hilos_args, pid, "FINALIZAR_PROCESO");
+            kernel_transicion_exec_exit(kernel_hilos_args);
+            return false;
+        }
+        if (strcmp(estado, "BLOCK") == 0)
+        {
+            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "El proceso <%d> se encuentra bloqueado, se procede a desbloquearlo", pid);
+            kernel_transicion_block_exit(kernel_hilos_args, pid);
+            kernel_interrumpir_io(kernel_hilos_args, pid, "FINALIZAR_PROCESO");
+            return false;
+        }
+
+        // Esta en ready o en new por lo tanto se puede eliminar tranquilamente
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INTERRUPTED_BY_USER>", pid);
-        return proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+        proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+        return true;
     }
     case SUCCESS:
     {
+        kernel_transicion_exec_exit(kernel_hilos_args);
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <SUCCESS>", pid);
-        return proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+        proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+        return true;
     }
     default:
 
@@ -512,13 +524,15 @@ void hilo_planificador_detener(hilos_args *args)
 
 t_pcb *kernel_nuevo_proceso(hilos_args *args, t_diagrama_estados *estados, t_log *logger, char *instrucciones)
 {
+    pthread_mutex_lock(&estados->mutex_new);
     t_pcb *nuevaPcb = pcb_crear(logger, args->kernel->quantum);
-    // TODO: esto hay que pasarlo a imprimimr_log para que no rompa la consola
     kernel_log_generic(args, LOG_LEVEL_DEBUG, "[PCB] Program Counter: %d", nuevaPcb->registros_cpu->pc);
     kernel_log_generic(args, LOG_LEVEL_DEBUG, "[PCB] Quantum: %d", nuevaPcb->quantum);
     kernel_log_generic(args, LOG_LEVEL_DEBUG, "[PCB] PID: %d", nuevaPcb->pid);
     kernel_log_generic(args, LOG_LEVEL_DEBUG, "[PROCESO] Instrucciones: %s", instrucciones);
 
+    proceso_push_new(estados, nuevaPcb);
+    pthread_mutex_unlock(&estados->mutex_new);
     /**----ENVIAR A MEMORIA----**/
     t_kernel_memoria_proceso *proceso = malloc(sizeof(t_kernel_memoria_proceso));
     proceso->path_instrucciones = strdup(instrucciones);
@@ -532,7 +546,6 @@ t_pcb *kernel_nuevo_proceso(hilos_args *args, t_diagrama_estados *estados, t_log
 
     eliminar_paquete(paquete);
     free(proceso);
-    proceso_push_new(estados, nuevaPcb);
 
     return nuevaPcb;
 }
@@ -786,4 +799,86 @@ void reiniciar_prompt(hilos_args *hiloArgs)
     pthread_mutex_unlock(&hiloArgs->kernel->lock);
     rl_redisplay();
     sem_post(&hiloArgs->kernel->log_lock);
+}
+
+void kernel_avisar_memoria_finalizacion_proceso(hilos_args *args, uint32_t pid)
+{
+    t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
+    t_kernel_memoria_finalizar_proceso *proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
+    proceso->pid = pid;
+    serializar_t_kernel_memoria_finalizar_proceso(&paquete, proceso);
+    enviar_paquete(paquete, args->kernel->sockets.memoria);
+    eliminar_paquete(paquete);
+    free(proceso);
+}
+
+void kernel_interrumpir_io(hilos_args *args, uint32_t pid, char *motivo)
+{
+    t_paquete *paquete = crear_paquete(KERNEL_IO_INTERRUPCION);
+    t_kernel_io_interrupcion interrupcion = {.pid = pid, .motivo = motivo, .len_motivo = strlen(motivo) + 1};
+    serializar_t_kernel_io_interrupcion(&paquete, &interrupcion);
+
+    // Buscar la io correspondiente y su socket
+    t_kernel_entrada_salida *io = kernel_entrada_salida_buscar_interfaz(args, pid);
+    enviar_paquete(paquete, io->socket);
+    free(paquete);
+}
+
+void kernel_transicion_block_exit(hilos_args *kernel_hilos_args, uint32_t pid)
+{
+    pthread_mutex_lock(&kernel_hilos_args->estados->mutex_block_exit);
+
+    t_pcb *proceso = proceso_remover_block(kernel_hilos_args->estados, pid);
+    if (proceso == NULL)
+    {
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "[ESTADOS/TRANSICION] Transicion de BLOCK a EXIT fallida. PID <%d> no encontrado en la cola de block", pid);
+        pthread_mutex_unlock(&kernel_hilos_args->estados->mutex_block_exit);
+        return;
+    }
+
+    proceso_push_exit(kernel_hilos_args->estados, proceso);
+    pthread_mutex_unlock(&kernel_hilos_args->estados->mutex_block_exit);
+
+    // log oficial de la catedra
+    kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Estado Anterior: <BLOCK> - Estado Actual: <EXIT>", proceso->pid);
+}
+
+t_kernel_entrada_salida *kernel_entrada_salida_buscar_interfaz(hilos_args *args, uint32_t pid)
+{
+    for (int i = 0; i < list_size(args->kernel->sockets.list_entrada_salida); i++)
+    {
+        t_kernel_entrada_salida *modulo = list_get(args->kernel->sockets.list_entrada_salida, i);
+        if (modulo->pid == pid)
+        {
+            return modulo;
+        }
+    }
+    return NULL;
+}
+void *hilos_atender_entrada_salida_dialfs(void *args)
+{
+    hilos_io_args *io_args = (hilos_io_args *)args;
+    hilos_ejecutar_entrada_salida(io_args, "I/O DialFS", switch_case_kernel_entrada_salida_dialfs);
+    pthread_exit(0);
+}
+
+void *hilos_atender_entrada_salida_generic(void *args)
+{
+    hilos_io_args *io_args = (hilos_io_args *)args;
+    hilos_ejecutar_entrada_salida(io_args, "I/O Generic", switch_case_kernel_entrada_salida_generic);
+    pthread_exit(0);
+}
+
+void *hilos_atender_entrada_salida_stdin(void *args)
+{
+    hilos_io_args *io_args = (hilos_io_args *)args;
+    hilos_ejecutar_entrada_salida(io_args, "I/O STDIN", switch_case_kernel_entrada_salida_stdin);
+    pthread_exit(0);
+}
+
+void *hilos_atender_entrada_salida_stdout(void *args)
+{
+    hilos_io_args *io_args = (hilos_io_args *)args;
+    hilos_ejecutar_entrada_salida(io_args, "I/O STDOUT", switch_case_kernel_entrada_salida_stdout);
+    pthread_exit(0);
 }

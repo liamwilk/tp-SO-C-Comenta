@@ -15,15 +15,16 @@ typedef struct t_diagrama_estados
     t_list *block;
     t_list *exit;
     t_dictionary *procesos;
-    t_dictionary *buffer_procesos;
 
     //********** MUTEX **********//
     pthread_mutex_t mutex_ready_exec;
     pthread_mutex_t mutex_exec_ready;
     pthread_mutex_t mutex_exec_exit;
     pthread_mutex_t mutex_block_ready;
+    pthread_mutex_t mutex_block_exit;
     pthread_mutex_t mutex_exec_block;
-    pthread_mutex_t mutext_new_ready;
+    pthread_mutex_t mutex_new_ready;
+    pthread_mutex_t mutex_new;
 } t_diagrama_estados;
 
 typedef struct pcb
@@ -237,9 +238,8 @@ char *proceso_estado(t_diagrama_estados *estados, int pid);
  *
  * @param estados Un puntero a una estructura `t_diagrama_estados` que contiene los estados de los procesos.
  * @param pid El PID del proceso a matar.
- * @return Devuelve 0 en caso de éxito, o -1 si ocurrió un error.
  */
-bool proceso_matar(t_diagrama_estados *estados, char *pid);
+void proceso_matar(t_diagrama_estados *estados, char *pid);
 
 /**
  * Inicializa el buffer de transiciones.
@@ -254,5 +254,7 @@ void procesos_inicializar_buffer_transiciones(t_dictionary *buffer);
  * @return La cadena de caracteres que representa la transición.
  */
 char *obtener_transicion_enum();
+
+t_list *proceso_obtener_estado(t_diagrama_estados *estados, char *estado);
 
 #endif

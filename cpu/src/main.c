@@ -4,7 +4,7 @@
 
 int main(int argc, char *argv[])
 {
-	logger = iniciar_logger("cpu", LOG_LEVEL_DEBUG);
+	logger = iniciar_logger("cpu", LOG_LEVEL_INFO);
 
 	inicializar_config(&config, logger, argc, argv);
 
@@ -108,17 +108,16 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 		// FETCH
 		t_instruccion *tipo_instruccion = malloc(sizeof(t_instruccion));
 
-		int debeTerminar = cpu_memoria_recibir_instruccion(buffer, logger, &instruccion, tipo_instruccion, &proceso);
-
-		if (debeTerminar)
+		if (cpu_memoria_recibir_instruccion(buffer, logger, &instruccion, tipo_instruccion, &proceso) == -1)
 		{
-			log_debug(logger, "Avisando a kernel de finalizacion de proceso");
-			cpu_kernel_avisar_finalizacion(proceso, cpu.socket_kernel_dispatch);
+			log_error(logger, "Instruccion invalida");
 			break;
 		}
 
 		// EXECUTE:
 		int hayInterrupcion = cpu_ejecutar_instruccion(cpu, &instruccion, *tipo_instruccion, &proceso, logger);
+
+		//! TODO: No utilizar magic numbers, definirlos en un enum o en su defecto en un struct
 
 		if (hayInterrupcion < 0)
 		{
@@ -128,6 +127,16 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 		if (hayInterrupcion == 1)
 		{
 			log_debug(logger, "[CPU] Se ejecuto una instruccion de IO. Se avisa a kernel y se termina ciclo de instruccion");
+			break;
+		}
+		if (hayInterrupcion == 2)
+		{
+			log_debug(logger, "[CPU] Proceso desalojado por funcion implicada en manejo de recursos.");
+			break;
+		}
+		if (hayInterrupcion == 3)
+		{
+			log_warning(logger, "[CPU] Se finaliza el ciclo de instruccion de este proceso");
 			break;
 		}
 
@@ -140,7 +149,7 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 		}
 
 		cpu_memoria_pedir_proxima_instruccion(&proceso, cpu.socket_memoria);
-		log_debug(logger, "Instruccion PC %d de PID <%d> pedida a Memoria",proceso.registros.pc,proceso.pid);
+		log_debug(logger, "Instruccion PC %d de PID <%d> pedida a Memoria", proceso.registros.pc, proceso.pid);
 		free(tipo_instruccion);
 		break;
 	}
@@ -170,7 +179,7 @@ void switch_case_kernel_dispatch(t_log *logger, t_op_code codigo_operacion, t_bu
 		proceso = cpu_kernel_recibir_proceso(buffer, logger);
 		/*PEDIR INSTRUCCION*/
 		cpu_memoria_pedir_proxima_instruccion(&proceso, cpu.socket_memoria);
-		log_debug(logger, "Instruccion PC %d de PID <%d> pedida a Memoria",proceso.registros.pc,proceso.pid);
+		log_debug(logger, "Instruccion PC %d de PID <%d> pedida a Memoria", proceso.registros.pc, proceso.pid);
 		break;
 	}
 	default:
