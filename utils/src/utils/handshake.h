@@ -57,6 +57,13 @@ t_handshake crear_handshake(t_log *logger, int socket_servidor, t_handshake codi
  */
 t_handshake conexion_handshake_recibir(t_log *logger, int socket_cliente, t_handshake codigo_esperado, char *modulo);
 
+/**
+ * Espera el handshake de entrada y salida de un cliente.
+ *
+ * @param logger Puntero al logger utilizado para registrar eventos.
+ * @param socket_cliente El socket del cliente.
+ * @return El handshake recibido.
+ */
 t_handshake esperar_handshake_entrada_salida(t_log *logger, int socket_cliente);
 
 #endif /* HANDSHAKE_H_ */

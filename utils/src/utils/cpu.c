@@ -966,3 +966,24 @@ void cpu_procesar_interrupt(t_log *logger, t_cpu cpu, t_cpu_proceso proceso)
     enviar_paquete(paquete, cpu.socket_kernel_dispatch);
     eliminar_paquete(paquete);
 }
+
+void cpu_enviar_aviso_memoria_tam_pagina(t_cpu *cpu)
+{
+    t_paquete *paquete = crear_paquete(MEMORIA_CPU_TAM_PAGINA);
+    uint32_t aviso = 1;
+
+    serializar_t_memoria_cpu_tam_pagina(&paquete, aviso);
+    enviar_paquete(paquete, cpu->socket_memoria);
+
+    eliminar_paquete(paquete);
+}
+
+double mmu(t_cpu *cpu, uint32_t direccion_logica, uint32_t numero_marco)
+{
+    double numero_pagina = floor(direccion_logica / cpu->tam_pagina);
+    double desplazamiento = direccion_logica - numero_pagina * cpu->tam_pagina;
+
+    double direccion_fisica = numero_marco * cpu->tam_pagina + desplazamiento;
+
+    return direccion_fisica;
+}

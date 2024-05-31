@@ -474,6 +474,6 @@ void memoria_destruir_tabla_paginas(t_args *args, uint32_t pid);
  * @param numero_pagina El número de página.
  * @return El marco de la página.
  */
-int memoria_acceder_tabla_paginas(t_args *argumentos, uint32_t pid, int numero_pagina);
+uint32_t memoria_acceder_tabla_paginas(t_args *argumentos, uint32_t pid, uint32_t numero_pagina);
 
 #endif // MEMORIA_H

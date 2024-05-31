@@ -241,8 +241,18 @@ char *proceso_estado(t_diagrama_estados *estados, int pid);
  */
 bool proceso_matar(t_diagrama_estados *estados, char *pid);
 
+/**
+ * Inicializa el buffer de transiciones.
+ *
+ * @param buffer El diccionario utilizado como buffer de transiciones.
+ */
 void procesos_inicializar_buffer_transiciones(t_dictionary *buffer);
 
+/**
+ * Obtiene una transición del tipo enum como una cadena de caracteres.
+ *
+ * @return La cadena de caracteres que representa la transición.
+ */
 char *obtener_transicion_enum();
 
 #endif
