@@ -98,9 +98,19 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			}
 		case MEMORIA_CPU_NUMERO_FRAME:
 			{
-				t_cpu_memoria_numero_marco *proceso = deserializar_t_cpu_memoria_numero_marco(buffer);
+				t_cpu_memoria_numero_marco *proceso_recibido = deserializar_t_cpu_memoria_numero_marco(buffer);
 
-				uint32_t numero_marco = memoria_acceder_tabla_paginas(argumentos, proceso->pid, proceso->numero_pagina);
+				t_proceso *proceso = NULL;
+				proceso = buscar_proceso(argumentos, proceso->pid);
+
+				if(memoria_acceder_tabla_paginas(argumentos, proceso->pid, proceso_recibido->numero_pagina) == -1)
+				{
+					log_error(argumentos->logger, "No se encontro la página para el proceso con PID <%d> y pagina <%d>", proceso->pid, proceso_recibido->numero_pagina);
+					free(proceso);
+					break;
+				}
+
+				uint32_t numero_marco = memoria_acceder_tabla_paginas(argumentos, proceso->pid, proceso_recibido->numero_pagina);
 
 				t_paquete *paquete = crear_paquete(MEMORIA_CPU_NUMERO_FRAME);
 				serializar_t_memoria_cpu_numero_marco(&paquete, numero_marco);
