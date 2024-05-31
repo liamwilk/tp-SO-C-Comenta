@@ -109,6 +109,12 @@ typedef struct
     t_entrada_salida *entrada_salida;
 } t_args_hilo;
 
+typedef struct
+{
+    uint32_t direccion_fisica;
+    uint32_t frame;
+} t_frame_disponible;
+
 typedef void (*t_mem_funcion_hilo_ptr)(t_args_hilo *, char *, t_op_code, t_buffer *);
 typedef void (*t_mem_funcion_ptr)(t_args *, t_op_code, t_buffer *);
 
@@ -473,7 +479,8 @@ int espacio_usuario_leer_int(t_args *args, uint32_t direccion_fisica);
 float espacio_usuario_leer_float(t_args *args, uint32_t direccion_fisica);
 void espacio_usuario_leer_char(t_args *args, uint32_t direccion_fisica, char *destino, size_t tamano_max);
 void espacio_usuario_leer_generic(t_args *args, uint32_t direccion_fisica, void *estructura, size_t tamano_estructura);
-uint32_t espacio_usuario_proxima_direccion(t_args *args, size_t tamano);
-int espacio_usuario_proximo_marco(t_args *args, size_t tamano);
+int espacio_usuario_proxima_direccion(t_args *args, size_t tamano);
+int espacio_usuario_proximo_frame(t_args *args, size_t tamano);
+t_frame_disponible *espacio_usuario_buscar_frame(t_args *args, size_t size_buscado);
 
 #endif // MEMORIA_H

@@ -55,17 +55,11 @@ void bitmap_inicializar(t_args *args)
 
     // espacio_usuario_liberar_dato(args, 39, strlen(cadena) + 1);
 
-    size_t tamano_buscado = 9;
-    uint32_t direccion_fisica_con_espacio = espacio_usuario_proxima_direccion(args, tamano_buscado);
-    int marco_con_espacio = espacio_usuario_proximo_marco(args, tamano_buscado);
+    t_frame_disponible *frame = espacio_usuario_buscar_frame(args, 122);
 
-    if (direccion_fisica_con_espacio != -1)
+    if (frame != NULL)
     {
-        log_debug(args->logger, "Encontrada la dirección física %u en el marco %d con suficiente espacio para %ld bytes", direccion_fisica_con_espacio,marco_con_espacio, tamano_buscado);
-    }
-    else
-    {
-        log_error(args->logger, "No se encontró una dirección física con suficiente espacio para %zu bytes.", tamano_buscado);
+        // Aca tendría que hacer algo con el frame
     }
 
     log_debug(args->logger,"Tamaño de la cadena: %zu", strlen(cadena)+1);
@@ -77,18 +71,7 @@ void bitmap_inicializar(t_args *args)
 
     // espacio_usuario_liberar_dato(args, 39, strlen(cadena) + 1);
 
-    tamano_buscado = 2;
-    direccion_fisica_con_espacio = espacio_usuario_proxima_direccion(args, tamano_buscado);
-    marco_con_espacio = espacio_usuario_proximo_marco(args, tamano_buscado);
-
-    if (direccion_fisica_con_espacio != -1)
-    {
-        log_debug(args->logger, "Encontrada la dirección física %u en el marco %d con suficiente espacio para %ld bytes", direccion_fisica_con_espacio,marco_con_espacio, tamano_buscado);
-    }
-    else
-    {
-        log_error(args->logger, "No se encontró una dirección física con suficiente espacio para %zu bytes.", tamano_buscado);
-    }
+    frame = espacio_usuario_buscar_frame(args, 2);
 
 }
 

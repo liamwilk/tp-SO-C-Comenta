@@ -39,6 +39,34 @@ void espacio_usuario_liberar(t_args *args)
     log_debug(args->logger, "Se libero %d bytes del espacio de usuario.", args->memoria.tamMemoria);
 }
 
+// Busca un frame con suficiente espacio para contener un dato de tamaño especificado, y retorna la dirección física y el índice del frame
+t_frame_disponible *espacio_usuario_buscar_frame(t_args *args, size_t size_buscado)
+{
+    if (size_buscado > args->memoria.tamPagina)
+    {
+        log_error(args->logger, "Se solicito buscar un espacio de %ld bytes en un solo frame, pero es mayor al tamaño de frame máximo de %d bytes.", size_buscado, args->memoria.tamPagina);
+        return NULL;
+    }
+
+    t_frame_disponible *frame_disponible = malloc(sizeof(t_frame_disponible));
+
+    frame_disponible->direccion_fisica = espacio_usuario_proxima_direccion(args, size_buscado);
+    frame_disponible->frame = espacio_usuario_proximo_frame(args, size_buscado);
+
+    if (frame_disponible->direccion_fisica != -1 && frame_disponible->frame != -1)
+    {
+        log_debug(args->logger, "Encontrada la dirección física %u en el marco %d con suficiente espacio para %ld bytes", frame_disponible->direccion_fisica, frame_disponible->frame, size_buscado);
+    }
+    else
+    {
+        log_error(args->logger, "No se encontró una dirección física con suficiente espacio para %zu bytes en ningun marco.", size_buscado);
+        free(frame_disponible);
+        return NULL;
+    }
+
+    return frame_disponible;
+}
+
 // Obtiene el frame correspondiente a una dirección física
 uint32_t espacio_usuario_obtener_frame(uint32_t direccion_fisica, uint32_t tamPagina)
 {
@@ -164,7 +192,7 @@ void espacio_usuario_liberar_dato(t_args *args, uint32_t direccion_fisica, size_
 }
 
 // Retorna el índice del primer frame con suficiente espacio para un dato de tamaño especificado
-int espacio_usuario_proximo_marco(t_args *args, size_t tamano)
+int espacio_usuario_proximo_frame(t_args *args, size_t tamano)
 {
     uint32_t tamPagina = args->memoria.tamPagina;
     uint32_t num_frames = args->memoria.tamMemoria / tamPagina;
@@ -186,7 +214,7 @@ int espacio_usuario_proximo_marco(t_args *args, size_t tamano)
 }
 
 // Retorna la dirección física del primer frame con suficiente espacio para un dato de tamaño especificado
-uint32_t espacio_usuario_proxima_direccion(t_args *args, size_t tamano)
+int espacio_usuario_proxima_direccion(t_args *args, size_t tamano)
 {
     uint32_t tamPagina = args->memoria.tamPagina;
     uint32_t num_frames = args->memoria.tamMemoria / tamPagina;
@@ -200,7 +228,7 @@ uint32_t espacio_usuario_proxima_direccion(t_args *args, size_t tamano)
         {
             // Si el espacio libre en este frame es suficiente, devuelvo la dirección física inicial
             uint32_t direccion_fisica_inicio = frame * tamPagina + args->memoria.bytes_usados[frame];
-            return direccion_fisica_inicio;
+            return (int) direccion_fisica_inicio;
         }
     }
 
