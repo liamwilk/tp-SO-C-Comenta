@@ -70,6 +70,7 @@ void *conectar_memoria()
 
 void *atender_memoria()
 {
+	cpu_enviar_aviso_memoria_tam_pagina(&cpu);
 	hilo_ejecutar(logger, cpu.socket_memoria, "Memoria", switch_case_memoria);
 	pthread_exit(0);
 }
@@ -150,6 +151,13 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 		cpu_memoria_pedir_proxima_instruccion(&proceso, cpu.socket_memoria);
 		log_debug(logger, "Instruccion PC %d de PID <%d> pedida a Memoria", proceso.registros.pc, proceso.pid);
 		free(tipo_instruccion);
+		break;
+	}
+	case MEMORIA_CPU_TAM_PAGINA:
+	{
+		uint32_t *tamPag = deserializar_t_memoria_cpu_tam_pagina(buffer);
+		cpu.tam_pagina = *tamPag;
+		log_debug(logger, "Tamaño de pagina recibido de Memoria: %d", cpu.tam_pagina);
 		break;
 	}
 	default:

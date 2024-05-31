@@ -42,9 +42,17 @@ typedef struct
 
 typedef struct
 {
+    uint32_t numero_pagina;
+    uint32_t numero_marco;
+    bool en_uso;
+} t_pagina;
+
+typedef struct
+{
     uint32_t pid;
     uint32_t pc;
     t_list *instrucciones;
+    t_list *tabla_paginas;
 } t_proceso;
 
 typedef struct
@@ -84,7 +92,7 @@ typedef struct
     t_sockets sockets;
     t_threads threads;
     int tamMemoria;
-    int tamPagina;
+    int tamPagina; // tamaño max de frame
     int retardoRespuesta;
     int puertoEscucha;
     char *pathInstrucciones;
@@ -104,43 +112,342 @@ typedef struct
 typedef void (*t_mem_funcion_hilo_ptr)(t_args_hilo *, char *, t_op_code, t_buffer *);
 typedef void (*t_mem_funcion_ptr)(t_args *, t_op_code, t_buffer *);
 
+/**
+ * @brief Agrega una interfaz a la lista de entradas/salidas.
+ *
+ * @param argumentos Los argumentos del programa.
+ * @param tipo El tipo de entrada/salida.
+ * @param socket El socket de la interfaz.
+ * @return Un puntero a la estructura de entrada/salida agregada.
+ */
 t_entrada_salida *agregar_interfaz(t_args *argumentos, t_tipo_entrada_salida tipo, int socket);
+
+/**
+ * @brief Busca una interfaz en la lista de entradas/salidas.
+ *
+ * @param argumentos Los argumentos del programa.
+ * @param interfaz El nombre de la interfaz a buscar.
+ * @return Un puntero a la estructura de entrada/salida encontrada, o NULL si no se encontró.
+ */
 t_entrada_salida *buscar_interfaz(t_args *argumentos, char *interfaz);
-t_entrada_salida *agregar_entrada_salida(t_args *argumentos, t_tipo_entrada_salida type, int socket);
+
+/**
+ * @brief Lee las instrucciones de un archivo y las guarda en una lista.
+ *
+ * @param argumentos Los argumentos del programa.
+ * @param path_instrucciones La ruta del archivo de instrucciones.
+ * @param pid El ID del proceso.
+ * @return Una lista de instrucciones leídas.
+ */
 t_list *leer_instrucciones(t_args *argumentos, char *path_instrucciones, uint32_t pid);
+
+t_entrada_salida *agregar_entrada_salida(t_args *argumentos, t_tipo_entrada_salida type, int socket);
+
+/**
+ * @brief Busca un proceso en la lista de procesos.
+ *
+ * @param argumentos Los argumentos del programa.
+ * @param pid El ID del proceso a buscar.
+ * @return Un puntero a la estructura de proceso encontrada, o NULL si no se encontró.
+ */
 t_proceso *buscar_proceso(t_args *argumentos, uint32_t pid);
+
+/**
+ * @brief Combina dos rutas en una sola.
+ *
+ * @param ruta1 La primera ruta.
+ * @param ruta2 La segunda ruta.
+ * @return La ruta combinada.
+ */
 char *armar_ruta(char *ruta1, char *ruta2);
+
+/**
+ * @brief Agrega una entrada/salida a la lista de entradas/salidas.
+ *
+ * @param argumentos Los argumentos del programa.
+ * @param type El tipo de entrada/salida.
+ * @param socket El socket de la interfaz.
+ * @return Un puntero a la estructura de entrada/salida agregada.
+ */
+t_entrada_salida *agregar_entrada_salida(t_args *argumentos, t_tipo_entrada_salida type, int socket);
+
+/**
+ * @brief Inicializa la configuración de la memoria.
+ *
+ * @param argumentos Los argumentos del programa.
+ */
 void memoria_inicializar_config(t_args *argumentos);
+
+/**
+ * @brief Imprime la configuración de la memoria.
+ *
+ * @param argumentos Los argumentos del programa.
+ */
 void memoria_imprimir_config(t_args *argumentos);
-void remover_interfaz(t_args *, char *);
+
+/**
+ * @brief Remueve una interfaz de la lista de entradas/salidas.
+ *
+ * @param argumentos Los argumentos del programa.
+ * @param interfaz El nombre de la interfaz a remover.
+ */
+void remover_interfaz(t_args *argumentos, char *interfaz);
+
+/**
+ * @brief Elimina todos los procesos de la lista de procesos.
+ *
+ * @param argumentos Los argumentos del programa.
+ */
 void eliminar_procesos(t_args *argumentos);
+
+/**
+ * @brief Elimina una lista de instrucciones.
+ *
+ * @param argumentos Los argumentos del programa.
+ * @param lista_instrucciones La lista de instrucciones a eliminar.
+ */
 void eliminar_instrucciones(t_args *argumentos, t_list *lista_instrucciones);
-void *atender_entrada_salida_stdin(void *);
+
+/**
+ * @brief Función para atender las entradas/salidas desde stdin.
+ *
+ * @param paquete El paquete recibido.
+ * @return NULL.
+ */
+void *atender_entrada_salida_stdin(void *paquete);
+
+/**
+ * @brief Función para manejar las operaciones de entrada/salida desde stdin.
+ *
+ * @param argumentos Los argumentos del programa.
+ * @param codigo_operacion El código de operación.
+ * @param buffer El buffer recibido.
+ */
 void switch_case_memoria_entrada_salida_stdin(t_args_hilo *argumentos, char *modulo, t_op_code codigo_operacion, t_buffer *buffer);
+
+/**
+ * @brief Función para manejar las operaciones de entrada/salida desde dialfs.
+ *
+ * @param argumentos Los argumentos del programa.
+ * @param codigo_operacion El código de operación.
+ * @param buffer El buffer recibido.
+ */
 void switch_case_memoria_entrada_salida_dialfs(t_args_hilo *argumentos, char *modulo, t_op_code codigo_operacion, t_buffer *buffer);
-void *atender_entrada_salida_dialfs(void *);
+
+/**
+ * @brief Función para atender las entradas/salidas desde dialfs.
+ *
+ * @param paquete El paquete recibido.
+ * @return NULL.
+ */
+void *atender_entrada_salida_dialfs(void *paquete);
+
+/**
+ * @brief Función para manejar las operaciones de entrada/salida hacia stdout.
+ *
+ * @param argumentos Los argumentos del programa.
+ * @param codigo_operacion El código de operación.
+ * @param buffer El buffer recibido.
+ */
 void switch_case_memoria_entrada_salida_stdout(t_args_hilo *argumentos, char *modulo, t_op_code codigo_operacion, t_buffer *buffer);
-void *atender_entrada_salida_stdout(void *);
+
+/**
+ * @brief Función para atender las entradas/salidas hacia stdout.
+ *
+ * @param paquete El paquete recibido.
+ * @return NULL.
+ */
+void *atender_entrada_salida_stdout(void *paquete);
+
+/**
+ * @brief Función para esperar una entrada/salida.
+ *
+ * @param paquete El paquete recibido.
+ * @return NULL.
+ */
 void *esperar_entrada_salida(void *paquete);
+
+/**
+ * @brief Función para atender las operaciones del kernel.
+ *
+ * @return NULL.
+ */
 void *atender_kernel();
+
+/**
+ * @brief Función para manejar las operaciones del kernel.
+ *
+ * @param argumentos Los argumentos del programa.
+ * @param codigo_operacion El código de operación.
+ * @param buffer El buffer recibido.
+ */
 void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer *buffer);
+
+/**
+ * @brief Función para esperar un paquete desde una CPU.
+ *
+ * @param paquete El paquete recibido.
+ * @return NULL.
+ */
 void *esperar_cpu(void *paquete);
+
+/**
+ * @brief Función para ejecutar un hilo de memoria para una CPU.
+ *
+ * @param argumentos Los argumentos del programa.
+ * @param socket El socket de la CPU.
+ * @param modulo El módulo de la CPU.
+ * @param switch_case_atencion La función de manejo de operaciones.
+ */
 void memoria_hilo_ejecutar(t_args *argumentos, int socket, char *modulo, t_mem_funcion_ptr switch_case_atencion);
+
+/**
+ * @brief Función para manejar las operaciones de una CPU.
+ *
+ * @param argumentos Los argumentos del programa.
+ * @param codigo_operacion El código de operación.
+ * @param buffer El buffer recibido.
+ */
 void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *buffer);
+
+/**
+ * @brief Función para esperar un paquete desde una CPU.
+ *
+ * @param paquete El paquete recibido.
+ * @return NULL.
+ */
 void *esperar_cpu(void *paquete);
+
+/**
+ * @brief Función para atender un paquete desde una CPU.
+ *
+ * @param paquete El paquete recibido.
+ * @return NULL.
+ */
 void *atender_cpu(void *paquete);
+
+/**
+ * @brief Función para manejar las operaciones de una CPU.
+ *
+ * @param argumentos Los argumentos del programa.
+ * @param codigo_operacion El código de operación.
+ * @param buffer El buffer recibido.
+ */
 void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *buffer);
+
+/**
+ * @brief Función para manejar las operaciones del kernel.
+ *
+ * @param argumentos Los argumentos del programa.
+ * @param codigo_operacion El código de operación.
+ * @param buffer El buffer recibido.
+ */
 void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer *buffer);
+
+/**
+ * @brief Función para atender un paquete desde el kernel.
+ *
+ * @param paquete El paquete recibido.
+ * @return NULL.
+ */
 void *atender_kernel(void *paquete);
+
+/**
+ * @brief Función para esperar un paquete desde el kernel.
+ *
+ * @param paquete El paquete recibido.
+ * @return NULL.
+ */
 void *esperar_kernel(void *paquete);
+
+/**
+ * @brief Función para ejecutar un hilo de memoria para una entrada/salida.
+ *
+ * @param io_args Los argumentos del hilo de entrada/salida.
+ * @param modulo El módulo de la entrada/salida.
+ * @param switch_case_atencion La función de manejo de operaciones.
+ */
 void memoria_hilo_ejecutar_entrada_salida(t_args_hilo *io_args, char *modulo, t_mem_funcion_hilo_ptr switch_case_atencion);
+
+/**
+ * @brief Inicializa los argumentos de la memoria.
+ *
+ * @param argumentos Los argumentos del programa.
+ */
 void memoria_inicializar_argumentos(t_args *argumentos);
+
+/**
+ * @brief Inicializa los hilos de la memoria.
+ *
+ * @param argumentos Los argumentos del programa.
+ */
 void memoria_inicializar_hilos(t_args *argumentos);
+
+/**
+ * @brief Inicializa la memoria.
+ *
+ * @param argumentos Los argumentos del programa.
+ */
 void memoria_inicializar(t_args *argumentos);
+
+/**
+ * @brief Finaliza la memoria.
+ *
+ * @param argumentos Los argumentos del programa.
+ */
 void memoria_finalizar(t_args *argumentos);
+
+/**
+ * @brief Inicializa el módulo de memoria.
+ *
+ * @param argumentos Los argumentos del programa.
+ */
 void inicializar_modulo(t_args *argumentos);
+
+/**
+ * @brief Inicializa el logger de memoria.
+ *
+ * @param argumentos Los argumentos del programa.
+ * @param nivel El nivel de log.
+ */
 void inicializar_logger(t_args *argumentos, t_log_level nivel);
+
+/**
+ * @brief Inicializa la memoria.
+ *
+ * @param args Los argumentos del programa.
+ * @param nivel El nivel de log.
+ * @param argc La cantidad de argumentos.
+ * @param argv Los argumentos.
+ */
 void inicializar(t_args *args, t_log_level nivel, int argc, char *argv[]);
+
+/**
+ * @brief Crea una tabla de páginas en memoria.
+ *
+ * @param argumentos Los argumentos del programa.
+ * @param pid El ID del proceso.
+ * @param cantidad_paginas La cantidad de páginas.
+ */
+void memoria_crear_tabla_paginas(t_args *argumentos, uint32_t pid);
+
+/**
+ * @brief Destruye una tabla de páginas en memoria.
+ *
+ * @param args Los argumentos del programa.
+ * @param pid El ID del proceso.
+ */
+void memoria_destruir_tabla_paginas(t_args *args, uint32_t pid);
+
+/**
+ * @brief Accede a una tabla de páginas en memoria.
+ *
+ * @param argumentos Los argumentos del programa.
+ * @param pid El ID del proceso.
+ * @param numero_pagina El número de página.
+ * @return El marco de la página.
+ */
+uint32_t memoria_acceder_tabla_paginas(t_args *argumentos, uint32_t pid, uint32_t numero_pagina);
 void agregar_identificador(t_args_hilo *argumentos, char *identificador);
 void avisar_rechazo_identificador_memoria(int socket);
 void agregar_identificador_rechazado(t_args_hilo *argumentos, char *identificador);
