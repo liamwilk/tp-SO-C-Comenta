@@ -34,16 +34,16 @@ void bitmap_inicializar(t_args *args)
 
     log_debug(args->logger, "Se creo el bitmap para el espacio de usuario.");
 
-    { // Test
+    { // Test basico de funcionamiento
 
         /* TODO: Quitar este caso de prueba.
 
-        Caso de prueba pedido en el TP. 
+        Caso de prueba pedido en el TP.
 
-        Escribir "CURSADA DE SISTEMAS OPERATIVOS 1 2024" en el espacio de usuario, y que ocupe 3 paginas
+        Escribir "CURSADA DE SISTEMAS OPERATIVOS 1 2024" en el espacio de usuario, y que ocupe 3 frames.
 
         Lo hardcodeo, pero esta logica se va a encargar el gestor de tabla de paginas de realizarla, es decir, de iterativamente cortar los strings hasta el tamaño maximo de la pagina (sacando el caracter nulo del final) y escribirlos en memoria.
-        
+
         Memoria automaticamente cuando lo lee del espacio de usuario, te lo devuelve con el caracter nulo al final, es decir, ya formateado. */
 
         char *cadena_1 = "CURSADA DE SISTE";
@@ -54,58 +54,80 @@ void bitmap_inicializar(t_args *args)
         size_t tamano_cadena_2 = strlen(cadena_2);
         size_t tamano_cadena_3 = strlen(cadena_3);
 
-        log_debug(args->logger, "Tamaño de la cadena 1: %zu bytes", tamano_cadena_1);
-        log_debug(args->logger, "Tamaño de la cadena 2: %zu bytes", tamano_cadena_2);
-        log_debug(args->logger, "Tamaño de la cadena 3: %zu bytes", tamano_cadena_3);
-        
-        t_frame_disponible *frame_cadena_1 = espacio_usuario_buscar_frame(args, tamano_cadena_1);
+        log_debug(args->logger, "Escribiendo en espacio de usuario: %s%s%s (%ld bytes)", cadena_1, cadena_2, cadena_3, tamano_cadena_1 + tamano_cadena_2 + tamano_cadena_3);
 
-        if(frame_cadena_1 != NULL)
+        log_debug(args->logger, "Particiono la cadena en 3 partes, porque el tamaño de la cadena es mayor al tamaño de un frame.");
+
+        log_debug(args->logger, "Cadena 1: %s (%ld bytes)", cadena_1, tamano_cadena_1);
+        log_debug(args->logger, "Cadena 2: %s (%ld bytes)", cadena_2, tamano_cadena_2);
+        log_debug(args->logger, "Cadena 3: %s (%ld bytes)", cadena_3, tamano_cadena_3);
+
+        t_frame_disponible *frame_cadena_1, *frame_cadena_2, *frame_cadena_3;
+
+        frame_cadena_1 = espacio_usuario_buscar_frame(args, tamano_cadena_1);
+
+        if (frame_cadena_1 != NULL)
         {
             espacio_usuario_escribir_char(args, frame_cadena_1->direccion_fisica, cadena_1);
+
+            frame_cadena_2 = espacio_usuario_buscar_frame(args, tamano_cadena_2);
+
+            if (frame_cadena_2 != NULL)
+            {
+                espacio_usuario_escribir_char(args, frame_cadena_2->direccion_fisica, cadena_2);
+
+                frame_cadena_3 = espacio_usuario_buscar_frame(args, tamano_cadena_3);
+
+                if (frame_cadena_3 != NULL)
+                {
+                    espacio_usuario_escribir_char(args, frame_cadena_3->direccion_fisica, cadena_3);
+
+                    char *cadena_leida_1 = espacio_usuario_leer_char(args, frame_cadena_1->direccion_fisica, tamano_cadena_1);
+                    char *cadena_leida_2 = espacio_usuario_leer_char(args, frame_cadena_2->direccion_fisica, tamano_cadena_2);
+                    char *cadena_leida_3 = espacio_usuario_leer_char(args, frame_cadena_3->direccion_fisica, tamano_cadena_3);
+
+                    log_debug(args->logger, "Cadena leida de espacio de usuario: %s%s%s", cadena_leida_1, cadena_leida_2, cadena_leida_3);
+
+                    // Libero los recursos de los tests
+
+                    log_debug(args->logger, "Libero recursos del test");
+
+                    espacio_usuario_liberar_dato(args, frame_cadena_1->direccion_fisica, tamano_cadena_1);
+                    espacio_usuario_liberar_dato(args, frame_cadena_2->direccion_fisica, tamano_cadena_2);
+                    espacio_usuario_liberar_dato(args, frame_cadena_3->direccion_fisica, tamano_cadena_3);
+
+                    free(cadena_leida_1);
+                    free(cadena_leida_2);
+                    free(cadena_leida_3);
+
+                    free(frame_cadena_1);
+                    free(frame_cadena_2);
+                    free(frame_cadena_3);
+                }
+                else
+                {
+                    log_error(args->logger, "No se pudo encontrar un frame disponible para la cadena 3.");
+                    espacio_usuario_liberar_dato(args, frame_cadena_1->direccion_fisica, tamano_cadena_1);
+                    espacio_usuario_liberar_dato(args, frame_cadena_1->direccion_fisica, tamano_cadena_2);
+
+                    free(frame_cadena_1);
+                    free(frame_cadena_2);
+                    free(frame_cadena_3);
+                }
+            }
+            else
+            {
+                log_error(args->logger, "No se pudo encontrar un frame disponible para la cadena 2.");
+                espacio_usuario_liberar_dato(args, frame_cadena_1->direccion_fisica, tamano_cadena_1);
+                free(frame_cadena_1);
+                free(frame_cadena_2);
+            }
         }
         else
         {
-            log_error(args->logger, "No se pudo encontrar un frame disponible para la cadena 1.");
+            log_error(args->logger, "No se pudo encontrar un frame disponible para la cadena 1. Detengo el test.");
+            free(frame_cadena_1);
         }
-
-        t_frame_disponible *frame_cadena_2 = espacio_usuario_buscar_frame(args, tamano_cadena_2);
-
-        if(frame_cadena_1 != NULL)
-        {
-            espacio_usuario_escribir_char(args, frame_cadena_2->direccion_fisica, cadena_2);
-        }
-        else
-        {
-            log_error(args->logger, "No se pudo encontrar un frame disponible para la cadena 2.");
-        }
-
-        t_frame_disponible *frame_cadena_3 = espacio_usuario_buscar_frame(args, tamano_cadena_3);
-
-        if(frame_cadena_3 != NULL)
-        {
-            espacio_usuario_escribir_char(args, frame_cadena_3->direccion_fisica, cadena_3);
-        }
-        else
-        {
-            log_error(args->logger, "No se pudo encontrar un frame disponible para la cadena 3.");
-        }
-
-        char* cadena_leida_1 = espacio_usuario_leer_char(args, frame_cadena_1->direccion_fisica, tamano_cadena_1);
-        char* cadena_leida_2 = espacio_usuario_leer_char(args, frame_cadena_2->direccion_fisica, tamano_cadena_2);
-        char* cadena_leida_3 = espacio_usuario_leer_char(args, frame_cadena_3->direccion_fisica, tamano_cadena_3);
-
-        log_debug(args->logger, "Cadena leida de espacio de usuario: %s%s%s", cadena_leida_1, cadena_leida_2, cadena_leida_3);
-
-        // Libero los recursos de los tests
-
-        espacio_usuario_liberar_dato(args, frame_cadena_1->direccion_fisica, tamano_cadena_1);
-        espacio_usuario_liberar_dato(args, frame_cadena_2->direccion_fisica, tamano_cadena_2);
-        espacio_usuario_liberar_dato(args, frame_cadena_3->direccion_fisica, tamano_cadena_3);
-    
-        free(cadena_leida_1);
-        free(cadena_leida_2);
-        free(cadena_leida_3);
     }
 }
 
