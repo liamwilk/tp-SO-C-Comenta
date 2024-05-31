@@ -4,7 +4,7 @@
 
 int main(int argc, char *argv[])
 {
-	logger = iniciar_logger("cpu", LOG_LEVEL_INFO);
+	logger = iniciar_logger("cpu", LOG_LEVEL_DEBUG);
 
 	inicializar_config(&config, logger, argc, argv);
 
@@ -158,6 +158,10 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, t_buffer *bu
 		uint32_t *tamPag = deserializar_t_memoria_cpu_tam_pagina(buffer);
 		cpu.tam_pagina = *tamPag;
 		log_debug(logger, "Tamaño de pagina recibido de Memoria: %d", cpu.tam_pagina);
+
+		int valor = mmu(&cpu, 10, 3);
+		log_info(logger, "Valor de mmu: %d", valor);
+
 		break;
 	}
 	default:

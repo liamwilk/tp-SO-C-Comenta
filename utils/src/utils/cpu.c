@@ -548,6 +548,26 @@ int cpu_ejecutar_instruccion(t_cpu cpu_paquete, t_memoria_cpu_instruccion *datos
     case MOV_IN:
     {
         log_debug(logger, "reconoci un MOV_IN");
+
+        // TODO: Implementar
+
+        // Ahora lo que hago es testear si funciona la MMU correctamente
+
+        // t_cpu_memoria_numero_frame *proceso = malloc(sizeof(t_cpu_memoria_numero_frame));
+        // proceso->pid = cpu_proceso->pid;
+
+        // proceso->numero_pagina = calcular_numero_pagina(cpu_proceso);
+
+        // t_paquete *paquete = crear_paquete(CPU_MEMORIA_NUMERO_FRAME);
+        // serializar_t_cpu_memoria_numero_frame(&paquete, proceso);
+
+        // enviar_paquete(paquete, cpu_paquete.socket_memoria);
+        // free(paquete);
+
+        // uint32_t numero_marco = deserializar_t_memoria_cpu_numero_marco(recibir_paquete(cpu_paquete.socket_memoria));
+
+        // log_info(logger, "Numero de marco: %d", numero_marco);
+
         break;
     }
     case MOV_OUT:
@@ -1016,12 +1036,17 @@ void cpu_enviar_aviso_memoria_tam_pagina(t_cpu *cpu)
     eliminar_paquete(paquete);
 }
 
-double mmu(t_cpu *cpu, uint32_t direccion_logica, uint32_t numero_marco)
+int mmu(t_cpu *cpu, uint32_t direccion_logica, uint32_t numero_marco)
 {
-    double numero_pagina = floor(direccion_logica / cpu->tam_pagina);
-    double desplazamiento = direccion_logica - numero_pagina * cpu->tam_pagina;
+    int numero_pagina = calcular_numero_pagina(cpu, direccion_logica);
+    int desplazamiento = direccion_logica - numero_pagina * cpu->tam_pagina;
 
-    double direccion_fisica = numero_marco * cpu->tam_pagina + desplazamiento;
+    int direccion_fisica = numero_marco * cpu->tam_pagina + desplazamiento;
 
     return direccion_fisica;
+}
+
+int calcular_numero_pagina(t_cpu *cpu, uint32_t direccion_logica)
+{
+    return direccion_logica / cpu->tam_pagina;
 }

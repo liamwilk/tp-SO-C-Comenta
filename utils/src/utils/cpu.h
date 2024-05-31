@@ -208,6 +208,15 @@ void cpu_enviar_aviso_memoria_tam_pagina(t_cpu *cpu);
  * @param numero_marco El número de marco correspondiente a la dirección lógica.
  * @return La dirección física resultante.
  */
-double mmu(t_cpu *cpu, uint32_t direccion_logica, uint32_t numero_marco);
+int mmu(t_cpu *cpu, uint32_t direccion_logica, uint32_t numero_marco);
+
+/**
+ * Calcula el número de página correspondiente a una dirección lógica.
+ *
+ * @param cpu Puntero a la estructura de la CPU.
+ * @param direccion_logica Dirección lógica a calcular.
+ * @return El número de página correspondiente a la dirección lógica.
+ */
+int calcular_numero_pagina(t_cpu *cpu, uint32_t direccion_logica);
 
 #endif /* CPU_H_ */
