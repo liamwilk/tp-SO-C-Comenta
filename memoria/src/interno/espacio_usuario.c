@@ -55,11 +55,11 @@ t_frame_disponible *espacio_usuario_buscar_frame(t_args *args, size_t size_busca
 
     if (frame_disponible->direccion_fisica != -1 && frame_disponible->frame != -1)
     {
-        log_debug(args->logger, "Encontrada la dirección física %u en el marco %d con suficiente espacio para %ld bytes", frame_disponible->direccion_fisica, frame_disponible->frame, size_buscado);
+        log_debug(args->logger, "Encontrada la dirección física %u en el frame %d con suficiente espacio para %ld bytes", frame_disponible->direccion_fisica, frame_disponible->frame, size_buscado);
     }
     else
     {
-        log_error(args->logger, "No se encontró una dirección física con suficiente espacio para %zu bytes en ningun marco.", size_buscado);
+        log_error(args->logger, "No se encontró una dirección física con suficiente espacio para %zu bytes en ningun frame.", size_buscado);
         free(frame_disponible);
         return NULL;
     }
@@ -126,7 +126,7 @@ void espacio_usuario_escribir_dato(t_args *args, uint32_t direccion_fisica, void
     }
 
     // Notifico que se escribio el dato
-    log_debug(args->logger, "Se escribió el dato de tamaño %ld en la dirección física %d.", tamano, direccion_fisica);
+    log_debug(args->logger, "Se escribio el dato de %ld bytes partiendo de la dirección física %d (%d -> %ld)", tamano, direccion_fisica, direccion_fisica, direccion_fisica + tamano - 1);
 
     // Escribo los datos
     memcpy(destino, dato, tamano);
@@ -256,7 +256,7 @@ void espacio_usuario_escribir_float(t_args *args, uint32_t direccion_fisica, flo
 // Escribir una cadena
 void espacio_usuario_escribir_char(t_args *args, uint32_t direccion_fisica, const char *cadena)
 {
-    espacio_usuario_escribir_dato(args, direccion_fisica, (void *)cadena, strlen(cadena) + 1);
+    espacio_usuario_escribir_dato(args, direccion_fisica, (void *)cadena, strlen(cadena));
 }
 
 // Escribir un "algo" genérico
@@ -295,7 +295,7 @@ void espacio_usuario_leer_dato(t_args *args, uint32_t direccion_fisica, void *de
     // Alerto si es que la lectura abarca más de un frame
     if (frame_inicio != frame_fin)
     {
-        log_warning(args->logger, "La lectura va desde el frame %d hasta el %d.", frame_inicio, frame_fin);
+        log_debug(args->logger, "La lectura de %ld bytes desde la direccion fisica %d (%ld -> %ld) comienza en el frame %d hasta el %d.",tamano,direccion_fisica, tamano, tamano + direccion_fisica,frame_inicio, frame_fin);
     }
 
     // Copio los datos
@@ -327,10 +327,13 @@ float espacio_usuario_leer_float(t_args *args, uint32_t direccion_fisica)
 }
 
 // Leer un char*
-void espacio_usuario_leer_char(t_args *args, uint32_t direccion_fisica, char *destino, size_t tamano_max)
+char* espacio_usuario_leer_char(t_args *args, uint32_t direccion_fisica, size_t tamano_max)
 {
+    int bytes_totales = tamano_max+1;
+    char *destino = malloc(bytes_totales);
     espacio_usuario_leer_dato(args, direccion_fisica, destino, tamano_max);
-    destino[tamano_max - 1] = '\0';
+    destino[bytes_totales-1] = '\0';
+    return destino;
 }
 
 // Leer un "algo" genérico

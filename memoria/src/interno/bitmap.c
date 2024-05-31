@@ -34,45 +34,79 @@ void bitmap_inicializar(t_args *args)
 
     log_debug(args->logger, "Se creo el bitmap para el espacio de usuario.");
 
-    // TODO: Quitar estos casos de prueba.
+    { // Test
 
-    char *cadena = "CURSADA DE SISTEMAS OPERATIVOS 1c 2024";
-    log_debug(args->logger, "Tamaño de la cadena: %zu", strlen(cadena) + 1);
-    espacio_usuario_escribir_char(args, 0, cadena);
+        /* TODO: Quitar este caso de prueba.
 
-    char cadena_leida1[strlen(cadena) + 1];
-    espacio_usuario_leer_char(args, 0, cadena_leida1, strlen(cadena) + 1);
-    log_debug(args->logger,"Cadena leída: %s", cadena_leida1);
+        Caso de prueba pedido en el TP. 
+
+        Escribir "CURSADA DE SISTEMAS OPERATIVOS 1 2024" en el espacio de usuario, y que ocupe 3 paginas
+
+        Lo hardcodeo, pero esta logica se va a encargar el gestor de tabla de paginas de realizarla, es decir, de iterativamente cortar los strings hasta el tamaño maximo de la pagina (sacando el caracter nulo del final) y escribirlos en memoria.
+        
+        Memoria automaticamente cuando lo lee del espacio de usuario, te lo devuelve con el caracter nulo al final, es decir, ya formateado. */
+
+        char *cadena_1 = "CURSADA DE SISTE";
+        char *cadena_2 = "MAS OPERATIVOS 1";
+        char *cadena_3 = "c 2024";
+
+        size_t tamano_cadena_1 = strlen(cadena_1);
+        size_t tamano_cadena_2 = strlen(cadena_2);
+        size_t tamano_cadena_3 = strlen(cadena_3);
+
+        log_debug(args->logger, "Tamaño de la cadena 1: %zu bytes", tamano_cadena_1);
+        log_debug(args->logger, "Tamaño de la cadena 2: %zu bytes", tamano_cadena_2);
+        log_debug(args->logger, "Tamaño de la cadena 3: %zu bytes", tamano_cadena_3);
+        
+        t_frame_disponible *frame_cadena_1 = espacio_usuario_buscar_frame(args, tamano_cadena_1);
+
+        if(frame_cadena_1 != NULL)
+        {
+            espacio_usuario_escribir_char(args, frame_cadena_1->direccion_fisica, cadena_1);
+        }
+        else
+        {
+            log_error(args->logger, "No se pudo encontrar un frame disponible para la cadena 1.");
+        }
+
+        t_frame_disponible *frame_cadena_2 = espacio_usuario_buscar_frame(args, tamano_cadena_2);
+
+        if(frame_cadena_1 != NULL)
+        {
+            espacio_usuario_escribir_char(args, frame_cadena_2->direccion_fisica, cadena_2);
+        }
+        else
+        {
+            log_error(args->logger, "No se pudo encontrar un frame disponible para la cadena 2.");
+        }
+
+        t_frame_disponible *frame_cadena_3 = espacio_usuario_buscar_frame(args, tamano_cadena_3);
+
+        if(frame_cadena_3 != NULL)
+        {
+            espacio_usuario_escribir_char(args, frame_cadena_3->direccion_fisica, cadena_3);
+        }
+        else
+        {
+            log_error(args->logger, "No se pudo encontrar un frame disponible para la cadena 3.");
+        }
+
+        char* cadena_leida_1 = espacio_usuario_leer_char(args, frame_cadena_1->direccion_fisica, tamano_cadena_1);
+        char* cadena_leida_2 = espacio_usuario_leer_char(args, frame_cadena_2->direccion_fisica, tamano_cadena_2);
+        char* cadena_leida_3 = espacio_usuario_leer_char(args, frame_cadena_3->direccion_fisica, tamano_cadena_3);
+
+        log_debug(args->logger, "Cadena leida de espacio de usuario: %s%s%s", cadena_leida_1, cadena_leida_2, cadena_leida_3);
+
+        // Libero los recursos de los tests
+
+        espacio_usuario_liberar_dato(args, frame_cadena_1->direccion_fisica, tamano_cadena_1);
+        espacio_usuario_liberar_dato(args, frame_cadena_2->direccion_fisica, tamano_cadena_2);
+        espacio_usuario_liberar_dato(args, frame_cadena_3->direccion_fisica, tamano_cadena_3);
     
-    // espacio_usuario_liberar_dato(args, 0, strlen(cadena) + 1);
-
-    // log_debug(args->logger,"Tamaño de la cadena: %zu", strlen(cadena)+1);
-    // espacio_usuario_escribir_char(args, 39, cadena);
-
-    // char cadena_leida2[strlen(cadena) + 1];
-    // espacio_usuario_leer_char(args, 39, cadena_leida2, strlen(cadena) + 1);
-    // log_debug(args->logger,"Cadena leída: %s", cadena_leida2);
-
-    // espacio_usuario_liberar_dato(args, 39, strlen(cadena) + 1);
-
-    t_frame_disponible *frame = espacio_usuario_buscar_frame(args, 122);
-
-    if (frame != NULL)
-    {
-        // Aca tendría que hacer algo con el frame
+        free(cadena_leida_1);
+        free(cadena_leida_2);
+        free(cadena_leida_3);
     }
-
-    log_debug(args->logger,"Tamaño de la cadena: %zu", strlen(cadena)+1);
-    espacio_usuario_escribir_char(args, 39, cadena);
-
-    char cadena_leida2[strlen(cadena) + 1];
-    espacio_usuario_leer_char(args, 39, cadena_leida2, strlen(cadena) + 1);
-    log_debug(args->logger,"Cadena leída: %s", cadena_leida2);
-
-    // espacio_usuario_liberar_dato(args, 39, strlen(cadena) + 1);
-
-    frame = espacio_usuario_buscar_frame(args, 2);
-
 }
 
 // Libero el bitmap
@@ -88,7 +122,7 @@ void bitmap_marcar_ocupado(t_args *args, t_bitarray *bitmap, uint32_t frame)
     if (!bitarray_test_bit(bitmap, frame))
     {
         bitarray_set_bit(bitmap, frame);
-        log_debug(args->logger, "Se marcó el frame %d como ocupado en el bitmap.", frame);
+        log_debug(args->logger, "Se marco el frame %d como ocupado en el bitmap.", frame);
     }
 }
 
@@ -96,7 +130,7 @@ void bitmap_marcar_ocupado(t_args *args, t_bitarray *bitmap, uint32_t frame)
 void bitmap_marcar_libre(t_args *args, t_bitarray *bitmap, uint32_t frame)
 {
     bitarray_clean_bit(bitmap, frame);
-    log_debug(args->logger, "Se marcó el frame %d como libre en el bitmap.", frame);
+    log_debug(args->logger, "Se marco el frame %d como libre en el bitmap.", frame);
 }
 
 // Verifica si un frame está libre en el bitmap

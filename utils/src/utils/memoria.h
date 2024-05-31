@@ -477,7 +477,7 @@ void espacio_usuario_leer_dato(t_args *args, uint32_t direccion_fisica, void *de
 uint32_t espacio_usuario_leer_uint32(t_args *args, uint32_t direccion_fisica);
 int espacio_usuario_leer_int(t_args *args, uint32_t direccion_fisica);
 float espacio_usuario_leer_float(t_args *args, uint32_t direccion_fisica);
-void espacio_usuario_leer_char(t_args *args, uint32_t direccion_fisica, char *destino, size_t tamano_max);
+char *espacio_usuario_leer_char(t_args *args, uint32_t direccion_fisica, size_t tamano_max);
 void espacio_usuario_leer_generic(t_args *args, uint32_t direccion_fisica, void *estructura, size_t tamano_estructura);
 int espacio_usuario_proxima_direccion(t_args *args, size_t tamano);
 int espacio_usuario_proximo_frame(t_args *args, size_t tamano);
