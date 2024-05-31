@@ -127,17 +127,43 @@ void kernel_log_generic_rl(hilos_args *args, t_log_level nivel, const char *mens
     free(saved_line);
 }
 
-void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, uint32_t pid)
+void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, t_pcb *pcb)
 {
+    t_temporal *temporal = temporal_create();
+    pcb->tiempo_fin = temporal_create();
+    uint32_t process_pid = pcb->pid;
     sleep(kernel_hilos_args->kernel->quantum / 1000);
-    t_pcb *proceso = proceso_buscar_exec(kernel_hilos_args->estados, pid);
-    if (proceso == NULL)
+    char *estado = proceso_estado(kernel_hilos_args->estados, process_pid);
+    if (strcmp(estado, "EXIT") == 0)
     {
-        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "El proceso PID: <%d> finalizo previamente y le sobra quantum", pid);
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "[ROUND ROBIN] El proceso <%d> ya ha sido eliminado", process_pid);
+
         return;
     }
-    kernel_interrumpir_cpu(kernel_hilos_args, pid, "QUANTUM");
-    kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Desalojado por fin de Quantum", pid);
+    temporal_stop(temporal);
+    if (pcb->tiempo_fin->status == TEMPORAL_STATUS_RUNNING)
+    {
+        temporal_stop(pcb->tiempo_fin);
+    };
+    int64_t diff = temporal_diff(temporal, pcb->tiempo_fin);
+
+    if (strcmp(estado, "BLOCK") == 0 && diff > 0)
+    {
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "[ROUND ROBIN] El proceso <%d> se encuentra bloqueado y le sobro <%ld> de quantum", pcb->pid, diff);
+
+        return;
+    }
+    if (strcmp(estado, "READY") == 0 && diff > 0)
+    {
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "[ROUND ROBIN] El proceso <%d> se encuentra ready y le sobro <%ld> de quantum", pcb->pid, diff);
+
+        return;
+    }
+    if (strcmp(estado, "EXEC") == 0)
+    {
+        kernel_interrumpir_cpu(kernel_hilos_args, pid, "QUANTUM");
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Desalojado por fin de Quantum", pid);
+    }
 }
 
 void kernel_interrumpir_cpu(hilos_args *kernel_hilos_args, uint32_t pid, char *motivo)

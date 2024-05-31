@@ -35,6 +35,11 @@ void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *mod
         // Se verifica que el proceso que se deseo eliminar es el que la io esta devolviendo y que ademas se encuentra en la cola de exit
         if (pcb != NULL)
         {
+            // Si tengo RR o VRR finalizo el timer
+            if (strcmp(io_args->args->kernel->algoritmoPlanificador, "RR") == 0 || strcmp(io_args->args->kernel->algoritmoPlanificador, "VRR") == 0)
+            {
+                temporal_stop(pcb->tiempo_fin);
+            }
             io_args->entrada_salida->ocupado = 0;
             io_args->entrada_salida->pid = 0;
             proceso_matar(io_args->args->estados, string_itoa(pcb->pid));

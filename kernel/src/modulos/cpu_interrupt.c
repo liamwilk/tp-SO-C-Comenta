@@ -14,6 +14,11 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         if (entrada_salida == NULL)
         {
             kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque no existe.", sleep->interfaz);
+            t_pcb *pcb = proceso_buscar_exec(args->estados, entrada_salida->pid);
+            if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0 || strcmp(args->kernel->algoritmoPlanificador, "RR") == 0)
+            {
+                temporal_stop(pcb->tiempo_fin);
+            }
             kernel_transicion_exec_exit(args);
             break;
         }
@@ -21,6 +26,11 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         if (entrada_salida->tipo != ENTRADA_SALIDA_GENERIC)
         {
             kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque no es del tipo IO_GENERIC.", sleep->interfaz);
+            t_pcb *pcb = proceso_buscar_exec(args->estados, entrada_salida->pid);
+            if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0 || strcmp(args->kernel->algoritmoPlanificador, "RR") == 0)
+            {
+                temporal_stop(pcb->tiempo_fin);
+            }
             kernel_transicion_exec_exit(args);
             break;
         }
@@ -28,6 +38,11 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         if (entrada_salida->ocupado)
         {
             kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque esta ocupada con el proceso %d.", sleep->interfaz, entrada_salida->pid);
+            t_pcb *pcb = proceso_buscar_exec(args->estados, entrada_salida->pid);
+            if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0 || strcmp(args->kernel->algoritmoPlanificador, "RR") == 0)
+            {
+                temporal_stop(pcb->tiempo_fin);
+            }
             kernel_transicion_exec_exit(args);
             break;
         }
@@ -51,6 +66,12 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se transiciona el PID <%d> a BLOCK por ejecucion de IO_GEN_SLEEP.", sleep->pid);
         t_pcb *pcb = kernel_transicion_exec_block(args);
+
+        // Si tenemos RR o VRR finalizo el timer
+        if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0 || strcmp(args->kernel->algoritmoPlanificador, "RR") == 0)
+        {
+            temporal_stop(pcb->tiempo_fin);
+        }
 
         pcb->registros_cpu->pc = sleep->registros.pc;
         pcb->registros_cpu->eax = sleep->registros.eax;

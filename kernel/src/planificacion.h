@@ -33,7 +33,7 @@ void fifo(hilos_args *hiloArgs);
 
 void round_robin(hilos_args *hiloArgs);
 
-void avisar_planificador();
+void virtual_round_robin(hilos_args *hiloArgs);
 
 typedef enum
 {

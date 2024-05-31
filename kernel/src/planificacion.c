@@ -44,7 +44,21 @@ void round_robin(hilos_args *kernel_hilos_args)
         if (aux != NULL)
         {
             kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "[ROUND ROBIN]: Enviando proceso <PID: %d> a CPU", aux->pid);
-            kernel_desalojar_proceso(kernel_hilos_args, aux->pid);
+            kernel_desalojar_proceso(kernel_hilos_args, aux);
+        }
+        return;
+    }
+}
+
+void virtual_round_robin(hilos_args *hiloArgs)
+{
+    if (list_size(hiloArgs->estados->exec) == 0 && list_size(hiloArgs->estados->ready) > 0)
+    {
+        t_pcb *aux = kernel_transicion_ready_exec(hiloArgs);
+        if (aux != NULL)
+        {
+            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "[VIRTUAL ROUND ROBIN]: Enviando proceso <PID: %d> a CPU", aux->pid);
+            kernel_desalojar_proceso(hiloArgs, aux);
         }
         return;
     }
@@ -83,6 +97,7 @@ void planificacion_corto_plazo(hilos_args *hiloArgs)
     }
     case VRR:
     {
+        virtual_round_robin(hiloArgs);
         break;
     }
     default:

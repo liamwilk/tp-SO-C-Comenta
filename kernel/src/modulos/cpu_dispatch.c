@@ -13,6 +13,11 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         // Se verifica que el proceso que se deseo eliminar es el que cpu esta devolviendo y que ademas se encuentra en la cola de exit
         if (pcb != NULL)
         {
+            // Detener QUANTUM si es RR o VRR
+            if (args->kernel->algoritmoPlanificador == "RR" || args->kernel->algoritmoPlanificador == "VRR")
+            {
+                temporal_stop(pcb->tiempo_fin);
+            }
             kernel_log_generic(args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INTERRUPTED_BY_USER>", pid);
             proceso_matar(args->estados, string_itoa(pcb->pid));
             free(proceso);
@@ -22,7 +27,10 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         if (proceso->ejecutado)
         {
             kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso PID:<%d> ejecutado completo. Transicionar a exit", proceso->pid);
-
+            if (args->kernel->algoritmoPlanificador == "RR" || args->kernel->algoritmoPlanificador == "VRR")
+            {
+                temporal_stop(pcb->tiempo_fin);
+            }
             kernel_finalizar_proceso(args, proceso->pid, SUCCESS);
 
             kernel_avisar_memoria_finalizacion_proceso(args, proceso->pid);

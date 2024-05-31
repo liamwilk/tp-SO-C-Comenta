@@ -6,6 +6,7 @@
 #include <utils/serial.h>
 #include <commons/collections/queue.h>
 #include <commons/string.h>
+#include <commons/temporal.h>
 
 typedef struct t_diagrama_estados
 {
@@ -33,22 +34,8 @@ typedef struct pcb
     uint32_t quantum;
     t_registros_cpu *registros_cpu;
     bool memoria_aceptado;
+    t_temporal *tiempo_fin; // Esto es utilizado en los algoritmos de planificación con QUANTUM
 } t_pcb;
-
-typedef enum t_buffer_transicion
-{
-    NEW_READY,
-    NEW_EXIT,
-    READY_EXEC,
-    READY_EXIT,
-    EXEC_EXIT,
-    EXEC_BLOCK,
-    EXEC_READY,
-    BLOCK_READY,
-    BLOCK_EXIT,
-    EXIT_CPU,
-    EXIT_MEMORIA
-} t_buffer_transicion;
 
 extern uint32_t pid;
 
