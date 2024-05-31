@@ -115,6 +115,13 @@ typedef struct
     uint32_t frame;
 } t_frame_disponible;
 
+typedef struct
+{
+    int cantidad;
+    int *tamanos;
+    char **fragmentos;
+} t_char_framentado;
+
 typedef void (*t_mem_funcion_hilo_ptr)(t_args_hilo *, char *, t_op_code, t_buffer *);
 typedef void (*t_mem_funcion_ptr)(t_args *, t_op_code, t_buffer *);
 
@@ -482,5 +489,8 @@ void espacio_usuario_leer_generic(t_args *args, uint32_t direccion_fisica, void 
 int espacio_usuario_proxima_direccion(t_args *args, size_t tamano);
 int espacio_usuario_proximo_frame(t_args *args, size_t tamano);
 t_frame_disponible *espacio_usuario_buscar_frame(t_args *args, size_t size_buscado);
+void espacio_usuario_fragmentos_imprimir(t_args *args, t_char_framentado *fs);
+void espacio_usuario_fragmentos_liberar(t_args *args, t_char_framentado *fs);
+t_char_framentado *espacio_usuario_fragmentar_char(char *input, int frame_size);
 
 #endif // MEMORIA_H

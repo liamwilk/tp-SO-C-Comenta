@@ -46,59 +46,47 @@ void bitmap_inicializar(t_args *args)
 
         Memoria automaticamente cuando lo lee del espacio de usuario, te lo devuelve con el caracter nulo al final, es decir, ya formateado. */
 
-        char *cadena_1 = "CURSADA DE SISTE";
-        char *cadena_2 = "MAS OPERATIVOS 1";
-        char *cadena_3 = "c 2024";
+        char *cadena = "CURSADA DE SISTEMAS OPERATIVOS 1c 2024";
 
-        size_t tamano_cadena_1 = strlen(cadena_1);
-        size_t tamano_cadena_2 = strlen(cadena_2);
-        size_t tamano_cadena_3 = strlen(cadena_3);
+        t_char_framentado *cadenas = espacio_usuario_fragmentar_char(cadena, args->memoria.tamPagina);
 
-        log_debug(args->logger, "Escribiendo en espacio de usuario: %s%s%s (%ld bytes)", cadena_1, cadena_2, cadena_3, tamano_cadena_1 + tamano_cadena_2 + tamano_cadena_3);
+        log_debug(args->logger, "Escribiendo en espacio de usuario: %s%s%s (%d bytes)", cadenas->fragmentos[0], cadenas->fragmentos[1], cadenas->fragmentos[2], cadenas->tamanos[0] + cadenas->tamanos[1] + cadenas->tamanos[2]);
 
-        log_debug(args->logger, "Particiono la cadena en 3 partes, porque el tamaño de la cadena es mayor al tamaño de un frame.");
+        log_debug(args->logger, "Particiono la cadena en %d partes, porque el tamaño de la cadena es mayor al tamaño de un frame.", cadenas->cantidad);
 
-        log_debug(args->logger, "Cadena 1: %s (%ld bytes)", cadena_1, tamano_cadena_1);
-        log_debug(args->logger, "Cadena 2: %s (%ld bytes)", cadena_2, tamano_cadena_2);
-        log_debug(args->logger, "Cadena 3: %s (%ld bytes)", cadena_3, tamano_cadena_3);
+        espacio_usuario_fragmentos_imprimir(args,cadenas);
 
         t_frame_disponible *frame_cadena_1, *frame_cadena_2, *frame_cadena_3;
 
-        frame_cadena_1 = espacio_usuario_buscar_frame(args, tamano_cadena_1);
+        frame_cadena_1 = espacio_usuario_buscar_frame(args, cadenas->tamanos[0]);
 
         if (frame_cadena_1 != NULL)
         {
-            espacio_usuario_escribir_char(args, frame_cadena_1->direccion_fisica, cadena_1);
+            espacio_usuario_escribir_char(args, frame_cadena_1->direccion_fisica, cadenas->fragmentos[0]);
 
-            frame_cadena_2 = espacio_usuario_buscar_frame(args, tamano_cadena_2);
+            frame_cadena_2 = espacio_usuario_buscar_frame(args, cadenas->tamanos[1]);
 
             if (frame_cadena_2 != NULL)
             {
-                espacio_usuario_escribir_char(args, frame_cadena_2->direccion_fisica, cadena_2);
+                espacio_usuario_escribir_char(args, frame_cadena_2->direccion_fisica, cadenas->fragmentos[1]);
 
-                frame_cadena_3 = espacio_usuario_buscar_frame(args, tamano_cadena_3);
+                frame_cadena_3 = espacio_usuario_buscar_frame(args, cadenas->tamanos[2]);
 
                 if (frame_cadena_3 != NULL)
                 {
-                    espacio_usuario_escribir_char(args, frame_cadena_3->direccion_fisica, cadena_3);
+                    espacio_usuario_escribir_char(args, frame_cadena_3->direccion_fisica, cadenas->fragmentos[2]);
 
-                    char *cadena_leida_1 = espacio_usuario_leer_char(args, frame_cadena_1->direccion_fisica, tamano_cadena_1);
-                    char *cadena_leida_2 = espacio_usuario_leer_char(args, frame_cadena_2->direccion_fisica, tamano_cadena_2);
-                    char *cadena_leida_3 = espacio_usuario_leer_char(args, frame_cadena_3->direccion_fisica, tamano_cadena_3);
+                    char *cadena_leida_1 = espacio_usuario_leer_char(args, frame_cadena_1->direccion_fisica, cadenas->tamanos[0]);
+                    char *cadena_leida_2 = espacio_usuario_leer_char(args, frame_cadena_2->direccion_fisica, cadenas->tamanos[1]);
+                    char *cadena_leida_3 = espacio_usuario_leer_char(args, frame_cadena_3->direccion_fisica, cadenas->tamanos[2]);
 
                     log_debug(args->logger, "Cadena leida de espacio de usuario: %s%s%s", cadena_leida_1, cadena_leida_2, cadena_leida_3);
 
-                    // Libero los recursos de los tests
-
                     log_debug(args->logger, "Libero recursos del test");
 
-                    espacio_usuario_liberar_dato(args, frame_cadena_1->direccion_fisica, tamano_cadena_1);
-                    espacio_usuario_liberar_dato(args, frame_cadena_2->direccion_fisica, tamano_cadena_2);
-                    espacio_usuario_liberar_dato(args, frame_cadena_3->direccion_fisica, tamano_cadena_3);
-
-                    free(cadena_leida_1);
-                    free(cadena_leida_2);
-                    free(cadena_leida_3);
+                    espacio_usuario_liberar_dato(args, frame_cadena_1->direccion_fisica, cadenas->tamanos[0]);
+                    espacio_usuario_liberar_dato(args, frame_cadena_2->direccion_fisica, cadenas->tamanos[1]);
+                    espacio_usuario_liberar_dato(args, frame_cadena_3->direccion_fisica, cadenas->tamanos[2]);
 
                     free(frame_cadena_1);
                     free(frame_cadena_2);
@@ -107,8 +95,8 @@ void bitmap_inicializar(t_args *args)
                 else
                 {
                     log_error(args->logger, "No se pudo encontrar un frame disponible para la cadena 3.");
-                    espacio_usuario_liberar_dato(args, frame_cadena_1->direccion_fisica, tamano_cadena_1);
-                    espacio_usuario_liberar_dato(args, frame_cadena_1->direccion_fisica, tamano_cadena_2);
+                    espacio_usuario_liberar_dato(args, frame_cadena_1->direccion_fisica, cadenas->tamanos[0]);
+                    espacio_usuario_liberar_dato(args, frame_cadena_1->direccion_fisica, cadenas->tamanos[1]);
 
                     free(frame_cadena_1);
                     free(frame_cadena_2);
@@ -118,7 +106,7 @@ void bitmap_inicializar(t_args *args)
             else
             {
                 log_error(args->logger, "No se pudo encontrar un frame disponible para la cadena 2.");
-                espacio_usuario_liberar_dato(args, frame_cadena_1->direccion_fisica, tamano_cadena_1);
+                espacio_usuario_liberar_dato(args, frame_cadena_1->direccion_fisica, cadenas->tamanos[0]);
                 free(frame_cadena_1);
                 free(frame_cadena_2);
             }
@@ -128,6 +116,7 @@ void bitmap_inicializar(t_args *args)
             log_error(args->logger, "No se pudo encontrar un frame disponible para la cadena 1. Detengo el test.");
             free(frame_cadena_1);
         }
+        espacio_usuario_fragmentos_liberar(args,cadenas);
     }
 }
 

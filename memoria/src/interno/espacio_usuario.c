@@ -341,3 +341,56 @@ void espacio_usuario_leer_generic(t_args *args, uint32_t direccion_fisica, void 
 {
     espacio_usuario_leer_dato(args, direccion_fisica, estructura, tamano_estructura);
 }
+
+// Corto el char en pedazos de frame_size bytes
+t_char_framentado* espacio_usuario_fragmentar_char(char *input, int frame_size)
+{    
+    // Calculo el tamaño de la entrada
+    int input_length = strlen(input);
+
+    // Calculo la cantidad de fragmentos necesarios
+    int cantidad = (input_length + frame_size - 1) / frame_size;
+
+    t_char_framentado *result = (t_char_framentado*)malloc(sizeof(t_char_framentado));
+    result->cantidad = cantidad;
+    result->fragmentos = (char**)malloc(cantidad * sizeof(char*));
+    result->tamanos = (int*)malloc(cantidad * sizeof(int));
+
+    // Corto la cadena en fragmentos y los almaceno en el array
+    for (int i = 0; i < cantidad; i++) {
+        int start_index = i * frame_size;
+        int fragment_length = frame_size;
+
+        // Ajusto el tamaño del último fragmento si es necesario
+        if (start_index + frame_size > input_length) {
+            fragment_length = input_length - start_index;
+        }
+
+        // Reservo memoria para el fragmento y copio la parte correspondiente de la cadena
+        result->fragmentos[i] = (char*)malloc((fragment_length + 1) * sizeof(char));
+        strncpy(result->fragmentos[i], input + start_index, fragment_length);
+        result->fragmentos[i][fragment_length] = '\0';
+        result->tamanos[i] = fragment_length;
+    }
+
+    return result;
+}
+
+// Libero la memoria de un t_char_framentado
+void espacio_usuario_fragmentos_liberar(t_args* args, t_char_framentado *fs)
+{
+    for (int i = 0; i < fs->cantidad; i++) {
+        free(fs->fragmentos[i]);
+    }
+    free(fs->fragmentos);
+    free(fs->tamanos);
+    free(fs);
+}
+
+// Imprimo un t_char_framentado
+void espacio_usuario_fragmentos_imprimir(t_args *args, t_char_framentado *fs)
+{
+    for (int i = 0; i < fs->cantidad; i++) {
+        log_debug(args->logger,"Cadena %d: %s (%d bytes)", i, fs->fragmentos[i], fs->tamanos[i]);
+    }
+}
