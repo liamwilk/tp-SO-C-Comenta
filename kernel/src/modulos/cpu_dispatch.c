@@ -14,7 +14,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         if (pcb != NULL)
         {
             // Detener QUANTUM si es RR o VRR
-            if (args->kernel->algoritmoPlanificador == "RR" || args->kernel->algoritmoPlanificador == "VRR")
+            if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0 || strcmp(args->kernel->algoritmoPlanificador, "VRR") == 0)
             {
                 temporal_stop(pcb->tiempo_fin);
             }
@@ -27,7 +27,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         if (proceso->ejecutado)
         {
             kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso PID:<%d> ejecutado completo. Transicionar a exit", proceso->pid);
-            if (args->kernel->algoritmoPlanificador == "RR" || args->kernel->algoritmoPlanificador == "VRR")
+            if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0 || strcmp(args->kernel->algoritmoPlanificador, "VRR") == 0)
             {
                 temporal_stop(pcb->tiempo_fin);
             }
