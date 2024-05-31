@@ -85,7 +85,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 				{
 					t_pagina *pagina = list_get(proceso->tabla_paginas, i);
 
-					if (pagina->numero_marco != -1)
+					if (pagina->en_uso != -1)
 					{
 						cantidad_frames_en_uso++;
 					}
