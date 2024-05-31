@@ -72,6 +72,7 @@ typedef struct
 typedef struct
 {
     void *espacio_usuario;
+    int *bytes_usados;
     t_bitarray *bitmap;
     char *bitmap_data;
     t_log *logger;
@@ -153,7 +154,7 @@ void marcar_frame_usado(t_args *args, t_bitarray *bitmap, uint32_t frame);
 void liberar_frame(t_bitarray *bitmap, uint32_t frame);
 bool frame_esta_libre(t_bitarray *bitmap, uint32_t frame);
 void espacio_usuario_escribir(t_args *args, uint32_t direccion_fisica, void *dato, size_t tamano);
-void espacio_usuario_liberar_frames(t_args *args, uint32_t direccion_fisica, size_t tamano);
+void espacio_usuario_liberar(t_args *args, uint32_t direccion_fisica, size_t tamano);
 void escribir_int(t_args *args, uint32_t direccion_fisica, int valor);
 void escribir_float(t_args *args, uint32_t direccion_fisica, float valor);
 void escribir_char(t_args *args, uint32_t direccion_fisica, const char *cadena);
@@ -165,5 +166,7 @@ int leer_int(t_args *args, uint32_t direccion_fisica);
 float leer_float(t_args *args, uint32_t direccion_fisica);
 void leer_char(t_args *args, uint32_t direccion_fisica, char *destino, size_t tamano_max);
 void leer_generic(t_args *args, uint32_t direccion_fisica, void *estructura, size_t tamano_estructura);
+uint32_t buscar_direccion_fisica_con_espacio(t_args *args, size_t tamano);
+int buscar_marco_con_espacio(t_args *args, size_t tamano);
 
 #endif // MEMORIA_H
