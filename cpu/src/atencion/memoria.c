@@ -24,7 +24,7 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 		instruccion_ciclo(args, buffer);
 		break;
 	}
-	case CPU_MEMORIA_TAM_PAGINA:
+	case MEMORIA_CPU_TAM_PAGINA:
 	{
 		uint32_t *tamPag = deserializar_t_memoria_cpu_tam_pagina(buffer);
 		args->tam_pagina = *tamPag;

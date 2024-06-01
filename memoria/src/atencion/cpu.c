@@ -199,7 +199,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		}
 		case CPU_MEMORIA_TAM_PAGINA:
 			{
-				t_paquete *paquete = crear_paquete(CPU_MEMORIA_TAM_PAGINA);
+				t_paquete *paquete = crear_paquete(MEMORIA_CPU_TAM_PAGINA);
 				uint32_t sizepagina = argumentos->memoria.tamPagina;
 
 				serializar_t_memoria_cpu_tam_pagina(&paquete, sizepagina);
