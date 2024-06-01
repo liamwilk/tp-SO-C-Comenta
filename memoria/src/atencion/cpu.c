@@ -229,14 +229,14 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 				t_proceso *proceso = NULL;
 				proceso = buscar_proceso(argumentos, proceso->pid);
 
-				if(tabla_paginas_acceder(argumentos, proceso->pid, proceso_recibido->numero_pagina) == -1)
+				if(tabla_paginas_acceder_pagina(argumentos, proceso, proceso_recibido->numero_pagina) == -1)
 				{
 					log_error(argumentos->logger, "No se encontro la página para el proceso con PID <%d> y pagina <%d>", proceso->pid, proceso_recibido->numero_pagina);
 					free(proceso);
 					break;
 				}
 
-				uint32_t numero_marco = tabla_paginas_acceder(argumentos, proceso->pid, proceso_recibido->numero_pagina);
+				uint32_t numero_marco = tabla_paginas_acceder_pagina(argumentos, proceso, proceso_recibido->numero_pagina);
 
 				t_paquete *paquete = crear_paquete(CPU_MEMORIA_NUMERO_FRAME);
 				serializar_t_memoria_cpu_numero_marco(&paquete, numero_marco);

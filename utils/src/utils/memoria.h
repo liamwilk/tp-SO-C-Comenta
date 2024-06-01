@@ -44,6 +44,8 @@ typedef struct
 {
     int marco;
     int validez;
+    int offset;
+    int bytes;
 } t_pagina;
 
 typedef struct
@@ -455,21 +457,21 @@ void tabla_paginas_liberar(t_args *argumentos, t_proceso *proceso);
  * @brief Accede a una tabla de páginas en memoria.
  *
  * @param argumentos Los argumentos del programa.
- * @param pid El ID del proceso.
+ * @param proceso El proceso.
  * @param numero_pagina El número de página.
  * @return El marco de la página.
  */
-uint32_t tabla_paginas_acceder(t_args *argumentos, uint32_t pid, uint32_t numero_pagina);
+int tabla_paginas_acceder_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina);
 
 /**
  * Asigna un número de marco a una página en la tabla de páginas de un proceso.
  *
  * @param argumentos Puntero a la estructura de argumentos.
- * @param pid Identificador del proceso.
+ * @param proceso El proceso.
  * @param numero_pagina Número de página a asignar.
  * @param numero_marco Número de marco a asignar a la página.
  */
-void tabla_paginas_asignar(t_args *argumentos, uint32_t pid, uint32_t numero_pagina, uint32_t numero_marco);
+void tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina, uint32_t numero_marco);
 
 void agregar_identificador(t_args_hilo *argumentos, char *identificador);
 void avisar_rechazo_identificador_memoria(int socket);
@@ -615,5 +617,7 @@ t_char_framentado *espacio_usuario_fragmentar_char(char *input, int frame_size);
  * @return Número de página.
  */
 int obtener_numero_pagina(uint32_t direccion_fisica, uint32_t tam_pagina);
+
+void tabla_paginas_liberar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina);
 
 #endif // MEMORIA_H
