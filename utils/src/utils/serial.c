@@ -209,7 +209,7 @@ void revisar_paquete(t_paquete *paquete, t_log *logger, char *modulo)
 {
 	if (paquete->codigo_operacion != FINALIZAR_SISTEMA)
 	{
-		log_debug(logger, "Paquete recibido de modulo %s\n", modulo);
+		log_debug(logger, "Paquete recibido de modulo %s", modulo);
 		// log_trace(logger, "Deserializado del paquete:");
 		log_debug(logger, "Codigo de operacion: %d", paquete->codigo_operacion);
 		// log_trace(logger, "Size del buffer en paquete: %d", paquete->size_buffer);

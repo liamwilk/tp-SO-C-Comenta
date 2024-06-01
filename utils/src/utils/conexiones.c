@@ -91,7 +91,7 @@ int iniciar_servidor(t_log *logger, int puerto)
         return EXIT_FAILURE;
     }
 
-    log_info(logger, "Servidor escuchando en puerto %d", puerto);
+    log_debug(logger, "Servidor escuchando en puerto %d", puerto);
 
     freeaddrinfo(servinfo);
     free(puerto_str);
