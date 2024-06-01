@@ -20,7 +20,12 @@
 #include <pwd.h>
 
 /*Estructura basica del kernel*/
-
+typedef enum
+{
+    FIFO,
+    RR,
+    VRR
+} t_algoritmo;
 typedef enum
 {
     MEMORIA,
@@ -245,7 +250,7 @@ void kernel_finalizar(hilos_args *args);
  */
 t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz);
 
-void log_ready(hilos_args *kernel_hilos_args);
+void log_ready(hilos_args *kernel_hilos_args, bool prioridad);
 
 bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNEL_MOTIVO_FINALIZACION MOTIVO);
 
@@ -335,4 +340,12 @@ void kernel_transicion_block_exit(hilos_args *kernel_hilos_args, uint32_t pid);
  * @return Un puntero a la interfaz t_kernel_entrada_salida encontrada, o NULL si no se encuentra.
  */
 t_kernel_entrada_salida *kernel_entrada_salida_buscar_interfaz(hilos_args *args, uint32_t pid);
+
+t_algoritmo determinar_algoritmo(hilos_args *args);
+
+/**Virtual Round Robin**/
+t_pcb *kernel_transicion_block_ready_mayor_prioridad(hilos_io_args *io_args, char *modulo, t_entrada_salida_kernel_unidad_de_trabajo *unidad);
+t_pcb *kernel_transicion_exec_ready_mayor_prioridad(hilos_args *kernel_hilos_args);
+t_pcb *kernel_transicion_ready_exec_mayor_prioridad(hilos_args *kernel_hilos_args);
+
 #endif /* KERNEL_H */

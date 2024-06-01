@@ -15,6 +15,7 @@ typedef struct t_diagrama_estados
     t_list *exec;
     t_list *block;
     t_list *exit;
+    t_list *ready_mayor_prioridad; // Para VRR
     t_dictionary *procesos;
 
     //********** MUTEX **********//
@@ -26,6 +27,9 @@ typedef struct t_diagrama_estados
     pthread_mutex_t mutex_exec_block;
     pthread_mutex_t mutex_new_ready;
     pthread_mutex_t mutex_new;
+    pthread_mutex_t mutex_exec_ready_mayor_prioridad;
+    pthread_mutex_t mutex_ready_exec_mayor_prioridad;
+    pthread_mutex_t mutex_block_ready_mayor_prioridad;
 } t_diagrama_estados;
 
 typedef struct pcb
@@ -105,6 +109,21 @@ void proceso_push_block(t_diagrama_estados *estados, t_pcb *pcb);
  * @param pcb El PCB a agregar.
  */
 void proceso_push_exit(t_diagrama_estados *estados, t_pcb *pcb);
+
+/**
+ * Agrega un PCB a la cola prioritaria de un diagrama de estados.
+ *
+ * @param estados El diagrama de estados donde se agregará el PCB.
+ * @param pcb El PCB que se agregará a la cola prioritaria.
+ */
+void proceso_push_cola_prioritaria(t_diagrama_estados *estados, t_pcb *pcb);
+
+/**
+ * Remueve el proceso de mayor prioridad de la cola prioritaria.
+ *
+ * @param estados Un puntero al diagrama de estados.
+ */
+t_pcb *proceso_pop_cola_prioritaria(t_diagrama_estados *estados);
 
 /**
  * Busca un proceso con el PID dado en la cola "new".
@@ -229,5 +248,17 @@ char *proceso_estado(t_diagrama_estados *estados, int pid);
 void proceso_matar(t_diagrama_estados *estados, char *pid);
 
 t_list *proceso_obtener_estado(t_diagrama_estados *estados, char *estado);
+
+/** VRR/ROUND_ROBIN FUNCIONALIDADES**/
+
+void proceso_avisar_timer(char *algoritmoPlanificador, t_pcb *pcb);
+
+/**
+ * Verifica si un proceso ha excedido su quantum.
+ *
+ * @param pcb El bloque de control de procesos del proceso.
+ * @return true si el proceso ha excedido su quantum, false en caso contrario.
+ */
+bool proceso_sobra_quantum(t_pcb *pcb);
 
 #endif

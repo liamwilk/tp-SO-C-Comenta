@@ -64,23 +64,6 @@ void virtual_round_robin(hilos_args *hiloArgs)
     }
 }
 
-t_algoritmo determinar_algoritmo(hilos_args *args)
-{
-    if (strcmp(args->kernel->algoritmoPlanificador, "FIFO") == 0)
-    {
-        return FIFO;
-    }
-    else if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0)
-    {
-        return RR;
-    }
-    else if (strcmp(args->kernel->algoritmoPlanificador, "VRR") == 0)
-    {
-        return VRR;
-    }
-    return -1;
-}
-
 void planificacion_corto_plazo(hilos_args *hiloArgs)
 {
     switch (determinar_algoritmo(hiloArgs))

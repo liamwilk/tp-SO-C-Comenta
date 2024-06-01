@@ -12,6 +12,10 @@ t_diagrama_estados kernel_inicializar_estados(t_diagrama_estados *estados)
     block = list_create();
     t_list *exit = malloc(sizeof(t_list));
     exit = list_create();
+
+    t_list *ready_mayor_prioridad = malloc(sizeof(t_list));
+    ready_mayor_prioridad = list_create();
+
     // Inicializar diccionario de procesos
     estados->procesos = dictionary_create();
     t_diagrama_estados diagrama = {
@@ -21,12 +25,16 @@ t_diagrama_estados kernel_inicializar_estados(t_diagrama_estados *estados)
         .block = block,
         .exit = exit,
         .procesos = estados->procesos,
+        .ready_mayor_prioridad = ready_mayor_prioridad, // VRR
         .mutex_exec_ready = PTHREAD_MUTEX_INITIALIZER,
         .mutex_ready_exec = PTHREAD_MUTEX_INITIALIZER,
         .mutex_block_ready = PTHREAD_MUTEX_INITIALIZER,
         .mutex_new_ready = PTHREAD_MUTEX_INITIALIZER,
         .mutex_block_exit = PTHREAD_MUTEX_INITIALIZER,
         .mutex_new = PTHREAD_MUTEX_INITIALIZER,
+        .mutex_exec_ready_mayor_prioridad = PTHREAD_MUTEX_INITIALIZER,
+        .mutex_ready_exec_mayor_prioridad = PTHREAD_MUTEX_INITIALIZER,
+        .mutex_block_ready_mayor_prioridad = PTHREAD_MUTEX_INITIALIZER,
     };
     return diagrama;
 }
@@ -130,39 +138,51 @@ void kernel_log_generic_rl(hilos_args *args, t_log_level nivel, const char *mens
 void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, t_pcb *pcb)
 {
     t_temporal *temporal = temporal_create();
+
+    t_algoritmo ALGORITMO_ACTUAL = determinar_algoritmo(kernel_hilos_args);
+    char *algoritmoActual = ALGORITMO_ACTUAL == VRR ? "Virtual Round Robin" : "Round Robin";
+
     pcb->tiempo_fin = temporal_create();
+
+    //!! Se guarda esta variable ya que puede suceder que durante el sleep el proceso sea eliminado y para mantener una referencia al pid
     uint32_t process_pid = pcb->pid;
+
     sleep(kernel_hilos_args->kernel->quantum / 1000);
+
     char *estado = proceso_estado(kernel_hilos_args->estados, process_pid);
+
+    temporal_stop(temporal);
+
     if (strcmp(estado, "EXIT") == 0)
     {
-        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "[ROUND ROBIN] El proceso <%d> ya ha sido eliminado", process_pid);
-
+        kernel_log_generic(kernel_hilos_args, ALGORITMO_ACTUAL == RR ? LOG_LEVEL_WARNING : LOG_LEVEL_DEBUG, "[%s] El proceso <%d> ya ha sido eliminado", algoritmoActual, process_pid);
+        temporal_destroy(temporal);
         return;
     }
-    temporal_stop(temporal);
     if (pcb->tiempo_fin->status == TEMPORAL_STATUS_RUNNING)
     {
         temporal_stop(pcb->tiempo_fin);
     };
+
     int64_t diff = temporal_diff(temporal, pcb->tiempo_fin);
 
     if (strcmp(estado, "BLOCK") == 0 && diff > 0)
     {
-        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "[ROUND ROBIN] El proceso <%d> se encuentra bloqueado y le sobro <%ld> de quantum", pcb->pid, diff);
-
+        kernel_log_generic(kernel_hilos_args, ALGORITMO_ACTUAL == RR ? LOG_LEVEL_WARNING : LOG_LEVEL_DEBUG, "[%s] El proceso <%d> se encuentra bloqueado y le sobro <%ld> de quantum", algoritmoActual, pcb->pid, diff);
+        temporal_destroy(temporal);
         return;
     }
     if (strcmp(estado, "READY") == 0 && diff > 0)
     {
-        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "[ROUND ROBIN] El proceso <%d> se encuentra ready y le sobro <%ld> de quantum", pcb->pid, diff);
-
+        kernel_log_generic(kernel_hilos_args, ALGORITMO_ACTUAL == RR ? LOG_LEVEL_WARNING : LOG_LEVEL_DEBUG, "[%s] El proceso <%d> se encuentra ready y le sobro <%ld> de quantum", algoritmoActual, pcb->pid, diff);
+        temporal_destroy(temporal);
         return;
     }
     if (strcmp(estado, "EXEC") == 0)
     {
         kernel_interrumpir_cpu(kernel_hilos_args, pid, "QUANTUM");
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Desalojado por fin de Quantum", pid);
+        temporal_destroy(temporal);
     }
 }
 
@@ -191,7 +211,7 @@ t_pcb *kernel_transicion_exec_ready(hilos_args *kernel_hilos_args)
     // Log oficial de la catedra
     kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Estado Anterior: <EXEC> - Estado Actual: <READY>", proceso->pid);
     // Log oficial de la catedra (En procedimiento)
-    log_ready(kernel_hilos_args);
+    log_ready(kernel_hilos_args, false);
     pthread_mutex_unlock(&kernel_hilos_args->estados->mutex_exec_ready);
     return proceso;
 };
@@ -226,6 +246,7 @@ t_pcb *kernel_transicion_block_ready(hilos_io_args *io_args, char *modulo, t_ent
 {
     kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Se transiciona el PID %d a READY por finalizacion de I/O", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden, unidad->pid);
     hilos_args *kernel_hilos_args = io_args->args;
+
     pthread_mutex_lock(&kernel_hilos_args->estados->mutex_block_ready);
     t_pcb *proceso = proceso_remover_block(kernel_hilos_args->estados, unidad->pid);
     if (proceso == NULL)
@@ -242,7 +263,7 @@ t_pcb *kernel_transicion_block_ready(hilos_io_args *io_args, char *modulo, t_ent
     kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Estado Anterior: <BLOCK> - Estado Actual: <READY>", proceso->pid);
 
     // Log oficial de la catedra (En procedimiento)
-    log_ready(kernel_hilos_args);
+    log_ready(kernel_hilos_args, false);
     return proceso;
 };
 
@@ -410,18 +431,19 @@ t_pcb *kernel_transicion_new_ready(hilos_args *kernel_hilo_args)
     kernel_log_generic(kernel_hilo_args, LOG_LEVEL_INFO, "PID: <%d> - Estado Anterior: <NEW> - Estado Actual: <READY>", proceso->pid);
 
     // log oficial de la catedra (En procedimiento)
-    log_ready(kernel_hilo_args);
+    log_ready(kernel_hilo_args, false);
     kernel_log_generic(kernel_hilo_args, LOG_LEVEL_DEBUG, "[PLANIFICADOR LARGO PLAZO] Proceso PID: <%d> movido a ready", proceso->pid);
     return proceso;
 }
 
-void log_ready(hilos_args *kernel_hilos_args)
+void log_ready(hilos_args *kernel_hilos_args, bool prioritaria)
 {
-    char *msg = "Cola Ready : [";
+    char *msg = prioritaria == false ? "Cola Ready : [" : "Cola Ready Mayor Prioridad : [";
+    t_list *listaARecorrer = prioritaria == false ? kernel_hilos_args->estados->ready : kernel_hilos_args->estados->ready_mayor_prioridad;
     // Iterate over ready
-    for (int i = 0; i < list_size(kernel_hilos_args->estados->ready); i++)
+    for (int i = 0; i < list_size(listaARecorrer); i++)
     {
-        t_pcb *pcb = list_get(kernel_hilos_args->estados->ready, i);
+        t_pcb *pcb = list_get(listaARecorrer, i);
         char *pid = string_itoa(pcb->pid);
         msg = string_from_format("%s %s", msg, pid);
     }
@@ -907,4 +929,95 @@ void *hilos_atender_entrada_salida_stdout(void *args)
     hilos_io_args *io_args = (hilos_io_args *)args;
     hilos_ejecutar_entrada_salida(io_args, "I/O STDOUT", switch_case_kernel_entrada_salida_stdout);
     pthread_exit(0);
+}
+
+t_algoritmo determinar_algoritmo(hilos_args *args)
+{
+    if (strcmp(args->kernel->algoritmoPlanificador, "FIFO") == 0)
+    {
+        return FIFO;
+    }
+    else if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0)
+    {
+        return RR;
+    }
+    else if (strcmp(args->kernel->algoritmoPlanificador, "VRR") == 0)
+    {
+        return VRR;
+    }
+    return -1;
+}
+
+t_pcb *kernel_transicion_ready_exec_mayor_prioridad(hilos_args *kernel_hilos_args)
+{
+    pthread_mutex_lock(&kernel_hilos_args->estados->mutex_ready_exec_mayor_prioridad);
+
+    t_pcb *proceso = proceso_pop_cola_prioritaria(kernel_hilos_args->estados);
+
+    if (proceso == NULL)
+    {
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "[ESTADOS] Transicion de ready a exec fallida. No hay procesos en cola prioritaria");
+        pthread_mutex_unlock(&kernel_hilos_args->estados->mutex_ready_exec_mayor_prioridad);
+        return NULL;
+    }
+
+    proceso_push_exec(kernel_hilos_args->estados, proceso);
+    pthread_mutex_unlock(&kernel_hilos_args->estados->mutex_ready_exec_mayor_prioridad);
+
+    // Log oficial de la catedra
+    kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Estado Anterior: <READY_PRIORIDAD> - Estado Actual: <EXEC>", proceso->pid);
+
+    // Enviar paquete a cpu dispatch
+    t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
+    serializar_t_registros_cpu(&paquete, proceso->pid, proceso->registros_cpu);
+    enviar_paquete(paquete, kernel_hilos_args->kernel->sockets.cpu_dispatch);
+    free(paquete);
+
+    return proceso;
+}
+t_pcb *kernel_transicion_exec_ready_mayor_prioridad(hilos_args *kernel_hilos_args)
+{
+    pthread_mutex_lock(&kernel_hilos_args->estados->mutex_exec_ready_mayor_prioridad);
+
+    t_pcb *proceso = proceso_pop_exec(kernel_hilos_args->estados);
+    if (proceso == NULL)
+    {
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "[ESTADOS] Transicion de exec a ready de mayor prioridad fallida. No hay procesos en exec.");
+        pthread_mutex_unlock(&kernel_hilos_args->estados->mutex_exec_ready_mayor_prioridad);
+        return NULL;
+    }
+    proceso_push_cola_prioritaria(kernel_hilos_args->estados, proceso);
+
+    // Log oficial de la catedra
+    kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Estado Anterior: <EXEC> - Estado Actual: <READY_PRIORIDAD>", proceso->pid);
+
+    // Log oficial de la catedra (En procedimiento)
+    log_ready(kernel_hilos_args, true);
+    pthread_mutex_unlock(&kernel_hilos_args->estados->mutex_exec_ready_mayor_prioridad);
+    return proceso;
+}
+
+t_pcb *kernel_transicion_block_ready_mayor_prioridad(hilos_io_args *io_args, char *modulo, t_entrada_salida_kernel_unidad_de_trabajo *unidad)
+{
+    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Se transiciona el PID %d a READY_PRIORIDAD por finalizacion de I/O", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden, unidad->pid);
+    hilos_args *kernel_hilos_args = io_args->args;
+
+    pthread_mutex_lock(&kernel_hilos_args->estados->mutex_block_ready_mayor_prioridad);
+    t_pcb *proceso = proceso_remover_block(kernel_hilos_args->estados, unidad->pid);
+    if (proceso == NULL)
+    {
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "[ESTADOS] Transicion de block a ready de mayor prioridad fallida. No hay procesos en block.");
+        pthread_mutex_unlock(&kernel_hilos_args->estados->mutex_block_ready_mayor_prioridad);
+        return NULL;
+    }
+    proceso_push_cola_prioritaria(kernel_hilos_args->estados, proceso);
+
+    pthread_mutex_unlock(&kernel_hilos_args->estados->mutex_block_ready_mayor_prioridad);
+
+    // Log oficial de la catedra
+    kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Estado Anterior: <BLOCK> - Estado Actual: <READY_PRIORIDAD>", proceso->pid);
+
+    // Log oficial de la catedra (En procedimiento)
+    log_ready(kernel_hilos_args, true);
+    return proceso;
 }

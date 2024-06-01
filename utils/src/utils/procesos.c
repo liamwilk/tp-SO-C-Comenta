@@ -278,3 +278,31 @@ t_list *proceso_obtener_estado(t_diagrama_estados *estados, char *estado)
         return NULL;
     }
 };
+
+void proceso_push_cola_prioritaria(t_diagrama_estados *estados, t_pcb *pcb)
+{
+    list_add(estados->ready_mayor_prioridad, pcb);
+
+    // Añado el proceso al diccionario de procesos, mapeando el PID a la posición en la lista de procesos
+    char *pid_char = string_itoa(pcb->pid);
+
+    // Actualizo el diccionario de procesos
+    char *estado = "READY_PRIORIDAD";
+    dictionary_put(estados->procesos, pid_char, estado);
+}
+
+t_pcb *proceso_pop_cola_prioritaria(t_diagrama_estados *estados)
+{
+    if (list_size(estados->ready_mayor_prioridad) == 0)
+    {
+        return NULL;
+    }
+    t_pcb *elem = list_get(estados->ready_mayor_prioridad, 0);
+    list_remove(estados->ready_mayor_prioridad, 0);
+    return elem;
+}
+
+bool proceso_sobra_quantum(t_pcb *pcb)
+{
+    return pcb->tiempo_fin > 0;
+}
