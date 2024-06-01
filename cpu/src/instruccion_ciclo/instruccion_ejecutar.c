@@ -530,7 +530,22 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case RESIZE:
     {
-        log_debug(args->logger, "reconoci un RESIZE");
+        /*
+        RESIZE (Tamaño): Solicitará a la Memoria ajustar el tamaño del proceso al tamaño pasado por parámetro. En caso de que la respuesta de la memoria sea Out of Memory, se deberá devolver el contexto de ejecución al Kernel informando de esta situación.
+        */
+
+        t_paquete *paquete = crear_paquete(CPU_MEMORIA_RESIZE);
+        t_cpu_memoria_resize *resize = malloc(sizeof(t_cpu_memoria_resize));
+        resize->pid = args->proceso.pid;
+        resize->frames = atoi(args->instruccion.array[1]);
+
+        serializar_t_cpu_memoria_resize(&paquete, resize);
+        enviar_paquete(paquete, args->config_leida.socket_memoria);
+
+        log_debug(args->logger, "Se solicita un resize de %d frames para el proceso %d", resize->frames, resize->pid);
+
+        free(resize);
+        eliminar_paquete(paquete);
         return 1;
     }
     case COPY_STRING:
@@ -628,7 +643,7 @@ int instruccion_ejecutar(t_cpu *args)
         return 1;
     }
     }
-    
+
     log_error(args->logger, "Instruccion invalida");
     return 0;
 };
