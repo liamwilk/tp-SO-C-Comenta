@@ -42,9 +42,8 @@ typedef struct
 
 typedef struct
 {
-    uint32_t numero_pagina;
-    uint32_t numero_marco;
-    bool en_uso;
+    int marco;
+    int validez;
 } t_pagina;
 
 typedef struct
@@ -442,7 +441,7 @@ void inicializar(t_args *args, t_log_level nivel, int argc, char *argv[]);
  * @param pid El ID del proceso.
  * @param cantidad_paginas La cantidad de páginas.
  */
-void memoria_crear_tabla_paginas(t_args *argumentos, uint32_t pid);
+void memoria_crear_tabla_paginas(t_args *argumentos, t_proceso *proceso);
 
 /**
  * @brief Destruye una tabla de páginas en memoria.
@@ -450,7 +449,7 @@ void memoria_crear_tabla_paginas(t_args *argumentos, uint32_t pid);
  * @param args Los argumentos del programa.
  * @param pid El ID del proceso.
  */
-void memoria_destruir_tabla_paginas(t_args *args, uint32_t pid);
+void memoria_destruir_tabla_paginas(t_args *argumentos, t_proceso *proceso);
 
 /**
  * @brief Accede a una tabla de páginas en memoria.

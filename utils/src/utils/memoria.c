@@ -202,6 +202,9 @@ void eliminar_procesos(t_args *argumentos)
             // Elimino las instrucciones del proceso
             eliminar_instrucciones(argumentos, proceso->instrucciones);
 
+            // Libero la tabla de paginas
+            memoria_destruir_tabla_paginas(argumentos, proceso);
+
             // Elimino el proceso de la lista de procesos
             // list_remove(argumentos->memoria.lista_procesos, atoi(dictionary_get(argumentos->memoria.diccionario_procesos, pid)));
 

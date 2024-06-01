@@ -12,7 +12,14 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			
 			Si es negativo, se debe verificar que la cantidad de frames en uso no sea mayor a la cantidad de frames a liberar, en caso contrario, ¿no se puede liberar la cantidad de frames solicitados? ¿elimino datos? ¿cierro el proceso?, además, debo liberar y marcar como libres los frames que antes estaban ocupados por ese proceso.
 			
-			Si todo es correcto, se debe enviar un mensaje a CPU con el resultado de la operación, y si no, se debe enviar un mensaje de error "Out of memory" o "No se puede liberar la cantidad de frames solicitados", segun sea el caso. */
+			Si todo es correcto, se debe enviar un mensaje a CPU con el resultado de la operación, y si no, se debe enviar un mensaje de error "Out of memory" o "No se puede liberar la cantidad de frames solicitados", segun sea el caso.
+			
+			Docu:
+
+			Reducción de un proceso
+			Se reducirá el mismo desde el final, liberando, en caso de ser necesario, las páginas que ya no sean utilizadas (desde la última hacia la primera).
+
+			*/
 
 			t_cpu_memoria_resize *proceso_recibido = deserializar_t_cpu_memoria_resize(buffer);
 
@@ -73,7 +80,8 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 				
 				// TODO: Aca va la logica para hacer el resize positivo
 
-				log_info(argumentos->logger, "Se realizo un resize positivo de %d frames para el proceso con PID <%d>", proceso_recibido->frames, proceso_recibido->pid);
+				log_info(argumentos->logger, "Ampliación de Proceso: PID: %d - Tamaño Actual: %d - Tamaño a Ampliar: %d", proceso_recibido->pid, list_size(proceso->tabla_paginas), proceso_recibido->frames);
+
 			}
 			else
 			{
@@ -85,7 +93,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 				{
 					t_pagina *pagina = list_get(proceso->tabla_paginas, i);
 
-					if (pagina->en_uso)
+					if (pagina->validez)
 					{
 						cantidad_frames_en_uso++;
 					}
@@ -116,6 +124,8 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 				// Realizo el resize negativo
 
 				// TODO: Aca va la logica para hacer el resize negativo
+
+				log_info(argumentos->logger, "Reducción de Proceso: PID: %d - Tamaño Actual: %d - Tamaño a Reducir: %d", proceso_recibido->pid, list_size(proceso->tabla_paginas), proceso_recibido->frames);
 			}
 			
 			break;
@@ -131,7 +141,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			log_debug(argumentos->logger, "PID: %d", instruccion_recibida->pid);
 			log_debug(argumentos->logger, "Program counter: %d", instruccion_recibida->program_counter);
 
-			log_info(argumentos->logger, "Se comienza a buscar el proceso solicitado por CPU en la lista de procesos globales.");
+			log_debug(argumentos->logger, "Se comienza a buscar el proceso solicitado por CPU en la lista de procesos globales.");
 
 			t_proceso *proceso_encontrado = buscar_proceso(argumentos,instruccion_recibida->pid);
 
@@ -195,7 +205,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			serializar_t_memoria_cpu_instruccion(&paquete_instruccion, instruccion_proxima);
 			enviar_paquete(paquete_instruccion, argumentos->memoria.sockets.socket_cpu);
 
-			log_info(argumentos->logger, "Instruccion con PID %d enviada a CPU", instruccion_recibida->pid);
+			log_debug(argumentos->logger, "Instruccion con PID %d enviada a CPU", instruccion_recibida->pid);
 
 			free(instruccion_recibida);
 			eliminar_paquete(paquete_instruccion);
