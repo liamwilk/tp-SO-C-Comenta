@@ -4,6 +4,21 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 {
 	switch (codigo_operacion)
 	{
+	case MEMORIA_CPU_RESIZE:
+	{
+		t_memoria_cpu_resize *proceso_recibido = deserializar_t_memoria_cpu_resize(buffer);
+		
+		log_debug(args->logger, "Se recibio respuesta de Memoria sobre el pedido de RESIZE para el proceso <%d>", proceso_recibido->pid);
+		log_debug(args->logger, "Frames solicitados: %d", proceso_recibido->frames);
+		log_debug(args->logger, "Resultado: %d", proceso_recibido->resultado);
+		log_debug(args->logger, "Motivo: %s", proceso_recibido->motivo);
+
+		instruccion_solicitar(args);
+		
+		free(proceso_recibido->motivo);
+		free(proceso_recibido);
+		break;
+	}
 	case MEMORIA_CPU_PROXIMA_INSTRUCCION:
 	{
 		instruccion_ciclo(args, buffer);
