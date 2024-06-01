@@ -460,6 +460,17 @@ void tabla_paginas_liberar(t_args *argumentos, t_proceso *proceso);
  * @return El marco de la página.
  */
 uint32_t tabla_paginas_acceder(t_args *argumentos, uint32_t pid, uint32_t numero_pagina);
+
+/**
+ * Asigna un número de marco a una página en la tabla de páginas de un proceso.
+ *
+ * @param argumentos Puntero a la estructura de argumentos.
+ * @param pid Identificador del proceso.
+ * @param numero_pagina Número de página a asignar.
+ * @param numero_marco Número de marco a asignar a la página.
+ */
+void tabla_paginas_asignar(t_args *argumentos, uint32_t pid, uint32_t numero_pagina, uint32_t numero_marco);
+
 void agregar_identificador(t_args_hilo *argumentos, char *identificador);
 void avisar_rechazo_identificador_memoria(int socket);
 void agregar_identificador_rechazado(t_args_hilo *argumentos, char *identificador);
@@ -478,18 +489,131 @@ void espacio_usuario_escribir_int(t_args *args, uint32_t direccion_fisica, int v
 void espacio_usuario_escribir_float(t_args *args, uint32_t direccion_fisica, float valor);
 void espacio_usuario_escribir_char(t_args *args, uint32_t direccion_fisica, const char *cadena);
 void espacio_usuario_escribir_generic(t_args *args, uint32_t direccion_fisica, void *estructura, size_t tamano_estructura);
+/**
+ * Escribe un valor de tipo uint32_t en la dirección física especificada.
+ *
+ * @param args Puntero a la estructura de argumentos.
+ * @param direccion_fisica Dirección física donde se escribirá el valor.
+ * @param valor Valor a escribir.
+ */
 void espacio_usuario_escribir_uint32(t_args *args, uint32_t direccion_fisica, uint32_t valor);
+
+/**
+ * Lee un dato de memoria de la dirección física especificada y lo guarda en el destino proporcionado.
+ *
+ * @param args Puntero a la estructura de argumentos.
+ * @param direccion_fisica Dirección física de donde se leerá el dato.
+ * @param destino Puntero al destino donde se guardará el dato leído.
+ * @param tamano Tamaño del dato a leer.
+ */
 void espacio_usuario_leer_dato(t_args *args, uint32_t direccion_fisica, void *destino, size_t tamano);
+
+/**
+ * Lee un valor de tipo uint32_t de la dirección física especificada.
+ *
+ * @param args Puntero a la estructura de argumentos.
+ * @param direccion_fisica Dirección física de donde se leerá el valor.
+ * @return Valor de tipo uint32_t leído.
+ */
 uint32_t espacio_usuario_leer_uint32(t_args *args, uint32_t direccion_fisica);
+
+/**
+ * Lee un valor de tipo int de la dirección física especificada.
+ *
+ * @param args Puntero a la estructura de argumentos.
+ * @param direccion_fisica Dirección física de donde se leerá el valor.
+ * @return Valor de tipo int leído.
+ */
 int espacio_usuario_leer_int(t_args *args, uint32_t direccion_fisica);
+
+/**
+ * Lee un valor de tipo float de la dirección física especificada.
+ *
+ * @param args Puntero a la estructura de argumentos.
+ * @param direccion_fisica Dirección física de donde se leerá el valor.
+ * @return Valor de tipo float leído.
+ */
 float espacio_usuario_leer_float(t_args *args, uint32_t direccion_fisica);
+
+/**
+ * Lee una cadena de caracteres de la dirección física especificada.
+ *
+ * @param args Puntero a la estructura de argumentos.
+ * @param direccion_fisica Dirección física de donde se leerá la cadena de caracteres.
+ * @param tamano_max Tamaño máximo de la cadena de caracteres a leer.
+ * @return Puntero a la cadena de caracteres leída.
+ */
 char *espacio_usuario_leer_char(t_args *args, uint32_t direccion_fisica, size_t tamano_max);
+
+/**
+ * Lee una estructura genérica de memoria de la dirección física especificada y la guarda en la estructura proporcionada.
+ *
+ * @param args Puntero a la estructura de argumentos.
+ * @param direccion_fisica Dirección física de donde se leerá la estructura.
+ * @param estructura Puntero a la estructura donde se guardará la estructura leída.
+ * @param tamano_estructura Tamaño de la estructura a leer.
+ */
 void espacio_usuario_leer_generic(t_args *args, uint32_t direccion_fisica, void *estructura, size_t tamano_estructura);
+
+/**
+ * Obtiene la próxima dirección disponible para asignar memoria de tamaño especificado.
+ *
+ * @param args Puntero a la estructura de argumentos.
+ * @param tamano Tamaño de memoria a asignar.
+ * @return Próxima dirección disponible.
+ */
 int espacio_usuario_proxima_direccion(t_args *args, size_t tamano);
+
+/**
+ * Obtiene el próximo frame disponible para asignar memoria de tamaño especificado.
+ *
+ * @param args Puntero a la estructura de argumentos.
+ * @param tamano Tamaño de memoria a asignar.
+ * @return Próximo frame disponible.
+ */
 int espacio_usuario_proximo_frame(t_args *args, size_t tamano);
+
+/**
+ * Busca un frame disponible de tamaño especificado.
+ *
+ * @param args Puntero a la estructura de argumentos.
+ * @param size_buscado Tamaño buscado.
+ * @return Puntero al frame disponible encontrado.
+ */
 t_frame_disponible *espacio_usuario_buscar_frame(t_args *args, size_t size_buscado);
+
+/**
+ * Imprime los fragmentos de memoria en formato de cadena de caracteres.
+ *
+ * @param args Puntero a la estructura de argumentos.
+ * @param fs Puntero a la estructura de fragmentos de memoria.
+ */
 void espacio_usuario_fragmentos_imprimir(t_args *args, t_char_framentado *fs);
+
+/**
+ * Libera los fragmentos de memoria.
+ *
+ * @param args Puntero a la estructura de argumentos.
+ * @param fs Puntero a la estructura de fragmentos de memoria.
+ */
 void espacio_usuario_fragmentos_liberar(t_args *args, t_char_framentado *fs);
+
+/**
+ * Fragmenta una cadena de caracteres en frames de tamaño especificado.
+ *
+ * @param input Cadena de caracteres a fragmentar.
+ * @param frame_size Tamaño de los frames.
+ * @return Puntero a la estructura de fragmentos de memoria.
+ */
 t_char_framentado *espacio_usuario_fragmentar_char(char *input, int frame_size);
+
+/**
+ * Obtiene el número de página correspondiente a una dirección física.
+ *
+ * @param direccion_fisica Dirección física.
+ * @param tam_pagina Tamaño de página.
+ * @return Número de página.
+ */
+int obtener_numero_pagina(uint32_t direccion_fisica, uint32_t tam_pagina);
 
 #endif // MEMORIA_H
