@@ -9,21 +9,22 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         t_cpu_kernel_proceso *proceso = deserializar_t_cpu_kernel_proceso(buffer);
 
         // Este caso se da cuando el usuario interrumpio a CPU para finalizar un proceso
-        t_pcb *pcb = proceso_buscar_exit(args->estados, proceso->pid);
+        t_pcb *proceso_en_exit = proceso_buscar_exit(args->estados, proceso->pid);
         // Se verifica que el proceso que se deseo eliminar es el que cpu esta devolviendo y que ademas se encuentra en la cola de exit
-        if (pcb != NULL)
+        if (proceso_en_exit != NULL)
         {
             // Detener QUANTUM si es RR o VRR
             if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0 || strcmp(args->kernel->algoritmoPlanificador, "VRR") == 0)
             {
-                temporal_stop(pcb->tiempo_fin);
+                temporal_stop(proceso_en_exit->tiempo_fin);
             }
-            kernel_log_generic(args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INTERRUPTED_BY_USER>", pid);
-            proceso_matar(args->estados, string_itoa(pcb->pid));
+            kernel_log_generic(args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> - Motivo: <INTERRUPTED_BY_USER>", proceso_en_exit->pid);
+            proceso_matar(args->estados, string_itoa(proceso_en_exit->pid));
             free(proceso);
             break;
         }
 
+        t_pcb *pcb = proceso_buscar_exec(args->estados, proceso->pid);
         if (proceso->ejecutado)
         {
             kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso PID:<%d> ejecutado completo. Transicionar a exit", proceso->pid);
@@ -31,7 +32,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             {
                 temporal_stop(pcb->tiempo_fin);
             }
-            kernel_finalizar_proceso(args, proceso->pid, SUCCESS);
+            kernel_finalizar_proceso(args, pcb->pid, SUCCESS);
 
             kernel_avisar_memoria_finalizacion_proceso(args, proceso->pid);
 
@@ -40,7 +41,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         else
         {
             // Actualizo los registros del proceso en exec con los que me envia la CPU
-            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Actualizo registros recibidos de PID <%d> por interrupcion.", proceso->pid);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Actualizo registros recibidos de PID <%d> por interrupcion.", pcb->pid);
 
             // Envio el proceso a ready desde exec
             t_pcb *pcb = kernel_transicion_exec_ready(args);

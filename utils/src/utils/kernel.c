@@ -140,6 +140,7 @@ void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, t_pcb *pcb)
     t_temporal *temporal = temporal_create();
 
     t_algoritmo ALGORITMO_ACTUAL = determinar_algoritmo(kernel_hilos_args);
+
     char *algoritmoActual = ALGORITMO_ACTUAL == VRR ? "Virtual Round Robin" : "Round Robin";
 
     pcb->tiempo_fin = temporal_create();
@@ -149,9 +150,9 @@ void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, t_pcb *pcb)
 
     sleep(kernel_hilos_args->kernel->quantum / 1000);
 
-    char *estado = proceso_estado(kernel_hilos_args->estados, process_pid);
-
     temporal_stop(temporal);
+
+    char *estado = proceso_estado(kernel_hilos_args->estados, process_pid);
 
     if (strcmp(estado, "EXIT") == 0)
     {
@@ -159,6 +160,7 @@ void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, t_pcb *pcb)
         temporal_destroy(temporal);
         return;
     }
+
     if (pcb->tiempo_fin->status == TEMPORAL_STATUS_RUNNING)
     {
         temporal_stop(pcb->tiempo_fin);
@@ -454,7 +456,6 @@ void log_ready(hilos_args *kernel_hilos_args, bool prioritaria)
 bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNEL_MOTIVO_FINALIZACION MOTIVO)
 {
     char *estado = proceso_estado(kernel_hilos_args->estados, pid);
-
     if (estado == NULL)
     {
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "El PID <%d> no existe", pid);
