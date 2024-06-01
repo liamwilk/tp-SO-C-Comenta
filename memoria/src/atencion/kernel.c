@@ -20,7 +20,7 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 		t_proceso *proceso = malloc(sizeof(t_proceso));
 		proceso->pc = dato->program_counter;
 		proceso->pid = dato->pid;
-		memoria_crear_tabla_paginas(argumentos,proceso);
+		tabla_paginas_inicializar(argumentos,proceso);
 
 		// Leo las instrucciones del archivo y las guardo en la lista de instrucciones del proceso
 		proceso->instrucciones = leer_instrucciones(argumentos, path_completo, proceso->pid);
@@ -153,7 +153,7 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 		eliminar_instrucciones(argumentos, proceso_encontrado->instrucciones);
 
 		// Libero la tabla de paginas
-		memoria_destruir_tabla_paginas(argumentos, proceso_encontrado);
+		tabla_paginas_liberar(argumentos, proceso_encontrado);
 
 		char *pid_char = string_itoa(proceso_encontrado->pid);
 

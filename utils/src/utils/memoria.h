@@ -441,7 +441,7 @@ void inicializar(t_args *args, t_log_level nivel, int argc, char *argv[]);
  * @param pid El ID del proceso.
  * @param cantidad_paginas La cantidad de páginas.
  */
-void memoria_crear_tabla_paginas(t_args *argumentos, t_proceso *proceso);
+void tabla_paginas_inicializar(t_args *argumentos, t_proceso *proceso);
 
 /**
  * @brief Destruye una tabla de páginas en memoria.
@@ -449,7 +449,7 @@ void memoria_crear_tabla_paginas(t_args *argumentos, t_proceso *proceso);
  * @param args Los argumentos del programa.
  * @param pid El ID del proceso.
  */
-void memoria_destruir_tabla_paginas(t_args *argumentos, t_proceso *proceso);
+void tabla_paginas_liberar(t_args *argumentos, t_proceso *proceso);
 
 /**
  * @brief Accede a una tabla de páginas en memoria.
@@ -459,7 +459,7 @@ void memoria_destruir_tabla_paginas(t_args *argumentos, t_proceso *proceso);
  * @param numero_pagina El número de página.
  * @return El marco de la página.
  */
-uint32_t memoria_acceder_tabla_paginas(t_args *argumentos, uint32_t pid, uint32_t numero_pagina);
+uint32_t tabla_paginas_acceder(t_args *argumentos, uint32_t pid, uint32_t numero_pagina);
 void agregar_identificador(t_args_hilo *argumentos, char *identificador);
 void avisar_rechazo_identificador_memoria(int socket);
 void agregar_identificador_rechazado(t_args_hilo *argumentos, char *identificador);

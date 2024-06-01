@@ -1,6 +1,6 @@
 #include <utils/memoria.h>
 
-void memoria_crear_tabla_paginas(t_args *args, t_proceso *proceso)
+void tabla_paginas_inicializar(t_args *args, t_proceso *proceso)
 {
     int paginas = args->memoria.tamMemoria / args->memoria.tamPagina;
     proceso->tabla_paginas = list_create();
@@ -26,13 +26,13 @@ void memoria_crear_tabla_paginas(t_args *args, t_proceso *proceso)
     log_info(args->logger, "Creación tabla de páginas: PID: <%d> - Tamaño: <%d>", proceso->pid, list_size(proceso->tabla_paginas));
 }
 
-void memoria_destruir_tabla_paginas(t_args *argumentos, t_proceso *proceso)
+void tabla_paginas_liberar(t_args *argumentos, t_proceso *proceso)
 {
     log_info(argumentos->logger, "Destruccion tabla de páginas: PID: <%d> - Tamaño: <%d>", proceso->pid, list_size(proceso->tabla_paginas));
     list_destroy_and_destroy_elements(proceso->tabla_paginas, free);
 }
 
-uint32_t memoria_acceder_tabla_paginas(t_args *argumentos, uint32_t pid, uint32_t numero_pagina)
+uint32_t tabla_paginas_acceder(t_args *argumentos, uint32_t pid, uint32_t numero_pagina)
 {
     t_proceso *proceso = buscar_proceso(argumentos, pid);
 
