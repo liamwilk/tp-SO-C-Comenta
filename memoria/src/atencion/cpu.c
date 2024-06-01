@@ -6,20 +6,6 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 	{
 		case CPU_MEMORIA_RESIZE:
 		{
-			/* TODO: Recibo un PID y un nuevo tamaño para la tabla de paginas del proceso (es decir, una cantidad de frames, que traducen a una cantidad de paginas), y debo verificar que el PID exista en Memoria, y luego si se debe hacer un resize positivo o negativo.
-			
-			Si es positivo hay que verificar si el espacio de marcos solicitados no es mayor a la cantidad de frames totales en Memoria.
-			
-			Si es negativo, se debe verificar que la cantidad de frames en uso no sea mayor a la cantidad de frames a liberar, en caso contrario, ¿no se puede liberar la cantidad de frames solicitados? ¿elimino datos? ¿cierro el proceso?, además, debo liberar y marcar como libres los frames que antes estaban ocupados por ese proceso.
-			
-			Si todo es correcto, se debe enviar un mensaje a CPU con el resultado de la operación, y si no, se debe enviar un mensaje de error "Out of memory" o "No se puede liberar la cantidad de frames solicitados", segun sea el caso.
-			
-			Docu:
-
-			Reducción de un proceso
-			Se reducirá el mismo desde el final, liberando, en caso de ser necesario, las páginas que ya no sean utilizadas (desde la última hacia la primera).
-
-			*/
 
 			t_cpu_memoria_resize *proceso_recibido = deserializar_t_cpu_memoria_resize(buffer);
 
