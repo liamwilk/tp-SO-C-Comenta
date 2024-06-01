@@ -15,16 +15,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         {
 
             kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque no existe.", sleep->interfaz);
-
-            t_pcb *pcb = NULL;
-            for (int i = 0; i < list_size(args->estados->exec); i++)
-            {
-                t_pcb *proceso = list_get(args->estados->exec, i);
-                if (proceso->pid == pid)
-                {
-                    pcb = proceso;
-                }
-            }
+            t_pcb *pcb = proceso_buscar_exec(args->estados, sleep->pid);
 
             if (pcb == NULL)
             {
