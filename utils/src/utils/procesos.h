@@ -261,4 +261,6 @@ void proceso_avisar_timer(char *algoritmoPlanificador, t_pcb *pcb);
  */
 bool proceso_sobra_quantum(t_pcb *pcb);
 
+void proceso_actualizar_registros(t_pcb *pcb, t_registros_cpu registros_cpu);
+
 #endif

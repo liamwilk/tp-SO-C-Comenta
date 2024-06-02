@@ -14,10 +14,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         if (proceso_en_exit != NULL)
         {
             // Detener QUANTUM si es RR o VRR
-            if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0 || strcmp(args->kernel->algoritmoPlanificador, "VRR") == 0)
-            {
-                temporal_stop(proceso_en_exit->tiempo_fin);
-            }
+            proceso_avisar_timer(args->kernel->algoritmoPlanificador, proceso_en_exit);
             kernel_log_generic(args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> - Motivo: <INTERRUPTED_BY_USER>", proceso_en_exit->pid);
             proceso_matar(args->estados, string_itoa(proceso_en_exit->pid));
             free(proceso);
@@ -28,10 +25,9 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         if (proceso->ejecutado)
         {
             kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso PID:<%d> ejecutado completo. Transicionar a exit", proceso->pid);
-            if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0 || strcmp(args->kernel->algoritmoPlanificador, "VRR") == 0)
-            {
-                temporal_stop(pcb->tiempo_fin);
-            }
+
+            // Si tenemos RR o VRR finalizo el timer
+            proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
             kernel_finalizar_proceso(args, pcb->pid, SUCCESS);
 
             kernel_avisar_memoria_finalizacion_proceso(args, proceso->pid);

@@ -13,19 +13,15 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
 
         if (entrada_salida == NULL)
         {
-
             kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque no existe.", sleep->interfaz);
             t_pcb *pcb = proceso_buscar_exec(args->estados, sleep->pid);
-
             if (pcb == NULL)
             {
                 break;
             }
+            // Si tenemos RR o VRR finalizo el timer
+            proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
 
-            if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0 || strcmp(args->kernel->algoritmoPlanificador, "RR") == 0)
-            {
-                temporal_stop(pcb->tiempo_fin);
-            }
             kernel_transicion_exec_exit(args);
             break;
         }
@@ -34,10 +30,8 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         {
             kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque no es del tipo IO_GENERIC.", sleep->interfaz);
             t_pcb *pcb = proceso_buscar_exec(args->estados, entrada_salida->pid);
-            if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0 || strcmp(args->kernel->algoritmoPlanificador, "RR") == 0)
-            {
-                temporal_stop(pcb->tiempo_fin);
-            }
+            // Si tenemos RR o VRR finalizo el timer
+            proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
             kernel_transicion_exec_exit(args);
             break;
         }
@@ -46,10 +40,9 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         {
             kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque esta ocupada con el proceso %d.", sleep->interfaz, entrada_salida->pid);
             t_pcb *pcb = proceso_buscar_exec(args->estados, entrada_salida->pid);
-            if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0 || strcmp(args->kernel->algoritmoPlanificador, "RR") == 0)
-            {
-                temporal_stop(pcb->tiempo_fin);
-            }
+
+            // Si tenemos RR o VRR finalizo el timer
+            proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
             kernel_transicion_exec_exit(args);
             break;
         }
@@ -68,29 +61,13 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         serializar_t_kernel_entrada_salida_unidad_de_trabajo(&paquete, unidad);
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio la instruccion de IO_GEN_SLEEP de %d segundos para el PID %d en la interfaz %s", sleep->tiempo, sleep->pid, sleep->interfaz);
-
-        // Hago adapter de los registros de la CPU (no puntero) a los registros del PCB (puntero)
-
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se transiciona el PID <%d> a BLOCK por ejecucion de IO_GEN_SLEEP.", sleep->pid);
         t_pcb *pcb = kernel_transicion_exec_block(args);
 
         // Si tenemos RR o VRR finalizo el timer
-        if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0 || strcmp(args->kernel->algoritmoPlanificador, "RR") == 0)
-        {
-            temporal_stop(pcb->tiempo_fin);
-        }
+        proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
 
-        pcb->registros_cpu->pc = sleep->registros.pc;
-        pcb->registros_cpu->eax = sleep->registros.eax;
-        pcb->registros_cpu->ebx = sleep->registros.ebx;
-        pcb->registros_cpu->ecx = sleep->registros.ecx;
-        pcb->registros_cpu->edx = sleep->registros.edx;
-        pcb->registros_cpu->si = sleep->registros.si;
-        pcb->registros_cpu->di = sleep->registros.di;
-        pcb->registros_cpu->ax = sleep->registros.ax;
-        pcb->registros_cpu->bx = sleep->registros.bx;
-        pcb->registros_cpu->cx = sleep->registros.cx;
-        pcb->registros_cpu->dx = sleep->registros.dx;
+        proceso_actualizar_registros(pcb, sleep->registros);
 
         enviar_paquete(paquete, entrada_salida->socket);
 

@@ -306,3 +306,25 @@ bool proceso_sobra_quantum(t_pcb *pcb)
 {
     return pcb->tiempo_fin > 0;
 }
+void proceso_avisar_timer(char *algoritmoPlanificador, t_pcb *pcb)
+{
+    if (strcmp(algoritmoPlanificador, "RR") == 0 || strcmp(algoritmoPlanificador, "RR") == 0)
+    {
+        temporal_stop(pcb->tiempo_fin);
+    }
+}
+
+void proceso_actualizar_registros(t_pcb *pcb, t_registros_cpu registros_cpu)
+{
+    pcb->registros_cpu->pc = registros_cpu.pc;
+    pcb->registros_cpu->eax = registros_cpu.eax;
+    pcb->registros_cpu->ebx = registros_cpu.ebx;
+    pcb->registros_cpu->ecx = registros_cpu.ecx;
+    pcb->registros_cpu->edx = registros_cpu.edx;
+    pcb->registros_cpu->si = registros_cpu.si;
+    pcb->registros_cpu->di = registros_cpu.di;
+    pcb->registros_cpu->ax = registros_cpu.ax;
+    pcb->registros_cpu->bx = registros_cpu.bx;
+    pcb->registros_cpu->cx = registros_cpu.cx;
+    pcb->registros_cpu->dx = registros_cpu.dx;
+}
