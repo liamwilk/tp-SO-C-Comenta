@@ -6,7 +6,8 @@ void planificacion_largo_plazo(hilos_args *hiloArgs)
     int cant_en_ready = list_size(hiloArgs->estados->ready);
     int cant_en_exec = list_size(hiloArgs->estados->exec);
     int cant_en_block = list_size(hiloArgs->estados->block);
-    int cantidadDeProcesosEnConcurrente = cant_en_ready + cant_en_exec + cant_en_block;
+    int cant_en_ready_prioridad = list_size(hiloArgs->estados->ready_mayor_prioridad);
+    int cantidadDeProcesosEnConcurrente = cant_en_ready + cant_en_exec + cant_en_block + cant_en_ready_prioridad;
 
     if (cantidadDeProcesosEnConcurrente < hiloArgs->kernel->gradoMultiprogramacion)
     {
@@ -44,7 +45,7 @@ void round_robin(hilos_args *kernel_hilos_args)
         if (aux != NULL)
         {
             kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "[ROUND ROBIN]: Enviando proceso <PID: %d> a CPU", aux->pid);
-            kernel_desalojar_proceso(kernel_hilos_args, aux);
+            kernel_desalojar_proceso(kernel_hilos_args, aux, kernel_hilos_args->kernel->quantum);
         }
         return;
     }
@@ -52,13 +53,34 @@ void round_robin(hilos_args *kernel_hilos_args)
 
 void virtual_round_robin(hilos_args *hiloArgs)
 {
-    if (list_size(hiloArgs->estados->exec) == 0 && list_size(hiloArgs->estados->ready) > 0)
+    if (list_size(hiloArgs->estados->ready_mayor_prioridad) > 0 && list_size(hiloArgs->estados->exec) == 0)
     {
-        t_pcb *aux = kernel_transicion_ready_exec(hiloArgs);
-        if (aux != NULL)
+        t_pcb *ready_exec_prioridad = kernel_transicion_ready_exec_mayor_prioridad(hiloArgs);
+        int diff = hiloArgs->kernel->quantum - ready_exec_prioridad->tiempo_fin->elapsed_ms;
+        int quantum;
+        if (diff == 0)
         {
-            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "[VIRTUAL ROUND ROBIN]: Enviando proceso <PID: %d> a CPU", aux->pid);
-            kernel_desalojar_proceso(hiloArgs, aux);
+            quantum = hiloArgs->kernel->quantum;
+        }
+        else
+        {
+            quantum = diff;
+        }
+        if (ready_exec_prioridad != NULL)
+        {
+            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "[VIRTUAL ROUND ROBIN]: Enviando proceso con MAYOR PRIORIDAD <PID: %d> a CPU", ready_exec_prioridad->pid);
+            kernel_desalojar_proceso(hiloArgs, ready_exec_prioridad, hiloArgs->kernel->quantum);
+        }
+        return;
+    }
+    if (list_size(hiloArgs->estados->ready) > 0 && list_size(hiloArgs->estados->ready_mayor_prioridad) == 0 && list_size(hiloArgs->estados->exec) == 0)
+    {
+        t_pcb *ready_exec = kernel_transicion_ready_exec(hiloArgs);
+        int quantum = hiloArgs->kernel->quantum;
+        if (ready_exec != NULL)
+        {
+            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "[VIRTUAL ROUND ROBIN]: Enviando proceso <PID: %d> a CPU", ready_exec->pid);
+            kernel_desalojar_proceso(hiloArgs, ready_exec, hiloArgs->kernel->quantum);
         }
         return;
     }
@@ -66,7 +88,7 @@ void virtual_round_robin(hilos_args *hiloArgs)
 
 void planificacion_corto_plazo(hilos_args *hiloArgs)
 {
-    switch (determinar_algoritmo(hiloArgs))
+    switch (determinar_algoritmo(hiloArgs->kernel->algoritmoPlanificador))
     {
     case FIFO:
     {
@@ -89,4 +111,9 @@ void planificacion_corto_plazo(hilos_args *hiloArgs)
         break;
     }
     }
+}
+
+void avisar_planificador(hilos_args *hilos_args)
+{
+    sem_post(&hilos_args->kernel->planificador_iniciar);
 }

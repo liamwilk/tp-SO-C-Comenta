@@ -135,11 +135,11 @@ void kernel_log_generic_rl(hilos_args *args, t_log_level nivel, const char *mens
     free(saved_line);
 }
 
-void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, t_pcb *pcb)
+void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, t_pcb *pcb, int quantum)
 {
     t_temporal *temporal = temporal_create();
 
-    t_algoritmo ALGORITMO_ACTUAL = determinar_algoritmo(kernel_hilos_args);
+    t_algoritmo ALGORITMO_ACTUAL = determinar_algoritmo(kernel_hilos_args->kernel->algoritmoPlanificador);
 
     char *algoritmoActual = ALGORITMO_ACTUAL == VRR ? "Virtual Round Robin" : "Round Robin";
 
@@ -148,7 +148,7 @@ void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, t_pcb *pcb)
     //!! Se guarda esta variable ya que puede suceder que durante el sleep el proceso sea eliminado y para mantener una referencia al pid
     uint32_t process_pid = pcb->pid;
 
-    sleep(kernel_hilos_args->kernel->quantum / 1000);
+    sleep(quantum / 1000);
 
     temporal_stop(temporal);
 
@@ -160,7 +160,6 @@ void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, t_pcb *pcb)
         temporal_destroy(temporal);
         return;
     }
-
     if (pcb->tiempo_fin->status == TEMPORAL_STATUS_RUNNING)
     {
         temporal_stop(pcb->tiempo_fin);
@@ -170,13 +169,13 @@ void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, t_pcb *pcb)
 
     if (strcmp(estado, "BLOCK") == 0 && diff > 0)
     {
-        kernel_log_generic(kernel_hilos_args, ALGORITMO_ACTUAL == RR ? LOG_LEVEL_WARNING : LOG_LEVEL_DEBUG, "[%s] El proceso <%d> se encuentra bloqueado y le sobro <%ld> de quantum", algoritmoActual, pcb->pid, diff);
+        kernel_log_generic(kernel_hilos_args, ALGORITMO_ACTUAL == RR ? LOG_LEVEL_WARNING : LOG_LEVEL_DEBUG, "[%s] El proceso <%d> se encuentra bloqueado y le sobro <%ld> ms de quantum", algoritmoActual, pcb->pid, diff);
         temporal_destroy(temporal);
         return;
     }
     if (strcmp(estado, "READY") == 0 && diff > 0)
     {
-        kernel_log_generic(kernel_hilos_args, ALGORITMO_ACTUAL == RR ? LOG_LEVEL_WARNING : LOG_LEVEL_DEBUG, "[%s] El proceso <%d> se encuentra ready y le sobro <%ld> de quantum", algoritmoActual, pcb->pid, diff);
+        kernel_log_generic(kernel_hilos_args, ALGORITMO_ACTUAL == RR ? LOG_LEVEL_WARNING : LOG_LEVEL_DEBUG, "[%s] El proceso <%d> se encuentra ready y le sobro <%ld> ms de quantum", algoritmoActual, pcb->pid, diff);
         temporal_destroy(temporal);
         return;
     }
@@ -244,13 +243,11 @@ t_pcb *kernel_transicion_ready_exec(hilos_args *kernel_hilos_args)
     return proceso;
 };
 
-t_pcb *kernel_transicion_block_ready(hilos_io_args *io_args, char *modulo, t_entrada_salida_kernel_unidad_de_trabajo *unidad)
+t_pcb *kernel_transicion_block_ready(hilos_args *kernel_hilos_args, uint32_t pid)
 {
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Se transiciona el PID %d a READY por finalizacion de I/O", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden, unidad->pid);
-    hilos_args *kernel_hilos_args = io_args->args;
 
     pthread_mutex_lock(&kernel_hilos_args->estados->mutex_block_ready);
-    t_pcb *proceso = proceso_remover_block(kernel_hilos_args->estados, unidad->pid);
+    t_pcb *proceso = proceso_remover_block(kernel_hilos_args->estados, pid);
     if (proceso == NULL)
     {
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "[ESTADOS] Transicion de block a ready fallida. No hay procesos en block.");
@@ -488,6 +485,14 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
 
         // Esta en ready o en new por lo tanto se puede eliminar tranquilamente
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INTERRUPTED_BY_USER>", pid);
+        proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+        return true;
+    }
+    case INVALID_INTERFACE:
+    {
+        t_pcb *pcb_en_exit = kernel_transicion_exec_exit(kernel_hilos_args);
+        proceso_avisar_timer(kernel_hilos_args->kernel->algoritmoPlanificador, pcb_en_exit);
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INVALID_INTERFACE>", pid);
         proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
         return true;
     }
@@ -931,23 +936,6 @@ void *hilos_atender_entrada_salida_stdout(void *args)
     pthread_exit(0);
 }
 
-t_algoritmo determinar_algoritmo(hilos_args *args)
-{
-    if (strcmp(args->kernel->algoritmoPlanificador, "FIFO") == 0)
-    {
-        return FIFO;
-    }
-    else if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0)
-    {
-        return RR;
-    }
-    else if (strcmp(args->kernel->algoritmoPlanificador, "VRR") == 0)
-    {
-        return VRR;
-    }
-    return -1;
-}
-
 t_pcb *kernel_transicion_ready_exec_mayor_prioridad(hilos_args *kernel_hilos_args)
 {
     pthread_mutex_lock(&kernel_hilos_args->estados->mutex_ready_exec_mayor_prioridad);
@@ -993,17 +981,15 @@ t_pcb *kernel_transicion_exec_ready_mayor_prioridad(hilos_args *kernel_hilos_arg
 
     // Log oficial de la catedra (En procedimiento)
     log_ready(kernel_hilos_args, true);
+    log_ready(kernel_hilos_args, false);
     pthread_mutex_unlock(&kernel_hilos_args->estados->mutex_exec_ready_mayor_prioridad);
     return proceso;
 }
 
-t_pcb *kernel_transicion_block_ready_mayor_prioridad(hilos_io_args *io_args, char *modulo, t_entrada_salida_kernel_unidad_de_trabajo *unidad)
+t_pcb *kernel_transicion_block_ready_mayor_prioridad(hilos_args *kernel_hilos_args, uint32_t pid)
 {
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Se transiciona el PID %d a READY_PRIORIDAD por finalizacion de I/O", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden, unidad->pid);
-    hilos_args *kernel_hilos_args = io_args->args;
-
     pthread_mutex_lock(&kernel_hilos_args->estados->mutex_block_ready_mayor_prioridad);
-    t_pcb *proceso = proceso_remover_block(kernel_hilos_args->estados, unidad->pid);
+    t_pcb *proceso = proceso_remover_block(kernel_hilos_args->estados, pid);
     if (proceso == NULL)
     {
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "[ESTADOS] Transicion de block a ready de mayor prioridad fallida. No hay procesos en block.");
@@ -1019,5 +1005,47 @@ t_pcb *kernel_transicion_block_ready_mayor_prioridad(hilos_io_args *io_args, cha
 
     // Log oficial de la catedra (En procedimiento)
     log_ready(kernel_hilos_args, true);
+    log_ready(kernel_hilos_args, false);
     return proceso;
+}
+
+void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready TRANSICION)
+{
+    switch (TRANSICION)
+    {
+    case EXEC_READY:
+        t_pcb *pcb = proceso_buscar_exec(args->estados, pid);
+        if (pcb == NULL)
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "[KERNEL/MANEJAR_EXEC_READY] Se quiere buscar el proceso <%d> en exec y no se encuentra, posible condicion de carrera", pid);
+        }
+        if (proceso_tiene_prioridad(args->kernel->algoritmoPlanificador, args->kernel->quantum, pcb->tiempo_fin->elapsed_ms))
+        {
+            kernel_transicion_exec_ready_mayor_prioridad(args);
+        }
+        else
+        {
+            kernel_transicion_exec_ready(args);
+        }
+        break;
+    case BLOCK_READY:
+        pcb = proceso_buscar_block(args->estados, pid);
+        if (pcb == NULL)
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "[KERNEL/MANEJAR_BLOCK_READY] Se quiere buscar el proceso <%d> en block y no se encuentra, posible condicion de carrera", pid);
+            return;
+        }
+        if (proceso_tiene_prioridad(args->kernel->algoritmoPlanificador, args->kernel->quantum, pcb->tiempo_fin->elapsed_ms))
+        {
+            kernel_transicion_block_ready_mayor_prioridad(args, pid);
+        }
+        else
+        {
+            kernel_transicion_block_ready(args, pid);
+        }
+        break;
+    default:
+        kernel_log_generic(args, LOG_LEVEL_ERROR, "[KERNEL/MANEJAR_READY] Transicion no reconocida");
+        break;
+    }
 }

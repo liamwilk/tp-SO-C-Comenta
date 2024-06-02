@@ -51,4 +51,6 @@ void round_robin(hilos_args *hiloArgs);
 
 void virtual_round_robin(hilos_args *hiloArgs);
 
+void avisar_planificador(hilos_args *hilos_args);
+
 #endif /* PLANIFICACION_H_ */

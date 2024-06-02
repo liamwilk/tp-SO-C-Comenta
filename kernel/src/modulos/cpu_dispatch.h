@@ -3,6 +3,7 @@
 #include <commons/log.h>
 #include <utils/serial.h>
 #include <utils/template.h>
+#include "../planificacion.h"
 
 /**
  * @brief Maneja el despacho de operaciones de la CPU basado en el código de operación dado.

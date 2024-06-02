@@ -155,6 +155,15 @@ t_pcb *proceso_buscar_ready(t_diagrama_estados *estados, int pid)
             return proceso;
         }
     }
+    // Buscamos en la cola de ready mayor prioridad
+    for (int i = 0; i < list_size(estados->ready_mayor_prioridad); i++)
+    {
+        t_pcb *proceso = list_get(estados->ready_mayor_prioridad, i);
+        if (proceso->pid == pid)
+        {
+            return proceso;
+        }
+    }
     return NULL;
 }
 
@@ -302,9 +311,10 @@ t_pcb *proceso_pop_cola_prioritaria(t_diagrama_estados *estados)
     return elem;
 }
 
-bool proceso_sobra_quantum(t_pcb *pcb)
+bool proceso_sobra_quantum(int kernel_quantum, int proceso_tiempo_fin)
 {
-    return pcb->tiempo_fin > 0;
+    int diff = kernel_quantum - proceso_tiempo_fin;
+    return diff > 0;
 }
 void proceso_avisar_timer(char *algoritmoPlanificador, t_pcb *pcb)
 {
@@ -327,4 +337,34 @@ void proceso_actualizar_registros(t_pcb *pcb, t_registros_cpu registros_cpu)
     pcb->registros_cpu->bx = registros_cpu.bx;
     pcb->registros_cpu->cx = registros_cpu.cx;
     pcb->registros_cpu->dx = registros_cpu.dx;
+}
+
+t_algoritmo determinar_algoritmo(char *algoritmoPlanificador)
+{
+    if (strcmp(algoritmoPlanificador, "FIFO") == 0)
+    {
+        return FIFO;
+    }
+    else if (strcmp(algoritmoPlanificador, "RR") == 0)
+    {
+        return RR;
+    }
+    else if (strcmp(algoritmoPlanificador, "VRR") == 0)
+    {
+        return VRR;
+    }
+    return -1;
+}
+
+bool proceso_tiene_prioridad(char *algoritmoPlanificador, int kernel_quantum, int proceso_tiempo_fin)
+{
+    t_algoritmo ALGORITMO = determinar_algoritmo(algoritmoPlanificador);
+    if (ALGORITMO == VRR && proceso_sobra_quantum(kernel_quantum, proceso_tiempo_fin))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }

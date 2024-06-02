@@ -32,13 +32,20 @@ typedef struct t_diagrama_estados
     pthread_mutex_t mutex_block_ready_mayor_prioridad;
 } t_diagrama_estados;
 
+typedef enum
+{
+    FIFO,
+    RR,
+    VRR
+} t_algoritmo;
+
 typedef struct pcb
 {
     uint32_t pid;
     uint32_t quantum;
     t_registros_cpu *registros_cpu;
     bool memoria_aceptado;
-    t_temporal *tiempo_fin; // Esto es utilizado en los algoritmos de planificación con QUANTUM
+    t_temporal *tiempo_fin; // Esto es utilizado en los algoritmos de planificación con QUANTUM Es el tiempo del quantum - el tiempo fin = quantum que sobro
 } t_pcb;
 
 extern uint32_t pid;
@@ -273,8 +280,25 @@ void proceso_avisar_timer(char *algoritmoPlanificador, t_pcb *pcb);
  * @param pcb El bloque de control de procesos del proceso.
  * @return true si el proceso ha excedido su quantum, false en caso contrario.
  */
-bool proceso_sobra_quantum(t_pcb *pcb);
+bool proceso_sobra_quantum(int kernel_quantum, int proceso_tiempo_fin);
 
 void proceso_actualizar_registros(t_pcb *pcb, t_registros_cpu registros_cpu);
+
+/**
+ * @brief Función que determina el algoritmo a utilizar.
+ *
+ * @param args Argumentos necesarios para la determinación del algoritmo.
+ * @return t_algoritmo Algoritmo seleccionado.
+ */
+t_algoritmo determinar_algoritmo(char *algoritmoPlanificador);
+
+/**
+ * Determina si un proceso tiene prioridad según el algoritmo de planificación especificado.
+ *
+ * @param algoritmoPlanificador El algoritmo de planificación a utilizar.
+ * @param pcb El bloque de control de procesos del proceso a verificar.
+ * @return true si el proceso tiene prioridad, false en caso contrario.
+ */
+bool proceso_tiene_prioridad(char *algoritmoPlanificador, int kernel_quantum, int proceso_tiempo_fin);
 
 #endif

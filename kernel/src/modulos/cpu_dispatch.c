@@ -57,15 +57,11 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         t_pcb *pcb = proceso_buscar_exec(args->estados, proceso->pid);
         if (proceso->ejecutado)
         {
-            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso PID:<%d> ejecutado completo. Transicionar a exit", proceso->pid);
-
             // Si tenemos RR o VRR finalizo el timer
             proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
             kernel_finalizar_proceso(args, pcb->pid, SUCCESS);
 
             kernel_avisar_memoria_finalizacion_proceso(args, proceso->pid);
-
-            sem_post(&args->kernel->planificador_iniciar);
         }
         else
         {
@@ -73,25 +69,13 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             kernel_log_generic(args, LOG_LEVEL_DEBUG, "Actualizo registros recibidos de PID <%d> por interrupcion.", pcb->pid);
 
             // Envio el proceso a ready desde exec
-            t_pcb *pcb = kernel_transicion_exec_ready(args);
+            kernel_manejar_ready(args, pcb->pid, EXEC_READY);
 
-            // Actualizo los registros del pcb por los recibios de CPU
-            pcb->registros_cpu->ax = proceso->registros.ax;
-            pcb->registros_cpu->bx = proceso->registros.bx;
-            pcb->registros_cpu->cx = proceso->registros.cx;
-            pcb->registros_cpu->dx = proceso->registros.dx;
-            pcb->registros_cpu->pc = proceso->registros.pc;
-            pcb->registros_cpu->eax = proceso->registros.eax;
-            pcb->registros_cpu->ebx = proceso->registros.ebx;
-            pcb->registros_cpu->ecx = proceso->registros.ecx;
-            pcb->registros_cpu->edx = proceso->registros.edx;
-            pcb->registros_cpu->si = proceso->registros.si;
-            pcb->registros_cpu->di = proceso->registros.di;
-
-            // Vuelvo a iniciar el planificador
-            sem_post(&args->kernel->planificador_iniciar);
+            // Actualizo los registros del pcb por los recibidos de CPU
+            proceso_actualizar_registros(pcb, proceso->registros);
         }
 
+        avisar_planificador(args);
         free(proceso);
         break;
     }

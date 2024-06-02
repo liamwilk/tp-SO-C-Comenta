@@ -20,12 +20,7 @@
 #include <pwd.h>
 
 /*Estructura basica del kernel*/
-typedef enum
-{
-    FIFO,
-    RR,
-    VRR
-} t_algoritmo;
+
 typedef enum
 {
     MEMORIA,
@@ -172,7 +167,7 @@ t_diagrama_estados kernel_inicializar_estados(t_diagrama_estados *estados);
  * @param kernel_hilos_args Son los argumentos que recibe cada hilo al momento de ejecutarse
  * @param pid Proceso a desalojar
  */
-void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, t_pcb *pcb);
+void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, t_pcb *pcb, int quantum);
 
 /**
  * Transiciona un PCB del estado EXEC al estado READY en el diagrama de estados del kernel.
@@ -201,7 +196,7 @@ t_pcb *kernel_transicion_ready_exec(hilos_args *kernel_hilos_args);
  * @param modulo
  * @param unidad
  */
-t_pcb *kernel_transicion_block_ready(hilos_io_args *io_args, char *modulo, t_entrada_salida_kernel_unidad_de_trabajo *unidad);
+t_pcb *kernel_transicion_block_ready(hilos_args *kernel_hilos_args, uint32_t pid);
 
 /**
  * @brief Función de transición para ejecutar un bloque en el kernel.
@@ -480,11 +475,17 @@ void kernel_transicion_block_exit(hilos_args *kernel_hilos_args, uint32_t pid);
  */
 t_kernel_entrada_salida *kernel_entrada_salida_buscar_interfaz(hilos_args *args, uint32_t pid);
 
-t_algoritmo determinar_algoritmo(hilos_args *args);
-
 /**Virtual Round Robin**/
-t_pcb *kernel_transicion_block_ready_mayor_prioridad(hilos_io_args *io_args, char *modulo, t_entrada_salida_kernel_unidad_de_trabajo *unidad);
+t_pcb *kernel_transicion_block_ready_mayor_prioridad(hilos_args *kernel_hilos_args, uint32_t pid);
 t_pcb *kernel_transicion_exec_ready_mayor_prioridad(hilos_args *kernel_hilos_args);
 t_pcb *kernel_transicion_ready_exec_mayor_prioridad(hilos_args *kernel_hilos_args);
+
+typedef enum
+{
+    EXEC_READY,
+    BLOCK_READY,
+} t_transiciones_ready;
+
+void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready TRANSICION);
 
 #endif /* KERNEL_H */

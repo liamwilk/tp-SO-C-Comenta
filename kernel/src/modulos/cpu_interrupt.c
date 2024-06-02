@@ -11,36 +11,31 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
 
         t_kernel_entrada_salida *entrada_salida = entrada_salida_buscar_interfaz(args, sleep->interfaz);
 
+        t_pcb *pcb = proceso_buscar_exec(args->estados, sleep->pid);
+
+        if (pcb == NULL)
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "[KERNEL/IO_GEN_SLEEP] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", sleep->pid);
+            break;
+        }
+
         if (entrada_salida == NULL)
         {
             kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque no existe.", sleep->interfaz);
-            t_pcb *pcb = proceso_buscar_exec(args->estados, sleep->pid);
-            if (pcb == NULL)
-            {
-                break;
-            }
-            // Si tenemos RR o VRR finalizo el timer
-            proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
-
-            kernel_transicion_exec_exit(args);
+            kernel_finalizar_proceso(args, sleep->pid, INVALID_INTERFACE);
             break;
         }
 
         if (entrada_salida->tipo != ENTRADA_SALIDA_GENERIC)
         {
             kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque no es del tipo IO_GENERIC.", sleep->interfaz);
-            t_pcb *pcb = proceso_buscar_exec(args->estados, entrada_salida->pid);
-            // Si tenemos RR o VRR finalizo el timer
-            proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
-            kernel_transicion_exec_exit(args);
+            kernel_finalizar_proceso(args, sleep->pid, INVALID_INTERFACE);
             break;
         }
 
         if (entrada_salida->ocupado)
         {
             kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque esta ocupada con el proceso %d.", sleep->interfaz, entrada_salida->pid);
-            t_pcb *pcb = proceso_buscar_exec(args->estados, entrada_salida->pid);
-
             // Si tenemos RR o VRR finalizo el timer
             proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
             kernel_transicion_exec_exit(args);
@@ -50,19 +45,18 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         entrada_salida->ocupado = 1;
         entrada_salida->pid = sleep->pid;
 
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envia el paquete a la interfaz %s", sleep->interfaz);
-
         t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP);
 
         t_kernel_entrada_salida_unidad_de_trabajo *unidad = malloc(sizeof(t_kernel_entrada_salida_unidad_de_trabajo));
+
         unidad->pid = sleep->pid;
         unidad->unidad_de_trabajo = sleep->tiempo;
 
         serializar_t_kernel_entrada_salida_unidad_de_trabajo(&paquete, unidad);
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio la instruccion de IO_GEN_SLEEP de %d segundos para el PID %d en la interfaz %s", sleep->tiempo, sleep->pid, sleep->interfaz);
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se transiciona el PID <%d> a BLOCK por ejecucion de IO_GEN_SLEEP.", sleep->pid);
-        t_pcb *pcb = kernel_transicion_exec_block(args);
+
+        kernel_transicion_exec_block(args);
 
         // Si tenemos RR o VRR finalizo el timer
         proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);

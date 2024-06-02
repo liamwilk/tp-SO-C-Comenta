@@ -31,7 +31,6 @@ void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *mod
         t_entrada_salida_kernel_unidad_de_trabajo *unidad = deserializar_t_entrada_salida_kernel_unidad_de_trabajo(buffer);
 
         // Verifico si este proceso no ha ya sido marcado como eliminado  en kernel
-
         t_pcb *pcb = proceso_buscar_exit(io_args->args->estados, unidad->pid);
         // Se verifica que el proceso que se deseo eliminar es el que la io esta devolviendo y que ademas se encuentra en la cola de exit
         if (pcb != NULL)
@@ -42,15 +41,16 @@ void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *mod
             io_args->entrada_salida->pid = 0;
             proceso_matar(io_args->args->estados, string_itoa(pcb->pid));
             kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INTERRUPTED_BY_USER>", pid);
-            sem_post(&io_args->args->kernel->planificador_iniciar);
+            avisar_planificador(io_args->args);
             break;
         }
 
         if (unidad->terminado)
         {
             io_args->entrada_salida->ocupado = 0;
-            kernel_transicion_block_ready(io_args, modulo, unidad);
-            sem_post(&io_args->args->kernel->planificador_iniciar);
+            kernel_manejar_ready(io_args->args, unidad->pid, BLOCK_READY);
+            io_args->entrada_salida->pid = 0;
+            avisar_planificador(io_args->args);
         }
 
         free(unidad);
