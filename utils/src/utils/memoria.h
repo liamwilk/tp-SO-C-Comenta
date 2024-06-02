@@ -84,6 +84,7 @@ typedef struct
     int *bytes_usados;
     t_bitarray *bitmap;
     char *bitmap_data;
+
     t_log *logger;
     t_config *config;
     t_list *lista_procesos;
@@ -115,6 +116,13 @@ typedef struct
     uint32_t direccion_fisica;
     uint32_t frame;
 } t_frame_disponible;
+
+typedef struct
+{
+    uint32_t marco;
+    uint32_t bytes;
+    uint32_t offset;
+} t_frame_bytes;
 
 typedef struct
 {
@@ -482,8 +490,8 @@ void espacio_usuario_inicializar(t_args *args);
 void espacio_usuario_liberar(t_args *args);
 void bitmap_inicializar(t_args *args);
 void bitmap_liberar(t_args *args);
-void bitmap_marcar_ocupado(t_args *args, t_bitarray *bitmap, uint32_t frame);
-void bitmap_marcar_libre(t_args *args, t_bitarray *bitmap, uint32_t frame);
+void bitmap_marcar_ocupado(t_args *args, uint32_t frame);
+void bitmap_marcar_libre(t_args *args, uint32_t frame);
 bool bitmap_frame_libre(t_bitarray *bitmap, uint32_t frame);
 void espacio_usuario_escribir_dato(t_args *args, uint32_t direccion_fisica, void *dato, size_t tamano);
 void espacio_usuario_liberar_dato(t_args *args, uint32_t direccion_fisica, size_t tamano);
@@ -619,5 +627,15 @@ t_char_framentado *espacio_usuario_fragmentar_char(char *input, int frame_size);
 int obtener_numero_pagina(uint32_t direccion_fisica, uint32_t tam_pagina);
 
 void tabla_paginas_liberar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina);
+
+int tabla_paginas_frames_ocupados(t_args *args, t_proceso *proceso);
+
+t_frame_bytes *tabla_paginas_frame_bytes(t_args *args, t_proceso *proceso, uint32_t numero_marco);
+
+int tabla_paginas_resize(t_args *args, t_proceso *proceso, uint32_t bytes_nuevos);
+
+int tabla_paginas_bytes_ocupados(t_args *args, t_proceso *proceso);
+
+int espacio_usuario_bytes_disponibles(t_args *args);
 
 #endif // MEMORIA_H

@@ -36,16 +36,6 @@ void bitmap_inicializar(t_args *args)
 
     { // Test basico de funcionamiento
 
-        /* TODO: Quitar este caso de prueba.
-
-        Caso de prueba pedido en el TP.
-
-        Escribir "CURSADA DE SISTEMAS OPERATIVOS 1 2024" en el espacio de usuario, y que ocupe 3 frames.
-
-        Lo hardcodeo, pero esta logica se va a encargar el gestor de tabla de paginas de realizarla, es decir, de iterativamente cortar los strings hasta el tamaño maximo de la pagina (sacando el caracter nulo del final) y escribirlos en memoria.
-
-        Memoria automaticamente cuando lo lee del espacio de usuario, te lo devuelve con el caracter nulo al final, es decir, ya formateado. */
-
         char *cadena = "CURSADA DE SISTEMAS OPERATIVOS 1c 2024";
 
         t_char_framentado *cadenas = espacio_usuario_fragmentar_char(cadena, args->memoria.tamPagina);
@@ -54,7 +44,7 @@ void bitmap_inicializar(t_args *args)
 
         log_debug(args->logger, "Particiono la cadena en %d partes, porque el tamaño de la cadena es mayor al tamaño de un frame.", cadenas->cantidad);
 
-        espacio_usuario_fragmentos_imprimir(args,cadenas);
+        espacio_usuario_fragmentos_imprimir(args, cadenas);
 
         t_frame_disponible *frame_cadena_1, *frame_cadena_2, *frame_cadena_3;
 
@@ -116,7 +106,8 @@ void bitmap_inicializar(t_args *args)
             log_error(args->logger, "No se pudo encontrar un frame disponible para la cadena 1. Detengo el test.");
             free(frame_cadena_1);
         }
-        espacio_usuario_fragmentos_liberar(args,cadenas);
+
+        espacio_usuario_fragmentos_liberar(args, cadenas);
     }
 }
 
@@ -128,20 +119,15 @@ void bitmap_liberar(t_args *args)
 }
 
 // Marca un frame como usado en el bitmap
-void bitmap_marcar_ocupado(t_args *args, t_bitarray *bitmap, uint32_t frame)
+void bitmap_marcar_ocupado(t_args *args, uint32_t frame)
 {
-    if (!bitarray_test_bit(bitmap, frame))
-    {
-        bitarray_set_bit(bitmap, frame);
-        log_debug(args->logger, "Se marco el frame %d como ocupado en el bitmap.", frame);
-    }
+    bitarray_set_bit(args->memoria.bitmap, frame);
 }
 
 // Marca un frame como libre en el bitmap
-void bitmap_marcar_libre(t_args *args, t_bitarray *bitmap, uint32_t frame)
+void bitmap_marcar_libre(t_args *args, uint32_t frame)
 {
-    bitarray_clean_bit(bitmap, frame);
-    log_debug(args->logger, "Se marco el frame %d como libre en el bitmap.", frame);
+    bitarray_clean_bit(args->memoria.bitmap, frame);
 }
 
 // Verifica si un frame está libre en el bitmap

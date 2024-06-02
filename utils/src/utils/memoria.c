@@ -18,7 +18,24 @@ void memoria_hilo_ejecutar(t_args *argumentos, int socket, char *modulo, t_mem_f
 
         revisar_paquete(paquete, argumentos->logger, modulo);
 
-        switch_case_atencion(argumentos, paquete->codigo_operacion, paquete->buffer);
+        if (switch_case_atencion != NULL)
+        {
+            if (argumentos != NULL && paquete->buffer != NULL)
+            {
+                // Simulo el retardo de acceso a memoria en milisegundos
+                sleep(argumentos->memoria.retardoRespuesta / 1000);
+
+                switch_case_atencion(argumentos, paquete->codigo_operacion, paquete->buffer);
+            }
+            else
+            {
+                log_error(argumentos->logger, "Argumentos nulos pasados a switch_case_atencion");
+            }
+        }
+        else
+        {
+            log_error(argumentos->logger, "switch_case_atencion es NULL");
+        }
 
         eliminar_paquete(paquete);
     }
@@ -292,6 +309,7 @@ t_list *leer_instrucciones(t_args *argumentos, char *path_instrucciones, uint32_
     // Getline lee la linea entera, hasta el \n inclusive
     while ((read = getline(&line, &len, file)) != -1)
     {
+        remover_salto_linea(line);
         log_debug(argumentos->logger, "Linea leida: %s", line);
 
         t_memoria_cpu_instruccion *instruccion = malloc(sizeof(t_memoria_cpu_instruccion));
@@ -597,6 +615,9 @@ void memoria_hilo_ejecutar_entrada_salida(t_args_hilo *io_args, char *modulo, t_
             break;
         }
         revisar_paquete(paquete, io_args->argumentos->logger, modulo);
+
+        // Simulo el retardo de acceso a memoria en milisegundos
+        sleep(io_args->argumentos->memoria.retardoRespuesta / 1000);
 
         switch_case_atencion(io_args, modulo, paquete->codigo_operacion, paquete->buffer);
     }

@@ -110,7 +110,6 @@ typedef struct t_kernel
     sem_t sistema_finalizar;
     sem_t log_lock;
     sem_t memoria_consola_finalizacion_proceso;
-    sem_t memoria_consola_nuevo_proceso;
     bool detener_planificador;
     bool estado_planificador;
     t_kernel_sockets sockets;

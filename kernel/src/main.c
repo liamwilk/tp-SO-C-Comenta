@@ -54,7 +54,6 @@ void inicializar_args()
 void inicializar_semaforos()
 {
 	sem_init(&kernel.planificador_iniciar, 0, 0);
-	sem_init(&kernel.memoria_consola_nuevo_proceso, 0, 0);
 	sem_init(&kernel.sistema_finalizar, 0, 4);
 	sem_init(&kernel.log_lock, 0, 1);
 }

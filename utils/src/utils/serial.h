@@ -22,6 +22,7 @@ typedef enum
 	CPU_KERNEL_WAIT,
 	CPU_KERNEL_SIGNAL,
 	CPU_MEMORIA_RESIZE,
+	CPU_KERNEL_RESIZE,
 	ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP,
 	MEMORIA_KERNEL_NUEVO_PROCESO,
 	MEMORIA_CPU_PROXIMA_INSTRUCCION,
@@ -209,17 +210,26 @@ typedef struct
 typedef struct
 {
 	uint32_t pid;
-	uint32_t frames;
+	uint32_t bytes;
 } t_cpu_memoria_resize;
 
 typedef struct
 {
 	uint32_t pid;
-	uint32_t frames;
+	uint32_t bytes;
 	uint32_t resultado;
 	uint32_t size_motivo;
 	char *motivo;
 } t_memoria_cpu_resize;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t resultado;
+	uint32_t size_motivo;
+	char *motivo;
+	t_registros_cpu registros;
+} t_cpu_kernel_resize;
 
 /**
  * @fn    *crear_paquete
@@ -788,5 +798,9 @@ void serializar_t_cpu_memoria_resize(t_paquete **paquete, t_cpu_memoria_resize *
 t_memoria_cpu_resize *deserializar_t_memoria_cpu_resize(t_buffer *buffer);
 
 void serializar_t_memoria_cpu_resize(t_paquete **paquete, t_memoria_cpu_resize *resize);
+
+void serializar_t_cpu_kernel_resize(t_paquete **paquete, t_cpu_kernel_resize *resize);
+
+t_cpu_kernel_resize *deserializar_t_cpu_kernel_resize(t_buffer *buffer);
 
 #endif

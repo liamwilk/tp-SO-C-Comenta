@@ -537,12 +537,12 @@ int instruccion_ejecutar(t_cpu *args)
         t_paquete *paquete = crear_paquete(CPU_MEMORIA_RESIZE);
         t_cpu_memoria_resize *resize = malloc(sizeof(t_cpu_memoria_resize));
         resize->pid = args->proceso.pid;
-        resize->frames = atoi(args->instruccion.array[1]);
+        resize->bytes = atoi(args->instruccion.array[1]);
 
         serializar_t_cpu_memoria_resize(&paquete, resize);
         enviar_paquete(paquete, args->config_leida.socket_memoria);
 
-        log_debug(args->logger, "Se solicita un resize de %d frames para el proceso %d", resize->frames, resize->pid);
+        log_debug(args->logger, "Se solicita un resize de <%d> bytes para el proceso <%d>", resize->bytes, resize->pid);
 
         free(resize);
         eliminar_paquete(paquete);

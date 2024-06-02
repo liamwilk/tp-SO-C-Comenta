@@ -12,16 +12,16 @@ void espacio_usuario_inicializar(t_args *args)
         log_error(args->logger, "Malloc falló al asignar %d bytes para el bloque contiguo de memoria.", args->memoria.tamMemoria);
         exit(1);
     }
-    
+
     int frames = args->memoria.tamMemoria / args->memoria.tamPagina;
 
-    log_debug(args->logger, "Se creo el espacio de usuario con %d bytes y %d frames disponibles.", args->memoria.tamMemoria,frames);
+    log_debug(args->logger, "Se creo el espacio de usuario con %d bytes y %d frames disponibles.", args->memoria.tamMemoria, frames);
 
     // Inicializo toda la memoria en 0xFF
     memset(args->memoria.espacio_usuario, 0xFF, args->memoria.tamMemoria);
 
     args->memoria.bytes_usados = (int *)calloc(frames, sizeof(int));
-    
+
     // Reviso que se haya podido asignar memoria
     if (args->memoria.bytes_usados == NULL)
     {
@@ -37,6 +37,26 @@ void espacio_usuario_liberar(t_args *args)
 {
     free(args->memoria.espacio_usuario);
     log_debug(args->logger, "Se libero %d bytes del espacio de usuario.", args->memoria.tamMemoria);
+}
+
+// Calcula la cantidad de bytes ocupados en espacio de usuario
+int espacio_usuario_bytes_disponibles(t_args *args)
+{
+    int cantidad_procesos = list_size(args->memoria.lista_procesos);
+
+    int bytes_usados = 0;
+
+    for (int i = 0; i < cantidad_procesos; i++)
+    {
+        t_proceso *proceso = list_get(args->memoria.lista_procesos, i);
+
+        if(proceso != NULL)
+        {
+            bytes_usados += tabla_paginas_bytes_ocupados(args, proceso);
+        }
+    }
+
+    return args->memoria.tamMemoria - bytes_usados;
 }
 
 // Busca un frame con suficiente espacio para contener un dato de tamaño especificado, y retorna la dirección física y el índice del frame
@@ -87,7 +107,7 @@ void espacio_usuario_escribir_dato(t_args *args, uint32_t direccion_fisica, void
     for (size_t i = 0; i < tamano; i++)
     {
         if (destino[i] != 0xFF)
-        { 
+        {
             log_warning(args->logger, "Sobrescribiendo datos en la dirección física %ld.", direccion_fisica + i);
             break;
         }
@@ -100,7 +120,7 @@ void espacio_usuario_escribir_dato(t_args *args, uint32_t direccion_fisica, void
     // Marco los frames como ocupados y actualizo el array de bytes usados
     for (uint32_t frame = frame_inicio; frame <= frame_fin; frame++)
     {
-        bitmap_marcar_ocupado(args, args->memoria.bitmap, frame);
+        bitmap_marcar_ocupado(args, frame);
 
         // Calculo los bytes a actualizar en este frame
         uint32_t offset_inicio, offset_fin;
@@ -135,6 +155,12 @@ void espacio_usuario_escribir_dato(t_args *args, uint32_t direccion_fisica, void
 // Función para liberar frames con verificación del bitmap y tamaño del dato
 void espacio_usuario_liberar_dato(t_args *args, uint32_t direccion_fisica, size_t tamano)
 {
+    if(tamano == 0)
+    {
+        log_warning(args->logger, "Se intento liberar un dato de tamaño 0 bytes.");
+        return;
+    }
+
     // Verificar que la operación no se salga de los límites de la memoria
     if (direccion_fisica + tamano > args->memoria.tamMemoria)
     {
@@ -171,17 +197,8 @@ void espacio_usuario_liberar_dato(t_args *args, uint32_t direccion_fisica, size_
 
         args->memoria.bytes_usados[frame] -= (offset_fin - offset_inicio + 1);
 
-        // Verificar si el frame está ocupado
-        if (bitmap_frame_libre(args->memoria.bitmap, frame))
-        {
-            log_warning(args->logger, "El frame %u ya está libre. No hace falta liberarlo.", frame);
-            continue;
-        }
-
         // Marcar el frame como libre en el bitmap
-        bitmap_marcar_libre(args, args->memoria.bitmap, frame);
-
-        log_debug(args->logger, "Se liberó el frame %u en el bitmap y en espacio de usuario.", frame);
+        bitmap_marcar_libre(args, frame);
 
         // Calcular la dirección física inicial del frame
         uint32_t direccion_frame = frame * args->memoria.tamPagina;
@@ -228,7 +245,7 @@ int espacio_usuario_proxima_direccion(t_args *args, size_t tamano)
         {
             // Si el espacio libre en este frame es suficiente, devuelvo la dirección física inicial
             uint32_t direccion_fisica_inicio = frame * tamPagina + args->memoria.bytes_usados[frame];
-            return (int) direccion_fisica_inicio;
+            return (int)direccion_fisica_inicio;
         }
     }
 
@@ -295,7 +312,7 @@ void espacio_usuario_leer_dato(t_args *args, uint32_t direccion_fisica, void *de
     // Alerto si es que la lectura abarca más de un frame
     if (frame_inicio != frame_fin)
     {
-        log_debug(args->logger, "La lectura de %ld bytes desde la direccion fisica %d (%ld -> %ld) comienza en el frame %d hasta el %d.",tamano,direccion_fisica, tamano, tamano + direccion_fisica,frame_inicio, frame_fin);
+        log_debug(args->logger, "La lectura de %ld bytes desde la direccion fisica %d (%ld -> %ld) comienza en el frame %d hasta el %d.", tamano, direccion_fisica, tamano, tamano + direccion_fisica, frame_inicio, frame_fin);
     }
 
     // Copio los datos
@@ -327,12 +344,12 @@ float espacio_usuario_leer_float(t_args *args, uint32_t direccion_fisica)
 }
 
 // Leer un char*
-char* espacio_usuario_leer_char(t_args *args, uint32_t direccion_fisica, size_t tamano_max)
+char *espacio_usuario_leer_char(t_args *args, uint32_t direccion_fisica, size_t tamano_max)
 {
-    int bytes_totales = tamano_max+1;
+    int bytes_totales = tamano_max + 1;
     char *destino = malloc(bytes_totales);
     espacio_usuario_leer_dato(args, direccion_fisica, destino, tamano_max);
-    destino[bytes_totales-1] = '\0';
+    destino[bytes_totales - 1] = '\0';
     return destino;
 }
 
@@ -343,31 +360,33 @@ void espacio_usuario_leer_generic(t_args *args, uint32_t direccion_fisica, void 
 }
 
 // Corto el char en pedazos de frame_size bytes
-t_char_framentado* espacio_usuario_fragmentar_char(char *input, int frame_size)
-{    
+t_char_framentado *espacio_usuario_fragmentar_char(char *input, int frame_size)
+{
     // Calculo el tamaño de la entrada
     int input_length = strlen(input);
 
     // Calculo la cantidad de fragmentos necesarios
     int cantidad = (input_length + frame_size - 1) / frame_size;
 
-    t_char_framentado *result = (t_char_framentado*)malloc(sizeof(t_char_framentado));
+    t_char_framentado *result = (t_char_framentado *)malloc(sizeof(t_char_framentado));
     result->cantidad = cantidad;
-    result->fragmentos = (char**)malloc(cantidad * sizeof(char*));
-    result->tamanos = (int*)malloc(cantidad * sizeof(int));
+    result->fragmentos = (char **)malloc(cantidad * sizeof(char *));
+    result->tamanos = (int *)malloc(cantidad * sizeof(int));
 
     // Corto la cadena en fragmentos y los almaceno en el array
-    for (int i = 0; i < cantidad; i++) {
+    for (int i = 0; i < cantidad; i++)
+    {
         int start_index = i * frame_size;
         int fragment_length = frame_size;
 
         // Ajusto el tamaño del último fragmento si es necesario
-        if (start_index + frame_size > input_length) {
+        if (start_index + frame_size > input_length)
+        {
             fragment_length = input_length - start_index;
         }
 
         // Reservo memoria para el fragmento y copio la parte correspondiente de la cadena
-        result->fragmentos[i] = (char*)malloc((fragment_length + 1) * sizeof(char));
+        result->fragmentos[i] = (char *)malloc((fragment_length + 1) * sizeof(char));
         strncpy(result->fragmentos[i], input + start_index, fragment_length);
         result->fragmentos[i][fragment_length] = '\0';
         result->tamanos[i] = fragment_length;
@@ -377,9 +396,10 @@ t_char_framentado* espacio_usuario_fragmentar_char(char *input, int frame_size)
 }
 
 // Libero la memoria de un t_char_framentado
-void espacio_usuario_fragmentos_liberar(t_args* args, t_char_framentado *fs)
+void espacio_usuario_fragmentos_liberar(t_args *args, t_char_framentado *fs)
 {
-    for (int i = 0; i < fs->cantidad; i++) {
+    for (int i = 0; i < fs->cantidad; i++)
+    {
         free(fs->fragmentos[i]);
     }
     free(fs->fragmentos);
@@ -390,7 +410,8 @@ void espacio_usuario_fragmentos_liberar(t_args* args, t_char_framentado *fs)
 // Imprimo un t_char_framentado
 void espacio_usuario_fragmentos_imprimir(t_args *args, t_char_framentado *fs)
 {
-    for (int i = 0; i < fs->cantidad; i++) {
-        log_debug(args->logger,"Cadena %d: %s (%d bytes)", i, fs->fragmentos[i], fs->tamanos[i]);
+    for (int i = 0; i < fs->cantidad; i++)
+    {
+        log_debug(args->logger, "Cadena %d: %s (%d bytes)", i, fs->fragmentos[i], fs->tamanos[i]);
     }
 }

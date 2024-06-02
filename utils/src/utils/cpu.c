@@ -20,7 +20,6 @@ void instruccion_ciclo(t_cpu *args, t_buffer *buffer)
     if (args->flag_interrupt)
     {
         instruccion_interrupt(args);
-        args->flag_interrupt = 0;
         return;
     }
 
@@ -483,6 +482,8 @@ void instruccion_interrupt(t_cpu *args)
     serializar_t_cpu_kernel_proceso(&paquete, &proceso_interrumpido);
     enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);
     eliminar_paquete(paquete);
+
+    args->flag_interrupt = 0;
 }
 
 void cpu_enviar_aviso_memoria_tam_pagina(t_cpu *cpu)
