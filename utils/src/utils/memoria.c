@@ -18,24 +18,10 @@ void memoria_hilo_ejecutar(t_args *argumentos, int socket, char *modulo, t_mem_f
 
         revisar_paquete(paquete, argumentos->logger, modulo);
 
-        if (switch_case_atencion != NULL)
-        {
-            if (argumentos != NULL && paquete->buffer != NULL)
-            {
-                // Simulo el retardo de acceso a memoria en milisegundos
-                sleep(argumentos->memoria.retardoRespuesta / 1000);
+        // Simulo el retardo de acceso a memoria en milisegundos
+        sleep(argumentos->memoria.retardoRespuesta / 1000);
 
-                switch_case_atencion(argumentos, paquete->codigo_operacion, paquete->buffer);
-            }
-            else
-            {
-                log_error(argumentos->logger, "Argumentos nulos pasados a switch_case_atencion");
-            }
-        }
-        else
-        {
-            log_error(argumentos->logger, "switch_case_atencion es NULL");
-        }
+        switch_case_atencion(argumentos, paquete->codigo_operacion, paquete->buffer);
 
         eliminar_paquete(paquete);
     }
@@ -389,7 +375,6 @@ t_proceso *buscar_proceso(t_args *argumentos, uint32_t pid)
 
     if (indice == NULL)
     {
-        log_error(argumentos->logger, "No se encontro el proceso con PID <%s>", pid_char);
         return NULL;
     }
 
@@ -411,6 +396,7 @@ void memoria_inicializar_argumentos(t_args *argumentos)
 {
     argumentos->memoria.lista_procesos = list_create();
     argumentos->memoria.diccionario_procesos = dictionary_create();
+    pthread_mutex_init(&argumentos->memoria.mutex_diccionario_procesos, NULL);
     argumentos->memoria.diccionario_entrada_salida = dictionary_create();
     argumentos->memoria.lista_entrada_salida = list_create();
     argumentos->memoria.sockets.id_entrada_salida = 1;

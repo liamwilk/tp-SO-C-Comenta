@@ -35,9 +35,16 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			break;
 		}
 
+		pthread_mutex_lock(&proceso->mutex_tabla_paginas);
 		int bytes_disponibles_memoria = espacio_usuario_bytes_disponibles(argumentos);
+		pthread_mutex_unlock(&proceso->mutex_tabla_paginas);
+		
 		int frames_disponibles_memoria = bytes_disponibles_memoria / argumentos->memoria.tamPagina;
+		
+		pthread_mutex_lock(&proceso->mutex_tabla_paginas);
 		int bytes_ocupados_proceso = tabla_paginas_bytes_ocupados(argumentos, proceso);
+		pthread_mutex_unlock(&proceso->mutex_tabla_paginas);
+
 		int frames_solicitados = proceso_recibido->bytes / argumentos->memoria.tamPagina;
 
 		// Si el proceso existe, verifico si el resize es positivo o negativo

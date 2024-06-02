@@ -5,14 +5,17 @@ int tabla_paginas_bytes_ocupados(t_args *args, t_proceso *proceso)
 {
     int bytes = 0;
 
-    for (int i = 0; i < list_size(proceso->tabla_paginas); i++)
+    if (proceso->tabla_paginas != NULL)
     {
-        t_pagina *pagina = list_get(proceso->tabla_paginas, i);
-
-        if (pagina != NULL && pagina->validez == 1)
+        for (int i = 0; i < list_size(proceso->tabla_paginas); i++)
         {
-            // bytes += pagina->bytes;
-            bytes += args->memoria.tamPagina;
+            t_pagina *pagina = list_get(proceso->tabla_paginas, i);
+
+            if (pagina != NULL && pagina->validez == 1)
+            {
+                // bytes += pagina->bytes;
+                bytes += args->memoria.tamPagina;
+            }
         }
     }
 
@@ -40,6 +43,8 @@ int tabla_paginas_frames_ocupados(t_args *args, t_proceso *proceso)
 // Redimensiona la tabla de páginas del proceso, solamente marcando los frames ocupados o libres
 int tabla_paginas_resize(t_args *args, t_proceso *proceso, uint32_t bytes_nuevos)
 {
+    pthread_mutex_lock(&proceso->mutex_tabla_paginas);
+
     int frames_nuevos = (bytes_nuevos + args->memoria.tamPagina - 1) / args->memoria.tamPagina;
     log_debug(args->logger, "Frames nuevos: %d", frames_nuevos);
     int bytes_actuales = tabla_paginas_bytes_ocupados(args, proceso);
@@ -48,6 +53,7 @@ int tabla_paginas_resize(t_args *args, t_proceso *proceso, uint32_t bytes_nuevos
     if (bytes_actuales == bytes_nuevos)
     {
         log_info(args->logger, "No es necesario redimensionar la tabla de páginas del proceso <%d> porque ya tiene esa cantidad de bytes.", proceso->pid);
+        pthread_mutex_unlock(&proceso->mutex_tabla_paginas);
         return 0;
     }
 
@@ -56,7 +62,6 @@ int tabla_paginas_resize(t_args *args, t_proceso *proceso, uint32_t bytes_nuevos
         for (int i = frames_actuales - 1; i >= frames_nuevos; i--)
         {
             t_pagina *pagina = list_get(proceso->tabla_paginas, i);
-
             if (pagina != NULL && pagina->validez == 1)
             {
                 tabla_paginas_liberar_pagina(args, proceso, i);
@@ -70,6 +75,8 @@ int tabla_paginas_resize(t_args *args, t_proceso *proceso, uint32_t bytes_nuevos
             tabla_paginas_asignar_pagina(args, proceso, i, 0);
         }
     }
+
+    pthread_mutex_unlock(&proceso->mutex_tabla_paginas);
 
     if (tabla_paginas_bytes_ocupados(args, proceso) == args->memoria.tamMemoria)
     {
@@ -101,6 +108,10 @@ t_frame_bytes *tabla_paginas_frame_bytes(t_args *args, t_proceso *proceso, uint3
 // Inicializa la tabla de páginas del proceso
 void tabla_paginas_inicializar(t_args *args, t_proceso *proceso)
 {
+    pthread_mutex_init(&proceso->mutex_tabla_paginas, NULL);
+    pthread_mutex_init(&proceso->mutex_asignar_pagina, NULL);
+    pthread_mutex_init(&proceso->mutex_liberar_pagina, NULL);
+
     int paginas = args->memoria.tamMemoria / args->memoria.tamPagina;
     proceso->tabla_paginas = list_create();
 
@@ -145,12 +156,14 @@ void tabla_paginas_liberar(t_args *argumentos, t_proceso *proceso)
     }
 
     log_info(argumentos->logger, "Destrucción tabla de páginas: PID: <%d> - Tamaño: <%d>", proceso->pid, list_size(proceso->tabla_paginas));
+    pthread_mutex_destroy(&proceso->mutex_tabla_paginas);
     list_destroy_and_destroy_elements(proceso->tabla_paginas, free);
 }
 
 // Libera la página, y borra los datos del frame en la memoria
 void tabla_paginas_liberar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina)
 {
+
     if (numero_pagina >= list_size(proceso->tabla_paginas))
     {
         log_error(argumentos->logger, "La página %d no existe en la tabla de páginas del proceso %d", numero_pagina, proceso->pid);
@@ -175,6 +188,7 @@ void tabla_paginas_liberar_pagina(t_args *argumentos, t_proceso *proceso, uint32
     pagina->offset = 0;
 
     log_info(argumentos->logger, "Liberación de tabla de páginas: PID: <%d> - Página: <%d>", proceso->pid, numero_pagina);
+
 }
 
 // Retorna el marco de la página, si es que existe
@@ -216,6 +230,7 @@ void tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, uint32
         pagina->validez = 1;
         pagina->bytes = 0;
         pagina->offset = 0;
+
 
         bitmap_marcar_ocupado(argumentos, numero_marco);
 

@@ -157,8 +157,10 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 
 		char *pid_char = string_itoa(proceso_encontrado->pid);
 
+		pthread_mutex_lock(&argumentos->memoria.mutex_diccionario_procesos);
 		// Remuevo el proceso del diccionario de procesos
 		dictionary_remove_and_destroy(argumentos->memoria.diccionario_procesos, pid_char, free);
+		pthread_mutex_unlock(&argumentos->memoria.mutex_diccionario_procesos);
 
 		log_debug(argumentos->logger, "Se elimino el proceso con PID <%d> de Memoria.", pid);
 

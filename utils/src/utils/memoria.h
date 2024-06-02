@@ -54,6 +54,9 @@ typedef struct
     uint32_t pc;
     t_list *instrucciones;
     t_list *tabla_paginas;
+    pthread_mutex_t mutex_tabla_paginas;
+    pthread_mutex_t mutex_liberar_pagina;
+    pthread_mutex_t mutex_asignar_pagina;
 } t_proceso;
 
 typedef struct
@@ -84,7 +87,7 @@ typedef struct
     int *bytes_usados;
     t_bitarray *bitmap;
     char *bitmap_data;
-
+    pthread_mutex_t mutex_diccionario_procesos;
     t_log *logger;
     t_config *config;
     t_list *lista_procesos;
@@ -94,7 +97,7 @@ typedef struct
     t_sockets sockets;
     t_threads threads;
     int tamMemoria;
-    int tamPagina; // tamaño max de frame
+    int tamPagina;
     int retardoRespuesta;
     int puertoEscucha;
     char *pathInstrucciones;

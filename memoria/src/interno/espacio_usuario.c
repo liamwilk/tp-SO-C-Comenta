@@ -48,12 +48,13 @@ int espacio_usuario_bytes_disponibles(t_args *args)
 
     for (int i = 0; i < cantidad_procesos; i++)
     {
-        t_proceso *proceso = list_get(args->memoria.lista_procesos, i);
+        t_proceso *proceso = buscar_proceso(args, i);
 
         if(proceso != NULL)
         {
             bytes_usados += tabla_paginas_bytes_ocupados(args, proceso);
         }
+        
     }
 
     return args->memoria.tamMemoria - bytes_usados;

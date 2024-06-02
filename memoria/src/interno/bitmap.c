@@ -33,7 +33,7 @@ void bitmap_inicializar(t_args *args)
     }
 
     log_debug(args->logger, "Se creo el bitmap para el espacio de usuario.");
-
+    /*
     { // Test basico de funcionamiento
 
         char *cadena = "CURSADA DE SISTEMAS OPERATIVOS 1c 2024";
@@ -109,6 +109,7 @@ void bitmap_inicializar(t_args *args)
 
         espacio_usuario_fragmentos_liberar(args, cadenas);
     }
+    */
 }
 
 // Libero el bitmap
