@@ -30,7 +30,6 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *
             proceso_revertir(args->estados, proceso->pid);
             kernel_log_generic(args, LOG_LEVEL_WARNING, "Proceso PID:<%d> eliminado de kernel", proceso->pid);
         };
-        sem_post(&args->kernel->memoria_consola_nuevo_proceso);
         free(proceso);
         break;
     }

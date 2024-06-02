@@ -4,6 +4,39 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 {
     switch (codigo_operacion)
     {
+    case CPU_KERNEL_RESIZE:
+    {
+        t_cpu_kernel_resize *proceso_recibido = deserializar_t_cpu_kernel_resize(buffer);
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se recibio respuesta de Memoria sobre el pedido de RESIZE para el proceso <%d>", proceso_recibido->pid);
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "No se pudo redimensionar el proceso <%d>", proceso_recibido->pid);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Motivo: <%s>", proceso_recibido->motivo);
+
+        /*
+        RESIZE (Tamaño): Solicitará a la Memoria ajustar el tamaño del proceso al tamaño pasado por parámetro. En caso de que la respuesta de la memoria sea Out of Memory, se deberá devolver el contexto de ejecución al Kernel informando de esta situación.
+        */
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Registros del proceso <%d>:", proceso_recibido->pid);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "PC: %d", proceso_recibido->registros.pc);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "AX: %d", proceso_recibido->registros.ax);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "BX: %d", proceso_recibido->registros.bx);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "CX: %d", proceso_recibido->registros.cx);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "DX: %d", proceso_recibido->registros.dx);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "EAX: %d", proceso_recibido->registros.eax);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "EBX: %d", proceso_recibido->registros.ebx);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "ECX: %d", proceso_recibido->registros.ecx);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "EDX: %d", proceso_recibido->registros.edx);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "SI: %d", proceso_recibido->registros.si);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "DI: %d", proceso_recibido->registros.di);
+
+        // TODO: Preguntar que se hace en este caso? El proceso va a exit?
+        kernel_transicion_exec_exit(args);
+
+        free(proceso_recibido->motivo);
+        free(proceso_recibido);
+        break;
+    }
     case CPU_KERNEL_PROCESO:
     {
         t_cpu_kernel_proceso *proceso = deserializar_t_cpu_kernel_proceso(buffer);

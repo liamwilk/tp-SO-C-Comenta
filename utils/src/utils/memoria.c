@@ -18,6 +18,9 @@ void memoria_hilo_ejecutar(t_args *argumentos, int socket, char *modulo, t_mem_f
 
         revisar_paquete(paquete, argumentos->logger, modulo);
 
+        // Simulo el retardo de acceso a memoria en milisegundos
+        sleep(argumentos->memoria.retardoRespuesta / 1000);
+
         switch_case_atencion(argumentos, paquete->codigo_operacion, paquete->buffer);
 
         eliminar_paquete(paquete);
@@ -51,45 +54,6 @@ t_entrada_salida *agregar_entrada_salida(t_args *argumentos, t_tipo_entrada_sali
 
     return entrada_salida;
 };
-
-// t_entrada_salida *agregar_interfaz(t_args *argumentos, t_tipo_entrada_salida tipo, int socket)
-// {
-//     // Asigno memoria para el socket de entrada/salida (no debo liberarla porque se guarda dentro de la lista la referencia)
-//     t_entrada_salida *entrada_salida = malloc(sizeof(t_entrada_salida));
-
-//     // Guardo el socket en el cual se conecto el modulo de entrada/salida
-//     entrada_salida->socket = socket;
-//     entrada_salida->tipo = tipo;
-//     entrada_salida->orden = argumentos->memoria.sockets.id_entrada_salida;
-//     entrada_salida->ocupado = 0;
-//     entrada_salida->pid = 0;
-
-//     // Calculo el tamaño que necesito para almacenar el identificador de la interfaz
-//     int size_necesario = snprintf(NULL, 0, "Int%d", argumentos->memoria.sockets.id_entrada_salida) + 1;
-
-//     // Reservo memoria para la interfaz (no debo liberarla porque se guarda dentro del diccionario)
-//     char *interfaz = malloc(size_necesario);
-
-//     // Imprimo sobre la variable interfaz el identificador de la interfaz
-//     sprintf(interfaz, "Int%d", argumentos->memoria.sockets.id_entrada_salida);
-
-//     // Duplico la cadena para guardarla en el TAD y poder identificar la IO (esto pide malloc y hay que liberarlo cuando se desconecta la IO)
-//     entrada_salida->interfaz = strdup(interfaz);
-
-//     int *index = malloc(sizeof(int));
-
-//     // Agrego el TAD a la lista de entrada/salida y guardo el indice en el que se encuentra
-//     *index = list_add(argumentos->memoria.lista_entrada_salida, entrada_salida);
-
-//     // Guardo en el diccionario la key interfaz y el value indice para ubicarlo en la lista luego
-//     dictionary_put(argumentos->memoria.diccionario_entrada_salida, interfaz, index);
-
-//     log_debug(argumentos->logger, "Se conecto un modulo de entrada/salida en el socket %d con la interfaz %s", socket, interfaz);
-
-//     argumentos->memoria.sockets.id_entrada_salida++;
-
-//     return entrada_salida;
-// }
 
 void agregar_identificador(t_args_hilo *argumentos, char *identificador)
 {
@@ -241,6 +205,9 @@ void eliminar_procesos(t_args *argumentos)
             // Elimino las instrucciones del proceso
             eliminar_instrucciones(argumentos, proceso->instrucciones);
 
+            // Libero la tabla de paginas
+            tabla_paginas_liberar(argumentos, proceso);
+
             // Elimino el proceso de la lista de procesos
             // list_remove(argumentos->memoria.lista_procesos, atoi(dictionary_get(argumentos->memoria.diccionario_procesos, pid)));
 
@@ -328,6 +295,7 @@ t_list *leer_instrucciones(t_args *argumentos, char *path_instrucciones, uint32_
     // Getline lee la linea entera, hasta el \n inclusive
     while ((read = getline(&line, &len, file)) != -1)
     {
+        remover_salto_linea(line);
         log_debug(argumentos->logger, "Linea leida: %s", line);
 
         t_memoria_cpu_instruccion *instruccion = malloc(sizeof(t_memoria_cpu_instruccion));
@@ -407,7 +375,6 @@ t_proceso *buscar_proceso(t_args *argumentos, uint32_t pid)
 
     if (indice == NULL)
     {
-        log_error(argumentos->logger, "No se encontro el proceso con PID <%s>", pid_char);
         return NULL;
     }
 
@@ -429,6 +396,7 @@ void memoria_inicializar_argumentos(t_args *argumentos)
 {
     argumentos->memoria.lista_procesos = list_create();
     argumentos->memoria.diccionario_procesos = dictionary_create();
+    pthread_mutex_init(&argumentos->memoria.mutex_diccionario_procesos, NULL);
     argumentos->memoria.diccionario_entrada_salida = dictionary_create();
     argumentos->memoria.lista_entrada_salida = list_create();
     argumentos->memoria.sockets.id_entrada_salida = 1;
@@ -459,7 +427,7 @@ void memoria_inicializar(t_args *argumentos)
     memoria_inicializar_config(argumentos);
     memoria_inicializar_argumentos(argumentos);
     memoria_imprimir_config(argumentos);
-    espacio_usuario_inicializar_contiguo(argumentos);
+    espacio_usuario_inicializar(argumentos);
     memoria_inicializar_hilos(argumentos);
 }
 
@@ -472,8 +440,8 @@ void inicializar_modulo(t_args *argumentos)
 void memoria_finalizar(t_args *argumentos)
 {
     eliminar_procesos(argumentos);
-    espacio_usuario_liberar_bitmap(argumentos);
-    espacio_usuario_liberar_contiguo(argumentos);
+    bitmap_liberar(argumentos);
+    espacio_usuario_liberar(argumentos);
     config_destroy(argumentos->memoria.config);
     log_destroy(argumentos->logger);
 }
@@ -633,6 +601,9 @@ void memoria_hilo_ejecutar_entrada_salida(t_args_hilo *io_args, char *modulo, t_
             break;
         }
         revisar_paquete(paquete, io_args->argumentos->logger, modulo);
+
+        // Simulo el retardo de acceso a memoria en milisegundos
+        sleep(io_args->argumentos->memoria.retardoRespuesta / 1000);
 
         switch_case_atencion(io_args, modulo, paquete->codigo_operacion, paquete->buffer);
     }
