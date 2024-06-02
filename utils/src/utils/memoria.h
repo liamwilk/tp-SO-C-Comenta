@@ -55,8 +55,6 @@ typedef struct
     t_list *instrucciones;
     t_list *tabla_paginas;
     pthread_mutex_t mutex_tabla_paginas;
-    pthread_mutex_t mutex_liberar_pagina;
-    pthread_mutex_t mutex_asignar_pagina;
 } t_proceso;
 
 typedef struct

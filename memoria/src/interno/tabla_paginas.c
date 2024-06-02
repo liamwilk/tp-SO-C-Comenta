@@ -109,8 +109,6 @@ t_frame_bytes *tabla_paginas_frame_bytes(t_args *args, t_proceso *proceso, uint3
 void tabla_paginas_inicializar(t_args *args, t_proceso *proceso)
 {
     pthread_mutex_init(&proceso->mutex_tabla_paginas, NULL);
-    pthread_mutex_init(&proceso->mutex_asignar_pagina, NULL);
-    pthread_mutex_init(&proceso->mutex_liberar_pagina, NULL);
 
     int paginas = args->memoria.tamMemoria / args->memoria.tamPagina;
     proceso->tabla_paginas = list_create();
