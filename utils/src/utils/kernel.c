@@ -401,7 +401,6 @@ void kernel_finalizar(hilos_args *args)
 
     sem_destroy(&args->kernel->sistema_finalizar);
     sem_destroy(&args->kernel->log_lock);
-    sem_destroy(&args->kernel->memoria_consola_nuevo_proceso);
 
     free(finalizar_kernel);
     eliminar_paquete(finalizar);

@@ -1,16 +1,31 @@
 #ifndef CPU_H_
 #define CPU_H_
 
-#include <commons/config.h>
-#include <commons/log.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include <math.h>
+#include <utils/conexiones.h>
+#include <utils/configs.h>
 #include <utils/serial.h>
+#include <utils/procesos.h>
+#include <utils/template.h>
 #include <utils/instrucciones.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <commons/log.h>
+#include <commons/string.h>
+#include <commons/config.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <limits.h>
+#include <utils/handshake.h>
 
-/*Estructura basica de la CPU*/
+typedef struct
+{
+    pthread_t thread_atender_kernel_dispatch, thread_atender_kernel_interrupt, thread_conectar_memoria, thread_atender_memoria, thread_esperar_kernel_dispatch, thread_esperar_kernel_interrupt;
+} t_threads;
 
-typedef struct t_cpu
+typedef struct
 {
     int puertoEscuchaDispatch;
     int puertoEscuchaInterrupt;
@@ -23,7 +38,7 @@ typedef struct t_cpu
     int socket_memoria;
     int socket_server_dispatch;
     int socket_server_interrupt;
-} t_cpu;
+} t_config_leida;
 
 typedef struct t_cpu_proceso
 {
@@ -31,53 +46,288 @@ typedef struct t_cpu_proceso
     t_registros_cpu registros;
 } t_cpu_proceso;
 
+typedef struct t_cpu
+{
+    t_config_leida config_leida;
+    uint32_t tam_pagina;
+    uint32_t pid;
+    t_registros_cpu registros;
+    t_log *logger;
+    t_config *config;
+    t_instruccion tipo_instruccion;
+    t_memoria_cpu_instruccion instruccion;
+    t_threads threads;
+    t_cpu_proceso proceso;
+    int flag_interrupt;
+} t_cpu;
+
+typedef void (*t_funcion_cpu_ptr)(t_cpu *, t_op_code, t_buffer *);
+
 /**
- * @fn    cpu_inicializar
+ * @fn    cpu_leer_config
  * @brief Inicializa el cpu junto con todas sus configuraciones
  * @param config Instancia de module.config
  * @return config
  */
-t_cpu cpu_inicializar(t_config *config);
+void cpu_leer_config(t_cpu *args);
 
 /**
- * @fn    cpu_log
+ * @fn    cpu_imprimir_log
  * @brief Logs necesarios para cpu
  * @param config Instancia de module.config
  * @return t_cpu
  */
-void cpu_log(t_cpu cpu, t_log *logger);
+void cpu_imprimir_log(t_cpu *cpu);
+
+void instruccion_solicitar(t_cpu *args);
+
+int instruccion_ejecutar(t_cpu *args);
 
 /**
- * Solicita la próxima instrucción de memoria para un proceso dado.
+ * Recibe una instrucción de memoria en la CPU.
  *
- * @param pid El ID del proceso.
- * @param pc El contador de programa.
- * @param socket_memoria El socket para la comunicación con la memoria.
+ * @param buffer El buffer que contiene la instrucción.
+ * @param logger El logger para registrar eventos.
+ * @param datos_instruccion Los datos de la instrucción recibida.
+ * @param INSTRUCCION La instrucción recibida.
+ * @param proceso El proceso de la CPU.
+ * @return 0 si se recibió la instrucción correctamente, -1 en caso contrario.
  */
-void cpu_memoria_pedir_proxima_instruccion(t_cpu_proceso *proceso, int socket_memoria);
+int instruccion_recibir(t_cpu *args, t_buffer *buffer);
 
-int cpu_ejecutar_instruccion(t_cpu paquete, t_memoria_cpu_instruccion *datos_instruccion, t_instruccion INSTRUCCION, t_cpu_proceso *cpu_proceso, t_log *logger);
-
-int cpu_memoria_recibir_instruccion(t_buffer *buffer, t_log *logger, t_memoria_cpu_instruccion *datos_instruccion, t_instruccion *INSTRUCCION, t_cpu_proceso *proceso);
-
+/**
+ * Avisa al kernel que el proceso ha finalizado en la CPU.
+ *
+ * @param proceso El proceso de la CPU.
+ * @param socket_kernel_dispatch El socket de conexión con el kernel.
+ */
 void cpu_kernel_avisar_finalizacion(t_cpu_proceso proceso, int socket_kernel_dispatch);
 
-t_cpu_proceso cpu_kernel_recibir_proceso(t_buffer *buffer, t_log *logger);
+void proceso_recibir(t_cpu *args, t_buffer *buffer);
 
+/**
+ * Determina el tipo de registro como uint32_t en base a una instrucción.
+ *
+ * @param instruccion La instrucción a analizar.
+ * @param proceso El proceso de la CPU.
+ * @return Un puntero al tipo de registro uint32_t.
+ */
 uint32_t *determinar_tipo_registro_uint32_t(char *instruccion, t_cpu_proceso *proceso);
 
+/**
+ * Determina el tipo de registro como uint8_t en base a una instrucción.
+ *
+ * @param instruccion La instrucción a analizar.
+ * @param proceso El proceso de la CPU.
+ * @return Un puntero al tipo de registro uint8_t.
+ */
 uint8_t *determinar_tipo_registro_uint8_t(char *instruccion, t_cpu_proceso *proceso);
+
+/**
+ * Determina el código de una instrucción en base a su nombre.
+ *
+ * @param instruccion El nombre de la instrucción.
+ * @return El código de la instrucción.
+ */
 t_instruccion determinar_codigo_instruccion(char *instruccion);
 
+/**
+ * Obtiene el tipo de registro en base a su nombre.
+ *
+ * @param nombre_registro El nombre del registro.
+ * @return El tipo de registro.
+ */
 t_registro obtener_tipo_registro(char *nombre_registro);
-void imprimir_registros(t_log *logger, t_cpu_proceso *cpu_proceso);
 
+void imprimir_registros(t_cpu *args);
+
+/**
+ * Verifica si un valor uint32_t es válido para ser convertido a uint8_t.
+ *
+ * @param valor El valor a verificar.
+ * @return true si el valor es válido, false en caso contrario.
+ */
 bool casteo_verificar_uint_8t_valido(uint32_t valor);
+
+/**
+ * Realiza el casteo de un valor uint32_t a uint8_t.
+ *
+ * @param valor El valor a castear.
+ * @return El valor castado.
+ */
 uint8_t casteo_uint8_t(uint32_t valor);
+
+/**
+ * Realiza el casteo de un valor uint8_t a uint32_t.
+ *
+ * @param valor El valor a castear.
+ * @return El valor castado.
+ */
 uint32_t casteo_uint32_t(uint8_t valor);
 
-int cpu_recibir_interrupcion(t_log *logger, t_buffer *buffer, t_cpu_proceso proceso);
-void cpu_procesar_interrupt(t_log *logger, t_cpu cpu, t_cpu_proceso proceso);
-void log_instruccion(t_log *logger, t_cpu_proceso *cpu_proceso, t_memoria_cpu_instruccion *datos_instruccion);
+/**
+ * Recibe una interrupción en la CPU.
+ *
+ * @param logger El logger para registrar eventos.
+ * @param buffer El buffer que contiene la interrupción.
+ * @param proceso El proceso de la CPU.
+ * @return 0 si se recibió la interrupción correctamente, -1 en caso contrario.
+ */
+void recibir_interrupcion(t_cpu *logger, t_buffer *buffer);
+
+/**
+ * Procesa una interrupción en la CPU.
+ *
+ * @param logger El logger para registrar eventos.
+ * @param cpu La CPU que recibió la interrupción.
+ * @param proceso El proceso de la CPU.
+ */
+void instruccion_interrupt(t_cpu *cpu);
+
+/**
+ * Registra una instrucción en el logger.
+ *
+ * @param logger El logger para registrar eventos.
+ * @param cpu_proceso El proceso de la CPU.
+ * @param datos_instruccion Los datos de la instrucción.
+ */
+void log_instruccion(t_cpu *args);
+
+/**
+ * Envía un aviso a la memoria sobre el tamaño de página de la CPU.
+ *
+ * @param cpu La CPU que envía el aviso.
+ */
+void cpu_enviar_aviso_memoria_tam_pagina(t_cpu *cpu);
+
+/**
+ * Realiza la traducción de una dirección lógica a una dirección física utilizando la MMU.
+ *
+ * @param cpu La CPU que realiza la traducción.
+ * @param direccion_logica La dirección lógica a traducir.
+ * @param numero_marco El número de marco correspondiente a la dirección lógica.
+ * @return La dirección física resultante.
+ */
+int mmu(t_cpu *cpu, uint32_t direccion_logica, uint32_t numero_marco);
+
+/**
+ * Calcula el número de página correspondiente a una dirección lógica.
+ *
+ * @param cpu Puntero a la estructura de la CPU.
+ * @param direccion_logica Dirección lógica a calcular.
+ * @return El número de página correspondiente a la dirección lógica.
+ */
+int calcular_numero_pagina(t_cpu *cpu, uint32_t direccion_logica);
+
+/**
+ * @brief Función para atender el kernel dispatch.
+ *
+ * @return void* Puntero a la función atender_kernel_dispatch.
+ */
+void *atender_kernel_dispatch(void *args);
+
+/**
+ * @brief Función para atender la interrupción del kernel.
+ *
+ * @return void* Puntero a la función atender_kernel_interrupt.
+ */
+void *atender_kernel_interrupt(void *args);
+
+/**
+ * @brief Función para atender la memoria.
+ *
+ * @return void* Puntero a la función atender_memoria.
+ */
+void *atender_memoria(void *args);
+
+/**
+ * @brief Función para esperar el kernel dispatch.
+ *
+ * @return void* Puntero a la función esperar_kernel_dispatch.
+ */
+void *esperar_kernel_dispatch(void *args);
+
+/**
+ * @brief Función para esperar la interrupción del kernel.
+ *
+ * @return void* Puntero a la función esperar_kernel_interrupt.
+ */
+void *esperar_kernel_interrupt(void *args);
+
+/**
+ * @brief Función para conectar con la memoria.
+ *
+ * @return void* Puntero a la función conectar_memoria.
+ */
+void *conectar_memoria(void *args);
+
+/**
+ * @brief Deserializa un buffer en una estructura t_memoria_cpu_instruccion.
+ *
+ * Esta función toma un buffer y lo deserializa en una estructura t_memoria_cpu_instruccion.
+ *
+ * @param buffer El buffer a deserializar.
+ * @return Un puntero a la estructura t_memoria_cpu_instruccion deserializada.
+ */
+t_memoria_cpu_instruccion *deserializar_t_memoria_cpu_instruccion(t_buffer *buffer);
+
+/**
+ * @brief Deserializa un buffer en una estructura t_kernel_cpu_proceso.
+ *
+ * Esta función toma un buffer y lo deserializa en una estructura t_kernel_cpu_proceso.
+ *
+ * @param buffer El buffer a deserializar.
+ * @return Un puntero a la estructura t_kernel_cpu_proceso deserializada.
+ */
+t_kernel_cpu_proceso *deserializar_t_kernel_cpu_proceso(t_buffer *buffer);
+
+/**
+ * @brief Función que realiza un switch case para determinar la acción a realizar en la memoria.
+ *
+ * @param logger Puntero al logger utilizado para registrar eventos.
+ * @param codigo_operacion Código de operación que indica la acción a realizar.
+ * @param buffer Puntero al buffer que contiene los datos necesarios para la operación.
+ */
+void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buffer);
+
+/**
+ * @brief Función que realiza un switch case para determinar la acción a realizar en el kernel durante un dispatch.
+ *
+ * @param logger Puntero al logger utilizado para registrar eventos.
+ * @param codigo_operacion Código de operación que indica la acción a realizar.
+ * @param buffer Puntero al buffer que contiene los datos necesarios para la operación.
+ */
+void switch_case_kernel_dispatch(t_cpu *args, t_op_code codigo_operacion, t_buffer *buffer);
+
+/**
+ * @brief Función que realiza un switch case para determinar la acción a realizar en el kernel durante una interrupción.
+ *
+ * @param logger Puntero al logger utilizado para registrar eventos.
+ * @param codigo_operacion Código de operación que indica la acción a realizar.
+ * @param buffer Puntero al buffer que contiene los datos necesarios para la operación.
+ */
+void switch_case_kernel_interrupt(t_cpu *args, t_op_code codigo_operacion, t_buffer *buffer);
+
+/**
+ * @brief Función que determina el código de instrucción a partir de una cadena de caracteres.
+ *
+ * @param instruccion Cadena de caracteres que representa una instrucción.
+ * @return El código de instrucción correspondiente.
+ */
+t_instruccion determinar_codigo_instruccion(char *instruccion);
+
+void hilo_ejecutar_cpu(t_cpu *args, int socket, char *modulo, t_funcion_cpu_ptr switch_case_atencion);
+
+void inicializar_hilos_cpu(t_cpu *argumentos);
+
+void inicializar_argumentos_cpu(t_cpu *args, t_log_level nivel, int argc, char *argv[]);
+
+void inicializar_servidores_cpu(t_cpu *argumentos);
+
+void liberar_recursos_cpu(t_cpu *argumentos);
+
+void inicializar_modulo_cpu(t_cpu *argumentos, t_log_level nivel, int argc, char *argv[]);
+
+void instruccion_ciclo(t_cpu *args, t_buffer *buffer);
 
 #endif /* CPU_H_ */

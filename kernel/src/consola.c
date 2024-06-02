@@ -175,7 +175,6 @@ t_kernel kernel_inicializar(t_config *config)
 
 void kernel_log(hilos_args *args)
 {
-    kernel_log_generic(args, LOG_LEVEL_INFO, "Configuraciones de Kernel");
     kernel_log_generic(args, LOG_LEVEL_INFO, "PUERTO_ESCUCHA: %d", args->kernel->puertoEscucha);
     kernel_log_generic(args, LOG_LEVEL_INFO, "IP_MEMORIA: %s", args->kernel->ipMemoria);
     kernel_log_generic(args, LOG_LEVEL_INFO, "PUERTO_MEMORIA: %d", args->kernel->puertoMemoria);
