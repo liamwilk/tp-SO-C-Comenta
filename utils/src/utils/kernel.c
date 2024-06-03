@@ -1011,6 +1011,7 @@ t_pcb *kernel_transicion_block_ready_mayor_prioridad(hilos_args *kernel_hilos_ar
 
 void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready TRANSICION)
 {
+
     switch (TRANSICION)
     {
     case EXEC_READY:
@@ -1020,7 +1021,11 @@ void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready T
         {
             kernel_log_generic(args, LOG_LEVEL_ERROR, "[KERNEL/MANEJAR_EXEC_READY] Se quiere buscar el proceso <%d> en exec y no se encuentra, posible condicion de carrera", pid);
         }
-
+        if (determinar_algoritmo(args->kernel->algoritmoPlanificador) == FIFO)
+        {
+            kernel_transicion_exec_ready(args);
+            return;
+        }
         proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
         if (pcb->tiempo_fin->status == TEMPORAL_STATUS_RUNNING)
         {
@@ -1044,7 +1049,13 @@ void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready T
         if (pcb == NULL)
         {
             kernel_log_generic(args, LOG_LEVEL_ERROR, "[KERNEL/MANEJAR_BLOCK_READY] Se quiere buscar el proceso <%d> en block y no se encuentra, posible condicion de carrera", pid);
-            return;
+            break;
+        }
+        if (determinar_algoritmo(args->kernel->algoritmoPlanificador) == FIFO)
+        {
+            // El mismo algoritmo lo maneja
+            kernel_transicion_block_ready(args, pid);
+            break;
         }
         proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
 
@@ -1052,7 +1063,7 @@ void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready T
         {
             // Esto no tendria que pasar nunca pero por las dudas
             kernel_log_generic(args, LOG_LEVEL_DEBUG, "[VIRTUAL_ROUND_ROBIN/TIMER] El timer sigue en ejecucion, no se puede mover el proceso <%d> a ready", pid);
-            return;
+            break;
         }
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "El PID: <%d> ejecuto <%ld> ms", pcb->pid, pcb->tiempo_fin->elapsed_ms);
