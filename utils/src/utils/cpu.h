@@ -43,6 +43,7 @@ typedef struct
 typedef struct t_cpu_proceso
 {
     uint32_t pid;
+    uint32_t ejecutado;
     t_registros_cpu registros;
 } t_cpu_proceso;
 
@@ -101,7 +102,7 @@ int instruccion_recibir(t_cpu *args, t_buffer *buffer);
  * @param proceso El proceso de la CPU.
  * @param socket_kernel_dispatch El socket de conexión con el kernel.
  */
-void cpu_kernel_avisar_finalizacion(t_cpu_proceso proceso, int socket_kernel_dispatch);
+void instruccion_finalizar(t_cpu *args);
 
 void proceso_recibir(t_cpu *args, t_buffer *buffer);
 
@@ -217,7 +218,7 @@ int mmu(t_cpu *cpu, uint32_t direccion_logica, uint32_t numero_marco);
  * @param direccion_logica Dirección lógica a calcular.
  * @return El número de página correspondiente a la dirección lógica.
  */
-int calcular_numero_pagina(t_cpu *cpu, uint32_t direccion_logica);
+uint32_t calcular_numero_pagina(t_cpu *cpu, uint32_t direccion_logica);
 
 /**
  * @brief Función para atender el kernel dispatch.

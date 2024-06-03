@@ -23,6 +23,16 @@ typedef enum
 	CPU_KERNEL_SIGNAL,
 	CPU_MEMORIA_RESIZE,
 	CPU_KERNEL_RESIZE,
+	// IO_STDOUT_WRITE ///////////////////
+	MEMORIA_CPU_IO_STDOUT_WRITE,
+	CPU_MEMORIA_IO_STDOUT_WRITE,
+	CPU_KERNEL_IO_STDOUT_WRITE,
+	KERNEL_ENTRADA_SALIDA_IO_STDOUT_WRITE,
+	ENTRADA_SALIDA_MEMORIA_IO_STDOUT_WRITE,
+	ENTRADA_SALIDA_KERNEL_IO_STDOUT_WRITE,
+	MEMORIA_ENTRADA_SALIDA_IO_STDOUT_WRITE,
+	KERNEL_CPU_IO_STDOUT_WRITE,
+	//////////////////////////////////////
 	ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP,
 	MEMORIA_KERNEL_NUEVO_PROCESO,
 	MEMORIA_CPU_PROXIMA_INSTRUCCION,
@@ -35,7 +45,7 @@ typedef enum
 	KERNEL_MEMORIA_NUEVO_PROCESO,
 	KERNEL_MEMORIA_FINALIZAR_PROCESO,
 	KERNEL_CPU_INTERRUPCION,
-	KERNEL_ENTRADA_SALIDA_IDENTIFICACION,
+	ENTRADA_SALIDA_KERNEL_IDENTIFICACION,
 	KERNEL_IO_INTERRUPCION,
 	KERNEL_ENTRADA_SALIDA_IDENTIFICACION_RECHAZO,
 	PLACEHOLDER
@@ -231,13 +241,57 @@ typedef struct
 	t_registros_cpu registros;
 } t_cpu_kernel_resize;
 
+typedef struct
+{
+	uint32_t pid;
+	uint32_t resultado;
+	uint32_t registro_direccion;
+	uint32_t registro_tamanio;
+	uint32_t marco;
+	uint32_t numero_pagina;
+	uint32_t direccion_fisica;
+	uint32_t desplazamiento;
+	uint32_t size_interfaz;
+	t_registros_cpu registros;
+	char *interfaz;
+} t_io_stdout_write;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t direccion_fisica;
+	uint32_t tamanio;
+} t_io_memoria_stdout;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t direccion_fisica;
+	uint32_t tamanio;
+	uint32_t size_dato;
+	char *dato;
+} t_memoria_io_stdout;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t resultado;
+} t_entrada_salida_kernel_io_stdout_write;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t resultado;
+	uint32_t size_motivo;
+	char *motivo;
+} t_kernel_cpu_io_stdout_write;
+
 /**
  * @fn    *crear_paquete
  * @brief Crea un paquete, y le asigna un buffer.
  * @param codigo_de_operacion t_op_code que va a tener el paquete.
  */
-t_paquete *
-crear_paquete(t_op_code codigo_de_operacion);
+t_paquete *crear_paquete(t_op_code codigo_de_operacion);
 
 /**
  * @fn    *serializar_paquete
@@ -802,5 +856,25 @@ void serializar_t_memoria_cpu_resize(t_paquete **paquete, t_memoria_cpu_resize *
 void serializar_t_cpu_kernel_resize(t_paquete **paquete, t_cpu_kernel_resize *resize);
 
 t_cpu_kernel_resize *deserializar_t_cpu_kernel_resize(t_buffer *buffer);
+
+t_io_stdout_write *deserializar_t_io_stdout_write(t_buffer *buffer);
+
+void serializar_t_io_stdout_write(t_paquete **paquete, t_io_stdout_write *write);
+
+void serializar_t_io_memoria_stdout(t_paquete **paquete, t_io_memoria_stdout *write);
+
+t_io_memoria_stdout *deserializar_t_io_memoria_stdout(t_buffer *buffer);
+
+t_memoria_io_stdout *deserializar_t_memoria_io_stdout(t_buffer *buffer);
+
+void serializar_t_memoria_io_stdout(t_paquete **paquete, t_memoria_io_stdout *write);
+
+t_entrada_salida_kernel_io_stdout_write *deserializar_t_entrada_salida_kernel_io_stdout_write(t_buffer *buffer);
+
+void serializar_t_entrada_salida_kernel_io_stdout_write(t_paquete **paquete, t_entrada_salida_kernel_io_stdout_write *write);
+
+void serializar_t_kernel_cpu_io_stdout_write(t_paquete **paquete, t_kernel_cpu_io_stdout_write *write);
+
+t_kernel_cpu_io_stdout_write *deserializar_t_kernel_cpu_io_stdout_write(t_buffer *buffer);
 
 #endif

@@ -4,7 +4,7 @@ void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *mod
 {
     switch (codigo_operacion)
     {
-    case KERNEL_ENTRADA_SALIDA_IDENTIFICACION:
+    case ENTRADA_SALIDA_KERNEL_IDENTIFICACION:
     {
         t_entrada_salida_identificacion *identificacion = deserializar_t_entrada_salida_identificacion(buffer);
 
@@ -46,7 +46,7 @@ void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *mod
         if (unidad->terminado)
         {
             io_args->entrada_salida->ocupado = 0;
-            kernel_transicion_block_ready(io_args, modulo, unidad);
+            kernel_transicion_block_ready(io_args, modulo, unidad->pid);
             sem_post(&io_args->args->kernel->planificador_iniciar);
         }
 

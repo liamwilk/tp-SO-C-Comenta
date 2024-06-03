@@ -47,8 +47,6 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio la instruccion de IO_GEN_SLEEP de %d segundos para el PID %d en la interfaz %s", sleep->tiempo, sleep->pid, sleep->interfaz);
 
-        // Hago adapter de los registros de la CPU (no puntero) a los registros del PCB (puntero)
-
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se transiciona el PID <%d> a BLOCK por ejecucion de IO_GEN_SLEEP.", sleep->pid);
         t_pcb *pcb = kernel_transicion_exec_block(args);
 

@@ -196,12 +196,12 @@ t_pcb *kernel_transicion_ready_exec(hilos_args *kernel_hilos_args)
     return proceso;
 };
 
-t_pcb *kernel_transicion_block_ready(hilos_io_args *io_args, char *modulo, t_entrada_salida_kernel_unidad_de_trabajo *unidad)
+t_pcb *kernel_transicion_block_ready(hilos_io_args *io_args, char *modulo, uint32_t pid)
 {
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Se transiciona el PID %d a READY por finalizacion de I/O", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden, unidad->pid);
+    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Se transiciona el PID %d a READY por finalizacion de I/O", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden, pid);
     hilos_args *kernel_hilos_args = io_args->args;
     pthread_mutex_lock(&kernel_hilos_args->estados->mutex_block_ready);
-    t_pcb *proceso = proceso_remover_block(kernel_hilos_args->estados, unidad->pid);
+    t_pcb *proceso = proceso_remover_block(kernel_hilos_args->estados, pid);
     if (proceso == NULL)
     {
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "[ESTADOS] Transicion de block a ready fallida. No hay procesos en block.");
@@ -444,6 +444,7 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
     }
     case SUCCESS:
     {
+        // kernel_transicion_block_exit(kernel_hilos_args, pid);
         kernel_transicion_exec_exit(kernel_hilos_args);
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <SUCCESS>", pid);
         proceso_matar(kernel_hilos_args->estados, string_itoa(pid));

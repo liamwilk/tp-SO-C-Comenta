@@ -186,17 +186,7 @@ t_pcb *kernel_transicion_exec_ready(hilos_args *kernel_hilos_args);
  */
 t_pcb *kernel_transicion_ready_exec(hilos_args *kernel_hilos_args);
 
-/**
- * Transiciona un proceso del estado bloqueado al estado listo en el kernel.
- *
- * Esta función toma como parámetros un diagrama de estados y un logger. Extrae un proceso del estado bloqueado,
- * lo coloca en el estado listo y devuelve el proceso. Si no hay procesos en el estado bloqueado, devuelve NULL.
- *
- * @param kernel_hilos_args Son los argumentos que recibe cada hilo al momento de ejecutarse
- * @param modulo
- * @param unidad
- */
-t_pcb *kernel_transicion_block_ready(hilos_io_args *io_args, char *modulo, t_entrada_salida_kernel_unidad_de_trabajo *unidad);
+t_pcb *kernel_transicion_block_ready(hilos_io_args *io_args, char *modulo, uint32_t pid);
 
 /**
  * @brief Función de transición para ejecutar un bloque en el kernel.

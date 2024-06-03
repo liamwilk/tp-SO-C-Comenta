@@ -77,7 +77,6 @@ int instruccion_ejecutar(t_cpu *args)
 
         if (argumento_destino_tipo != INVALIDO && argumento_origen_tipo != INVALIDO)
         {
-
             if (argumento_destino_tipo == argumento_origen_tipo)
             {
                 if (argumento_destino_tipo == REGISTRO_32)
@@ -560,7 +559,124 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case IO_STDOUT_WRITE:
     {
-        log_debug(args->logger, "reconoci un IO_STDOUT_WRITE");
+        /*
+        IO_STDOUT_WRITE    Int3           BX                 EAX
+        IO_STDOUT_WRITE (Interfaz, Registro Dirección, Registro Tamaño)
+
+        Esta instrucción solicita al Kernel que mediante la interfaz seleccionada, se lea desde la posición de memoria indicada por la Dirección Lógica almacenada en el Registro Dirección, un tamaño indicado por el Registro Tamaño y se imprima por pantalla.
+        */
+
+        // Pido a Memoria el marco asociado a la direccion logica que me llega para poder traducir con MMU
+
+        // Le adjunto en el paquete los datos que necesita, más los que yo necesito que me devuelva para seguir con la ejecución de la instruccion.
+
+        // Creo copias
+        char *interfaz = strdup(args->instruccion.array[1]);
+        char *registro_direccion = strdup(args->instruccion.array[2]);
+        char *registro_tamanio = strdup(args->instruccion.array[3]);
+
+        // Determino que tipo de registros debo operar
+        t_registro registro_direccion_tipo = obtener_tipo_registro(registro_direccion);
+        t_registro registro_tamanio_tipo = obtener_tipo_registro(registro_tamanio);
+
+        // Si alguno de los registros es invalido, no se puede continuar
+        if (registro_direccion_tipo == INVALIDO || registro_tamanio_tipo == INVALIDO)
+        {
+            log_error(args->logger, "Registro invalido");
+            return -1;
+        }
+
+        // Casos posibles:
+        // 1. Registro tamaño de 32 bits y registro direccion de 32 bits
+        // 2. Registro tamaño de 32 bits y registro direccion de 8 bits: Casteo a 32 bits
+        // 3. Registro tamaño de 8 bits y registro direccion de 32 bits: Casteo a 32 bits
+        // 4. Registro tamaño de 8 bits y registro direccion de 8 bits: Casteo a 32 bits
+
+        t_paquete *paquete = crear_paquete(CPU_MEMORIA_IO_STDOUT_WRITE);
+        t_io_stdout_write *proceso = malloc(sizeof(t_io_stdout_write));
+
+        // Cargo el PID
+        proceso->pid = args->proceso.pid;
+        
+        // Cargo la Interfaz
+        proceso->interfaz = strdup(interfaz);
+        
+        // El tamaño del identificador de la interfaz
+        proceso->size_interfaz = strlen(interfaz) + 1;
+        
+        // Este es el dato que me va a devolver memoria
+        proceso->marco = 0;
+
+        // Esto tambien me lo devuelve memoria
+        proceso->resultado = 0;
+
+        // Paso el valor de los registros a la estructura que le voy a mandar a memoria
+        if (registro_direccion_tipo == REGISTRO_32) // El registro direccion es de 32 bits
+        {
+            if (registro_tamanio_tipo == REGISTRO_32) // && El registro tamaño es de 32 bits
+            {
+                uint32_t *registro_direccion_ptr = determinar_tipo_registro_uint32_t(registro_direccion, &args->proceso);
+                uint32_t *registro_tamanio_ptr = determinar_tipo_registro_uint32_t(registro_tamanio, &args->proceso);
+
+                proceso->registro_direccion = *registro_direccion_ptr;
+                proceso->registro_tamanio = *registro_tamanio_ptr;
+                proceso->numero_pagina = calcular_numero_pagina(args, *registro_direccion_ptr);
+            }
+            else // && El registro tamaño es de 8 bits
+            {
+                uint32_t *registro_direccion_ptr = determinar_tipo_registro_uint32_t(registro_direccion, &args->proceso);
+                uint8_t *registro_tamanio_ptr = determinar_tipo_registro_uint8_t(registro_tamanio, &args->proceso);
+
+                uint32_t registro_tamanio_casteado = casteo_uint32_t(*registro_tamanio_ptr);
+
+                proceso->registro_direccion = *registro_direccion_ptr;
+                proceso->registro_tamanio = registro_tamanio_casteado;
+                proceso->numero_pagina = calcular_numero_pagina(args, *registro_direccion_ptr);
+            }
+        }
+        else // El registro direccion es de 8 bits
+        {
+            if (registro_tamanio_tipo == REGISTRO_32) // && El registro tamaño es de 32 bits
+            {
+                uint8_t *registro_direccion_ptr = determinar_tipo_registro_uint8_t(registro_direccion, &args->proceso);
+                uint32_t *registro_tamanio_ptr = determinar_tipo_registro_uint32_t(registro_tamanio, &args->proceso);
+
+                uint32_t registro_direccion_casteado = casteo_uint32_t(*registro_direccion_ptr);
+
+                proceso->registro_direccion = registro_direccion_casteado;
+                proceso->registro_tamanio = *registro_tamanio_ptr;
+                proceso->numero_pagina = calcular_numero_pagina(args, registro_direccion_casteado);
+            }
+            else // && El registro tamaño es de 8 bits
+            {
+                uint8_t *registro_direccion_ptr = determinar_tipo_registro_uint8_t(registro_direccion, &args->proceso);
+                uint8_t *registro_tamanio_ptr = determinar_tipo_registro_uint8_t(registro_tamanio, &args->proceso);
+
+                uint32_t registro_direccion_casteado = casteo_uint32_t(*registro_direccion_ptr);
+                uint32_t registro_tamanio_casteado = casteo_uint32_t(*registro_tamanio_ptr);
+
+                proceso->registro_direccion = registro_direccion_casteado;
+                proceso->registro_tamanio = registro_tamanio_casteado;
+                proceso->numero_pagina = calcular_numero_pagina(args, registro_direccion_casteado);
+            }
+        }
+
+        // Me guardo el desplazamiento para poder calcular la dirección física
+
+        // desplazamiento = dirección_lógica - número_página * tamaño_página
+        proceso->desplazamiento = proceso->registro_direccion - proceso->numero_pagina * args->tam_pagina;
+        
+        // Por ultimo, me guardo el contexto del proceso
+        proceso->registros = args->proceso.registros;
+
+        // Serializo la estructura y la envio a memoria
+        serializar_t_io_stdout_write(&paquete, proceso);
+        enviar_paquete(paquete, args->config_leida.socket_memoria);
+        eliminar_paquete(paquete);
+
+        free(proceso->interfaz);
+        free(proceso);
+
         return 1;
     }
     case IO_FS_CREATE:
@@ -639,7 +755,8 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case EXIT:
     {
-        cpu_kernel_avisar_finalizacion(args->proceso, args->config_leida.socket_kernel_dispatch);
+        args->proceso.ejecutado = 1;
+        instruccion_finalizar(args);
         return 1;
     }
     }

@@ -4,6 +4,58 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 {
 	switch (codigo_operacion)
 	{
+	case MEMORIA_CPU_IO_STDOUT_WRITE:
+	{
+		t_io_stdout_write *proceso_recibido = deserializar_t_io_stdout_write(buffer);
+
+		log_debug(args->logger, "Se recibio una respuesta de Memoria acerca de la solicitud de marco asociada a la instruccion IO_STDOUT_WRITE para el proceso PID <%d>", proceso_recibido->pid);
+
+		// Si se obtuvo el marco
+		if (proceso_recibido->resultado)
+		{
+			log_debug(args->logger, "Se obtuvo el marco <%d> de la pagina <%d> asociado a la instruccion IO_STDOUT_WRITE del proceso PID <%d>", proceso_recibido->marco, proceso_recibido->numero_pagina, proceso_recibido->pid);
+
+			// Genero la direccion fisica con la MMU
+			uint32_t direccion_fisica = mmu(args, proceso_recibido->registro_direccion, proceso_recibido->marco);
+
+			// Inicio la peticion contra Kernel para que retransmita a la interfaz
+			t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_STDOUT_WRITE);
+			t_io_stdout_write *proceso_completo = malloc(sizeof(t_io_stdout_write));
+
+			proceso_completo->pid = proceso_recibido->pid;
+			proceso_completo->resultado = proceso_recibido->resultado;
+			proceso_completo->registro_direccion = proceso_recibido->registro_direccion;
+			proceso_completo->registro_tamanio = proceso_recibido->registro_tamanio;
+			proceso_completo->marco = proceso_recibido->marco;
+			proceso_completo->numero_pagina = proceso_recibido->numero_pagina;
+			proceso_completo->direccion_fisica = direccion_fisica;
+			proceso_completo->desplazamiento = proceso_recibido->desplazamiento;
+			proceso_completo->size_interfaz = proceso_recibido->size_interfaz;
+			proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
+			proceso_completo->registros = proceso_recibido->registros;
+
+			serializar_t_io_stdout_write(&paquete, proceso_completo);
+			enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);
+			eliminar_paquete(paquete);
+
+			log_debug(args->logger, "Se envio la solicitud de la instruccion IO_STDOUT_WRITE del proceso PID <%d> a Kernel", proceso_recibido->pid);
+
+			free(proceso_completo->interfaz);
+			free(proceso_completo);
+		}
+		else // Si no se obtuvo el marco
+		{
+			log_error(args->logger, "No se pudo obtener el marco de la pagina <%d> asociado a la instruccion IO_STDOUT_WRITE del proceso PID <%d>", proceso_recibido->pid, proceso_recibido->numero_pagina);
+			
+			args->proceso.ejecutado = 0;
+			instruccion_finalizar(args);
+		}
+
+		free(proceso_recibido->interfaz);
+		free(proceso_recibido);
+
+		break;
+	}
 	case MEMORIA_CPU_RESIZE:
 	{
 		t_memoria_cpu_resize *proceso_recibido = deserializar_t_memoria_cpu_resize(buffer);

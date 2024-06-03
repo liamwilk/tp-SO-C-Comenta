@@ -50,11 +50,10 @@ int espacio_usuario_bytes_disponibles(t_args *args)
     {
         t_proceso *proceso = buscar_proceso(args, i);
 
-        if(proceso != NULL)
+        if (proceso != NULL)
         {
             bytes_usados += tabla_paginas_bytes_ocupados(args, proceso);
         }
-        
     }
 
     return args->memoria.tamMemoria - bytes_usados;
@@ -115,16 +114,17 @@ void espacio_usuario_escribir_dato(t_args *args, uint32_t direccion_fisica, void
     }
 
     // Obtengo los frames de inicio y fin
-    uint32_t frame_inicio = espacio_usuario_obtener_frame(direccion_fisica, args->memoria.tamPagina);
-    uint32_t frame_fin = espacio_usuario_obtener_frame(direccion_fisica + tamano - 1, args->memoria.tamPagina);
+    uint32_t frame_inicio = espacio_usuario_escribir_dato_frame_inicio(args, direccion_fisica, tamano);
+    uint32_t frame_fin = espacio_usuario_escribir_dato_frame_fin(args, direccion_fisica, tamano);
 
-    // Marco los frames como ocupados y actualizo el array de bytes usados
+    // Marco todos los frames del intervalo de inicio a fin como ocupados y actualizo el array de bytes usados en cada frame
     for (uint32_t frame = frame_inicio; frame <= frame_fin; frame++)
     {
         bitmap_marcar_ocupado(args, frame);
 
         // Calculo los bytes a actualizar en este frame
         uint32_t offset_inicio, offset_fin;
+
         if (frame == frame_inicio)
         {
             offset_inicio = direccion_fisica % args->memoria.tamPagina;
@@ -147,16 +147,34 @@ void espacio_usuario_escribir_dato(t_args *args, uint32_t direccion_fisica, void
     }
 
     // Notifico que se escribio el dato
-    log_debug(args->logger, "Se escribio el dato de %ld bytes partiendo de la dirección física %d (%d -> %ld)", tamano, direccion_fisica, direccion_fisica, direccion_fisica + tamano - 1);
+    log_debug(args->logger, "Se escribio el dato de %ld bytes partiendo de la dirección física %d (%d -> %ld) [Frame %d -> %d]", tamano, direccion_fisica, direccion_fisica, direccion_fisica + tamano - 1, frame_inicio, frame_fin);
 
     // Escribo los datos
     memcpy(destino, dato, tamano);
 }
 
+// Retorna el frame desde el cual se iniciaria a escribir un dato de tamaño especificado desde una dirección física
+uint32_t espacio_usuario_escribir_dato_frame_inicio(t_args *args, uint32_t direccion_fisica, size_t tamano)
+{
+    return espacio_usuario_obtener_frame(direccion_fisica, args->memoria.tamPagina);
+}
+
+// Retorna el frame desde el cual se finalizaria la escritura de un dato de tamaño especificado desde una dirección física
+uint32_t espacio_usuario_escribir_dato_frame_fin(t_args *args, uint32_t direccion_fisica, size_t tamano)
+{
+    return espacio_usuario_obtener_frame(direccion_fisica + tamano - 1, args->memoria.tamPagina);
+}
+
+// Retorna la cantidad de bytes usados en un frame del espacio de usuario
+int espacio_usuario_frame_bytes(t_args *args, uint32_t frame)
+{
+    return args->memoria.bytes_usados[frame];
+}
+
 // Función para liberar frames con verificación del bitmap y tamaño del dato
 void espacio_usuario_liberar_dato(t_args *args, uint32_t direccion_fisica, size_t tamano)
 {
-    if(tamano == 0)
+    if (tamano == 0)
     {
         log_warning(args->logger, "Se intento liberar un dato de tamaño 0 bytes.");
         return;
