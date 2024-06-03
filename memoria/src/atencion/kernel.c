@@ -26,10 +26,6 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 
 		t_pagina* pagina = tabla_paginas_asignar_pagina(argumentos,proceso,0,0);
 
-		espacio_usuario_escribir_char(argumentos,pagina,0,"Hola mundo");
-
-		log_debug(argumentos->logger, "Se escribio en la direccion 0 el mensaje 'Hola mundo' de tamaño %ld",strlen("Hola mundo"));
-
 		// Leo las instrucciones del archivo y las guardo en la lista de instrucciones del proceso
 		proceso->instrucciones = leer_instrucciones(argumentos, path_completo, proceso->pid);
 
