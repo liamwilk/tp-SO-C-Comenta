@@ -50,11 +50,10 @@ int espacio_usuario_bytes_disponibles(t_args *args)
     {
         t_proceso *proceso = buscar_proceso(args, i);
 
-        if(proceso != NULL)
+        if (proceso != NULL)
         {
             bytes_usados += tabla_paginas_bytes_ocupados(args, proceso);
         }
-        
     }
 
     return args->memoria.tamMemoria - bytes_usados;
@@ -95,7 +94,7 @@ uint32_t espacio_usuario_obtener_frame(uint32_t direccion_fisica, uint32_t tamPa
 }
 
 // Función para escribir datos con verificación del bitmap y la dirección específica
-void espacio_usuario_escribir_dato(t_args *args, uint32_t direccion_fisica, void *dato, size_t tamano)
+void espacio_usuario_escribir_dato(t_args *args, t_pagina *pagina, uint32_t direccion_fisica, void *dato, size_t tamano)
 {
     if (direccion_fisica + tamano > args->memoria.tamMemoria)
     {
@@ -144,6 +143,7 @@ void espacio_usuario_escribir_dato(t_args *args, uint32_t direccion_fisica, void
         }
 
         args->memoria.bytes_usados[frame] += (offset_fin - offset_inicio + 1);
+        pagina->bytes += (offset_fin - offset_inicio + 1);
     }
 
     // Notifico que se escribio el dato
@@ -156,7 +156,7 @@ void espacio_usuario_escribir_dato(t_args *args, uint32_t direccion_fisica, void
 // Función para liberar frames con verificación del bitmap y tamaño del dato
 void espacio_usuario_liberar_dato(t_args *args, uint32_t direccion_fisica, size_t tamano)
 {
-    if(tamano == 0)
+    if (tamano == 0)
     {
         log_warning(args->logger, "Se intento liberar un dato de tamaño 0 bytes.");
         return;
@@ -254,33 +254,33 @@ int espacio_usuario_proxima_direccion(t_args *args, size_t tamano)
 }
 
 // Escribir un entero
-void espacio_usuario_escribir_int(t_args *args, uint32_t direccion_fisica, int valor)
+void espacio_usuario_escribir_int(t_args *args, t_pagina *pagina, uint32_t direccion_fisica, int valor)
 {
-    espacio_usuario_escribir_dato(args, direccion_fisica, &valor, sizeof(int));
+    espacio_usuario_escribir_dato(args, pagina, direccion_fisica, &valor, sizeof(int));
 }
 
 // Escribir un uint32_t
-void espacio_usuario_escribir_uint32(t_args *args, uint32_t direccion_fisica, uint32_t valor)
+void espacio_usuario_escribir_uint32(t_args *args, t_pagina *pagina, uint32_t direccion_fisica, uint32_t valor)
 {
-    espacio_usuario_escribir_dato(args, direccion_fisica, &valor, sizeof(uint32_t));
+    espacio_usuario_escribir_dato(args, pagina, direccion_fisica, &valor, sizeof(uint32_t));
 }
 
 // Escribir un flotante
-void espacio_usuario_escribir_float(t_args *args, uint32_t direccion_fisica, float valor)
+void espacio_usuario_escribir_float(t_args *args, t_pagina *pagina, uint32_t direccion_fisica, float valor)
 {
-    espacio_usuario_escribir_dato(args, direccion_fisica, &valor, sizeof(float));
+    espacio_usuario_escribir_dato(args, pagina, direccion_fisica, &valor, sizeof(float));
 }
 
 // Escribir una cadena
-void espacio_usuario_escribir_char(t_args *args, uint32_t direccion_fisica, const char *cadena)
+void espacio_usuario_escribir_char(t_args *args, t_pagina *pagina, uint32_t direccion_fisica, const char *cadena)
 {
-    espacio_usuario_escribir_dato(args, direccion_fisica, (void *)cadena, strlen(cadena));
+    espacio_usuario_escribir_dato(args, pagina, direccion_fisica, (void *)cadena, strlen(cadena));
 }
 
 // Escribir un "algo" genérico
-void espacio_usuario_escribir_generic(t_args *args, uint32_t direccion_fisica, void *estructura, size_t tamano_estructura)
+void espacio_usuario_escribir_generic(t_args *args, t_pagina *pagina, uint32_t direccion_fisica, void *estructura, size_t tamano_estructura)
 {
-    espacio_usuario_escribir_dato(args, direccion_fisica, estructura, tamano_estructura);
+    espacio_usuario_escribir_dato(args, pagina, direccion_fisica, estructura, tamano_estructura);
 }
 
 // Leer un dato genérico

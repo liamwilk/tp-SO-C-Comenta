@@ -4,6 +4,141 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 {
     switch (codigo_operacion)
     {
+    case CPU_KERNEL_IO_STDOUT_WRITE:
+    {
+        t_io_stdout_write *proceso_recibido = deserializar_t_io_stdout_write(buffer);
+
+        t_kernel_entrada_salida *entrada_salida = entrada_salida_buscar_interfaz(args, proceso_recibido->interfaz);
+
+        // Si la interfaz de entrada salida no esta conectada
+        if (entrada_salida == NULL)
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "Aviso a CPU que no se pudo enviar el paquete a la interfaz <%s> porque no está conectada", proceso_recibido->interfaz);
+
+            t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDOUT_WRITE);
+            t_kernel_cpu_io_stdout_write *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdout_write));
+
+            proceso_enviar->pid = proceso_recibido->pid;
+            proceso_enviar->resultado = 0;
+            proceso_enviar->motivo = strdup("La interfaz solicitada no se encuentra conectada a Kernel");
+            proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
+
+            serializar_t_kernel_cpu_io_stdout_write(&paquete, proceso_enviar);
+            enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
+            eliminar_paquete(paquete);
+
+            free(proceso_enviar->motivo);
+            free(proceso_enviar);
+            free(proceso_recibido->interfaz);
+            free(proceso_recibido);
+
+            break;
+        }
+
+        // Si la interfaz de entrada salida pedida no es del tipo stdout
+        if (entrada_salida->tipo != ENTRADA_SALIDA_STDOUT)
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque no es del tipo IO_STDOUT.", proceso_recibido->interfaz);
+
+            t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDOUT_WRITE);
+            t_kernel_cpu_io_stdout_write *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdout_write));
+
+            proceso_enviar->pid = proceso_recibido->pid;
+            proceso_enviar->resultado = 0;
+            proceso_enviar->motivo = strdup("La interfaz solicitada no puede ejecutar la instruccion IO_STDOUT_WRITE porque no es del tipo IO_STDOUT");
+            proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
+
+            serializar_t_kernel_cpu_io_stdout_write(&paquete, proceso_enviar);
+            enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
+            eliminar_paquete(paquete);
+
+            free(proceso_enviar->motivo);
+            free(proceso_enviar);
+            free(proceso_recibido->interfaz);
+            free(proceso_recibido);
+
+            break;
+        }
+
+        // Si la interfaz de entrada salida esta ocupada
+        if (entrada_salida->ocupado)
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque esta ocupada con el proceso %d.", proceso_recibido->interfaz, entrada_salida->pid);
+
+            t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDOUT_WRITE);
+            t_kernel_cpu_io_stdout_write *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdout_write));
+
+            proceso_enviar->pid = proceso_recibido->pid;
+            proceso_enviar->resultado = 0;
+            proceso_enviar->motivo = strdup("La interfaz solicitada no puede ejecutar la instruccion IO_STDOUT_WRITE porque se encuentra ocupada con otro proceso");
+            proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
+
+            serializar_t_kernel_cpu_io_stdout_write(&paquete, proceso_enviar);
+            enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
+            eliminar_paquete(paquete);
+
+            free(proceso_enviar->motivo);
+            free(proceso_enviar);
+            free(proceso_recibido->interfaz);
+            free(proceso_recibido);
+
+            break;
+        }
+
+        // Actualizo la interfaz de entrada salida
+        entrada_salida->ocupado = 1;
+        entrada_salida->pid = proceso_recibido->pid;
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envia el paquete a la interfaz <%s> asociado a la instruccion IO_STDOUT_WRITE del proceso PID <%d>", proceso_recibido->interfaz, proceso_recibido->pid);
+
+        t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_STDOUT_WRITE);
+        t_io_stdout_write *proceso_completo = malloc(sizeof(t_io_stdout_write));
+
+        proceso_completo->pid = proceso_recibido->pid;
+        proceso_completo->resultado = proceso_recibido->resultado;
+        proceso_completo->registro_direccion = proceso_recibido->registro_direccion;
+        proceso_completo->registro_tamanio = proceso_recibido->registro_tamanio;
+        proceso_completo->marco = proceso_recibido->marco;
+        proceso_completo->numero_pagina = proceso_recibido->numero_pagina;
+        proceso_completo->direccion_fisica = proceso_recibido->direccion_fisica;
+        proceso_completo->desplazamiento = proceso_recibido->desplazamiento;
+        proceso_completo->size_interfaz = proceso_recibido->size_interfaz;
+        proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
+        proceso_completo->registros = proceso_recibido->registros;
+
+        // Actualizo los registros del proceso en Kernel
+
+        t_pcb *pcb = proceso_buscar_exec(args->estados, proceso_recibido->pid);
+
+        pcb->registros_cpu->ax = proceso_recibido->registros.ax;
+        pcb->registros_cpu->bx = proceso_recibido->registros.bx;
+        pcb->registros_cpu->cx = proceso_recibido->registros.cx;
+        pcb->registros_cpu->dx = proceso_recibido->registros.dx;
+        pcb->registros_cpu->pc = proceso_recibido->registros.pc;
+        pcb->registros_cpu->eax = proceso_recibido->registros.eax;
+        pcb->registros_cpu->ebx = proceso_recibido->registros.ebx;
+        pcb->registros_cpu->ecx = proceso_recibido->registros.ecx;
+        pcb->registros_cpu->edx = proceso_recibido->registros.edx;
+        pcb->registros_cpu->si = proceso_recibido->registros.si;
+        pcb->registros_cpu->di = proceso_recibido->registros.di;
+
+        serializar_t_io_stdout_write(&paquete, proceso_completo);
+        enviar_paquete(paquete, entrada_salida->socket);
+        eliminar_paquete(paquete);
+
+        free(proceso_completo->interfaz);
+        free(proceso_completo);
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio la instruccion de IO_STDOUT_WRITE a la interfaz %s", entrada_salida->interfaz);
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se transiciona el PID <%d> a BLOCK por ejecucion de IO_STDOUT_WRITE.", proceso_recibido->pid);
+        kernel_transicion_exec_block(args);
+
+        free(proceso_recibido->interfaz);
+        free(proceso_recibido);
+
+        break;
+    }
     case CPU_KERNEL_RESIZE:
     {
         t_cpu_kernel_resize *proceso_recibido = deserializar_t_cpu_kernel_resize(buffer);
@@ -52,7 +187,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             break;
         }
 
-        if (proceso->ejecutado)
+        if (proceso->ejecutado == 1) // El proceso se ejecuto completo
         {
             kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso PID:<%d> ejecutado completo. Transicionar a exit", proceso->pid);
 
@@ -62,7 +197,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
             sem_post(&args->kernel->planificador_iniciar);
         }
-        else
+        else if (proceso->ejecutado == 2) // El proceso se ejecuto parcialmente por interrupcion
         {
             // Actualizo los registros del proceso en exec con los que me envia la CPU
             kernel_log_generic(args, LOG_LEVEL_DEBUG, "Actualizo registros recibidos de PID <%d> por interrupcion.", proceso->pid);
@@ -84,6 +219,16 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             pcb->registros_cpu->di = proceso->registros.di;
 
             // Vuelvo a iniciar el planificador
+            sem_post(&args->kernel->planificador_iniciar);
+        }
+        else if (proceso->ejecutado == 0) // La ejecucion del proceso fallo
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "Proceso PID:<%d> ejecutado fallido. Transicionar a exit", proceso->pid);
+
+            kernel_finalizar_proceso(args, proceso->pid, SUCCESS);
+
+            kernel_avisar_memoria_finalizacion_proceso(args, proceso->pid);
+
             sem_post(&args->kernel->planificador_iniciar);
         }
 

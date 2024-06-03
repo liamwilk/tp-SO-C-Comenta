@@ -186,7 +186,6 @@ void tabla_paginas_liberar_pagina(t_args *argumentos, t_proceso *proceso, uint32
     pagina->offset = 0;
 
     log_info(argumentos->logger, "Liberación de tabla de páginas: PID: <%d> - Página: <%d>", proceso->pid, numero_pagina);
-
 }
 
 // Retorna el marco de la página, si es que existe
@@ -218,7 +217,7 @@ int tabla_paginas_acceder_pagina(t_args *argumentos, t_proceso *proceso, uint32_
 }
 
 // Asigna el marco a la página del proceso, y marca el marco como ocupado en el bitmap
-void tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina, uint32_t numero_marco)
+t_pagina *tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina, uint32_t numero_marco)
 {
     t_pagina *pagina = list_get(proceso->tabla_paginas, numero_pagina);
 
@@ -229,7 +228,6 @@ void tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, uint32
         pagina->bytes = 0;
         pagina->offset = 0;
 
-
         bitmap_marcar_ocupado(argumentos, numero_marco);
 
         log_info(argumentos->logger, "Asignación de tabla de páginas: PID: <%d> - Página: <%d>", proceso->pid, numero_pagina);
@@ -238,6 +236,8 @@ void tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, uint32
     {
         log_error(argumentos->logger, "No se pudo asignar la página %d del proceso %d", numero_pagina, pid);
     }
+
+    return pagina;
 }
 
 // Retorna el número de página a partir de la dirección física

@@ -4,7 +4,7 @@ void switch_case_kernel_entrada_salida_dialfs(hilos_io_args *io_args, char *modu
 {
     switch (codigo_operacion)
     {
-    case KERNEL_ENTRADA_SALIDA_IDENTIFICACION:
+    case ENTRADA_SALIDA_KERNEL_IDENTIFICACION:
     {
         t_entrada_salida_identificacion *identificacion = deserializar_t_entrada_salida_identificacion(buffer);
 

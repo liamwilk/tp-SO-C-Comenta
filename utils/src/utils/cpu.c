@@ -194,14 +194,14 @@ void proceso_recibir(t_cpu *args, t_buffer *buffer)
     imprimir_registros(args);
 }
 
-void cpu_kernel_avisar_finalizacion(t_cpu_proceso proceso, int socket_kernel_dispatch)
+void instruccion_finalizar(t_cpu *args)
 {
     t_paquete *paquete = crear_paquete(CPU_KERNEL_PROCESO);
     t_cpu_kernel_proceso fin_proceso = {
-        .ejecutado = 1, .pid = proceso.pid, .registros = {.pc = proceso.registros.pc, .eax = proceso.registros.eax, .ebx = proceso.registros.ebx, .ecx = proceso.registros.ecx, .edx = proceso.registros.edx, .si = proceso.registros.si, .di = proceso.registros.di, .ax = proceso.registros.ax, .bx = proceso.registros.bx, .cx = proceso.registros.cx, .dx = proceso.registros.dx}};
+        .ejecutado = args->proceso.ejecutado, .pid = args->proceso.pid, .registros = {.pc = args->proceso.registros.pc, .eax = args->proceso.registros.eax, .ebx = args->proceso.registros.ebx, .ecx = args->proceso.registros.ecx, .edx = args->proceso.registros.edx, .si = args->proceso.registros.si, .di = args->proceso.registros.di, .ax = args->proceso.registros.ax, .bx = args->proceso.registros.bx, .cx = args->proceso.registros.cx, .dx = args->proceso.registros.dx}};
 
     serializar_t_cpu_kernel_proceso(&paquete, &fin_proceso);
-    enviar_paquete(paquete, socket_kernel_dispatch);
+    enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);
     eliminar_paquete(paquete);
 };
 
@@ -476,7 +476,7 @@ void instruccion_interrupt(t_cpu *args)
     log_debug(args->logger, "Se procede a interrumpir el proceso de PID <%d> y enviar el contexto de ejecucion a Kernel", args->proceso.pid);
 
     t_cpu_kernel_proceso proceso_interrumpido = {
-        .ejecutado = 0, .pid = args->proceso.pid, .registros = {.ax = args->proceso.registros.ax, .bx = args->proceso.registros.bx, .cx = args->proceso.registros.cx, .dx = args->proceso.registros.dx, .eax = args->proceso.registros.eax, .ebx = args->proceso.registros.ebx, .ecx = args->proceso.registros.ecx, .edx = args->proceso.registros.edx, .si = args->proceso.registros.si, .di = args->proceso.registros.di, .pc = args->proceso.registros.pc}};
+        .ejecutado = 2, .pid = args->proceso.pid, .registros = {.ax = args->proceso.registros.ax, .bx = args->proceso.registros.bx, .cx = args->proceso.registros.cx, .dx = args->proceso.registros.dx, .eax = args->proceso.registros.eax, .ebx = args->proceso.registros.ebx, .ecx = args->proceso.registros.ecx, .edx = args->proceso.registros.edx, .si = args->proceso.registros.si, .di = args->proceso.registros.di, .pc = args->proceso.registros.pc}};
 
     t_paquete *paquete = crear_paquete(CPU_KERNEL_PROCESO);
     serializar_t_cpu_kernel_proceso(&paquete, &proceso_interrumpido);
@@ -507,7 +507,7 @@ int mmu(t_cpu *cpu, uint32_t direccion_logica, uint32_t numero_marco)
     return direccion_fisica;
 }
 
-int calcular_numero_pagina(t_cpu *cpu, uint32_t direccion_logica)
+uint32_t calcular_numero_pagina(t_cpu *cpu, uint32_t direccion_logica)
 {
-    return direccion_logica / cpu->tam_pagina;
+    return floor(direccion_logica / cpu->tam_pagina);
 }

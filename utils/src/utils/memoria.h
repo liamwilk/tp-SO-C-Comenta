@@ -480,7 +480,7 @@ int tabla_paginas_acceder_pagina(t_args *argumentos, t_proceso *proceso, uint32_
  * @param numero_pagina Número de página a asignar.
  * @param numero_marco Número de marco a asignar a la página.
  */
-void tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina, uint32_t numero_marco);
+t_pagina *tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina, uint32_t numero_marco);
 
 void agregar_identificador(t_args_hilo *argumentos, char *identificador);
 void avisar_rechazo_identificador_memoria(int socket);
@@ -494,20 +494,21 @@ void bitmap_liberar(t_args *args);
 void bitmap_marcar_ocupado(t_args *args, uint32_t frame);
 void bitmap_marcar_libre(t_args *args, uint32_t frame);
 bool bitmap_frame_libre(t_bitarray *bitmap, uint32_t frame);
-void espacio_usuario_escribir_dato(t_args *args, uint32_t direccion_fisica, void *dato, size_t tamano);
+void espacio_usuario_escribir_dato(t_args *args, t_pagina *pagina, uint32_t direccion_fisica, void *dato, size_t tamano);
 void espacio_usuario_liberar_dato(t_args *args, uint32_t direccion_fisica, size_t tamano);
-void espacio_usuario_escribir_int(t_args *args, uint32_t direccion_fisica, int valor);
-void espacio_usuario_escribir_float(t_args *args, uint32_t direccion_fisica, float valor);
-void espacio_usuario_escribir_char(t_args *args, uint32_t direccion_fisica, const char *cadena);
-void espacio_usuario_escribir_generic(t_args *args, uint32_t direccion_fisica, void *estructura, size_t tamano_estructura);
+void espacio_usuario_escribir_int(t_args *args, t_pagina *pagina, uint32_t direccion_fisica, int valor);
+void espacio_usuario_escribir_float(t_args *args, t_pagina *pagina, uint32_t direccion_fisica, float valor);
+void espacio_usuario_escribir_char(t_args *args, t_pagina *pagina, uint32_t direccion_fisica, const char *cadena);
+void espacio_usuario_escribir_generic(t_args *args, t_pagina *pagina, uint32_t direccion_fisica, void *estructura, size_t tamano_estructura);
 /**
  * Escribe un valor de tipo uint32_t en la dirección física especificada.
  *
  * @param args Puntero a la estructura de argumentos.
+ * @param pagina Puntero a la página donde se escribirá el valor.
  * @param direccion_fisica Dirección física donde se escribirá el valor.
  * @param valor Valor a escribir.
  */
-void espacio_usuario_escribir_uint32(t_args *args, uint32_t direccion_fisica, uint32_t valor);
+void espacio_usuario_escribir_uint32(t_args *args, t_pagina *pagina, uint32_t direccion_fisica, uint32_t valor);
 
 /**
  * Lee un dato de memoria de la dirección física especificada y lo guarda en el destino proporcionado.

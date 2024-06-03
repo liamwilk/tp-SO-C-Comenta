@@ -4,6 +4,144 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 {
 	switch (codigo_operacion)
 	{
+	case CPU_MEMORIA_IO_STDOUT_WRITE:
+	{
+		t_io_stdout_write *proceso_recibido = deserializar_t_io_stdout_write(buffer);
+
+		log_debug(argumentos->logger, "Se recibio una peticion de busqueda de marco en la pagina <%d> del proceso PID <%d>", proceso_recibido->pid, proceso_recibido->numero_pagina);
+
+		// Busco el proceso en la lista de procesos globales
+		t_proceso *proceso = buscar_proceso(argumentos, proceso_recibido->pid);
+
+		// Si el proceso no existe, envio un mensaje a CPU
+		if (proceso == NULL)
+		{
+			log_error(argumentos->logger, "No se encontro el proceso con PID <%d> en Memoria", proceso_recibido->pid);
+
+			t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_STDOUT_WRITE);
+			t_io_stdout_write *proceso_enviar = malloc(sizeof(t_io_stdout_write));
+
+			// Le devuelvo lo que me envio, pero con resultado 0 que indica que fallo
+			proceso_enviar->pid = proceso_recibido->pid;
+			proceso_enviar->resultado = 0;
+			proceso_enviar->marco = proceso_recibido->marco;
+			proceso_enviar->interfaz = strdup(proceso_recibido->interfaz);
+			proceso_enviar->size_interfaz = proceso_recibido->size_interfaz;
+			proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
+			proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
+			proceso_enviar->registro_tamanio = proceso_recibido->registro_tamanio;
+			proceso_enviar->registros = proceso_recibido->registros;
+
+			serializar_t_io_stdout_write(&paquete, proceso_enviar);
+			enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+			eliminar_paquete(paquete);
+
+			free(proceso_enviar->interfaz);
+			free(proceso_enviar);
+
+			free(proceso_recibido->interfaz);
+			free(proceso_recibido);
+
+			break;
+		}
+
+		// Si el proceso existe, verifico si la pagina solicitada existe
+		int numero_marco = tabla_paginas_acceder_pagina(argumentos, proceso, proceso_recibido->numero_pagina);
+
+		// Si la pagina no existe, envio un mensaje a CPU
+		if (numero_marco == -1)
+		{
+			log_error(argumentos->logger, "No se encontro la pagina %d para el proceso con PID <%d> asociado a IO_STDOUT_WRITE", proceso_recibido->numero_pagina, proceso_recibido->pid);
+
+			t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_STDOUT_WRITE);
+			t_io_stdout_write *proceso_enviar = malloc(sizeof(t_io_stdout_write));
+
+			proceso_enviar->pid = proceso_recibido->pid;
+			proceso_enviar->resultado = 0;
+			proceso_enviar->marco = proceso_recibido->marco;
+			proceso_enviar->interfaz = strdup(proceso_recibido->interfaz);
+			proceso_enviar->size_interfaz = proceso_recibido->size_interfaz;
+			proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
+			proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
+			proceso_enviar->registro_tamanio = proceso_recibido->registro_tamanio;
+			proceso_enviar->registros = proceso_recibido->registros;
+
+			serializar_t_io_stdout_write(&paquete, proceso_enviar);
+			enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+			eliminar_paquete(paquete);
+
+			free(proceso_enviar->interfaz);
+			free(proceso_enviar);
+			free(proceso_recibido->interfaz);
+			free(proceso_recibido);
+			break;
+		}
+
+		// Verifico si los bytes a leer del marco asociado a la pagina pertenecen al proceso
+		t_pagina *pagina = list_get(proceso->tabla_paginas, proceso_recibido->numero_pagina);
+
+		if (pagina->bytes != proceso_recibido->registro_tamanio)
+		{
+			log_error(argumentos->logger, "Se solicito leer <%d> bytes en el marco <%d> asociado a la pagina <%d> pero no coincide con lo escrito por el proceso PID <%d> en ese marco", proceso_recibido->registro_tamanio, numero_marco, proceso_recibido->numero_pagina, proceso_recibido->pid);
+
+			log_error(argumentos->logger, "Bytes escritos por el proceso en el marco: <%d>", pagina->bytes);
+			log_error(argumentos->logger, "Bytes solicitados para leer por CPU: <%d>", proceso_recibido->registro_tamanio);
+
+			// Notifico a CPU que el tamaño solicitado a leer no coincide con lo que fue escrito por el proceso
+			t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_STDOUT_WRITE);
+			t_io_stdout_write *proceso_enviar = malloc(sizeof(t_io_stdout_write));
+
+			proceso_enviar->pid = proceso_recibido->pid;
+			proceso_enviar->resultado = 0;
+			proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
+			proceso_enviar->registro_tamanio = proceso_recibido->registro_tamanio;
+			proceso_enviar->marco = proceso_recibido->marco;
+			proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
+			proceso_enviar->direccion_fisica = proceso_recibido->direccion_fisica;
+			proceso_enviar->desplazamiento = proceso_recibido->desplazamiento;
+			proceso_enviar->size_interfaz = proceso_recibido->size_interfaz;
+			proceso_enviar->interfaz = strdup(proceso_recibido->interfaz);
+			proceso_enviar->registros = proceso_recibido->registros;
+
+			serializar_t_io_stdout_write(&paquete, proceso_enviar);
+			enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+			eliminar_paquete(paquete);
+
+			free(proceso_enviar->interfaz);
+			free(proceso_enviar);
+			free(proceso_recibido->interfaz);
+			free(proceso_recibido);
+			
+			break;
+		}
+
+		// Si la pagina existe y los bytes a leer pertenecen al proceso, envio el marco recuperado de la tabla de paginas a CPU
+		t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_STDOUT_WRITE);
+		t_io_stdout_write *proceso_enviar = malloc(sizeof(t_io_stdout_write));
+
+		proceso_enviar->pid = proceso_recibido->pid;
+		proceso_enviar->resultado = 1;
+		proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
+		proceso_enviar->registro_tamanio = proceso_recibido->registro_tamanio;
+		proceso_enviar->marco = numero_marco;
+		proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
+		proceso_enviar->direccion_fisica = proceso_recibido->direccion_fisica;
+		proceso_enviar->desplazamiento = proceso_recibido->desplazamiento;
+		proceso_enviar->interfaz = strdup(proceso_recibido->interfaz);
+		proceso_enviar->size_interfaz = proceso_recibido->size_interfaz;
+		proceso_enviar->registros = proceso_recibido->registros;
+
+		serializar_t_io_stdout_write(&paquete, proceso_enviar);
+		enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+		eliminar_paquete(paquete);
+
+		free(proceso_enviar->interfaz);
+		free(proceso_enviar);
+
+		free(proceso_recibido->interfaz);
+		free(proceso_recibido);
+		break;
+	}
 	case CPU_MEMORIA_RESIZE:
 	{
 		t_cpu_memoria_resize *proceso_recibido = deserializar_t_cpu_memoria_resize(buffer);
@@ -38,9 +176,9 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		pthread_mutex_lock(&proceso->mutex_tabla_paginas);
 		int bytes_disponibles_memoria = espacio_usuario_bytes_disponibles(argumentos);
 		pthread_mutex_unlock(&proceso->mutex_tabla_paginas);
-		
+
 		int frames_disponibles_memoria = bytes_disponibles_memoria / argumentos->memoria.tamPagina;
-		
+
 		pthread_mutex_lock(&proceso->mutex_tabla_paginas);
 		int bytes_ocupados_proceso = tabla_paginas_bytes_ocupados(argumentos, proceso);
 		pthread_mutex_unlock(&proceso->mutex_tabla_paginas);
@@ -74,9 +212,8 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 				break;
 			}
 
-
 			log_info(argumentos->logger, "Ampliación de Proceso: PID: %d - Tamaño Actual: <%d bytes> - Tamaño a Ampliar: <%d bytes>", proceso_recibido->pid, bytes_ocupados_proceso, proceso_recibido->bytes);
-			
+
 			tabla_paginas_resize(argumentos, proceso, proceso_recibido->bytes);
 
 			// Retorno el resultado del resize a CPU
