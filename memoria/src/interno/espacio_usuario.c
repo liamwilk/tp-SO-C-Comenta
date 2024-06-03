@@ -94,7 +94,7 @@ uint32_t espacio_usuario_obtener_frame(uint32_t direccion_fisica, uint32_t tamPa
 }
 
 // Función para escribir datos con verificación del bitmap y la dirección específica
-void espacio_usuario_escribir_dato(t_args *args, t_pagina *pagina, uint32_t direccion_fisica, void *dato, size_t tamano)
+void espacio_usuario_escribir_dato(t_args *args, uint32_t direccion_fisica, void *dato, size_t tamano)
 {
     if (direccion_fisica + tamano > args->memoria.tamMemoria)
     {
@@ -114,16 +114,17 @@ void espacio_usuario_escribir_dato(t_args *args, t_pagina *pagina, uint32_t dire
     }
 
     // Obtengo los frames de inicio y fin
-    uint32_t frame_inicio = espacio_usuario_obtener_frame(direccion_fisica, args->memoria.tamPagina);
-    uint32_t frame_fin = espacio_usuario_obtener_frame(direccion_fisica + tamano - 1, args->memoria.tamPagina);
+    uint32_t frame_inicio = espacio_usuario_escribir_dato_frame_inicio(args, direccion_fisica, tamano);
+    uint32_t frame_fin = espacio_usuario_escribir_dato_frame_fin(args, direccion_fisica, tamano);
 
-    // Marco los frames como ocupados y actualizo el array de bytes usados
+    // Marco todos los frames del intervalo de inicio a fin como ocupados y actualizo el array de bytes usados en cada frame
     for (uint32_t frame = frame_inicio; frame <= frame_fin; frame++)
     {
         bitmap_marcar_ocupado(args, frame);
 
         // Calculo los bytes a actualizar en este frame
         uint32_t offset_inicio, offset_fin;
+
         if (frame == frame_inicio)
         {
             offset_inicio = direccion_fisica % args->memoria.tamPagina;
@@ -143,14 +144,31 @@ void espacio_usuario_escribir_dato(t_args *args, t_pagina *pagina, uint32_t dire
         }
 
         args->memoria.bytes_usados[frame] += (offset_fin - offset_inicio + 1);
-        pagina->bytes += (offset_fin - offset_inicio + 1);
     }
 
     // Notifico que se escribio el dato
-    log_debug(args->logger, "Se escribio el dato de %ld bytes partiendo de la dirección física %d (%d -> %ld)", tamano, direccion_fisica, direccion_fisica, direccion_fisica + tamano - 1);
+    log_debug(args->logger, "Se escribio el dato de %ld bytes partiendo de la dirección física %d (%d -> %ld) [Frame %d -> %d]", tamano, direccion_fisica, direccion_fisica, direccion_fisica + tamano - 1, frame_inicio, frame_fin);
 
     // Escribo los datos
     memcpy(destino, dato, tamano);
+}
+
+// Retorna el frame desde el cual se iniciaria a escribir un dato de tamaño especificado desde una dirección física
+uint32_t espacio_usuario_escribir_dato_frame_inicio(t_args *args, uint32_t direccion_fisica, size_t tamano)
+{
+    return espacio_usuario_obtener_frame(direccion_fisica, args->memoria.tamPagina);
+}
+
+// Retorna el frame desde el cual se finalizaria la escritura de un dato de tamaño especificado desde una dirección física
+uint32_t espacio_usuario_escribir_dato_frame_fin(t_args *args, uint32_t direccion_fisica, size_t tamano)
+{
+    return espacio_usuario_obtener_frame(direccion_fisica + tamano - 1, args->memoria.tamPagina);
+}
+
+// Retorna la cantidad de bytes usados en un frame del espacio de usuario
+int espacio_usuario_frame_bytes(t_args *args, uint32_t frame)
+{
+    return args->memoria.bytes_usados[frame];
 }
 
 // Función para liberar frames con verificación del bitmap y tamaño del dato
@@ -254,33 +272,33 @@ int espacio_usuario_proxima_direccion(t_args *args, size_t tamano)
 }
 
 // Escribir un entero
-void espacio_usuario_escribir_int(t_args *args, t_pagina *pagina, uint32_t direccion_fisica, int valor)
+void espacio_usuario_escribir_int(t_args *args, uint32_t direccion_fisica, int valor)
 {
-    espacio_usuario_escribir_dato(args, pagina, direccion_fisica, &valor, sizeof(int));
+    espacio_usuario_escribir_dato(args, direccion_fisica, &valor, sizeof(int));
 }
 
 // Escribir un uint32_t
-void espacio_usuario_escribir_uint32(t_args *args, t_pagina *pagina, uint32_t direccion_fisica, uint32_t valor)
+void espacio_usuario_escribir_uint32(t_args *args, uint32_t direccion_fisica, uint32_t valor)
 {
-    espacio_usuario_escribir_dato(args, pagina, direccion_fisica, &valor, sizeof(uint32_t));
+    espacio_usuario_escribir_dato(args, direccion_fisica, &valor, sizeof(uint32_t));
 }
 
 // Escribir un flotante
-void espacio_usuario_escribir_float(t_args *args, t_pagina *pagina, uint32_t direccion_fisica, float valor)
+void espacio_usuario_escribir_float(t_args *args, uint32_t direccion_fisica, float valor)
 {
-    espacio_usuario_escribir_dato(args, pagina, direccion_fisica, &valor, sizeof(float));
+    espacio_usuario_escribir_dato(args, direccion_fisica, &valor, sizeof(float));
 }
 
 // Escribir una cadena
-void espacio_usuario_escribir_char(t_args *args, t_pagina *pagina, uint32_t direccion_fisica, const char *cadena)
+void espacio_usuario_escribir_char(t_args *args, uint32_t direccion_fisica, const char *cadena)
 {
-    espacio_usuario_escribir_dato(args, pagina, direccion_fisica, (void *)cadena, strlen(cadena));
+    espacio_usuario_escribir_dato(args, direccion_fisica, (void *)cadena, strlen(cadena));
 }
 
 // Escribir un "algo" genérico
-void espacio_usuario_escribir_generic(t_args *args, t_pagina *pagina, uint32_t direccion_fisica, void *estructura, size_t tamano_estructura)
+void espacio_usuario_escribir_generic(t_args *args, uint32_t direccion_fisica, void *estructura, size_t tamano_estructura)
 {
-    espacio_usuario_escribir_dato(args, pagina, direccion_fisica, estructura, tamano_estructura);
+    espacio_usuario_escribir_dato(args, direccion_fisica, estructura, tamano_estructura);
 }
 
 // Leer un dato genérico

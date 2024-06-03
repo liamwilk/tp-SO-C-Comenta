@@ -11,11 +11,9 @@ void switch_case_kernel_stdout(t_io *args, t_op_code codigo_operacion, t_buffer 
         log_debug(args->logger, "Se recibio orden de ejecucion de instruccion IO_STDOUT_WRITE asociado al proceso PID <%d>", proceso_recibido->pid);
 
         // Imprimo la direccion fisica recibida en proceos_recibido
-        log_debug(args->logger, "Direccion fisica recibida a leer: %d", proceso_recibido->direccion_fisica);
-        // Imprimo el desplazamiento
-        log_debug(args->logger, "Desplazamiento dentro del marco %d: %d", proceso_recibido->desplazamiento, proceso_recibido->marco);
+        log_debug(args->logger, "Direccion fisica recibida a leer: <%d>", proceso_recibido->direccion_fisica);
         // Imprimo el tamaño en bytes
-        log_debug(args->logger, "Tamaño en bytes a leer desde la direccion fisica %d: %d", proceso_recibido->direccion_fisica, proceso_recibido->registro_tamanio);
+        log_debug(args->logger, "Tamaño a leer: <%d>", proceso_recibido->registro_tamanio);
 
         // Solicito a Memoria el dato de la direccion fisica recibida
         t_paquete *paquete = crear_paquete(ENTRADA_SALIDA_MEMORIA_IO_STDOUT_WRITE);

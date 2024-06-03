@@ -77,15 +77,15 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			break;
 		}
 
-		// Verifico si los bytes a leer del marco asociado a la pagina pertenecen al proceso
-		t_pagina *pagina = list_get(proceso->tabla_paginas, proceso_recibido->numero_pagina);
+		// // Verifico si los bytes a leer del marco asociado a la pagina pertenecen al proceso
+		// t_pagina *pagina = list_get(proceso->tabla_paginas, proceso_recibido->numero_pagina);
 
-		if (pagina->bytes != proceso_recibido->registro_tamanio)
+		log_debug(argumentos->logger, "Bytes usados por el proceso: %d", proceso->bytes_usados);
+		log_debug(argumentos->logger, "Bytes solicitados por CPU: %d", proceso_recibido->registro_tamanio);
+
+		if (proceso_recibido->registro_tamanio > proceso->bytes_usados)
 		{
-			log_error(argumentos->logger, "Se solicito leer <%d> bytes en el marco <%d> asociado a la pagina <%d> pero no coincide con lo escrito por el proceso PID <%d> en ese marco", proceso_recibido->registro_tamanio, numero_marco, proceso_recibido->numero_pagina, proceso_recibido->pid);
-
-			log_error(argumentos->logger, "Bytes escritos por el proceso en el marco: <%d>", pagina->bytes);
-			log_error(argumentos->logger, "Bytes solicitados para leer por CPU: <%d>", proceso_recibido->registro_tamanio);
+			log_error(argumentos->logger, "Se solicito leer <%d> bytes del proceso PID <%d> pero el proceso solo escribio <%d> bytes", proceso_recibido->registro_tamanio, proceso_recibido->pid, proceso->bytes_usados);
 
 			// Notifico a CPU que el tamaño solicitado a leer no coincide con lo que fue escrito por el proceso
 			t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_STDOUT_WRITE);
@@ -111,7 +111,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			free(proceso_enviar);
 			free(proceso_recibido->interfaz);
 			free(proceso_recibido);
-			
+
 			break;
 		}
 
