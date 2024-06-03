@@ -58,7 +58,7 @@ void virtual_round_robin(hilos_args *hiloArgs)
         t_pcb *ready_exec_prioridad = kernel_transicion_ready_exec_mayor_prioridad(hiloArgs);
         int diff = hiloArgs->kernel->quantum - ready_exec_prioridad->tiempo_fin->elapsed_ms;
         int quantum;
-        if (diff == 0)
+        if (diff <= 0)
         {
             quantum = hiloArgs->kernel->quantum;
         }
@@ -68,7 +68,7 @@ void virtual_round_robin(hilos_args *hiloArgs)
         }
         if (ready_exec_prioridad != NULL)
         {
-            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "[VIRTUAL ROUND ROBIN]: Enviando proceso con MAYOR PRIORIDAD <PID: %d> a CPU", ready_exec_prioridad->pid);
+            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "[VIRTUAL ROUND ROBIN]: Enviando proceso con MAYOR PRIORIDAD <PID: %d> a CPU, QUANTUM: <%d> ms", ready_exec_prioridad->pid, quantum);
             kernel_desalojar_proceso(hiloArgs, ready_exec_prioridad, hiloArgs->kernel->quantum);
         }
         return;

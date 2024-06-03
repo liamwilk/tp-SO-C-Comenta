@@ -316,9 +316,10 @@ bool proceso_sobra_quantum(int kernel_quantum, int proceso_tiempo_fin)
     int diff = kernel_quantum - proceso_tiempo_fin;
     return diff > 0;
 }
+
 void proceso_avisar_timer(char *algoritmoPlanificador, t_pcb *pcb)
 {
-    if (strcmp(algoritmoPlanificador, "RR") == 0 || strcmp(algoritmoPlanificador, "RR") == 0)
+    if (strcmp(algoritmoPlanificador, "VRR") == 0 || strcmp(algoritmoPlanificador, "RR") == 0)
     {
         temporal_stop(pcb->tiempo_fin);
     }

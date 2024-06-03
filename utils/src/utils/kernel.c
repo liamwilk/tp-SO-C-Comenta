@@ -1015,10 +1015,21 @@ void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready T
     {
     case EXEC_READY:
         t_pcb *pcb = proceso_buscar_exec(args->estados, pid);
+
         if (pcb == NULL)
         {
             kernel_log_generic(args, LOG_LEVEL_ERROR, "[KERNEL/MANEJAR_EXEC_READY] Se quiere buscar el proceso <%d> en exec y no se encuentra, posible condicion de carrera", pid);
         }
+
+        proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
+        if (pcb->tiempo_fin->status == TEMPORAL_STATUS_RUNNING)
+        {
+            // Esto no tendria que pasar nunca pero por las dudas
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "[VIRTUAL_ROUND_ROBIN/TIMER] El timer sigue en ejecucion, no se puede mover el proceso <%d> a ready", pid);
+            return;
+        }
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "El PID: <%d> ejecuto <%ld> ms", pcb->pid, pcb->tiempo_fin->elapsed_ms);
         if (proceso_tiene_prioridad(args->kernel->algoritmoPlanificador, args->kernel->quantum, pcb->tiempo_fin->elapsed_ms))
         {
             kernel_transicion_exec_ready_mayor_prioridad(args);
@@ -1035,6 +1046,17 @@ void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready T
             kernel_log_generic(args, LOG_LEVEL_ERROR, "[KERNEL/MANEJAR_BLOCK_READY] Se quiere buscar el proceso <%d> en block y no se encuentra, posible condicion de carrera", pid);
             return;
         }
+        proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
+
+        if (pcb->tiempo_fin->status == TEMPORAL_STATUS_RUNNING)
+        {
+            // Esto no tendria que pasar nunca pero por las dudas
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "[VIRTUAL_ROUND_ROBIN/TIMER] El timer sigue en ejecucion, no se puede mover el proceso <%d> a ready", pid);
+            return;
+        }
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "El PID: <%d> ejecuto <%ld> ms", pcb->pid, pcb->tiempo_fin->elapsed_ms);
+
         if (proceso_tiene_prioridad(args->kernel->algoritmoPlanificador, args->kernel->quantum, pcb->tiempo_fin->elapsed_ms))
         {
             kernel_transicion_block_ready_mayor_prioridad(args, pid);
