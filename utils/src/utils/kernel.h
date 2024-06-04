@@ -119,12 +119,20 @@ typedef struct t_kernel
 
 typedef struct
 {
+    timer_t timer;
+    struct sigevent sev;
+    struct itimerspec its;
+    struct itimerspec quantum_restante;
     t_log *logger;
     t_kernel *kernel;
     t_diagrama_estados *estados;
     int kernel_orden_apagado;
 } hilos_args;
 
+typedef struct
+{
+    hilos_args *args;
+} timer_args_t;
 typedef struct
 {
     hilos_args *args;
@@ -496,5 +504,10 @@ typedef struct t_fin_quantum
 } t_fin_quantum;
 
 void *kernel_manejar_sleep(void *args);
+
+void manejador_interrupciones(union sigval arg);
+int interrumpir_temporizador(hilos_args *args);
+void inicializar_temporizador(hilos_args *args, timer_args_t *temporizador);
+void iniciar_temporizador(hilos_args *args, int duracion);
 
 #endif /* KERNEL_H */

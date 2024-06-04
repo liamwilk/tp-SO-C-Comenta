@@ -4,14 +4,21 @@
 int main(int argc, char *argv[])
 {
 	logger = iniciar_logger("kernel", LOG_LEVEL_DEBUG);
-
 	inicializar_config(&config, logger, argc, argv);
-
 	kernel = kernel_inicializar(config);
 	estados = kernel_inicializar_estados(&estados);
-
+	temporizador.args = &args;
 	inicializar_args();
 	inicializar_semaforos();
+	inicializar_temporizador(&args, &temporizador);
+
+	/* Se deja ejemplo de funcionamiento para iniciar_temporizador
+	{
+		// Inicia un temporizador no bloqueante de 100 segundos
+		iniciar_temporizador(&args, 100);
+	}
+	*/
+
 	pthread_mutex_init(&kernel.lock, NULL);
 
 	kernel_log(&args);

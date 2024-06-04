@@ -2,6 +2,16 @@
 
 void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *modulo, t_op_code codigo_operacion, t_buffer *buffer)
 {
+    /*  Se deja ejemplo de funcionamiento para la funcion de interrumpir_temporizador
+    {
+        // Interrumpe el temporizador y guarda el quantum restante en nanosegundos
+        int segundos = interrumpir_temporizador(io_args->args);
+
+        // Muestra el quantum restante en segundos
+        kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "Quantum restante en segundo: %d", segundos);
+    }
+    */
+
     switch (codigo_operacion)
     {
     case KERNEL_ENTRADA_SALIDA_IDENTIFICACION:

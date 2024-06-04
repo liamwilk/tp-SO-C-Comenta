@@ -232,14 +232,61 @@ void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, t_pcb *pcb, int qua
     args->temporal = temporal;
     args->pid = pcb->pid;
 
-    // Crear el hilo que va a dormir
+    iniciar_temporizador(kernel_hilos_args, quantum);
+}
 
-    if (pthread_create(&pcb->sleeping_thread, NULL, kernel_manejar_sleep, args) != 0)
+void manejador_interrupciones(union sigval arg)
+{
+    timer_args_t *timerArgs = (timer_args_t *)arg.sival_ptr;
+    kernel_log_generic(timerArgs->args, LOG_LEVEL_INFO, "Fin de Quantum con temporizador");
+    kernel_transicion_exec_ready(timerArgs->args);
+}
+
+// Interrumpe el temporizador y devuelve el quantum restante
+int interrumpir_temporizador(hilos_args *args)
+{
+    struct itimerspec quantum_restante;
+    // Obtener el tiempo restante del temporizador
+    if (timer_gettime(args->timer, &quantum_restante) == -1)
     {
-        return;
+        kernel_log_generic(args, LOG_LEVEL_ERROR, "Error al obtener el tiempo restante del temporizador");
+        return -1;
     }
 
-    pthread_join(pcb->sleeping_thread, NULL);
+    if (timer_delete(args->timer) == -1)
+    {
+        kernel_log_generic(args, LOG_LEVEL_ERROR, "Error al eliminar el temporizador");
+        return -1;
+    }
+    else
+    {
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Temporizador interrumpido antes de finalizacion");
+    }
+    return quantum_restante.it_value.tv_sec;
+}
+
+void iniciar_temporizador(hilos_args *args, int segundos)
+{
+    // Crea el temporizador
+    timer_create(CLOCK_REALTIME, &args->sev, &args->timer);
+
+    // Configura el tiempo de inicio y el intervalo del temporizador
+    args->its.it_value.tv_sec = segundos;
+    args->its.it_value.tv_nsec = 0;
+    args->its.it_interval.tv_sec = 0;
+    args->its.it_interval.tv_nsec = 0;
+
+    // Inicia el temporizador
+    timer_settime(args->timer, 0, &args->its, NULL);
+}
+
+void inicializar_temporizador(hilos_args *argumentos, timer_args_t *temporizador)
+{
+    // Configura la estructura sigevent
+    argumentos->sev.sigev_notify = SIGEV_THREAD;
+    argumentos->sev.sigev_value.sival_ptr = temporizador;
+    argumentos->sev.sigev_notify_function = manejador_interrupciones;
+    argumentos->sev.sigev_notify_attributes = NULL;
 }
 
 void kernel_interrumpir_cpu(hilos_args *kernel_hilos_args, uint32_t pid, char *motivo)
