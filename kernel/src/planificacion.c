@@ -56,15 +56,14 @@ void virtual_round_robin(hilos_args *hiloArgs)
     if (list_size(hiloArgs->estados->ready_mayor_prioridad) > 0 && list_size(hiloArgs->estados->exec) == 0)
     {
         t_pcb *ready_exec_prioridad = kernel_transicion_ready_exec_mayor_prioridad(hiloArgs);
-        int diff = hiloArgs->kernel->quantum - ready_exec_prioridad->tiempo_fin->elapsed_ms;
         int quantum;
-        if (diff <= 0)
+        if (ready_exec_prioridad->quantum <= 0)
         {
             quantum = hiloArgs->kernel->quantum;
         }
         else
         {
-            quantum = diff;
+            quantum = ready_exec_prioridad->quantum;
         }
         if (ready_exec_prioridad != NULL)
         {

@@ -21,6 +21,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
 
         if (entrada_salida == NULL)
         {
+            interrumpir_temporizador(args);
             kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque no existe.", sleep->interfaz);
             kernel_finalizar_proceso(args, sleep->pid, INVALID_INTERFACE);
             break;
@@ -28,6 +29,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
 
         if (entrada_salida->tipo != ENTRADA_SALIDA_GENERIC)
         {
+            interrumpir_temporizador(args);
             kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque no es del tipo IO_GENERIC.", sleep->interfaz);
             kernel_finalizar_proceso(args, sleep->pid, INVALID_INTERFACE);
             break;
@@ -35,9 +37,8 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
 
         if (entrada_salida->ocupado)
         {
+            interrumpir_temporizador(args);
             kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque esta ocupada con el proceso %d.", sleep->interfaz, entrada_salida->pid);
-            // Si tenemos RR o VRR finalizo el timer
-            proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
             kernel_transicion_exec_exit(args);
             break;
         }
@@ -54,26 +55,19 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
 
         serializar_t_kernel_entrada_salida_unidad_de_trabajo(&paquete, unidad);
 
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio la instruccion de IO_GEN_SLEEP de %d segundos para el PID %d en la interfaz %s", sleep->tiempo, sleep->pid, sleep->interfaz);
-
         // 2000
+        int quantum_restante = interrumpir_temporizador(args);
+        pcb->quantum = quantum_restante;
         kernel_transicion_exec_block(args);
-
-        // Si tengo RR o VRR interrumpo el nanosleep
-        if (determinar_algoritmo(args->kernel->algoritmoPlanificador) == RR || determinar_algoritmo(args->kernel->algoritmoPlanificador) == VRR)
-        {
-            proceso_interrumpir_quantum(pcb->sleeping_thread);
-        }
-
-        // Si tenemos RR o VRR finalizo el timer
-        proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
-
         proceso_actualizar_registros(pcb, sleep->registros);
 
         enviar_paquete(paquete, entrada_salida->socket);
 
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio la instruccion de IO_GEN_SLEEP de %d segundos para el PID %d en la interfaz %s", sleep->tiempo, sleep->pid, sleep->interfaz);
         sem_post(&args->kernel->planificador_iniciar);
+
         eliminar_paquete(paquete);
+
         free(unidad);
 
         break;

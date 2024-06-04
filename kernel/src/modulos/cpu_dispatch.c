@@ -43,34 +43,30 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         // Este caso se da cuando el usuario interrumpio a CPU para finalizar un proceso
         t_pcb *proceso_en_exit = proceso_buscar_exit(args->estados, proceso->pid);
-        // Se verifica que el proceso que se deseo eliminar es el que cpu esta devolviendo y que ademas se encuentra en la cola de exit
         if (proceso_en_exit != NULL)
         {
             // Detener QUANTUM si es RR o VRR
-            proceso_avisar_timer(args->kernel->algoritmoPlanificador, proceso_en_exit);
+            interrumpir_temporizador(args);
             kernel_log_generic(args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> - Motivo: <INTERRUPTED_BY_USER>", proceso_en_exit->pid);
             proceso_matar(args->estados, string_itoa(proceso_en_exit->pid));
             free(proceso);
+            avisar_planificador(args);
             break;
         }
 
         t_pcb *pcb = proceso_buscar_exec(args->estados, proceso->pid);
         if (proceso->ejecutado)
         {
-            // Si tenemos RR o VRR finalizo el timer
-            proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
-            kernel_finalizar_proceso(args, pcb->pid, SUCCESS);
-
+            // Checkeo que ese proceso se encuentre en exec antes de finalizarlo
+            if (pcb != NULL)
+            {
+                interrumpir_temporizador(args);
+            }
+            kernel_finalizar_proceso(args, proceso->pid, SUCCESS);
             kernel_avisar_memoria_finalizacion_proceso(args, proceso->pid);
         }
         else
         {
-            // Actualizo los registros del proceso en exec con los que me envia la CPU
-            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Actualizo registros recibidos de PID <%d> por interrupcion.", pcb->pid);
-
-            // Envio el proceso a ready desde exec
-            kernel_manejar_ready(args, pcb->pid, EXEC_READY);
-
             // Actualizo los registros del pcb por los recibidos de CPU
             proceso_actualizar_registros(pcb, proceso->registros);
         }

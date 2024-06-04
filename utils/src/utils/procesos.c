@@ -311,20 +311,6 @@ t_pcb *proceso_pop_cola_prioritaria(t_diagrama_estados *estados)
     return elem;
 }
 
-bool proceso_sobra_quantum(int kernel_quantum, int proceso_tiempo_fin)
-{
-    int diff = kernel_quantum - proceso_tiempo_fin;
-    return diff > 0;
-}
-
-void proceso_avisar_timer(char *algoritmoPlanificador, t_pcb *pcb)
-{
-    if (strcmp(algoritmoPlanificador, "VRR") == 0 || strcmp(algoritmoPlanificador, "RR") == 0)
-    {
-        temporal_stop(pcb->tiempo_fin);
-    }
-}
-
 void proceso_actualizar_registros(t_pcb *pcb, t_registros_cpu registros_cpu)
 {
     pcb->registros_cpu->pc = registros_cpu.pc;
@@ -357,25 +343,17 @@ t_algoritmo determinar_algoritmo(char *algoritmoPlanificador)
     return -1;
 }
 
-bool proceso_tiene_prioridad(char *algoritmoPlanificador, int kernel_quantum, int proceso_tiempo_fin)
+bool proceso_tiene_prioridad(char *algoritmoPlanificador, int quantum_restante)
 {
     t_algoritmo ALGORITMO = determinar_algoritmo(algoritmoPlanificador);
-    if (ALGORITMO == VRR && proceso_sobra_quantum(kernel_quantum, proceso_tiempo_fin))
+    // !! Se establece un offset de 100 milisegundos o más para considerar que un proceso tiene prioridad
+    if (ALGORITMO == VRR && quantum_restante > 100)
     {
         return true;
     }
     else
     {
         return false;
-    }
-}
-
-void proceso_interrumpir_quantum(pthread_t thread_id)
-{
-    // Enviar la señal al hilo durmiente
-    if (pthread_kill(thread_id, SIGUSR1) != 0)
-    {
-        perror("pthread_kill");
     }
 }
 

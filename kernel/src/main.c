@@ -12,13 +12,6 @@ int main(int argc, char *argv[])
 	inicializar_semaforos();
 	inicializar_temporizador(&args, &temporizador);
 
-	/* Se deja ejemplo de funcionamiento para iniciar_temporizador
-	{
-		// Inicia un temporizador no bloqueante de 100 segundos
-		iniciar_temporizador(&args, 100);
-	}
-	*/
-
 	pthread_mutex_init(&kernel.lock, NULL);
 
 	kernel_log(&args);

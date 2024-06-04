@@ -2,16 +2,6 @@
 
 void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *modulo, t_op_code codigo_operacion, t_buffer *buffer)
 {
-    /*  Se deja ejemplo de funcionamiento para la funcion de interrumpir_temporizador
-    {
-        // Interrumpe el temporizador y guarda el quantum restante en nanosegundos
-        int segundos = interrumpir_temporizador(io_args->args);
-
-        // Muestra el quantum restante en segundos
-        kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "Quantum restante en segundo: %d", segundos);
-    }
-    */
-
     switch (codigo_operacion)
     {
     case KERNEL_ENTRADA_SALIDA_IDENTIFICACION:
@@ -42,11 +32,10 @@ void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *mod
 
         // Verifico si este proceso no ha ya sido marcado como eliminado  en kernel
         t_pcb *pcb = proceso_buscar_exit(io_args->args->estados, unidad->pid);
-        // Se verifica que el proceso que se deseo eliminar es el que la io esta devolviendo y que ademas se encuentra en la cola de exit
         if (pcb != NULL)
         {
             // Si tenemos RR o VRR finalizo el timer
-            proceso_avisar_timer(io_args->args->kernel->algoritmoPlanificador, pcb);
+            interrumpir_temporizador(io_args->args);
             io_args->entrada_salida->ocupado = 0;
             io_args->entrada_salida->pid = 0;
             proceso_matar(io_args->args->estados, string_itoa(pcb->pid));

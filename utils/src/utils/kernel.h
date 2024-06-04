@@ -122,7 +122,7 @@ typedef struct
     timer_t timer;
     struct sigevent sev;
     struct itimerspec its;
-    struct itimerspec quantum_restante;
+    struct itimerspec quantum_restante; // Esto es el quantum restante del ultimo proceso en exec
     t_log *logger;
     t_kernel *kernel;
     t_diagrama_estados *estados;
@@ -502,8 +502,6 @@ typedef struct t_fin_quantum
     uint32_t pid;
     t_temporal *temporal;
 } t_fin_quantum;
-
-void *kernel_manejar_sleep(void *args);
 
 void manejador_interrupciones(union sigval arg);
 int interrumpir_temporizador(hilos_args *args);

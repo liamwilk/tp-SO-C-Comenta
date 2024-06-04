@@ -273,16 +273,6 @@ t_list *proceso_obtener_estado(t_diagrama_estados *estados, char *estado);
 
 /** VRR/ROUND_ROBIN FUNCIONALIDADES**/
 
-void proceso_avisar_timer(char *algoritmoPlanificador, t_pcb *pcb);
-
-/**
- * Verifica si un proceso ha excedido su quantum.
- *
- * @param pcb El bloque de control de procesos del proceso.
- * @return true si el proceso ha excedido su quantum, false en caso contrario.
- */
-bool proceso_sobra_quantum(int kernel_quantum, int proceso_tiempo_fin);
-
 void proceso_actualizar_registros(t_pcb *pcb, t_registros_cpu registros_cpu);
 
 /**
@@ -300,9 +290,7 @@ t_algoritmo determinar_algoritmo(char *algoritmoPlanificador);
  * @param pcb El bloque de control de procesos del proceso a verificar.
  * @return true si el proceso tiene prioridad, false en caso contrario.
  */
-bool proceso_tiene_prioridad(char *algoritmoPlanificador, int kernel_quantum, int proceso_tiempo_fin);
-
-void proceso_interrumpir_quantum(pthread_t thread_id);
+bool proceso_tiene_prioridad(char *algoritmoPlanificador, int quantum_restante);
 
 t_pcb *proceso_buscar(t_diagrama_estados *estados, uint32_t pid);
 

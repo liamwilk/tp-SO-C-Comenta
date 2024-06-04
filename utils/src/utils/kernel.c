@@ -142,109 +142,39 @@ void signal_handler(int signum)
     return;
 }
 
-void *kernel_manejar_sleep(void *args)
-{
-    // Decasteo a t_fin_quantum
-    t_fin_quantum *fin_quantum = (t_fin_quantum *)args;
-    t_temporal *temporal = fin_quantum->temporal;
-    hilos_args *kernel_hilos_args = fin_quantum->kernel_hilos_args;
-    uint32_t process_pid = fin_quantum->pid;
-
-    kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "Hilo para dormir proceso <%d> creado", process_pid);
-
-    struct sigaction sa;
-    sa.sa_handler = signal_handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-
-    if (sigaction(SIGUSR1, &sa, NULL) == -1)
-    {
-        pthread_exit(NULL);
-    }
-
-    // Configurar el tiempo de espera
-    struct timespec req, rem;
-    req.tv_sec = fin_quantum->kernel_hilos_args->kernel->quantum / 1000;
-    req.tv_nsec = 0;
-    t_algoritmo ALGORITMO_ACTUAL = determinar_algoritmo(kernel_hilos_args->kernel->algoritmoPlanificador);
-
-    // Intentar dormir el tiempo especificado
-    while (nanosleep(&req, &rem) == -1 && errno == EINTR)
-    {
-        req = rem;
-        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "Hilo para dormir proceso <%d> interrumpido por señal", process_pid);
-        temporal_stop(temporal);
-        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "Tiempo que pasaron en milisegundos <%ld>", temporal->elapsed_ms);
-    }
-
-    char *estado = proceso_estado(kernel_hilos_args->estados, process_pid);
-    char *algoritmoActual = ALGORITMO_ACTUAL == VRR ? "Virtual Round Robin" : "Round Robin";
-
-    if (strcmp(estado, "EXIT") == 0)
-    {
-        kernel_log_generic(kernel_hilos_args, ALGORITMO_ACTUAL == RR ? LOG_LEVEL_WARNING : LOG_LEVEL_DEBUG, "[%s] El proceso <%d> ya ha sido eliminado", algoritmoActual, process_pid);
-        temporal_destroy(temporal);
-        return NULL;
-    }
-    t_pcb *pcb = proceso_buscar(kernel_hilos_args->estados, process_pid);
-
-    if (pcb->tiempo_fin->status == TEMPORAL_STATUS_RUNNING)
-    {
-        temporal_stop(pcb->tiempo_fin);
-    };
-
-    int64_t diff = temporal_diff(temporal, pcb->tiempo_fin);
-
-    if (strcmp(estado, "BLOCK") == 0 && diff > 0)
-    {
-        kernel_log_generic(kernel_hilos_args, ALGORITMO_ACTUAL == RR ? LOG_LEVEL_WARNING : LOG_LEVEL_DEBUG, "[%s] El proceso <%d> se encuentra bloqueado y le sobro <%ld> ms de quantum", algoritmoActual, pcb->pid, diff);
-        temporal_destroy(temporal);
-        pthread_exit(NULL);
-        return NULL;
-    }
-    if (strcmp(estado, "READY") == 0 && diff > 0)
-    {
-        kernel_log_generic(kernel_hilos_args, ALGORITMO_ACTUAL == RR ? LOG_LEVEL_WARNING : LOG_LEVEL_DEBUG, "[%s] El proceso <%d> se encuentra ready y le sobro <%ld> ms de quantum", algoritmoActual, pcb->pid, diff);
-        temporal_destroy(temporal);
-        pthread_exit(NULL);
-        return NULL;
-    }
-    if (strcmp(estado, "EXEC") == 0)
-    {
-        kernel_interrumpir_cpu(kernel_hilos_args, process_pid, "QUANTUM");
-        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Desalojado por fin de Quantum", process_pid);
-        temporal_destroy(temporal);
-        pthread_exit(NULL);
-        return NULL;
-    }
-    pthread_exit(NULL);
-    return NULL;
-};
-
 void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, t_pcb *pcb, int quantum)
 {
-    t_temporal *temporal = temporal_create();
+    char *estado = proceso_estado(kernel_hilos_args->estados, pcb->pid);
 
-    pcb->tiempo_fin = temporal_create();
-    // Castear t_fin_quantum a void*
-    t_fin_quantum *args = malloc(sizeof(t_fin_quantum));
-    args->kernel_hilos_args = kernel_hilos_args;
-    args->temporal = temporal;
-    args->pid = pcb->pid;
-
+    if (strcmp(estado, "EXEC") != 0)
+    {
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "Se esta intentando desalojar el proceso <%d> pero no se encuentra en EXEC", pcb->pid);
+        return;
+    }
     iniciar_temporizador(kernel_hilos_args, quantum);
 }
 
 void manejador_interrupciones(union sigval arg)
 {
     timer_args_t *timerArgs = (timer_args_t *)arg.sival_ptr;
-    kernel_log_generic(timerArgs->args, LOG_LEVEL_INFO, "Fin de Quantum con temporizador");
+    t_pcb *pcb = list_get(timerArgs->args->estados->exec, 0);
+    if (pcb == NULL)
+    {
+        // Finalizaron el proceso en el medio de la ejecucion antes de que termine el quantum
+        return;
+    }
+    kernel_log_generic(timerArgs->args, LOG_LEVEL_INFO, "PID: <%d> - Desalojado por fin de Quantum", pcb->pid);
     kernel_transicion_exec_ready(timerArgs->args);
 }
 
 // Interrumpe el temporizador y devuelve el quantum restante
 int interrumpir_temporizador(hilos_args *args)
 {
+    if (determinar_algoritmo(args->kernel->algoritmoPlanificador) == FIFO)
+    {
+        return 0;
+    }
+
     struct itimerspec quantum_restante;
     // Obtener el tiempo restante del temporizador
     if (timer_gettime(args->timer, &quantum_restante) == -1)
@@ -260,17 +190,21 @@ int interrumpir_temporizador(hilos_args *args)
     }
     else
     {
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Temporizador interrumpido antes de finalizacion");
+        if (quantum_restante.it_value.tv_sec > 0)
+        {
+            kernel_log_generic(args, LOG_LEVEL_WARNING, "[QUANTUM] Al proceso en ejecución se lo ha interrumpido y le sobra QUANTUM: <%ld> ms", quantum_restante.it_value.tv_sec * 1000);
+        }
     }
-    return quantum_restante.it_value.tv_sec;
+    return quantum_restante.it_value.tv_sec * 1000;
 }
 
-void iniciar_temporizador(hilos_args *args, int segundos)
+void iniciar_temporizador(hilos_args *args, int milisegundos)
 {
     // Crea el temporizador
     timer_create(CLOCK_REALTIME, &args->sev, &args->timer);
 
     // Configura el tiempo de inicio y el intervalo del temporizador
+    int segundos = milisegundos / 1000;
     args->its.it_value.tv_sec = segundos;
     args->its.it_value.tv_nsec = 0;
     args->its.it_interval.tv_sec = 0;
@@ -313,6 +247,11 @@ t_pcb *kernel_transicion_exec_ready(hilos_args *kernel_hilos_args)
 
     // Log oficial de la catedra
     kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Estado Anterior: <EXEC> - Estado Actual: <READY>", proceso->pid);
+
+    if (determinar_algoritmo(kernel_hilos_args->kernel->algoritmoPlanificador) == VRR)
+    {
+        log_ready(kernel_hilos_args, true);
+    }
     // Log oficial de la catedra (En procedimiento)
     log_ready(kernel_hilos_args, false);
     pthread_mutex_unlock(&kernel_hilos_args->estados->mutex_exec_ready);
@@ -572,6 +511,7 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
     {
         if (strcmp(estado, "EXEC") == 0)
         {
+            interrumpir_temporizador(kernel_hilos_args);
             kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "El proceso <%d> se encuentra en ejecucion, se procede a desalojarlo", pid);
             kernel_interrumpir_cpu(kernel_hilos_args, pid, "FINALIZAR_PROCESO");
             kernel_transicion_exec_exit(kernel_hilos_args);
@@ -593,14 +533,17 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
     case INVALID_INTERFACE:
     {
         t_pcb *pcb_en_exit = kernel_transicion_exec_exit(kernel_hilos_args);
-        proceso_avisar_timer(kernel_hilos_args->kernel->algoritmoPlanificador, pcb_en_exit);
-        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INVALID_INTERFACE>", pid);
-        proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+        interrumpir_temporizador(kernel_hilos_args);
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INVALID_INTERFACE>", pcb_en_exit->pid);
+        proceso_matar(kernel_hilos_args->estados, string_itoa(pcb_en_exit->pid));
         return true;
     }
     case SUCCESS:
     {
-        kernel_transicion_exec_exit(kernel_hilos_args);
+        if (estado == "EXEC")
+        {
+            kernel_transicion_exec_exit(kernel_hilos_args);
+        }
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <SUCCESS>", pid);
         proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
         return true;
@@ -1128,24 +1071,21 @@ void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready T
             kernel_transicion_exec_ready(args);
             return;
         }
-        proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
-        proceso_interrumpir_quantum(pcb->sleeping_thread);
-        if (pcb->tiempo_fin->status == TEMPORAL_STATUS_RUNNING)
-        {
-            // Esto no tendria que pasar nunca pero por las dudas
-            kernel_log_generic(args, LOG_LEVEL_DEBUG, "[VIRTUAL_ROUND_ROBIN/TIMER] El timer sigue en ejecucion, no se puede mover el proceso <%d> a ready", pid);
-            return;
-        }
 
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "El PID: <%d> ejecuto <%ld> ms", pcb->pid, pcb->tiempo_fin->elapsed_ms);
-        if (proceso_tiene_prioridad(args->kernel->algoritmoPlanificador, args->kernel->quantum, pcb->tiempo_fin->elapsed_ms))
+        int quantum_restante = interrumpir_temporizador(args);
+
+        if (proceso_tiene_prioridad(args->kernel->algoritmoPlanificador, quantum_restante))
         {
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "El PID <%d> le sobraron <%d> ms de quantum", pcb->pid, quantum_restante);
+            // Almacenar el quantum sobrante
+            pcb->quantum = quantum_restante;
             kernel_transicion_exec_ready_mayor_prioridad(args);
         }
         else
         {
             kernel_transicion_exec_ready(args);
         }
+
         break;
     case BLOCK_READY:
         pcb = proceso_buscar_block(args->estados, pid);
@@ -1160,19 +1100,10 @@ void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready T
             kernel_transicion_block_ready(args, pid);
             break;
         }
-        proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
-        proceso_interrumpir_quantum(pcb->sleeping_thread);
-        if (pcb->tiempo_fin->status == TEMPORAL_STATUS_RUNNING)
-        {
-            // Esto no tendria que pasar nunca pero por las dudas
-            kernel_log_generic(args, LOG_LEVEL_DEBUG, "[VIRTUAL_ROUND_ROBIN/TIMER] El timer sigue en ejecucion, no se puede mover el proceso <%d> a ready", pid);
-            break;
-        }
 
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "El PID: <%d> ejecuto <%ld> ms", pcb->pid, pcb->tiempo_fin->elapsed_ms);
-
-        if (proceso_tiene_prioridad(args->kernel->algoritmoPlanificador, args->kernel->quantum, pcb->tiempo_fin->elapsed_ms))
+        if (proceso_tiene_prioridad(args->kernel->algoritmoPlanificador, pcb->quantum))
         {
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "El PID <%d> sobro <%d> ms va a READY_PRIORIDAD", pcb->pid, pcb->quantum);
             kernel_transicion_block_ready_mayor_prioridad(args, pid);
         }
         else
