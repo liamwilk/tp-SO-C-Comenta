@@ -488,4 +488,13 @@ typedef enum
 
 void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready TRANSICION);
 
+typedef struct t_fin_quantum
+{
+    hilos_args *kernel_hilos_args;
+    uint32_t pid;
+    t_temporal *temporal;
+} t_fin_quantum;
+
+void *kernel_manejar_sleep(void *args);
+
 #endif /* KERNEL_H */

@@ -135,31 +135,59 @@ void kernel_log_generic_rl(hilos_args *args, t_log_level nivel, const char *mens
     free(saved_line);
 }
 
-void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, t_pcb *pcb, int quantum)
+// Que hacer si me interrumpieron por señal
+void signal_handler(int signum)
 {
-    t_temporal *temporal = temporal_create();
+    // printf("Hilo interrumpido por señal %d\n", signum);
+    return;
+}
 
+void *kernel_manejar_sleep(void *args)
+{
+    // Decasteo a t_fin_quantum
+    t_fin_quantum *fin_quantum = (t_fin_quantum *)args;
+    t_temporal *temporal = fin_quantum->temporal;
+    hilos_args *kernel_hilos_args = fin_quantum->kernel_hilos_args;
+    uint32_t process_pid = fin_quantum->pid;
+
+    kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "Hilo para dormir proceso <%d> creado", process_pid);
+
+    struct sigaction sa;
+    sa.sa_handler = signal_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+
+    if (sigaction(SIGUSR1, &sa, NULL) == -1)
+    {
+        pthread_exit(NULL);
+    }
+
+    // Configurar el tiempo de espera
+    struct timespec req, rem;
+    req.tv_sec = fin_quantum->kernel_hilos_args->kernel->quantum / 1000;
+    req.tv_nsec = 0;
     t_algoritmo ALGORITMO_ACTUAL = determinar_algoritmo(kernel_hilos_args->kernel->algoritmoPlanificador);
 
-    char *algoritmoActual = ALGORITMO_ACTUAL == VRR ? "Virtual Round Robin" : "Round Robin";
-
-    pcb->tiempo_fin = temporal_create();
-
-    //!! Se guarda esta variable ya que puede suceder que durante el sleep el proceso sea eliminado y para mantener una referencia al pid
-    uint32_t process_pid = pcb->pid;
-
-    sleep(quantum / 1000);
-
-    temporal_stop(temporal);
+    // Intentar dormir el tiempo especificado
+    while (nanosleep(&req, &rem) == -1 && errno == EINTR)
+    {
+        req = rem;
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "Hilo para dormir proceso <%d> interrumpido por señal", process_pid);
+        temporal_stop(temporal);
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "Tiempo que pasaron en milisegundos <%ld>", temporal->elapsed_ms);
+    }
 
     char *estado = proceso_estado(kernel_hilos_args->estados, process_pid);
+    char *algoritmoActual = ALGORITMO_ACTUAL == VRR ? "Virtual Round Robin" : "Round Robin";
 
     if (strcmp(estado, "EXIT") == 0)
     {
         kernel_log_generic(kernel_hilos_args, ALGORITMO_ACTUAL == RR ? LOG_LEVEL_WARNING : LOG_LEVEL_DEBUG, "[%s] El proceso <%d> ya ha sido eliminado", algoritmoActual, process_pid);
         temporal_destroy(temporal);
-        return;
+        return NULL;
     }
+    t_pcb *pcb = proceso_buscar(kernel_hilos_args->estados, process_pid);
+
     if (pcb->tiempo_fin->status == TEMPORAL_STATUS_RUNNING)
     {
         temporal_stop(pcb->tiempo_fin);
@@ -171,20 +199,47 @@ void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, t_pcb *pcb, int qua
     {
         kernel_log_generic(kernel_hilos_args, ALGORITMO_ACTUAL == RR ? LOG_LEVEL_WARNING : LOG_LEVEL_DEBUG, "[%s] El proceso <%d> se encuentra bloqueado y le sobro <%ld> ms de quantum", algoritmoActual, pcb->pid, diff);
         temporal_destroy(temporal);
-        return;
+        pthread_exit(NULL);
+        return NULL;
     }
     if (strcmp(estado, "READY") == 0 && diff > 0)
     {
         kernel_log_generic(kernel_hilos_args, ALGORITMO_ACTUAL == RR ? LOG_LEVEL_WARNING : LOG_LEVEL_DEBUG, "[%s] El proceso <%d> se encuentra ready y le sobro <%ld> ms de quantum", algoritmoActual, pcb->pid, diff);
         temporal_destroy(temporal);
-        return;
+        pthread_exit(NULL);
+        return NULL;
     }
     if (strcmp(estado, "EXEC") == 0)
     {
-        kernel_interrumpir_cpu(kernel_hilos_args, pid, "QUANTUM");
-        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Desalojado por fin de Quantum", pid);
+        kernel_interrumpir_cpu(kernel_hilos_args, process_pid, "QUANTUM");
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Desalojado por fin de Quantum", process_pid);
         temporal_destroy(temporal);
+        pthread_exit(NULL);
+        return NULL;
     }
+    pthread_exit(NULL);
+    return NULL;
+};
+
+void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, t_pcb *pcb, int quantum)
+{
+    t_temporal *temporal = temporal_create();
+
+    pcb->tiempo_fin = temporal_create();
+    // Castear t_fin_quantum a void*
+    t_fin_quantum *args = malloc(sizeof(t_fin_quantum));
+    args->kernel_hilos_args = kernel_hilos_args;
+    args->temporal = temporal;
+    args->pid = pcb->pid;
+
+    // Crear el hilo que va a dormir
+
+    if (pthread_create(&pcb->sleeping_thread, NULL, kernel_manejar_sleep, args) != 0)
+    {
+        return;
+    }
+
+    pthread_join(pcb->sleeping_thread, NULL);
 }
 
 void kernel_interrumpir_cpu(hilos_args *kernel_hilos_args, uint32_t pid, char *motivo)
@@ -1027,6 +1082,7 @@ void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready T
             return;
         }
         proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
+        proceso_interrumpir_quantum(pcb->sleeping_thread);
         if (pcb->tiempo_fin->status == TEMPORAL_STATUS_RUNNING)
         {
             // Esto no tendria que pasar nunca pero por las dudas
@@ -1058,7 +1114,7 @@ void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready T
             break;
         }
         proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);
-
+        proceso_interrumpir_quantum(pcb->sleeping_thread);
         if (pcb->tiempo_fin->status == TEMPORAL_STATUS_RUNNING)
         {
             // Esto no tendria que pasar nunca pero por las dudas

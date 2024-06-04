@@ -56,7 +56,14 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio la instruccion de IO_GEN_SLEEP de %d segundos para el PID %d en la interfaz %s", sleep->tiempo, sleep->pid, sleep->interfaz);
 
+        // 2000
         kernel_transicion_exec_block(args);
+
+        // Si tengo RR o VRR interrumpo el nanosleep
+        if (determinar_algoritmo(args->kernel->algoritmoPlanificador) == RR || determinar_algoritmo(args->kernel->algoritmoPlanificador) == VRR)
+        {
+            proceso_interrumpir_quantum(pcb->sleeping_thread);
+        }
 
         // Si tenemos RR o VRR finalizo el timer
         proceso_avisar_timer(args->kernel->algoritmoPlanificador, pcb);

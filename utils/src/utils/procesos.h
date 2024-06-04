@@ -45,7 +45,8 @@ typedef struct pcb
     uint32_t quantum;
     t_registros_cpu *registros_cpu;
     bool memoria_aceptado;
-    t_temporal *tiempo_fin; // Esto es utilizado en los algoritmos de planificación con QUANTUM Es el tiempo del quantum - el tiempo fin = quantum que sobro
+    t_temporal *tiempo_fin;    // Esto es utilizado en los algoritmos de planificación con QUANTUM Es el tiempo del quantum - el tiempo fin = quantum que sobro
+    pthread_t sleeping_thread; // Esto es para que el hilo de sleep pueda ser cancelado
 } t_pcb;
 
 extern uint32_t pid;
@@ -300,5 +301,9 @@ t_algoritmo determinar_algoritmo(char *algoritmoPlanificador);
  * @return true si el proceso tiene prioridad, false en caso contrario.
  */
 bool proceso_tiene_prioridad(char *algoritmoPlanificador, int kernel_quantum, int proceso_tiempo_fin);
+
+void proceso_interrumpir_quantum(pthread_t thread_id);
+
+t_pcb *proceso_buscar(t_diagrama_estados *estados, uint32_t pid);
 
 #endif

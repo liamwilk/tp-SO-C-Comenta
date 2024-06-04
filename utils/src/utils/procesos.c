@@ -12,7 +12,7 @@ t_pcb *pcb_crear(t_log *logger, int quantum)
     t_registros_cpu *registros_cpu = malloc(sizeof(t_registros_cpu));
     *registros_cpu = (t_registros_cpu){.pc = 0, .eax = 0, .ebx = 0, .ecx = 0, .edx = 0, .si = 0, .di = 0, .ax = 0, .bx = 0, .cx = 0, .dx = 0};
     t_pcb *nuevo_pcb = malloc(sizeof(t_pcb));
-    *nuevo_pcb = (t_pcb){.pid = new_pid(), .quantum = quantum, .registros_cpu = registros_cpu, .memoria_aceptado = false};
+    *nuevo_pcb = (t_pcb){.pid = new_pid(), .quantum = quantum, .registros_cpu = registros_cpu, .memoria_aceptado = false, .sleeping_thread = PTHREAD_CREATE_JOINABLE};
     return nuevo_pcb;
 };
 
@@ -368,4 +368,43 @@ bool proceso_tiene_prioridad(char *algoritmoPlanificador, int kernel_quantum, in
     {
         return false;
     }
+}
+
+void proceso_interrumpir_quantum(pthread_t thread_id)
+{
+    // Enviar la señal al hilo durmiente
+    if (pthread_kill(thread_id, SIGUSR1) != 0)
+    {
+        perror("pthread_kill");
+    }
+}
+
+t_pcb *proceso_buscar(t_diagrama_estados *estados, uint32_t pid)
+{
+    t_pcb *proceso = proceso_buscar_new(estados, pid);
+    if (proceso != NULL)
+    {
+        return proceso;
+    }
+    proceso = proceso_buscar_ready(estados, pid);
+    if (proceso != NULL)
+    {
+        return proceso;
+    }
+    proceso = proceso_buscar_exec(estados, pid);
+    if (proceso != NULL)
+    {
+        return proceso;
+    }
+    proceso = proceso_buscar_block(estados, pid);
+    if (proceso != NULL)
+    {
+        return proceso;
+    }
+    proceso = proceso_buscar_exit(estados, pid);
+    if (proceso != NULL)
+    {
+        return proceso;
+    }
+    return NULL;
 }
