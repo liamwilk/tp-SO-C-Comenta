@@ -46,7 +46,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         if (proceso_en_exit != NULL)
         {
             // Detener QUANTUM si es RR o VRR
-            interrumpir_temporizador(args);
             kernel_log_generic(args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> - Motivo: <INTERRUPTED_BY_USER>", proceso_en_exit->pid);
             proceso_matar(args->estados, string_itoa(proceso_en_exit->pid));
             free(proceso);
@@ -67,8 +66,14 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         }
         else
         {
+            if (pcb == NULL)
+            {
+                kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso->pid);
+                break;
+            }
             // Actualizo los registros del pcb por los recibidos de CPU
             proceso_actualizar_registros(pcb, proceso->registros);
+            kernel_manejar_ready(args, pcb->pid, EXEC_READY);
         }
 
         avisar_planificador(args);

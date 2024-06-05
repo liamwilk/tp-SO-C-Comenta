@@ -164,7 +164,7 @@ void manejador_interrupciones(union sigval arg)
         return;
     }
     kernel_log_generic(timerArgs->args, LOG_LEVEL_INFO, "PID: <%d> - Desalojado por fin de Quantum", pcb->pid);
-    kernel_transicion_exec_ready(timerArgs->args);
+    kernel_interrumpir_cpu(timerArgs->args, pcb->pid, "FIN DE QUANTUM");
 }
 
 // Interrumpe el temporizador y devuelve el quantum restante
@@ -192,7 +192,7 @@ int interrumpir_temporizador(hilos_args *args)
     {
         if (quantum_restante.it_value.tv_sec > 0)
         {
-            kernel_log_generic(args, LOG_LEVEL_WARNING, "[QUANTUM] Al proceso en ejecución se lo ha interrumpido y le sobra QUANTUM: <%ld> ms", quantum_restante.it_value.tv_sec * 1000);
+            kernel_log_generic(args, LOG_LEVEL_WARNING, "[QUANTUM] Al proceso en ejecución se lo ha interrumpido y le sobra QUANTUM: <%ld> milisegundos", quantum_restante.it_value.tv_sec * 1000);
         }
     }
     return quantum_restante.it_value.tv_sec * 1000;
@@ -533,14 +533,13 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
     case INVALID_INTERFACE:
     {
         t_pcb *pcb_en_exit = kernel_transicion_exec_exit(kernel_hilos_args);
-        interrumpir_temporizador(kernel_hilos_args);
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INVALID_INTERFACE>", pcb_en_exit->pid);
         proceso_matar(kernel_hilos_args->estados, string_itoa(pcb_en_exit->pid));
         return true;
     }
     case SUCCESS:
     {
-        if (estado == "EXEC")
+        if (strcmp(estado, "EXEC") == 0)
         {
             kernel_transicion_exec_exit(kernel_hilos_args);
         }
@@ -1076,7 +1075,7 @@ void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready T
 
         if (proceso_tiene_prioridad(args->kernel->algoritmoPlanificador, quantum_restante))
         {
-            kernel_log_generic(args, LOG_LEVEL_DEBUG, "El PID <%d> le sobraron <%d> ms de quantum", pcb->pid, quantum_restante);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "El PID <%d> le sobraron <%d> milisegundos de quantum", pcb->pid, quantum_restante);
             // Almacenar el quantum sobrante
             pcb->quantum = quantum_restante;
             kernel_transicion_exec_ready_mayor_prioridad(args);

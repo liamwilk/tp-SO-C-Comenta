@@ -7,7 +7,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
     {
         t_cpu_kernel_io_gen_sleep *sleep = deserializar_t_cpu_kernel_io_gen_sleep(buffer);
 
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se recibio la instruccion de IO_GEN_SLEEP de %d segundos para el PID %d en la interfaz %s", sleep->tiempo, sleep->pid, sleep->interfaz);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se recibio la instruccion de IO_GEN_SLEEP de %d milisegundos para el PID %d en la interfaz %s", sleep->tiempo, sleep->pid, sleep->interfaz);
 
         t_kernel_entrada_salida *entrada_salida = entrada_salida_buscar_interfaz(args, sleep->interfaz);
 
@@ -39,7 +39,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         {
             interrumpir_temporizador(args);
             kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque esta ocupada con el proceso %d.", sleep->interfaz, entrada_salida->pid);
-            kernel_transicion_exec_exit(args);
+            kernel_finalizar_proceso(args, sleep->pid, INVALID_INTERFACE);
             break;
         }
 
@@ -63,7 +63,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
 
         enviar_paquete(paquete, entrada_salida->socket);
 
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio la instruccion de IO_GEN_SLEEP de %d segundos para el PID %d en la interfaz %s", sleep->tiempo, sleep->pid, sleep->interfaz);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio la instruccion de IO_GEN_SLEEP de %d milisegundos para el PID %d en la interfaz %s", sleep->tiempo, sleep->pid, sleep->interfaz);
         sem_post(&args->kernel->planificador_iniciar);
 
         eliminar_paquete(paquete);

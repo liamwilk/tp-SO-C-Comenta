@@ -67,7 +67,7 @@ void virtual_round_robin(hilos_args *hiloArgs)
         }
         if (ready_exec_prioridad != NULL)
         {
-            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "[VIRTUAL ROUND ROBIN]: Enviando proceso con MAYOR PRIORIDAD <PID: %d> a CPU, QUANTUM: <%d> ms", ready_exec_prioridad->pid, quantum);
+            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "[VIRTUAL ROUND ROBIN]: Enviando proceso con MAYOR PRIORIDAD <PID: %d> a CPU, QUANTUM: <%d> milisegundos", ready_exec_prioridad->pid, quantum);
             kernel_desalojar_proceso(hiloArgs, ready_exec_prioridad, hiloArgs->kernel->quantum);
         }
         return;
