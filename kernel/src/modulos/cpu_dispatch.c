@@ -152,6 +152,12 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         RESIZE (Tamaño): Solicitará a la Memoria ajustar el tamaño del proceso al tamaño pasado por parámetro. En caso de que la respuesta de la memoria sea Out of Memory, se deberá devolver el contexto de ejecución al Kernel informando de esta situación.
         */
 
+        t_pcb *proceso_en_exec = proceso_buscar_exec(args->estados, proceso_recibido->pid);
+        if (proceso_en_exec == NULL)
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch/RESIZE] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
+        }
+
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Registros del proceso <%d>:", proceso_recibido->pid);
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "PC: %d", proceso_recibido->registros.pc);
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "AX: %d", proceso_recibido->registros.ax);
@@ -166,7 +172,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "DI: %d", proceso_recibido->registros.di);
 
         // TODO: Preguntar que se hace en este caso? El proceso va a exit?
-        kernel_transicion_exec_exit(args);
+        proceso_en_exec->quantum = interrumpir_temporizador(args);
+        kernel_finalizar_proceso(args, proceso_recibido->pid, SUCCESS);
 
         free(proceso_recibido->motivo);
         free(proceso_recibido);
