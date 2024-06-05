@@ -845,6 +845,157 @@ t_cpu_kernel_resize *deserializar_t_cpu_kernel_resize(t_buffer *buffer)
 	return resize;
 }
 
+void serializar_t_entrada_salida_kernel_io_stdout_write(t_paquete **paquete, t_entrada_salida_kernel_io_stdout_write *write)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 2);
+	serializar_uint32_t(write->pid, *paquete);
+	serializar_uint32_t(write->resultado, *paquete);
+}
+
+t_entrada_salida_kernel_io_stdout_write *deserializar_t_entrada_salida_kernel_io_stdout_write(t_buffer *buffer)
+{
+	t_entrada_salida_kernel_io_stdout_write *write = malloc(sizeof(t_entrada_salida_kernel_io_stdout_write));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(write->pid));
+	deserializar_uint32_t(&stream, &(write->resultado));
+	return write;
+}
+
+void serializar_t_kernel_cpu_io_stdout_write(t_paquete **paquete, t_kernel_cpu_io_stdout_write *write)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 4 + write->size_motivo);
+	serializar_uint32_t(write->pid, *paquete);
+	serializar_uint32_t(write->resultado, *paquete);
+	serializar_uint32_t(write->size_motivo, *paquete);
+	serializar_char(write->motivo, *paquete);
+}
+
+t_kernel_cpu_io_stdout_write *deserializar_t_kernel_cpu_io_stdout_write(t_buffer *buffer)
+{
+	t_kernel_cpu_io_stdout_write *write = malloc(sizeof(t_kernel_cpu_io_stdout_write));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(write->pid));
+	deserializar_uint32_t(&stream, &(write->resultado));
+	deserializar_uint32_t(&stream, &(write->size_motivo));
+	deserializar_char(&stream, &(write->motivo), write->size_motivo);
+	return write;
+}
+
+void serializar_t_memoria_io_stdout(t_paquete **paquete, t_memoria_io_stdout *write)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 4 + write->size_dato);
+
+	serializar_uint32_t(write->pid, *paquete);
+	serializar_uint32_t(write->direccion_fisica, *paquete);
+	serializar_uint32_t(write->tamanio, *paquete);
+	serializar_uint32_t(write->size_dato, *paquete);
+	serializar_char(write->dato, *paquete);
+}
+
+t_memoria_io_stdout *deserializar_t_memoria_io_stdout(t_buffer *buffer)
+{
+	t_memoria_io_stdout *write = malloc(sizeof(t_memoria_io_stdout));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(write->pid));
+	deserializar_uint32_t(&stream, &(write->direccion_fisica));
+	deserializar_uint32_t(&stream, &(write->tamanio));
+	deserializar_uint32_t(&stream, &(write->size_dato));
+	deserializar_char(&stream, &(write->dato), write->size_dato);
+	return write;
+}
+
+void serializar_t_io_memoria_stdout(t_paquete **paquete, t_io_memoria_stdout *write)
+{
+
+	// typedef struct
+	// {
+	// 	uint32_t pid;
+	// 	uint32_t direccion_fisica;
+	// 	uint32_t tamanio;
+	// } t_io_memoria_stdout;
+
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 3);
+	serializar_uint32_t(write->pid, *paquete);
+	serializar_uint32_t(write->direccion_fisica, *paquete);
+	serializar_uint32_t(write->tamanio, *paquete);
+}
+
+t_io_memoria_stdout *deserializar_t_io_memoria_stdout(t_buffer *buffer)
+{
+	t_io_memoria_stdout *write = malloc(sizeof(t_io_memoria_stdout));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(write->pid));
+	deserializar_uint32_t(&stream, &(write->direccion_fisica));
+	deserializar_uint32_t(&stream, &(write->tamanio));
+	return write;
+}
+
+void serializar_t_io_stdout_write(t_paquete **paquete, t_io_stdout_write *write)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 16 + sizeof(uint8_t) * 4 + write->size_interfaz);
+	serializar_uint32_t(write->pid, *paquete);
+	serializar_uint32_t(write->resultado, *paquete);
+	serializar_uint32_t(write->registro_direccion, *paquete);
+	serializar_uint32_t(write->registro_tamanio, *paquete);
+	serializar_uint32_t(write->marco, *paquete);
+	serializar_uint32_t(write->numero_pagina, *paquete);
+	serializar_uint32_t(write->direccion_fisica, *paquete);
+	serializar_uint32_t(write->desplazamiento, *paquete);
+	serializar_uint32_t(write->size_interfaz, *paquete);
+
+	// Registros de CPU
+
+	serializar_uint32_t(write->registros.pc, *paquete);
+	serializar_uint32_t(write->registros.eax, *paquete);
+	serializar_uint32_t(write->registros.ebx, *paquete);
+	serializar_uint32_t(write->registros.ecx, *paquete);
+	serializar_uint32_t(write->registros.edx, *paquete);
+	serializar_uint32_t(write->registros.si, *paquete);
+	serializar_uint32_t(write->registros.di, *paquete);
+	serializar_uint8_t(write->registros.ax, *paquete);
+	serializar_uint8_t(write->registros.bx, *paquete);
+	serializar_uint8_t(write->registros.cx, *paquete);
+	serializar_uint8_t(write->registros.dx, *paquete);
+
+	serializar_char(write->interfaz, *paquete);
+}
+
+t_io_stdout_write *deserializar_t_io_stdout_write(t_buffer *buffer)
+{
+	t_io_stdout_write *write = malloc(sizeof(t_io_stdout_write));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(write->pid));
+	deserializar_uint32_t(&stream, &(write->resultado));
+	deserializar_uint32_t(&stream, &(write->registro_direccion));
+	deserializar_uint32_t(&stream, &(write->registro_tamanio));
+	deserializar_uint32_t(&stream, &(write->marco));
+	deserializar_uint32_t(&stream, &(write->numero_pagina));
+	deserializar_uint32_t(&stream, &(write->direccion_fisica));
+	deserializar_uint32_t(&stream, &(write->desplazamiento));
+	deserializar_uint32_t(&stream, &(write->size_interfaz));
+
+	// Registros CPU
+	deserializar_uint32_t(&stream, &(write->registros.pc));
+	deserializar_uint32_t(&stream, &(write->registros.eax));
+	deserializar_uint32_t(&stream, &(write->registros.ebx));
+	deserializar_uint32_t(&stream, &(write->registros.ecx));
+	deserializar_uint32_t(&stream, &(write->registros.edx));
+	deserializar_uint32_t(&stream, &(write->registros.si));
+	deserializar_uint32_t(&stream, &(write->registros.di));
+	deserializar_uint8_t(&stream, &(write->registros.ax));
+	deserializar_uint8_t(&stream, &(write->registros.bx));
+	deserializar_uint8_t(&stream, &(write->registros.cx));
+	deserializar_uint8_t(&stream, &(write->registros.dx));
+
+	deserializar_char(&stream, &(write->interfaz), write->size_interfaz);
+	return write;
+}
+
 void serializar_t_kernel_io_interrupcion(t_paquete **paquete, t_kernel_io_interrupcion *interrupcion)
 {
 	actualizar_buffer(*paquete, sizeof(uint32_t) + sizeof(uint32_t) + interrupcion->len_motivo);

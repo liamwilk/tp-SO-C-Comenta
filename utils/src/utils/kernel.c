@@ -286,7 +286,6 @@ t_pcb *kernel_transicion_ready_exec(hilos_args *kernel_hilos_args)
 
 t_pcb *kernel_transicion_block_ready(hilos_args *kernel_hilos_args, uint32_t pid)
 {
-
     pthread_mutex_lock(&kernel_hilos_args->estados->mutex_block_ready);
     t_pcb *proceso = proceso_remover_block(kernel_hilos_args->estados, pid);
     if (proceso == NULL)

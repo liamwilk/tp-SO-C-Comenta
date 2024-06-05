@@ -4,7 +4,7 @@ void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *mod
 {
     switch (codigo_operacion)
     {
-    case KERNEL_ENTRADA_SALIDA_IDENTIFICACION:
+    case ENTRADA_SALIDA_KERNEL_IDENTIFICACION:
     {
         t_entrada_salida_identificacion *identificacion = deserializar_t_entrada_salida_identificacion(buffer);
 
@@ -49,14 +49,12 @@ void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *mod
         if (unidad->terminado)
         {
             kernel_manejar_ready(io_args->args, unidad->pid, BLOCK_READY);
-            avisar_planificador(io_args->args);
         }
         else
         {
             kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/%s/%d] La interfaz me aviso que la ejecucion de la instruccion IO_GEN_SLEEP fue interrumpida antes de finalizar.", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden);
-            avisar_planificador(io_args->args);
         }
-
+        avisar_planificador(io_args->args);
         free(unidad);
         break;
     }

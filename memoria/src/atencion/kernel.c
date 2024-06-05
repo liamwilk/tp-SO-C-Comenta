@@ -20,7 +20,29 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 		t_proceso *proceso = malloc(sizeof(t_proceso));
 		proceso->pc = dato->program_counter;
 		proceso->pid = dato->pid;
-		tabla_paginas_inicializar(argumentos,proceso);
+		proceso->bytes_usados = 0;
+
+		// Inicializo la tabla de paginas asociada al proceso
+		tabla_paginas_inicializar(argumentos, proceso);
+
+		/* Caso prueba espacio de usuario:
+		{ 
+			// Se deben asignar las paginas al proceso antes de escribirlas
+			t_pagina *pagina1 = tabla_paginas_asignar_pagina(argumentos, proceso, 0, 0);
+			t_pagina *pagina2 = tabla_paginas_asignar_pagina(argumentos, proceso, 1, 1);
+			t_pagina *pagina3 = tabla_paginas_asignar_pagina(argumentos, proceso, 2, 2);
+
+			char *cadena = "CURSADA DE SISTEMAS OPERATIVOS 1c 2024";
+
+			// Se deben actualizar los bytes usados del proceso cada vez que se escriba
+			espacio_usuario_escribir_char(argumentos, 0, cadena);
+			proceso->bytes_usados += strlen(cadena);
+
+			// Se pueden obtener los marcos de inicio y fin de la escritura, y con esto todos los marcos que se ocuparon
+			int marco_inicio_escritura = espacio_usuario_escribir_dato_frame_inicio(argumentos, 0, strlen(cadena));
+			int marco_fin_escritura = espacio_usuario_escribir_dato_frame_fin(argumentos, 0, strlen(cadena));
+		}
+		*/
 
 		// Leo las instrucciones del archivo y las guardo en la lista de instrucciones del proceso
 		proceso->instrucciones = leer_instrucciones(argumentos, path_completo, proceso->pid);

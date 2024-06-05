@@ -54,6 +54,7 @@ typedef struct
     uint32_t pc;
     t_list *instrucciones;
     t_list *tabla_paginas;
+    int bytes_usados;
     pthread_mutex_t mutex_tabla_paginas;
 } t_proceso;
 
@@ -480,7 +481,7 @@ int tabla_paginas_acceder_pagina(t_args *argumentos, t_proceso *proceso, uint32_
  * @param numero_pagina Número de página a asignar.
  * @param numero_marco Número de marco a asignar a la página.
  */
-void tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina, uint32_t numero_marco);
+t_pagina *tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina, uint32_t numero_marco);
 
 void agregar_identificador(t_args_hilo *argumentos, char *identificador);
 void avisar_rechazo_identificador_memoria(int socket);
@@ -504,6 +505,7 @@ void espacio_usuario_escribir_generic(t_args *args, uint32_t direccion_fisica, v
  * Escribe un valor de tipo uint32_t en la dirección física especificada.
  *
  * @param args Puntero a la estructura de argumentos.
+ * @param pagina Puntero a la página donde se escribirá el valor.
  * @param direccion_fisica Dirección física donde se escribirá el valor.
  * @param valor Valor a escribir.
  */
@@ -638,5 +640,11 @@ int tabla_paginas_resize(t_args *args, t_proceso *proceso, uint32_t bytes_nuevos
 int tabla_paginas_bytes_ocupados(t_args *args, t_proceso *proceso);
 
 int espacio_usuario_bytes_disponibles(t_args *args);
+
+int espacio_usuario_frame_bytes(t_args *args, uint32_t frame);
+
+uint32_t espacio_usuario_escribir_dato_frame_inicio(t_args *args, uint32_t direccion_fisica, size_t tamano);
+
+uint32_t espacio_usuario_escribir_dato_frame_fin(t_args *args, uint32_t direccion_fisica, size_t tamano);
 
 #endif // MEMORIA_H

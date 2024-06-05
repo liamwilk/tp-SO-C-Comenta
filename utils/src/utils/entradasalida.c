@@ -337,7 +337,7 @@ int inicializar_modulo_interfaz(t_io *args, int argc, char *argv[], timer_args_i
 void *atender_kernel_generic(void *args_void)
 {
     t_io *args = (t_io *)args_void;
-    interfaz_identificar(KERNEL_ENTRADA_SALIDA_IDENTIFICACION, args->identificador, args->sockets.socket_kernel_generic);
+    interfaz_identificar(ENTRADA_SALIDA_KERNEL_IDENTIFICACION, args->identificador, args->sockets.socket_kernel_generic);
     hilo_ejecutar_interfaz(args, &args->sockets.socket_kernel_generic, "Kernel Generic", switch_case_kernel_generic);
     pthread_exit(0);
 }
@@ -345,7 +345,7 @@ void *atender_kernel_generic(void *args_void)
 void *atender_kernel_dialfs(void *args_void)
 {
     t_io *args = (t_io *)args_void;
-    interfaz_identificar(KERNEL_ENTRADA_SALIDA_IDENTIFICACION, args->identificador, args->sockets.socket_kernel_dialfs);
+    interfaz_identificar(ENTRADA_SALIDA_KERNEL_IDENTIFICACION, args->identificador, args->sockets.socket_kernel_dialfs);
     hilo_ejecutar_interfaz(args, &args->sockets.socket_kernel_dialfs, "Kernel DialFS", switch_case_kernel_dialfs);
     pthread_exit(0);
 }
@@ -353,7 +353,7 @@ void *atender_kernel_dialfs(void *args_void)
 void *atender_kernel_stdin(void *args_void)
 {
     t_io *args = (t_io *)args_void;
-    interfaz_identificar(KERNEL_ENTRADA_SALIDA_IDENTIFICACION, args->identificador, args->sockets.socket_kernel_stdin);
+    interfaz_identificar(ENTRADA_SALIDA_KERNEL_IDENTIFICACION, args->identificador, args->sockets.socket_kernel_stdin);
     hilo_ejecutar_interfaz(args, &args->sockets.socket_kernel_stdin, "Kernel STDIN", switch_case_kernel_stdin);
     pthread_exit(0);
 }
@@ -361,7 +361,7 @@ void *atender_kernel_stdin(void *args_void)
 void *atender_kernel_stdout(void *args_void)
 {
     t_io *args = (t_io *)args_void;
-    interfaz_identificar(KERNEL_ENTRADA_SALIDA_IDENTIFICACION, args->identificador, args->sockets.socket_kernel_stdout);
+    interfaz_identificar(ENTRADA_SALIDA_KERNEL_IDENTIFICACION, args->identificador, args->sockets.socket_kernel_stdout);
     hilo_ejecutar_interfaz(args, &args->sockets.socket_kernel_stdout, "Kernel STDOUT", switch_case_kernel_stdout);
     pthread_exit(0);
 }
