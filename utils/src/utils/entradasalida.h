@@ -20,6 +20,8 @@
 #include <utils/serial.h>
 #include <commons/process.h>
 #include <utils/template.h>
+#include <time.h>
+#include <signal.h>
 
 typedef struct
 {
@@ -43,8 +45,24 @@ typedef struct
     pthread_t thread_conectar_kernel_dialfs, thread_atender_kernel_dialfs;
 } t_threads;
 
+typedef struct
+{
+    timer_t timer;
+    struct sigevent sev;
+    struct itimerspec its;
+} t_timer;
+
+typedef enum
+{
+    GEN,
+    STDOUT,
+    STDIN,
+    DIALFS
+} t_interfaz;
+
 typedef struct t_io
 {
+    t_timer timer;
     t_log *logger;
     t_config *config;
     t_sockets sockets;
@@ -60,17 +78,17 @@ typedef struct t_io
     int blockCount;
     int retrasoCompactacion;
     char *identificador;
+    int pid;
+    int duracion;
+    int unidades;
 } t_io;
 
-typedef enum
-{
-    GEN,
-    STDOUT,
-    STDIN,
-    DIALFS
-} t_interfaz;
-
 typedef void (*t_io_funcion_hilo_ptr)(t_io *, t_op_code, t_buffer *);
+
+typedef struct
+{
+    t_io *args;
+} timer_args_io_t;
 
 void *conectar_kernel_stdin(void *args);
 void *conectar_memoria_stdin(void *args);
@@ -114,7 +132,7 @@ void interfaz_identificar(t_op_code opcode, char *identificador, int socket);
 void inicializar_argumentos(t_io *args, char *argv[]);
 void inicializar_interfaz(t_io *io);
 void finalizar_interfaz(t_io *args);
-int inicializar_modulo_interfaz(t_io *args, int argc, char *argv[]);
+int inicializar_modulo_interfaz(t_io *args, int argc, char *argv[], timer_args_io_t *temporizador);
 
 void switch_case_kernel_generic(t_io *args, t_op_code codigo_operacion, t_buffer *buffer);
 void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer *buffer);
@@ -125,5 +143,10 @@ void switch_case_memoria_stdout(t_io *args, t_op_code codigo_operacion, t_buffer
 void switch_case_memoria_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer *buffer);
 
 void hilo_ejecutar_interfaz(t_io *args, int *socket, char *modulo, t_io_funcion_hilo_ptr switch_case_atencion);
+
+void interfaz_iniciar_temporizador(t_io *args, int duracion);
+void interfaz_inicializar_temporizador(t_io *args, timer_args_io_t *temporizador);
+void interfaz_manejador_temporizador(union sigval arg);
+void interfaz_interrumpir_temporizador(t_io *args);
 
 #endif // ENTRADASALIDA_H

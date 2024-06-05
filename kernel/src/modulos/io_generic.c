@@ -30,14 +30,16 @@ void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *mod
     {
         t_entrada_salida_kernel_unidad_de_trabajo *unidad = deserializar_t_entrada_salida_kernel_unidad_de_trabajo(buffer);
 
+        io_args->entrada_salida->ocupado = 0;
+        io_args->entrada_salida->pid = 0;
+
         // Verifico si este proceso no ha ya sido marcado como eliminado  en kernel
         t_pcb *pcb = proceso_buscar_exit(io_args->args->estados, unidad->pid);
+
         if (pcb != NULL)
         {
             // Si tenemos RR o VRR finalizo el timer
             interrumpir_temporizador(io_args->args);
-            io_args->entrada_salida->ocupado = 0;
-            io_args->entrada_salida->pid = 0;
             proceso_matar(io_args->args->estados, string_itoa(pcb->pid));
             kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INTERRUPTED_BY_USER>", pid);
             avisar_planificador(io_args->args);
@@ -46,9 +48,12 @@ void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *mod
 
         if (unidad->terminado)
         {
-            io_args->entrada_salida->ocupado = 0;
             kernel_manejar_ready(io_args->args, unidad->pid, BLOCK_READY);
-            io_args->entrada_salida->pid = 0;
+            avisar_planificador(io_args->args);
+        }
+        else
+        {
+            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/%s/%d] La interfaz me aviso que la ejecucion de la instruccion IO_GEN_SLEEP fue interrumpida antes de finalizar.", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden);
             avisar_planificador(io_args->args);
         }
 

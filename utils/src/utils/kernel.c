@@ -915,10 +915,13 @@ void kernel_interrumpir_io(hilos_args *args, uint32_t pid, char *motivo)
     t_kernel_io_interrupcion interrupcion = {.pid = pid, .motivo = motivo, .len_motivo = strlen(motivo) + 1};
     serializar_t_kernel_io_interrupcion(&paquete, &interrupcion);
 
-    // Buscar la io correspondiente y su socket
     t_kernel_entrada_salida *io = kernel_entrada_salida_buscar_interfaz(args, pid);
+
+    io->ocupado = 0;
+    io->pid = 0;
+
     enviar_paquete(paquete, io->socket);
-    free(paquete);
+    eliminar_paquete(paquete);
 }
 
 void kernel_transicion_block_exit(hilos_args *kernel_hilos_args, uint32_t pid)

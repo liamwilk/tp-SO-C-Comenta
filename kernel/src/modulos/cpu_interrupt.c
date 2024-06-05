@@ -7,8 +7,6 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
     {
         t_cpu_kernel_io_gen_sleep *sleep = deserializar_t_cpu_kernel_io_gen_sleep(buffer);
 
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se recibio la instruccion de IO_GEN_SLEEP de %d milisegundos para el PID %d en la interfaz %s", sleep->tiempo, sleep->pid, sleep->interfaz);
-
         t_kernel_entrada_salida *entrada_salida = entrada_salida_buscar_interfaz(args, sleep->interfaz);
 
         t_pcb *pcb = proceso_buscar_exec(args->estados, sleep->pid);
@@ -16,60 +14,60 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         if (pcb == NULL)
         {
             kernel_log_generic(args, LOG_LEVEL_ERROR, "[KERNEL/IO_GEN_SLEEP] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", sleep->pid);
+            free(sleep);
             break;
         }
 
         if (entrada_salida == NULL)
         {
-            interrumpir_temporizador(args);
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque no existe.", sleep->interfaz);
+            pcb->quantum = interrumpir_temporizador(args);
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar la instrucción <IO_GEN_SLEEP> <%s> <%d> del PID <%d> a la interfaz <%s> porque no está conectada.", sleep->interfaz, sleep->tiempo, sleep->pid, sleep->interfaz);
             kernel_finalizar_proceso(args, sleep->pid, INVALID_INTERFACE);
+            free(sleep);
             break;
         }
 
         if (entrada_salida->tipo != ENTRADA_SALIDA_GENERIC)
         {
-            interrumpir_temporizador(args);
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque no es del tipo IO_GENERIC.", sleep->interfaz);
+            pcb->quantum = interrumpir_temporizador(args);
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar la instrucción <IO_GEN_SLEEP> <%s> <%d> del PID <%d> a la interfaz <%s> porque no es IO_GENERIC.", sleep->interfaz, sleep->tiempo, sleep->pid, sleep->interfaz);
             kernel_finalizar_proceso(args, sleep->pid, INVALID_INTERFACE);
+            free(sleep);
             break;
         }
 
         if (entrada_salida->ocupado)
         {
-            interrumpir_temporizador(args);
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque esta ocupada con el proceso %d.", sleep->interfaz, entrada_salida->pid);
+            pcb->quantum = interrumpir_temporizador(args);
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar la instrucción <IO_GEN_SLEEP> <%s> <%d> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", sleep->interfaz, sleep->tiempo, sleep->pid, sleep->interfaz, entrada_salida->pid);
             kernel_finalizar_proceso(args, sleep->pid, INVALID_INTERFACE);
+            free(sleep);
             break;
         }
+
+        pcb->quantum = interrumpir_temporizador(args);
+        proceso_actualizar_registros(pcb, sleep->registros);
 
         entrada_salida->ocupado = 1;
         entrada_salida->pid = sleep->pid;
 
+        kernel_transicion_exec_block(args);
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Retransmito instruccion <IO_GEN_SLEEP> <%s> <%d> del PID <%d> a interfaz <%s>", sleep->interfaz, sleep->tiempo, sleep->pid, sleep->interfaz);
+
         t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP);
-
         t_kernel_entrada_salida_unidad_de_trabajo *unidad = malloc(sizeof(t_kernel_entrada_salida_unidad_de_trabajo));
-
         unidad->pid = sleep->pid;
         unidad->unidad_de_trabajo = sleep->tiempo;
 
         serializar_t_kernel_entrada_salida_unidad_de_trabajo(&paquete, unidad);
 
-        // 2000
-        int quantum_restante = interrumpir_temporizador(args);
-        pcb->quantum = quantum_restante;
-        kernel_transicion_exec_block(args);
-        proceso_actualizar_registros(pcb, sleep->registros);
-
         enviar_paquete(paquete, entrada_salida->socket);
-
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio la instruccion de IO_GEN_SLEEP de %d milisegundos para el PID %d en la interfaz %s", sleep->tiempo, sleep->pid, sleep->interfaz);
         sem_post(&args->kernel->planificador_iniciar);
-
         eliminar_paquete(paquete);
 
         free(unidad);
-
+        free(sleep);
         break;
     }
     default:
