@@ -157,14 +157,13 @@ void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, t_pcb *pcb, int qua
 void manejador_interrupciones(union sigval arg)
 {
     timer_args_t *timerArgs = (timer_args_t *)arg.sival_ptr;
-    t_pcb *pcb = list_get(timerArgs->args->estados->exec, 0);
-    if (pcb == NULL)
+
+    if (list_size(timerArgs->args->estados->exec) > 0)
     {
-        // Finalizaron el proceso en el medio de la ejecucion antes de que termine el quantum
-        return;
+        t_pcb *pcb = list_get(timerArgs->args->estados->exec, 0);
+        kernel_log_generic(timerArgs->args, LOG_LEVEL_INFO, "PID: <%d> - Desalojado por fin de Quantum", pcb->pid);
+        kernel_interrumpir_cpu(timerArgs->args, pcb->pid, "FIN DE QUANTUM");
     }
-    kernel_log_generic(timerArgs->args, LOG_LEVEL_INFO, "PID: <%d> - Desalojado por fin de Quantum", pcb->pid);
-    kernel_interrumpir_cpu(timerArgs->args, pcb->pid, "FIN DE QUANTUM");
 }
 
 // Interrumpe el temporizador y devuelve el quantum restante
