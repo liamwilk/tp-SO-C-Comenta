@@ -196,7 +196,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         }
 
         t_pcb *pcb = proceso_buscar_exec(args->estados, proceso->pid);
-        if (proceso->ejecutado)
+        if (proceso->ejecutado == 1)
         {
             // Checkeo que ese proceso se encuentre en exec antes de finalizarlo
             if (pcb != NULL)
