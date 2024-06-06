@@ -65,6 +65,10 @@ t_pcb *buscar_proceso(t_diagrama_estados *estados, uint32_t pid)
             if (pcb == NULL)
             {
                 pcb = proceso_buscar_block(estados, pid);
+                if (pcb == NULL)
+                {
+                    pcb = proceso_buscar_exit(estados, pid);
+                }
             }
         }
     }

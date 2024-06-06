@@ -49,21 +49,8 @@ void fifo(hilos_args *hiloArgs);
  */
 void round_robin(hilos_args *hiloArgs);
 
-/**
- * @brief Función que avisa al planificador para que realice la planificación.
- *
- * Esta función se utiliza para notificar al planificador que debe realizar la planificación
- * de los hilos en el sistema.
- */
-void avisar_planificador();
+void virtual_round_robin(hilos_args *hiloArgs);
 
-typedef enum
-{
-    FIFO,
-    RR,
-    VRR
-} t_algoritmo;
-
-t_algoritmo determinar_algoritmo(hilos_args *args);
+void avisar_planificador(hilos_args *hilos_args);
 
 #endif /* PLANIFICACION_H_ */

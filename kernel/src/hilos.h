@@ -149,14 +149,6 @@ void *hilos_esperar_entrada_salida(void *args);
 void *hilo_planificador(void *args);
 
 /**
- * @brief Función que determina el algoritmo a utilizar.
- *
- * @param args Argumentos necesarios para la determinación del algoritmo.
- * @return t_algoritmo Algoritmo seleccionado.
- */
-t_algoritmo determinar_algoritmo(hilos_args *args);
-
-/**
  * @brief Función que inicializa los hilos relacionados con la memoria.
  *
  * @param args Argumentos necesarios para la inicialización de los hilos.

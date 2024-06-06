@@ -12,7 +12,7 @@ t_pcb *pcb_crear(t_log *logger, int quantum)
     t_registros_cpu *registros_cpu = malloc(sizeof(t_registros_cpu));
     *registros_cpu = (t_registros_cpu){.pc = 0, .eax = 0, .ebx = 0, .ecx = 0, .edx = 0, .si = 0, .di = 0, .ax = 0, .bx = 0, .cx = 0, .dx = 0};
     t_pcb *nuevo_pcb = malloc(sizeof(t_pcb));
-    *nuevo_pcb = (t_pcb){.pid = new_pid(), .quantum = quantum, .registros_cpu = registros_cpu, .memoria_aceptado = false};
+    *nuevo_pcb = (t_pcb){.pid = new_pid(), .quantum = quantum, .registros_cpu = registros_cpu, .memoria_aceptado = false, .sleeping_thread = PTHREAD_CREATE_JOINABLE};
     return nuevo_pcb;
 };
 
@@ -155,6 +155,15 @@ t_pcb *proceso_buscar_ready(t_diagrama_estados *estados, int pid)
             return proceso;
         }
     }
+    // Buscamos en la cola de ready mayor prioridad
+    for (int i = 0; i < list_size(estados->ready_mayor_prioridad); i++)
+    {
+        t_pcb *proceso = list_get(estados->ready_mayor_prioridad, i);
+        if (proceso->pid == pid)
+        {
+            return proceso;
+        }
+    }
     return NULL;
 }
 
@@ -278,3 +287,102 @@ t_list *proceso_obtener_estado(t_diagrama_estados *estados, char *estado)
         return NULL;
     }
 };
+
+void proceso_push_cola_prioritaria(t_diagrama_estados *estados, t_pcb *pcb)
+{
+    list_add(estados->ready_mayor_prioridad, pcb);
+
+    // Añado el proceso al diccionario de procesos, mapeando el PID a la posición en la lista de procesos
+    char *pid_char = string_itoa(pcb->pid);
+
+    // Actualizo el diccionario de procesos
+    char *estado = "READY_PRIORIDAD";
+    dictionary_put(estados->procesos, pid_char, estado);
+}
+
+t_pcb *proceso_pop_cola_prioritaria(t_diagrama_estados *estados)
+{
+    if (list_size(estados->ready_mayor_prioridad) == 0)
+    {
+        return NULL;
+    }
+    t_pcb *elem = list_get(estados->ready_mayor_prioridad, 0);
+    list_remove(estados->ready_mayor_prioridad, 0);
+    return elem;
+}
+
+void proceso_actualizar_registros(t_pcb *pcb, t_registros_cpu registros_cpu)
+{
+    pcb->registros_cpu->pc = registros_cpu.pc;
+    pcb->registros_cpu->eax = registros_cpu.eax;
+    pcb->registros_cpu->ebx = registros_cpu.ebx;
+    pcb->registros_cpu->ecx = registros_cpu.ecx;
+    pcb->registros_cpu->edx = registros_cpu.edx;
+    pcb->registros_cpu->si = registros_cpu.si;
+    pcb->registros_cpu->di = registros_cpu.di;
+    pcb->registros_cpu->ax = registros_cpu.ax;
+    pcb->registros_cpu->bx = registros_cpu.bx;
+    pcb->registros_cpu->cx = registros_cpu.cx;
+    pcb->registros_cpu->dx = registros_cpu.dx;
+}
+
+t_algoritmo determinar_algoritmo(char *algoritmoPlanificador)
+{
+    if (strcmp(algoritmoPlanificador, "FIFO") == 0)
+    {
+        return FIFO;
+    }
+    else if (strcmp(algoritmoPlanificador, "RR") == 0)
+    {
+        return RR;
+    }
+    else if (strcmp(algoritmoPlanificador, "VRR") == 0)
+    {
+        return VRR;
+    }
+    return -1;
+}
+
+bool proceso_tiene_prioridad(char *algoritmoPlanificador, int quantum_restante)
+{
+    t_algoritmo ALGORITMO = determinar_algoritmo(algoritmoPlanificador);
+    // !! Se establece un offset de 100 milisegundos o más para considerar que un proceso tiene prioridad
+    if (ALGORITMO == VRR && quantum_restante > 100)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+t_pcb *proceso_buscar(t_diagrama_estados *estados, uint32_t pid)
+{
+    t_pcb *proceso = proceso_buscar_new(estados, pid);
+    if (proceso != NULL)
+    {
+        return proceso;
+    }
+    proceso = proceso_buscar_ready(estados, pid);
+    if (proceso != NULL)
+    {
+        return proceso;
+    }
+    proceso = proceso_buscar_exec(estados, pid);
+    if (proceso != NULL)
+    {
+        return proceso;
+    }
+    proceso = proceso_buscar_block(estados, pid);
+    if (proceso != NULL)
+    {
+        return proceso;
+    }
+    proceso = proceso_buscar_exit(estados, pid);
+    if (proceso != NULL)
+    {
+        return proceso;
+    }
+    return NULL;
+}

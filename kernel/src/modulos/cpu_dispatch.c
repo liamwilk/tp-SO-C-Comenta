@@ -27,6 +27,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
             eliminar_paquete(paquete);
 
+            kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
+
             free(proceso_enviar->motivo);
             free(proceso_enviar);
             free(proceso_recibido->interfaz);
@@ -52,6 +54,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
             eliminar_paquete(paquete);
 
+            kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
+
             free(proceso_enviar->motivo);
             free(proceso_enviar);
             free(proceso_recibido->interfaz);
@@ -76,6 +80,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             serializar_t_kernel_cpu_io_stdout_write(&paquete, proceso_enviar);
             enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
             eliminar_paquete(paquete);
+
+            kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
 
             free(proceso_enviar->motivo);
             free(proceso_enviar);
@@ -152,6 +158,12 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         RESIZE (Tamaño): Solicitará a la Memoria ajustar el tamaño del proceso al tamaño pasado por parámetro. En caso de que la respuesta de la memoria sea Out of Memory, se deberá devolver el contexto de ejecución al Kernel informando de esta situación.
         */
 
+        t_pcb *proceso_en_exec = proceso_buscar_exec(args->estados, proceso_recibido->pid);
+        if (proceso_en_exec == NULL)
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch/RESIZE] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
+        }
+
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Registros del proceso <%d>:", proceso_recibido->pid);
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "PC: %d", proceso_recibido->registros.pc);
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "AX: %d", proceso_recibido->registros.ax);
@@ -166,7 +178,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "DI: %d", proceso_recibido->registros.di);
 
         // TODO: Preguntar que se hace en este caso? El proceso va a exit?
-        kernel_transicion_exec_exit(args);
+        proceso_en_exec->quantum = interrumpir_temporizador(args);
+        kernel_finalizar_proceso(args, proceso_recibido->pid, SUCCESS);
 
         free(proceso_recibido->motivo);
         free(proceso_recibido);
@@ -177,49 +190,38 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         t_cpu_kernel_proceso *proceso = deserializar_t_cpu_kernel_proceso(buffer);
 
         // Este caso se da cuando el usuario interrumpio a CPU para finalizar un proceso
-        t_pcb *pcb = proceso_buscar_exit(args->estados, proceso->pid);
-        // Se verifica que el proceso que se deseo eliminar es el que cpu esta devolviendo y que ademas se encuentra en la cola de exit
-        if (pcb != NULL)
+        t_pcb *proceso_en_exit = proceso_buscar_exit(args->estados, proceso->pid);
+        if (proceso_en_exit != NULL)
         {
-            kernel_log_generic(args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INTERRUPTED_BY_USER>", pid);
-            proceso_matar(args->estados, string_itoa(pcb->pid));
+            // Detener QUANTUM si es RR o VRR
+            kernel_log_generic(args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> - Motivo: <INTERRUPTED_BY_USER>", proceso_en_exit->pid);
+            proceso_matar(args->estados, string_itoa(proceso_en_exit->pid));
             free(proceso);
+            avisar_planificador(args);
             break;
         }
 
-        if (proceso->ejecutado == 1) // El proceso se ejecuto completo
+        t_pcb *pcb = proceso_buscar_exec(args->estados, proceso->pid);
+        if (proceso->ejecutado == 1)
         {
-            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso PID:<%d> ejecutado completo. Transicionar a exit", proceso->pid);
-
+            // Checkeo que ese proceso se encuentre en exec antes de finalizarlo
+            if (pcb != NULL)
+            {
+                interrumpir_temporizador(args);
+            }
             kernel_finalizar_proceso(args, proceso->pid, SUCCESS);
-
             kernel_avisar_memoria_finalizacion_proceso(args, proceso->pid);
-
-            sem_post(&args->kernel->planificador_iniciar);
         }
         else if (proceso->ejecutado == 2) // El proceso se ejecuto parcialmente por interrupcion
         {
-            // Actualizo los registros del proceso en exec con los que me envia la CPU
-            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Actualizo registros recibidos de PID <%d> por interrupcion.", proceso->pid);
-
-            // Envio el proceso a ready desde exec
-            t_pcb *pcb = kernel_transicion_exec_ready(args);
-
-            // Actualizo los registros del pcb por los recibios de CPU
-            pcb->registros_cpu->ax = proceso->registros.ax;
-            pcb->registros_cpu->bx = proceso->registros.bx;
-            pcb->registros_cpu->cx = proceso->registros.cx;
-            pcb->registros_cpu->dx = proceso->registros.dx;
-            pcb->registros_cpu->pc = proceso->registros.pc;
-            pcb->registros_cpu->eax = proceso->registros.eax;
-            pcb->registros_cpu->ebx = proceso->registros.ebx;
-            pcb->registros_cpu->ecx = proceso->registros.ecx;
-            pcb->registros_cpu->edx = proceso->registros.edx;
-            pcb->registros_cpu->si = proceso->registros.si;
-            pcb->registros_cpu->di = proceso->registros.di;
-
-            // Vuelvo a iniciar el planificador
-            sem_post(&args->kernel->planificador_iniciar);
+            if (pcb == NULL)
+            {
+                kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso->pid);
+                break;
+            }
+            // Actualizo los registros del pcb por los recibidos de CPU
+            proceso_actualizar_registros(pcb, proceso->registros);
+            kernel_manejar_ready(args, pcb->pid, EXEC_READY);
         }
         else if (proceso->ejecutado == 0) // La ejecucion del proceso fallo
         {
@@ -232,6 +234,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             sem_post(&args->kernel->planificador_iniciar);
         }
 
+        avisar_planificador(args);
         free(proceso);
         break;
     }

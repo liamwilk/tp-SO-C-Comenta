@@ -119,12 +119,20 @@ typedef struct t_kernel
 
 typedef struct
 {
+    timer_t timer;
+    struct sigevent sev;
+    struct itimerspec its;
+    struct itimerspec quantum_restante; // Esto es el quantum restante del ultimo proceso en exec
     t_log *logger;
     t_kernel *kernel;
     t_diagrama_estados *estados;
     int kernel_orden_apagado;
 } hilos_args;
 
+typedef struct
+{
+    hilos_args *args;
+} timer_args_t;
 typedef struct
 {
     hilos_args *args;
@@ -167,7 +175,7 @@ t_diagrama_estados kernel_inicializar_estados(t_diagrama_estados *estados);
  * @param kernel_hilos_args Son los argumentos que recibe cada hilo al momento de ejecutarse
  * @param pid Proceso a desalojar
  */
-void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, uint32_t pid);
+void kernel_desalojar_proceso(hilos_args *kernel_hilos_args, t_pcb *pcb, int quantum);
 
 /**
  * Transiciona un PCB del estado EXEC al estado READY en el diagrama de estados del kernel.
@@ -186,7 +194,17 @@ t_pcb *kernel_transicion_exec_ready(hilos_args *kernel_hilos_args);
  */
 t_pcb *kernel_transicion_ready_exec(hilos_args *kernel_hilos_args);
 
-t_pcb *kernel_transicion_block_ready(hilos_io_args *io_args, char *modulo, uint32_t pid);
+/**
+ * Transiciona un proceso del estado bloqueado al estado listo en el kernel.
+ *
+ * Esta función toma como parámetros un diagrama de estados y un logger. Extrae un proceso del estado bloqueado,
+ * lo coloca en el estado listo y devuelve el proceso. Si no hay procesos en el estado bloqueado, devuelve NULL.
+ *
+ * @param kernel_hilos_args Son los argumentos que recibe cada hilo al momento de ejecutarse
+ * @param modulo
+ * @param unidad
+ */
+t_pcb *kernel_transicion_block_ready(hilos_args *kernel_hilos_args, uint32_t pid);
 
 /**
  * @brief Función de transición para ejecutar un bloque en el kernel.
@@ -233,13 +251,12 @@ void kernel_finalizar(hilos_args *args);
  * @return Un puntero a la estructura de entrada/salida encontrada, o NULL si no se encuentra.
  */
 t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz);
-
 /**
  * @brief Función para registrar el estado de un hilo listo para ejecutar.
  *
  * @param kernel_hilos_args Estructura de argumentos del kernel.
  */
-void log_ready(hilos_args *kernel_hilos_args);
+void log_ready(hilos_args *kernel_hilos_args, bool prioridad);
 
 /**
  * @brief Función para finalizar un proceso en el kernel.
@@ -465,4 +482,30 @@ void kernel_transicion_block_exit(hilos_args *kernel_hilos_args, uint32_t pid);
  * @return Un puntero a la interfaz t_kernel_entrada_salida encontrada, o NULL si no se encuentra.
  */
 t_kernel_entrada_salida *kernel_entrada_salida_buscar_interfaz(hilos_args *args, uint32_t pid);
+
+/**Virtual Round Robin**/
+t_pcb *kernel_transicion_block_ready_mayor_prioridad(hilos_args *kernel_hilos_args, uint32_t pid);
+t_pcb *kernel_transicion_exec_ready_mayor_prioridad(hilos_args *kernel_hilos_args);
+t_pcb *kernel_transicion_ready_exec_mayor_prioridad(hilos_args *kernel_hilos_args);
+
+typedef enum
+{
+    EXEC_READY,
+    BLOCK_READY,
+} t_transiciones_ready;
+
+void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready TRANSICION);
+
+typedef struct t_fin_quantum
+{
+    hilos_args *kernel_hilos_args;
+    uint32_t pid;
+    t_temporal *temporal;
+} t_fin_quantum;
+
+void manejador_interrupciones(union sigval arg);
+int interrumpir_temporizador(hilos_args *args);
+void inicializar_temporizador(hilos_args *args, timer_args_t *temporizador);
+void iniciar_temporizador(hilos_args *args, int duracion);
+
 #endif /* KERNEL_H */

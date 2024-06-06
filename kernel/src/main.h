@@ -12,7 +12,10 @@
 #include "hilos.h"
 #include "pthread.h"
 #include <semaphore.h>
+#include <time.h>
+#include <signal.h>
 
+timer_args_t temporizador;
 t_kernel kernel;
 t_log *logger;
 t_config *config;

@@ -320,13 +320,15 @@ void finalizar_interfaz(t_io *args)
     config_destroy(args->config);
 }
 
-int inicializar_modulo_interfaz(t_io *args, int argc, char *argv[])
+int inicializar_modulo_interfaz(t_io *args, int argc, char *argv[], timer_args_io_t *temporizador)
 {
     if (verificar_argumentos(argc))
     {
         return -1;
     }
+    temporizador->args = args;
     inicializar_argumentos(args, argv);
+    interfaz_inicializar_temporizador(args, temporizador);
     inicializar_interfaz(args);
     finalizar_interfaz(args);
     return 0;
@@ -386,4 +388,105 @@ void *atender_memoria_stdout(void *args_void)
     interfaz_identificar(MEMORIA_ENTRADA_SALIDA_IDENTIFICACION, args->identificador, args->sockets.socket_memoria_stdout);
     hilo_ejecutar_interfaz(args, &args->sockets.socket_memoria_stdout, "Memoria STDOUT", switch_case_memoria_stdout);
     pthread_exit(0);
+}
+
+void interfaz_interrumpir_temporizador(t_io *args)
+{
+    if (timer_delete(args->timer.timer) == -1)
+    {
+        log_debug(args->logger, "Error al eliminar el temporizador");
+        return;
+    }
+}
+
+void interfaz_iniciar_temporizador(t_io *args, int duracion)
+{
+    // Crea el temporizador
+    timer_create(CLOCK_REALTIME, &args->timer.sev, &args->timer.timer);
+
+    switch (determinar_interfaz(args->config))
+    {
+    case GEN:
+    {
+        // Convierto el tiempo de milisegundos a segundos
+        args->duracion = (duracion * args->tiempoUnidadDeTrabajo) / 1000;
+        break;
+    }
+    case STDIN:
+    {
+        // Placehodler
+        break;
+    }
+    case STDOUT:
+    {
+        // Placeholder
+        break;
+    }
+    case DIALFS:
+    {
+        // Placeholder
+        break;
+    }
+    }
+
+    // Configura el tiempo de inicio y el intervalo del temporizador
+    args->timer.its.it_value.tv_sec = args->duracion;
+    args->timer.its.it_value.tv_nsec = 0;
+    args->timer.its.it_interval.tv_sec = 0;
+    args->timer.its.it_interval.tv_nsec = 0;
+
+    // Inicia el temporizador
+    timer_settime(args->timer.timer, 0, &args->timer.its, NULL);
+}
+
+void interfaz_inicializar_temporizador(t_io *args, timer_args_io_t *temporizador)
+{
+    // Configura la estructura sigevent
+    args->timer.sev.sigev_notify = SIGEV_THREAD;
+    args->timer.sev.sigev_value.sival_ptr = temporizador;
+    args->timer.sev.sigev_notify_function = interfaz_manejador_temporizador;
+    args->timer.sev.sigev_notify_attributes = NULL;
+}
+
+void interfaz_manejador_temporizador(union sigval arg)
+{
+    timer_args_io_t *timerArgs = (timer_args_io_t *)arg.sival_ptr;
+
+    switch (determinar_interfaz(timerArgs->args->config))
+    {
+    case GEN:
+    {
+        // Convierto el tiempo de milisegundos a segundos
+        t_paquete *aviso_sleep = crear_paquete(ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP);
+        t_entrada_salida_kernel_unidad_de_trabajo *unidad = malloc(sizeof(t_entrada_salida_kernel_unidad_de_trabajo));
+
+        unidad->terminado = true;
+        unidad->pid = timerArgs->args->pid;
+
+        serializar_t_entrada_salida_kernel_unidad_de_trabajo(&aviso_sleep, unidad);
+
+        enviar_paquete(aviso_sleep, timerArgs->args->sockets.socket_kernel_generic);
+
+        log_info(timerArgs->args->logger, "Se notifica finalizacion de instruccion <IO_GEN_SLEEP> <%s> <%d> del PID <%d>", timerArgs->args->identificador, timerArgs->args->unidades, timerArgs->args->pid);
+
+        eliminar_paquete(aviso_sleep);
+        free(unidad);
+        break;
+    }
+    case STDIN:
+    {
+        // Placehodler
+        break;
+    }
+    case STDOUT:
+    {
+        // Placeholder
+        break;
+    }
+    case DIALFS:
+    {
+        // Placeholder
+        break;
+    }
+    }
 }

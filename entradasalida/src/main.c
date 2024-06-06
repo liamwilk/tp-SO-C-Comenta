@@ -4,7 +4,7 @@
 
 int main(int argc, char *argv[])
 {	
-	if(inicializar_modulo_interfaz(&entradasalida, argc, argv) == -1){
+	if(inicializar_modulo_interfaz(&entradasalida, argc, argv, &temporizador) == -1){
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
