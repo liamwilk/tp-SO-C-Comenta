@@ -2,7 +2,6 @@
 
 int instruccion_ejecutar(t_cpu *args)
 {
-    remover_salto_linea(args->instruccion.array[args->instruccion.cantidad_elementos - 1]);
     log_instruccion(args);
 
     switch (args->tipo_instruccion)

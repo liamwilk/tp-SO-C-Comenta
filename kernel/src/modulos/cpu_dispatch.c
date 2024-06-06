@@ -27,6 +27,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
             eliminar_paquete(paquete);
 
+            kernel_finalizar_proceso(args, sleep->pid, INVALID_INTERFACE);
+
             free(proceso_enviar->motivo);
             free(proceso_enviar);
             free(proceso_recibido->interfaz);
@@ -52,6 +54,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
             eliminar_paquete(paquete);
 
+            kernel_finalizar_proceso(args, sleep->pid, INVALID_INTERFACE);
+
             free(proceso_enviar->motivo);
             free(proceso_enviar);
             free(proceso_recibido->interfaz);
@@ -76,6 +80,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             serializar_t_kernel_cpu_io_stdout_write(&paquete, proceso_enviar);
             enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
             eliminar_paquete(paquete);
+
+            kernel_finalizar_proceso(args, sleep->pid, INVALID_INTERFACE);
 
             free(proceso_enviar->motivo);
             free(proceso_enviar);
