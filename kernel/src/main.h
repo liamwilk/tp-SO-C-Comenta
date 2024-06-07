@@ -14,6 +14,7 @@
 #include <semaphore.h>
 #include <time.h>
 #include <signal.h>
+#include "recursos.h"
 
 timer_args_t temporizador;
 t_kernel kernel;
@@ -21,6 +22,7 @@ t_log *logger;
 t_config *config;
 hilos_args args;
 t_diagrama_estados estados;
+t_dictionary *recursos;
 
 void terminar_programa(int, t_log *, t_config *);
 

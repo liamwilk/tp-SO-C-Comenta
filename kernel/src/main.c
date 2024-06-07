@@ -11,10 +11,13 @@ int main(int argc, char *argv[])
 	inicializar_args();
 	inicializar_semaforos();
 	inicializar_temporizador(&args, &temporizador);
-
 	pthread_mutex_init(&kernel.lock, NULL);
 
 	kernel_log(&args);
+
+	recursos = dictionary_create();
+	recursos_inicializar(recursos, kernel.instanciasRecursos, kernel.recursos);
+	recursos_log(&args, recursos);
 
 	// Inicializo las estructuras que almacenan e identifican los sockets de entrada/salida
 	kernel.sockets.dictionary_entrada_salida = dictionary_create();
