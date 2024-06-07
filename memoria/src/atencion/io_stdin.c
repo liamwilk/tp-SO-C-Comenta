@@ -12,7 +12,7 @@ void switch_case_memoria_entrada_salida_stdin(t_args_hilo *argumentos, char *mod
 
 		t_proceso *proceso = buscar_proceso(argumentos->argumentos, paquete_recibido->pid);
 
-		log_debug(argumentos->argumentos->logger, "Se recibio la solicitud de escritura de %d bytes en la direccion fisica %d", paquete_recibido->size_input, paquete_recibido->direccion_fisica);
+		log_debug(argumentos->argumentos->logger, "Se recibio la solicitud de escritura de %d bytes en la direccion fisica %d", paquete_recibido->size_input-1, paquete_recibido->direccion_fisica);
 		
 		espacio_usuario_escribir_char(argumentos->argumentos, paquete_recibido->direccion_fisica, paquete_recibido->input);
 		proceso->bytes_usados += paquete_recibido->size_input;

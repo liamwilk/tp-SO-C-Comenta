@@ -22,6 +22,8 @@
 #include <utils/template.h>
 #include <time.h>
 #include <signal.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 typedef struct
 {
@@ -148,5 +150,7 @@ void interfaz_iniciar_temporizador(t_io *args, int duracion);
 void interfaz_inicializar_temporizador(t_io *args, timer_args_io_t *temporizador);
 void interfaz_manejador_temporizador(union sigval arg);
 void interfaz_interrumpir_temporizador(t_io *args);
+
+char *leer_input_usuario(uint32_t size_input);
 
 #endif // ENTRADASALIDA_H
