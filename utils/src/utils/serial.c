@@ -1230,7 +1230,7 @@ t_kernel_cpu_io_stdin_read *deserializar_t_kernel_cpu_io_stdin_read(t_buffer *bu
 
 void serializar_t_kernel_io_stdin_read(t_paquete **paquete, t_kernel_io_stdin_read *read)
 {
-	actualizar_buffer(*paquete, sizeof(uint32_t) * 16 + sizeof(uint8_t) * 4 + read->size_interfaz + sizeof(read->input));
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 16 + sizeof(uint8_t) * 4 + read->size_interfaz);
 	serializar_uint32_t(read->pid, *paquete);
 	serializar_uint32_t(read->resultado, *paquete);
 	serializar_uint32_t(read->registro_direccion, *paquete);
@@ -1256,7 +1256,6 @@ void serializar_t_kernel_io_stdin_read(t_paquete **paquete, t_kernel_io_stdin_re
 	serializar_uint8_t(read->registros.dx, *paquete);
 
 	serializar_char(read->interfaz, *paquete);
-	serializar_char(read->input, *paquete);
 }
 
 t_kernel_io_stdin_read *deserializar_t_kernel_io_stdin_read(t_buffer *buffer)
@@ -1288,15 +1287,15 @@ t_kernel_io_stdin_read *deserializar_t_kernel_io_stdin_read(t_buffer *buffer)
 	deserializar_uint8_t(&stream, &(read->registros.dx));
 
 	deserializar_char(&stream, &(read->interfaz), read->size_interfaz);
-	deserializar_char(&stream, &(read->input), sizeof(read->input));
 	return read;
 }
 
 void serializar_t_io_memoria_stdin(t_paquete **paquete, t_io_memoria_stdin *read)
 {
-	actualizar_buffer(*paquete, sizeof(uint32_t) * 2 + sizeof(read->input));
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 4 + read->size_input);
 	serializar_uint32_t(read->pid, *paquete);
 	serializar_uint32_t(read->direccion_fisica, *paquete);
+	serializar_uint32_t(read->size_input, *paquete);
 	serializar_char(read->input, *paquete);
 }
 
@@ -1307,7 +1306,8 @@ t_io_memoria_stdin *deserializar_t_io_memoria_stdin(t_buffer *buffer)
 
 	deserializar_uint32_t(&stream, &(read->pid));
 	deserializar_uint32_t(&stream, &(read->direccion_fisica));
-	deserializar_char(&stream, &(read->input), sizeof(read->input));
+	deserializar_uint32_t(&stream, &(read->size_input));
+	deserializar_char(&stream, &(read->input), read->size_input);
 	return read;
 }
 

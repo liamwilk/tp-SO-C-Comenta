@@ -146,7 +146,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 	{
 		t_io_stdin_read *proceso_recibido = deserializar_t_io_stdin_read(buffer);
 
-		log_debug(argumentos->logger, "Se recibio una peticion de busqueda de marco en la página <%d> del proceso PID <%d>", proceso_recibido->pid, proceso_recibido->numero_pagina);
+		log_debug(argumentos->logger, "Se recibio una peticion de asignacion de marco de <%d> bytes para el proceso PID <%d>", proceso_recibido->registro_tamanio, proceso_recibido->pid);
 
 		// Busco el proceso en la lista de procesos globales
 		t_proceso *proceso = buscar_proceso(argumentos, proceso_recibido->pid);
@@ -184,75 +184,28 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		}
 
 		// Si el proceso existe, hay que verificar si la pagina solicitada existe
-		int numero_marco = tabla_paginas_acceder_pagina(argumentos, proceso, proceso_recibido->numero_pagina);
 
-		// Si la pagina no existe, se envia un mensaje a CPU
-		if (numero_marco == -1)
-		{
-			log_error(argumentos->logger, "No se encontro la pagina %d para el proceso con PID <%d> asociado a IO_STDIN_READ", proceso_recibido->numero_pagina, proceso_recibido->pid);
+		/* TODO: La funcion espacio_usuario_buscar_frame solo te encuentra un frame disponible del tamaño maximo del tamaño de marco, por lo que si le pedis que busque un frame para 30 bytes teniendo un tamaño de marco de 16 bytes, te va a a dar error. 
 
-			t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_STDIN_READ);
-			t_io_stdin_read *proceso_enviar = malloc(sizeof(t_io_stdin_read));
+		Hay que calcular los frames necesarios para el tamaño de marco a partir de la direccion fisica y el tamaño, asignarselos al proceso PID y luego devolverle el marco inicial a CPU para que escriba, dado que esos marcos ya le pertenencen al proceso.
+		*/
 
-			proceso_enviar->pid = proceso_recibido->pid;
-			proceso_enviar->resultado = 0;
-			proceso_enviar->marco = proceso_recibido->marco;
-			proceso_enviar->interfaz = strdup(proceso_recibido->interfaz);
-			proceso_enviar->size_interfaz = proceso_recibido->size_interfaz;
-			proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
-			proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
-			proceso_enviar->registro_tamanio = proceso_recibido->registro_tamanio;
-			proceso_enviar->registros = proceso_recibido->registros;
+		t_frame_disponible *frame = espacio_usuario_buscar_frame(argumentos, proceso_recibido->registro_tamanio);
 
-			serializar_t_io_stdin_read(&paquete, proceso_enviar);
-			enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
-			eliminar_paquete(paquete);
-
-			free(proceso_enviar->interfaz);
-			free(proceso_enviar);
-			free(proceso_recibido->interfaz);
+		// Si no se encuentra un frame disponible
+		if(frame == NULL){
+			log_error(argumentos->logger, "No se encontro un frame disponible para el proceso con PID <%d> y tamaño <%d>", proceso_recibido->pid, proceso_recibido->registro_tamanio);
 			free(proceso_recibido);
-			break;
-		}
 
-		// Verifico si los bytes a leer del marco asociado a la pagina pertenecen al proceso
-
-		log_debug(argumentos->logger, "Bytes usados por el proceso: %d", proceso->bytes_usados);
-		log_debug(argumentos->logger, "Bytes solicitados por CPU: %d", proceso_recibido->registro_tamanio);
-
-		if (proceso_recibido->registro_tamanio > proceso->bytes_usados)
-		{
-			log_error(argumentos->logger, "Se solicito leer <%d> bytes del proceso PID <%d> pero el proceso solo escribio <%d> bytes", proceso_recibido->registro_tamanio, proceso_recibido->pid, proceso->bytes_usados);
-
-			// Notifico a CPU que el tamaño solicitado a leer no coincide con lo que fue escrito por el proceso
-			t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_STDIN_READ);
-			t_io_stdin_read *proceso_enviar = malloc(sizeof(t_io_stdin_read));
-
-			proceso_enviar->pid = proceso_recibido->pid;
-			proceso_enviar->resultado = 0;
-			proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
-			proceso_enviar->registro_tamanio = proceso_recibido->registro_tamanio;
-			proceso_enviar->marco = proceso_recibido->marco;
-			proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
-			proceso_enviar->direccion_fisica = proceso_recibido->direccion_fisica;
-			proceso_enviar->desplazamiento = proceso_recibido->desplazamiento;
-			proceso_enviar->size_interfaz = proceso_recibido->size_interfaz;
-			proceso_enviar->interfaz = strdup(proceso_recibido->interfaz);
-			proceso_enviar->registros = proceso_recibido->registros;
-
-			serializar_t_io_stdin_read(&paquete, proceso_enviar);
-			enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
-			eliminar_paquete(paquete);
-
-			free(proceso_enviar->interfaz);
-			free(proceso_enviar);
-			free(proceso_recibido->interfaz);
-			free(proceso_recibido);
+			// Falta notificar a CPU
 
 			break;
 		}
 
-		// Si la pagina existe y los bytes a leer pertenecen al proceso, se envia el marco encontrado de la tabla de paginas a CPU
+		// Le asigno el marco y pagina al proceso
+		tabla_paginas_asignar_pagina(argumentos, proceso, frame->direccion_fisica, frame->frame);
+
+		// Notifico a CPU que se asigno el marco
 		t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_STDIN_READ);
 		t_io_stdin_read *proceso_enviar = malloc(sizeof(t_io_stdin_read));
 
@@ -260,7 +213,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		proceso_enviar->resultado = 1;
 		proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
 		proceso_enviar->registro_tamanio = proceso_recibido->registro_tamanio;
-		proceso_enviar->marco = numero_marco;
+		proceso_enviar->marco = frame->frame;
 		proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
 		proceso_enviar->direccion_fisica = proceso_recibido->direccion_fisica;
 		proceso_enviar->desplazamiento = proceso_recibido->desplazamiento;
@@ -277,6 +230,8 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 
 		free(proceso_recibido->interfaz);
 		free(proceso_recibido);
+
+		free(frame);
 		break;
 	}
 	case CPU_MEMORIA_RESIZE:

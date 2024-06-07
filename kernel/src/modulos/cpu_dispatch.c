@@ -236,32 +236,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         entrada_salida->ocupado = 1;
         entrada_salida->pid = proceso_recibido->pid;
 
-        // Se permite el ingreso por consola del usuario
-        char *input = NULL;
-
-        while (sizeof(input) < proceso_recibido->registro_tamanio)
-        {
-            input = readline(generar_prompt());
-            if (input && *input)
-            {
-                add_history(input);
-                continue;
-            }
-
-            if (input == NULL || *input == '\0')
-            {
-                free(input);
-                continue;
-            }
-
-            if (sizeof(input) > proceso_recibido->registro_tamanio)
-            {
-                log_error(args->logger, "El tamaño del input ingresado por consola supera el tamaño del registro solicitado por el proceso.");
-            }
-
-            log_error(args->logger, "Error al leer la linea ingresada por consola.");
-        }
-
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envia el paquete a la interfaz <%s> asociado a la instruccion IO_STDIN_READ del proceso PID <%d>", proceso_recibido->interfaz, proceso_recibido->pid);
 
         t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_STDIN_READ);
@@ -277,7 +251,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         proceso_completo->desplazamiento = proceso_recibido->desplazamiento;
         proceso_completo->size_interfaz = proceso_recibido->size_interfaz;
         proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
-        proceso_completo->input = strdup(input);
         proceso_completo->registros = proceso_recibido->registros;
 
         // Actualizo los registros del proceso en Kernel
@@ -310,7 +283,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         free(proceso_recibido->interfaz);
         free(proceso_recibido);
-        free(input);
 
         break;
     }

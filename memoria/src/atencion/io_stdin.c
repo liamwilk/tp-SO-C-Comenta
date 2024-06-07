@@ -8,11 +8,14 @@ void switch_case_memoria_entrada_salida_stdin(t_args_hilo *argumentos, char *mod
 	{
 		t_io_memoria_stdin *paquete_recibido = deserializar_t_io_memoria_stdin(buffer);
 
-		log_debug(argumentos->argumentos->logger, "Se recibio la solicitud de escritura de %ld bytes en la direccion fisica %d", sizeof(paquete_recibido->input), paquete_recibido->direccion_fisica);
+		log_debug(argumentos->argumentos->logger, "Se solicito escribir en el espacio de usuario asociado a la direccion fisica <%d> la siguiente cadena: <%s>", paquete_recibido->direccion_fisica, paquete_recibido->input);
 
+		t_proceso *proceso = buscar_proceso(argumentos->argumentos, paquete_recibido->pid);
+
+		log_debug(argumentos->argumentos->logger, "Se recibio la solicitud de escritura de %d bytes en la direccion fisica %d", paquete_recibido->size_input, paquete_recibido->direccion_fisica);
+		
 		espacio_usuario_escribir_char(argumentos->argumentos, paquete_recibido->direccion_fisica, paquete_recibido->input);
-
-		log_debug(argumentos->argumentos->logger, "Se escribio en el espacio de usuario asociado a la direccion fisica %d la siguiente cadena: %s", paquete_recibido->direccion_fisica, paquete_recibido->input);
+		proceso->bytes_usados += paquete_recibido->size_input;
 
 		t_paquete *paquete = crear_paquete(MEMORIA_ENTRADA_SALIDA_IO_STDIN_READ);
 		t_memoria_entrada_salida_io_stdin_read *paquete_enviar = malloc(sizeof(t_memoria_entrada_salida_io_stdin_read));

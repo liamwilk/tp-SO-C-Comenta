@@ -8,26 +8,34 @@ void switch_case_kernel_stdin(t_io *args, t_op_code codigo_operacion, t_buffer *
     {
         t_kernel_io_stdin_read *proceso_recibido = deserializar_t_kernel_io_stdin_read(buffer);
 
-        log_debug(args->logger, "Se recibio orden de ejecucion de instruccion IO_STDIN_READ asociado al proceso PID <%d>", proceso_recibido->pid);
+        log_debug(args->logger, "Se recibio orden de lectura por pantalla asociada a <IO_STDIN_READ> del proceso PID <%d>", proceso_recibido->pid);
 
-        // Imprimo la direccion fisica recibida en proceos_recibido
-        log_debug(args->logger, "Direccion fisica recibida a escribir: <%d>", proceso_recibido->direccion_fisica);
-        // Imprimo el tamaño en bytes
-        log_debug(args->logger, "Tamaño a escribir: <%ld>", sizeof(proceso_recibido->input));
+        
+        /* TODO: Implementar lectura de input del usuario desde la terminal
+        
+        Hacer una funcion que lea desde el input de usuario y devuelva un char* con el input.
+        Se debe tener en cuenta que el input debe ser de un tamaño determinado y que si se excede, se debe devolver un error y que vuelva a intentar.
+        */
 
-        // Solicito a Memoria el dato de la direccion fisica recibida
+        // Esto simula el input de usuario
+        char* input="hola";
+
+
+        // Send input to memory
         t_paquete *paquete = crear_paquete(ENTRADA_SALIDA_MEMORIA_IO_STDIN_READ);
         t_io_memoria_stdin *paquete_enviar = malloc(sizeof(t_io_memoria_stdin));
 
         paquete_enviar->pid = proceso_recibido->pid;
         paquete_enviar->direccion_fisica = proceso_recibido->direccion_fisica;
-        paquete_enviar->input = strdup(proceso_recibido->input);
+        paquete_enviar->input = strdup(input);
+        paquete_enviar->size_input = strlen(paquete_enviar->input) + 1;
 
         serializar_t_io_memoria_stdin(&paquete, paquete_enviar);
-        enviar_paquete(paquete, args->sockets.socket_memoria_stdout);
+        enviar_paquete(paquete, args->sockets.socket_memoria_stdin);
         eliminar_paquete(paquete);
-        
+
         free(paquete_enviar);
+
         free(proceso_recibido->interfaz);
         free(proceso_recibido);
 
