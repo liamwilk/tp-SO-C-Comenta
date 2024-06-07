@@ -516,9 +516,15 @@ int interrumpir_temporizador(hilos_args *args);
 void inicializar_temporizador(hilos_args *args, timer_args_t *temporizador);
 void iniciar_temporizador(hilos_args *args, int duracion);
 
+typedef enum t_recurso_motivo_liberacion
+{
+    SIGNAL_RECURSO,
+    INTERRUPCION
+} t_recurso_motivo_liberacion;
+
 void recurso_ocupar_instancia(hilos_args *args, t_dictionary *recursoDiccionario, uint32_t pid, char *recursoSolicitado);
 
-void recurso_liberar_instancia(hilos_args *args, t_dictionary *recursos, uint32_t pid, char *recurso);
+void recurso_liberar_instancia(hilos_args *args, t_dictionary *recursos, uint32_t pid, char *recurso, t_recurso_motivo_liberacion MOTIVO);
 
 void recursos_log(hilos_args *args);
 
@@ -526,6 +532,6 @@ void recursos_inicializar(t_dictionary *diccionario_recursos, char *instanciasRe
 
 t_recurso *recurso_buscar(t_dictionary *diccionario_recursos, char *recursoSolicitado);
 
-char *recurso_esta_bloqueado(t_dictionary *recursos, uint32_t pid);
+char *recurso_esta_bloqueado(hilos_args *args, uint32_t pid);
 
 #endif /* KERNEL_H */

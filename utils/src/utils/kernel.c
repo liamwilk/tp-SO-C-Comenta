@@ -520,12 +520,11 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
             kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "El proceso <%d> se encuentra bloqueado, se procede a desbloquearlo", pid);
             kernel_transicion_block_exit(kernel_hilos_args, pid);
             // Verificamos que el proceso este blockeado por recurso y no por I/O
-            // TODO: Esto sigue tirando segmentation fault, hay que arreglarlo
-            char *recurso_bloqueado = recurso_esta_bloqueado(kernel_hilos_args->recursos, pid);
+            char *recurso_bloqueado = recurso_esta_bloqueado(kernel_hilos_args, pid);
             if (recurso_bloqueado != NULL)
             {
                 kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "El proceso <%d> se encuentra bloqueado por recurso <%s>", pid, recurso_bloqueado);
-                recurso_liberar_instancia(kernel_hilos_args, kernel_hilos_args->recursos, pid, recurso_bloqueado);
+                recurso_liberar_instancia(kernel_hilos_args, kernel_hilos_args->recursos, pid, recurso_bloqueado, INTERRUPCION);
             }
             else
             {
@@ -1177,13 +1176,12 @@ void recurso_ocupar_instancia(hilos_args *args, t_dictionary *recursoDiccionario
     return;
 }
 
-void recurso_liberar_instancia(hilos_args *args, t_dictionary *recursoDiccionario, uint32_t pid, char *recurso)
+void recurso_liberar_instancia(hilos_args *args, t_dictionary *recursoDiccionario, uint32_t pid, char *recurso, t_recurso_motivo_liberacion MOTIVO)
 {
     t_recurso *recurso_encontrado = recurso_buscar(recursoDiccionario, recurso);
     if (recurso_encontrado == NULL)
     {
         kernel_log_generic(args, LOG_LEVEL_ERROR, "No se encontro el recurso <%s> solicitado por CPU", recurso);
-        // Se debe transicionar a exit
         kernel_finalizar_proceso(args, pid, INVALID_RESOURCE);
     };
 
@@ -1193,12 +1191,19 @@ void recurso_liberar_instancia(hilos_args *args, t_dictionary *recursoDiccionari
     {
         t_pcb *pcb = list_remove(recurso_encontrado->procesos_bloqueados, 0);
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se desbloquea el proceso <%d> por liberacion de recurso <%s>", pcb->pid, recurso);
-        kernel_manejar_ready(args, pcb->pid, BLOCK_READY);
+        if (MOTIVO == SIGNAL_RECURSO)
+        {
+            // Mando a ready el que esta bloqueado pues se libero un recurso
+            kernel_manejar_ready(args, pcb->pid, BLOCK_READY);
+        }
+        else
+        {
+            // Solamente libero el recurso ya que lo mande a exit el proceso
+            return;
+        }
     }
-    else
-    {
-        kernel_manejar_ready(args, pid, EXEC_READY);
-    }
+
+    kernel_manejar_ready(args, pid, EXEC_READY);
     return;
 }
 
@@ -1245,13 +1250,13 @@ t_recurso *recurso_buscar(t_dictionary *diccionario_recursos, char *recursoSolic
 }
 
 // Devuelve el recurso que tiene bloqueado a un proceso o NULL si no esta bloqueado ese proceso con ningun recurso
-char *recurso_esta_bloqueado(t_dictionary *diccionario_recursos, uint32_t pid)
+char *recurso_esta_bloqueado(hilos_args *args, uint32_t pid)
 {
-    t_list *keys = dictionary_keys(diccionario_recursos);
+    t_list *keys = dictionary_keys(args->recursos);
     for (int i = 0; i < list_size(keys); i++)
     {
         char *key = list_get(keys, i);
-        t_recurso *recurso = dictionary_get(diccionario_recursos, key);
+        t_recurso *recurso = dictionary_get(args->recursos, key);
         for (int j = 0; j < list_size(recurso->procesos_bloqueados); j++)
         {
             t_pcb *pcb = list_get(recurso->procesos_bloqueados, j);
