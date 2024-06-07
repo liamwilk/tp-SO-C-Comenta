@@ -12,11 +12,11 @@ void hilos_ejecutar_entrada_salida(hilos_io_args *io_args, char *modulo, t_funci
         {
             if (io_args->entrada_salida->identificado)
             {
-                kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/%s/Orden %d] Esperando paquete en socket %d", modulo, io_args->entrada_salida->interfaz, orden, *socket);
+                log_debug(io_args->args->logger, "[%s/%s/Orden %d] Esperando paquete en socket %d", modulo, io_args->entrada_salida->interfaz, orden, *socket);
             }
             else
             {
-                kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/%d] Esperando identificador en socket %d", modulo, orden, *socket);
+                log_debug(io_args->args->logger, "[%s/%d] Esperando identificador en socket %d", modulo, orden, *socket);
             }
         }
 
@@ -29,11 +29,11 @@ void hilos_ejecutar_entrada_salida(hilos_io_args *io_args, char *modulo, t_funci
             {
                 if (io_args->entrada_salida->identificado)
                 {
-                    kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/%s/%d] Se desconecto.", modulo, io_args->entrada_salida->interfaz, orden);
+                    log_info(io_args->args->logger, "[%s/%s/%d] Se desconecto.", modulo, io_args->entrada_salida->interfaz, orden);
                 }
                 else
                 {
-                    kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/%d] Se desconecto.", modulo, orden);
+                    log_info(io_args->args->logger, "[%s/%d] Se desconecto.", modulo, orden);
                 }
             }
             break;
@@ -78,36 +78,36 @@ t_pcb *buscar_proceso(t_diagrama_estados *estados, uint32_t pid)
 void imprimir_logo(hilos_args *args)
 {
 
-    kernel_log_generic(args, LOG_LEVEL_INFO, "              _                 _ _ _   _____ _____");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "             | |               | (_) | |  _  /  ___|");
-    kernel_log_generic(args, LOG_LEVEL_INFO, " _ __ ___  __| | ___  _ __   __| |_| |_| | | \\ `--. ");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "| '__/ _ \\/ _` |/ _ \\| '_ \\ / _` | | __| | | |`--. \\");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "| | |  __/ (_| | (_) | | | | (_| | | |_\\ \\_/ /\\__/ /");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "|_|  \\___|\\__,_|\\___/|_| |_|\\__,_|_|\\__|\\___/\\____/");
-    kernel_log_generic(args, LOG_LEVEL_INFO, " ");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "---------------------------------------------------------------");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "Implementación de C-Comenta - www.faq.utnso.com.ar/tp-c-comenta");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "Sistemas Operativos - 1C 2024 - UTN FRBA");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "---------------------------------------------------------------");
-    kernel_log_generic(args, LOG_LEVEL_INFO, " ");
+    log_info(args->logger, "              _                 _ _ _   _____ _____");
+    log_info(args->logger, "             | |               | (_) | |  _  /  ___|");
+    log_info(args->logger, " _ __ ___  __| | ___  _ __   __| |_| |_| | | \\ `--. ");
+    log_info(args->logger, "| '__/ _ \\/ _` |/ _ \\| '_ \\ / _` | | __| | | |`--. \\");
+    log_info(args->logger, "| | |  __/ (_| | (_) | | | | (_| | | |_\\ \\_/ /\\__/ /");
+    log_info(args->logger, "|_|  \\___|\\__,_|\\___/|_| |_|\\__,_|_|\\__|\\___/\\____/");
+    log_info(args->logger, " ");
+    log_info(args->logger, "---------------------------------------------------------------");
+    log_info(args->logger, "Implementación de C-Comenta - www.faq.utnso.com.ar/tp-c-comenta");
+    log_info(args->logger, "Sistemas Operativos - 1C 2024 - UTN FRBA");
+    log_info(args->logger, "---------------------------------------------------------------");
+    log_info(args->logger, " ");
 }
 
 void imprimir_comandos(hilos_args *args)
 {
-    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ EJECUTAR_SCRIPT <path>");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ INICIAR_PROCESO <path>");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ FINALIZAR_PROCESO <PID>");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ DETENER_PLANIFICACION");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ INICIAR_PLANIFICACION");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ MULTIPROGRAMACION <grado>");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ PROCESO_ESTADO <PID>");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ FINALIZAR");
+    log_info(args->logger, "└─ EJECUTAR_SCRIPT <path>");
+    log_info(args->logger, "└─ INICIAR_PROCESO <path>");
+    log_info(args->logger, "└─ FINALIZAR_PROCESO <PID>");
+    log_info(args->logger, "└─ DETENER_PLANIFICACION");
+    log_info(args->logger, "└─ INICIAR_PLANIFICACION");
+    log_info(args->logger, "└─ MULTIPROGRAMACION <grado>");
+    log_info(args->logger, "└─ PROCESO_ESTADO <PID>");
+    log_info(args->logger, "└─ FINALIZAR");
 }
 
 void imprimir_header(hilos_args *args)
 {
     imprimir_logo(args);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "Comandos disponibles:");
+    log_info(args->logger, "Comandos disponibles:");
     imprimir_comandos(args);
 }
 
@@ -115,13 +115,13 @@ void hilo_ejecutar_kernel(int socket, hilos_args *args, char *modulo, t_funcion_
 {
     while (1)
     {
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Esperando paquete de %s en socket %d", modulo, socket);
+        log_debug(args->logger, "Esperando paquete de %s en socket %d", modulo, socket);
 
         t_paquete *paquete = recibir_paquete(args->logger, &socket);
 
         if (paquete == NULL)
         {
-            kernel_log_generic(args, LOG_LEVEL_WARNING, "%s se desconecto.", modulo);
+            log_warning(args->logger, "%s se desconecto.", modulo);
             break;
         }
 
@@ -133,16 +133,16 @@ void hilo_ejecutar_kernel(int socket, hilos_args *args, char *modulo, t_funcion_
     }
     sem_post(&args->kernel->sistema_finalizar);
 
-    kernel_log_generic(args, LOG_LEVEL_DEBUG, "Finalizando hilo de atencion a %s", modulo);
+    log_debug(args->logger, "Finalizando hilo de atencion a %s", modulo);
 }
 
 void revisar_paquete_kernel(hilos_args *args, t_paquete *paquete, char *modulo)
 {
     if (paquete->codigo_operacion != FINALIZAR_SISTEMA)
     {
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Paquete recibido de modulo %s", modulo);
+        log_debug(args->logger, "Paquete recibido de modulo %s", modulo);
         // kernel_log_generic(args, LOG_LEVEL_TRACE, "Deserializado del paquete:");
-        kernel_log_generic(args, LOG_LEVEL_TRACE, "Codigo de operacion: %d", paquete->codigo_operacion);
+        log_trace(args->logger, "Codigo de operacion: %d", paquete->codigo_operacion);
         // kernel_log_generic(args, LOG_LEVEL_TRACE, "Size del buffer en paquete: %d", paquete->size_buffer);
         // kernel_log_generic(args, LOG_LEVEL_TRACE, "Deserializado del buffer:");
         // kernel_log_generic(args, LOG_LEVEL_TRACE, "Size del stream: %d", paquete->buffer->size);
@@ -150,12 +150,12 @@ void revisar_paquete_kernel(hilos_args *args, t_paquete *paquete, char *modulo)
 
         if (paquete->size_buffer != paquete->buffer->size + (2 * sizeof(uint32_t)))
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "Error en el tamaño del buffer. Se esperaba %d y se recibio %ld", paquete->size_buffer, paquete->buffer->size + (2 * sizeof(uint32_t)));
+            log_error(args->logger, "Error en el tamaño del buffer. Se esperaba %d y se recibio %ld", paquete->size_buffer, paquete->buffer->size + (2 * sizeof(uint32_t)));
         }
     }
     else
     {
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Paquete de finalizacion recibido de modulo %s", modulo);
+        log_debug(args->logger, "Paquete de finalizacion recibido de modulo %s", modulo);
     }
 }
 
@@ -179,17 +179,17 @@ t_kernel kernel_inicializar(t_config *config)
 
 void kernel_log(hilos_args *args)
 {
-    kernel_log_generic(args, LOG_LEVEL_INFO, "PUERTO_ESCUCHA: %d", args->kernel->puertoEscucha);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "IP_MEMORIA: %s", args->kernel->ipMemoria);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "PUERTO_MEMORIA: %d", args->kernel->puertoMemoria);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "IP_CPU: %s", args->kernel->ipCpu);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "PUERTO_CPU_DISPATCH: %d", args->kernel->puertoCpuDispatch);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "PUERTO_CPU_INTERRUPT: %d", args->kernel->puertoCpuInterrupt);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "ALGORITMO_PLANIFICACION: %s", args->kernel->algoritmoPlanificador);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "QUANTUM: %d", args->kernel->quantum);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "RECURSOS: %s", args->kernel->recursos);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "INSTANCIAS_RECURSOS: %s", args->kernel->instanciasRecursos);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "GRADO_MULTIPROGRAMACION: %d", args->kernel->gradoMultiprogramacion);
+    log_info(args->logger, "PUERTO_ESCUCHA: %d", args->kernel->puertoEscucha);
+    log_info(args->logger, "IP_MEMORIA: %s", args->kernel->ipMemoria);
+    log_info(args->logger, "PUERTO_MEMORIA: %d", args->kernel->puertoMemoria);
+    log_info(args->logger, "IP_CPU: %s", args->kernel->ipCpu);
+    log_info(args->logger, "PUERTO_CPU_DISPATCH: %d", args->kernel->puertoCpuDispatch);
+    log_info(args->logger, "PUERTO_CPU_INTERRUPT: %d", args->kernel->puertoCpuInterrupt);
+    log_info(args->logger, "ALGORITMO_PLANIFICACION: %s", args->kernel->algoritmoPlanificador);
+    log_info(args->logger, "QUANTUM: %d", args->kernel->quantum);
+    log_info(args->logger, "RECURSOS: %s", args->kernel->recursos);
+    log_info(args->logger, "INSTANCIAS_RECURSOS: %s", args->kernel->instanciasRecursos);
+    log_info(args->logger, "GRADO_MULTIPROGRAMACION: %d", args->kernel->gradoMultiprogramacion);
 }
 
 t_kernel_sockets kernel_sockets_agregar(hilos_args *args, KERNEL_SOCKETS type, int socket)
@@ -232,13 +232,13 @@ t_kernel_entrada_salida *kernel_sockets_agregar_entrada_salida(hilos_args *args,
         entrada_salida = entrada_salida_agregar_interfaz(args, ENTRADA_SALIDA_DIALFS, socket);
         break;
     default:
-        kernel_log_generic(args, LOG_LEVEL_ERROR, "Tipo de socket de entrada/salida no reconocido");
+        log_error(args->logger, "Tipo de socket de entrada/salida no reconocido");
         break;
     }
 
     if (entrada_salida == NULL)
     {
-        kernel_log_generic(args, LOG_LEVEL_ERROR, "Error al agregar el socket de entrada/salida");
+        log_error(args->logger, "Error al agregar el socket de entrada/salida");
         return NULL;
     }
 
@@ -260,7 +260,7 @@ t_kernel_entrada_salida *entrada_salida_agregar_interfaz(hilos_args *args, KERNE
     entrada_salida->identificado = false;
     entrada_salida->valido = true;
 
-    kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida en el socket %d", socket);
+    log_debug(args->logger, "Se conecto un modulo de entrada/salida en el socket %d", socket);
 
     args->kernel->sockets.id_entrada_salida++;
     return entrada_salida;
@@ -280,7 +280,7 @@ void entrada_salida_remover_interfaz(hilos_args *args, char *identificador)
     // Obtengo el TAD de la lista de entrada/salida
     t_kernel_entrada_salida *entrada_salida = list_get(args->kernel->sockets.list_entrada_salida, *indice);
 
-    kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se remueve interfaz de entrada/salida %s", entrada_salida->interfaz);
+    log_debug(args->logger, "Se remueve interfaz de entrada/salida %s", entrada_salida->interfaz);
 
     // Cierro el socket de la entrada/salida del lado de Kernel
     liberar_conexion(&entrada_salida->socket);
@@ -319,7 +319,7 @@ t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *
         return NULL;
     }
 
-    kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se encontro el modulo de entrada/salida en el socket %d asociado a la interfaz %s", entrada_salida->socket, interfaz);
+    log_debug(args->logger, "Se encontro el modulo de entrada/salida en el socket %d asociado a la interfaz %s", entrada_salida->socket, interfaz);
 
     return entrada_salida;
 }
@@ -340,7 +340,7 @@ void entrada_salida_agregar_identificador(hilos_io_args *argumentos, char *ident
     // Guardo en el diccionario la key socket y el value indice para ubicarlo en la lista luego
     dictionary_put(argumentos->args->kernel->sockets.dictionary_entrada_salida, strdup(identificador), index);
 
-    kernel_log_generic(argumentos->args, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida en el socket %d", argumentos->entrada_salida->socket);
+    log_debug(argumentos->args->logger, "Se conecto un modulo de entrada/salida en el socket %d", argumentos->entrada_salida->socket);
 }
 
 void entrada_salida_procesar_rechazado(hilos_io_args *argumentos, char *identificador)

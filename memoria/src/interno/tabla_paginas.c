@@ -193,6 +193,7 @@ int tabla_paginas_acceder_pagina(t_args *argumentos, t_proceso *proceso, uint32_
 {
     if (numero_pagina >= list_size(proceso->tabla_paginas))
     {
+        log_error(argumentos->logger, "Tamaño lista: %d", list_size(proceso->tabla_paginas));
         log_error(argumentos->logger, "La página %d no existe en la tabla de páginas del proceso %d", numero_pagina, proceso->pid);
         return -1;
     }

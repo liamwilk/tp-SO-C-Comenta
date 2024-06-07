@@ -32,6 +32,15 @@ typedef enum
 	ENTRADA_SALIDA_KERNEL_IO_STDOUT_WRITE,
 	MEMORIA_ENTRADA_SALIDA_IO_STDOUT_WRITE,
 	KERNEL_CPU_IO_STDOUT_WRITE,
+	// IO_STDIN_READ ///////////////////
+	MEMORIA_CPU_IO_STDIN_READ,
+	CPU_MEMORIA_IO_STDIN_READ,
+	CPU_KERNEL_IO_STDIN_READ,
+	KERNEL_ENTRADA_SALIDA_IO_STDIN_READ,
+	ENTRADA_SALIDA_MEMORIA_IO_STDIN_READ,
+	ENTRADA_SALIDA_KERNEL_IO_STDIN_READ,
+	MEMORIA_ENTRADA_SALIDA_IO_STDIN_READ,
+	KERNEL_CPU_IO_STDIN_READ,
 	//////////////////////////////////////
 	ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP,
 	MEMORIA_KERNEL_NUEVO_PROCESO,
@@ -286,12 +295,71 @@ typedef struct
 	char *motivo;
 } t_kernel_cpu_io_stdout_write;
 
+typedef struct
+{
+	uint32_t pid;
+	uint32_t resultado;
+	uint32_t registro_direccion;
+	uint32_t registro_tamanio;
+	uint32_t marco;
+	uint32_t numero_pagina;
+	uint32_t direccion_fisica;
+	uint32_t desplazamiento;
+	uint32_t size_interfaz;
+	t_registros_cpu registros;
+	char *interfaz;
+} t_io_stdin_read;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t resultado;
+	uint32_t registro_direccion;
+	uint32_t registro_tamanio;
+	uint32_t marco;
+	uint32_t numero_pagina;
+	uint32_t direccion_fisica;
+	uint32_t desplazamiento;
+	uint32_t size_interfaz;
+	t_registros_cpu registros;
+	char *interfaz;
+	char *input;
+} t_kernel_io_stdin_read;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t direccion_fisica;
+	char *input;
+} t_io_memoria_stdin;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t resultado;
+} t_memoria_entrada_salida_io_stdin_read;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t resultado;
+} t_entrada_salida_kernel_io_stdin_read;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t resultado;
+	uint32_t size_motivo;
+	char *motivo;
+} t_kernel_cpu_io_stdin_read;
+
 /**
  * @fn    *crear_paquete
  * @brief Crea un paquete, y le asigna un buffer.
  * @param codigo_de_operacion t_op_code que va a tener el paquete.
  */
-t_paquete *crear_paquete(t_op_code codigo_de_operacion);
+t_paquete *
+crear_paquete(t_op_code codigo_de_operacion);
 
 /**
  * @fn    *serializar_paquete
@@ -837,44 +905,290 @@ void serializar_t_cpu_memoria_numero_marco(t_paquete **paquete, uint32_t pid, in
  */
 t_cpu_memoria_numero_frame *deserializar_t_cpu_memoria_numero_frame(t_buffer *buffer);
 
+/**
+ * @brief Serializa una estructura t_entrada_salida_identificacion en un paquete.
+ *
+ * @param paquete Doble puntero al paquete donde se almacenará la estructura serializada.
+ * @param identificacion Puntero a la estructura t_entrada_salida_identificacion a serializar.
+ */
 void serializar_t_entrada_salida_identificacion(t_paquete **paquete, t_entrada_salida_identificacion *identificacion);
 
+/**
+ * @brief Deserializa una estructura t_entrada_salida_identificacion desde un buffer.
+ *
+ * @param buffer Puntero al buffer que contiene la estructura serializada.
+ * @return Puntero a la estructura t_entrada_salida_identificacion deserializada.
+ */
 t_entrada_salida_identificacion *deserializar_t_entrada_salida_identificacion(t_buffer *buffer);
 
+/**
+ * @brief Serializa una estructura t_cpu_kernel_solicitud_recurso en un paquete.
+ *
+ * @param paquete Doble puntero al paquete donde se almacenará la estructura serializada.
+ * @param contexto Puntero a la estructura t_cpu_kernel_solicitud_recurso a serializar.
+ */
 void serializar_t_cpu_kernel_solicitud_recurso(t_paquete **paquete, t_cpu_kernel_solicitud_recurso *contexto);
 
+/**
+ * @brief Deserializa una estructura t_cpu_kernel_solicitud_recurso desde un buffer.
+ *
+ * @param buffer Puntero al buffer que contiene la estructura serializada.
+ * @return Puntero a la estructura t_cpu_kernel_solicitud_recurso deserializada.
+ */
 t_cpu_kernel_solicitud_recurso *deserializar_t_cpu_kernel_solicitud_recurso(t_buffer *buffer);
 
+/**
+ * @brief Deserializa una estructura t_cpu_memoria_resize desde un buffer.
+ *
+ * @param buffer Puntero al buffer que contiene la estructura serializada.
+ * @return Puntero a la estructura t_cpu_memoria_resize deserializada.
+ */
 t_cpu_memoria_resize *deserializar_t_cpu_memoria_resize(t_buffer *buffer);
 
+/**
+ * @brief Serializa una estructura t_cpu_memoria_resize en un paquete.
+ *
+ * @param paquete Doble puntero al paquete donde se almacenará la estructura serializada.
+ * @param resize Puntero a la estructura t_cpu_memoria_resize a serializar.
+ */
 void serializar_t_cpu_memoria_resize(t_paquete **paquete, t_cpu_memoria_resize *resize);
 
+/**
+ * @brief Deserializa una estructura t_memoria_cpu_resize desde un buffer.
+ *
+ * @param buffer Puntero al buffer que contiene la estructura serializada.
+ * @return Puntero a la estructura t_memoria_cpu_resize deserializada.
+ */
 t_memoria_cpu_resize *deserializar_t_memoria_cpu_resize(t_buffer *buffer);
 
+/**
+ * @brief Serializa una estructura t_memoria_cpu_resize en un paquete.
+ *
+ * @param paquete Doble puntero al paquete donde se almacenará la estructura serializada.
+ * @param resize Puntero a la estructura t_memoria_cpu_resize a serializar.
+ */
 void serializar_t_memoria_cpu_resize(t_paquete **paquete, t_memoria_cpu_resize *resize);
 
+/**
+ * @brief Serializa una estructura t_cpu_kernel_resize en un paquete.
+ *
+ * @param paquete Doble puntero al paquete donde se almacenará la estructura serializada.
+ * @param resize Puntero a la estructura t_cpu_kernel_resize a serializar.
+ */
 void serializar_t_cpu_kernel_resize(t_paquete **paquete, t_cpu_kernel_resize *resize);
 
+/**
+ * @brief Deserializa una estructura t_cpu_kernel_resize desde un buffer.
+ *
+ * @param buffer Puntero al buffer que contiene la estructura serializada.
+ * @return Puntero a la estructura t_cpu_kernel_resize deserializada.
+ */
 t_cpu_kernel_resize *deserializar_t_cpu_kernel_resize(t_buffer *buffer);
 
+/**
+ * @brief Deserializa una estructura t_io_stdout_write desde un buffer.
+ *
+ * @param buffer Puntero al buffer que contiene la estructura serializada.
+ * @return Puntero a la estructura t_io_stdout_write deserializada.
+ */
 t_io_stdout_write *deserializar_t_io_stdout_write(t_buffer *buffer);
 
+/**
+ * @brief Serializa una estructura t_io_stdout_write en un paquete.
+ *
+ * @param paquete Doble puntero al paquete donde se almacenará la estructura serializada.
+ * @param write Puntero a la estructura t_io_stdout_write a serializar.
+ */
 void serializar_t_io_stdout_write(t_paquete **paquete, t_io_stdout_write *write);
 
+/**
+ * @brief Serializa una estructura t_io_memoria_stdout en un paquete.
+ *
+ * @param paquete Doble puntero al paquete donde se almacenará la estructura serializada.
+ * @param write Puntero a la estructura t_io_memoria_stdout a serializar.
+ */
 void serializar_t_io_memoria_stdout(t_paquete **paquete, t_io_memoria_stdout *write);
 
+/**
+ * @brief Deserializa una estructura t_io_memoria_stdout desde un buffer.
+ *
+ * @param buffer Puntero al buffer que contiene la estructura serializada.
+ * @return Puntero a la estructura t_io_memoria_stdout deserializada.
+ */
 t_io_memoria_stdout *deserializar_t_io_memoria_stdout(t_buffer *buffer);
 
+/**
+ * @brief Deserializa una estructura t_memoria_io_stdout desde un buffer.
+ *
+ * @param buffer Puntero al buffer que contiene la estructura serializada.
+ * @return Puntero a la estructura t_memoria_io_stdout deserializada.
+ */
 t_memoria_io_stdout *deserializar_t_memoria_io_stdout(t_buffer *buffer);
 
+/**
+ * @brief Serializa una estructura t_memoria_io_stdout en un paquete.
+ *
+ * @param paquete Doble puntero al paquete donde se almacenará la estructura serializada.
+ * @param write Puntero a la estructura t_memoria_io_stdout a serializar.
+ */
 void serializar_t_memoria_io_stdout(t_paquete **paquete, t_memoria_io_stdout *write);
 
+/**
+ * @brief Deserializa una estructura t_entrada_salida_kernel_io_stdout_write desde un buffer.
+ *
+ * @param buffer Puntero al buffer que contiene la estructura serializada.
+ * @return Puntero a la estructura t_entrada_salida_kernel_io_stdout_write deserializada.
+ */
 t_entrada_salida_kernel_io_stdout_write *deserializar_t_entrada_salida_kernel_io_stdout_write(t_buffer *buffer);
 
+/**
+ * @brief Serializa una estructura t_entrada_salida_kernel_io_stdout_write en un paquete.
+ *
+ * @param paquete Doble puntero al paquete donde se almacenará la estructura serializada.
+ * @param write Puntero a la estructura t_entrada_salida_kernel_io_stdout_write a serializar.
+ */
 void serializar_t_entrada_salida_kernel_io_stdout_write(t_paquete **paquete, t_entrada_salida_kernel_io_stdout_write *write);
 
+/**
+ * @brief Serializa una estructura t_kernel_cpu_io_stdout_write en un paquete.
+ *
+ * @param paquete Doble puntero al paquete donde se almacenará la estructura serializada.
+ * @param write Puntero a la estructura t_kernel_cpu_io_stdout_write a serializar.
+ */
 void serializar_t_kernel_cpu_io_stdout_write(t_paquete **paquete, t_kernel_cpu_io_stdout_write *write);
 
+/**
+ * @brief Deserializa una estructura t_kernel_cpu_io_stdout_write desde un buffer.
+ *
+ * @param buffer Puntero al buffer que contiene la estructura serializada.
+ * @return Puntero a la estructura t_kernel_cpu_io_stdout_write deserializada.
+ */
 t_kernel_cpu_io_stdout_write *deserializar_t_kernel_cpu_io_stdout_write(t_buffer *buffer);
+
+/**
+ * @brief Serializa una estructura t_io_stdin_read en un paquete.
+ *
+ * @param paquete Doble puntero al paquete donde se almacenará la estructura serializada.
+ * @param read Puntero a la estructura t_io_stdin_read a serializar.
+ */
+void serializar_t_io_stdin_read(t_paquete **paquete, t_io_stdin_read *read);
+
+/**
+ * @brief Deserializa una estructura t_io_stdin_read desde un buffer.
+ *
+ * @param buffer Puntero al buffer que contiene la estructura serializada.
+ * @return Puntero a la estructura t_io_stdin_read deserializada.
+ */
+t_io_stdin_read *deserializar_t_io_stdin_read(t_buffer *buffer);
+
+/**
+ * @brief Serializa una estructura t_kernel_cpu_io_stdin_read en un paquete.
+ *
+ * Esta función toma una estructura t_kernel_cpu_io_stdin_read y la serializa en un paquete
+ * para su posterior envío a través de una conexión de red.
+ *
+ * @param paquete Puntero al puntero del paquete donde se almacenará la estructura serializada.
+ * @param read Puntero a la estructura t_kernel_cpu_io_stdin_read que se desea serializar.
+ */
+void serializar_t_kernel_cpu_io_stdin_read(t_paquete **paquete, t_kernel_cpu_io_stdin_read *read);
+
+/**
+ * @brief Deserializa una estructura t_kernel_cpu_io_stdin_read desde un buffer.
+ *
+ * Esta función toma un buffer que contiene una estructura t_kernel_cpu_io_stdin_read serializada
+ * y la deserializa en una estructura t_kernel_cpu_io_stdin_read.
+ *
+ * @param buffer Puntero al buffer que contiene la estructura serializada.
+ * @return Puntero a la estructura t_kernel_cpu_io_stdin_read deserializada.
+ */
+t_kernel_cpu_io_stdin_read *deserializar_t_kernel_cpu_io_stdin_read(t_buffer *buffer);
+
+/**
+ * @brief Serializa una estructura t_kernel_io_stdin_read en un paquete.
+ *
+ * Esta función toma una estructura t_kernel_io_stdin_read y la serializa en un paquete
+ * para su posterior envío a través de una conexión de red.
+ *
+ * @param paquete Puntero al puntero del paquete donde se almacenará la estructura serializada.
+ * @param read Puntero a la estructura t_kernel_io_stdin_read que se desea serializar.
+ */
+void serializar_t_kernel_io_stdin_read(t_paquete **paquete, t_kernel_io_stdin_read *read);
+
+/**
+ * @brief Deserializa una estructura t_kernel_io_stdin_read desde un buffer.
+ *
+ * Esta función toma un buffer que contiene una estructura t_kernel_io_stdin_read serializada
+ * y la deserializa en una estructura t_kernel_io_stdin_read.
+ *
+ * @param buffer Puntero al buffer que contiene la estructura serializada.
+ * @return Puntero a la estructura t_kernel_io_stdin_read deserializada.
+ */
+t_kernel_io_stdin_read *deserializar_t_kernel_io_stdin_read(t_buffer *buffer);
+
+/**
+ * @brief Serializa una estructura t_io_memoria_stdin en un paquete.
+ *
+ * Esta función toma una estructura t_io_memoria_stdin y la serializa en un paquete
+ * para su posterior envío a través de una conexión de red.
+ *
+ * @param paquete Puntero al puntero del paquete donde se almacenará la estructura serializada.
+ * @param read Puntero a la estructura t_io_memoria_stdin que se desea serializar.
+ */
+void serializar_t_io_memoria_stdin(t_paquete **paquete, t_io_memoria_stdin *read);
+
+/**
+ * @brief Deserializa una estructura t_io_memoria_stdin desde un buffer.
+ *
+ * Esta función toma un buffer que contiene una estructura t_io_memoria_stdin serializada
+ * y la deserializa, devolviendo un puntero a la estructura deserializada.
+ *
+ * @param buffer Puntero al buffer que contiene la estructura serializada.
+ * @return Puntero a la estructura t_io_memoria_stdin deserializada.
+ */
+t_io_memoria_stdin *deserializar_t_io_memoria_stdin(t_buffer *buffer);
+
+/**
+ * @brief Serializa una estructura t_entrada_salida_kernel_io_stdin_read en un paquete.
+ *
+ * Esta función toma una estructura t_entrada_salida_kernel_io_stdin_read y la serializa en un paquete.
+ * El paquete resultante se asigna a la dirección de memoria apuntada por el puntero paquete.
+ *
+ * @param paquete Puntero a un puntero de tipo t_paquete donde se almacenará el paquete serializado.
+ * @param read Puntero a una estructura t_entrada_salida_kernel_io_stdin_read que se desea serializar.
+ */
+void serializar_t_entrada_salida_kernel_io_stdin_read(t_paquete **paquete, t_entrada_salida_kernel_io_stdin_read *read);
+
+/**
+ * @brief Deserializa un buffer en una estructura t_entrada_salida_kernel_io_stdin_read.
+ *
+ * Esta función toma un buffer y lo deserializa en una estructura t_entrada_salida_kernel_io_stdin_read.
+ * La estructura resultante se devuelve como resultado de la función.
+ *
+ * @param buffer Puntero a un buffer que se desea deserializar.
+ * @return Puntero a una estructura t_entrada_salida_kernel_io_stdin_read deserializada.
+ */
+t_entrada_salida_kernel_io_stdin_read *deserializar_t_entrada_salida_kernel_io_stdin_read(t_buffer *buffer);
+
+/**
+ * @brief Serializa una estructura t_memoria_entrada_salida_io_stdin_read en un paquete.
+ *
+ * Esta función toma una estructura t_memoria_entrada_salida_io_stdin_read y la serializa en un paquete
+ * para su posterior envío a través de una conexión de red.
+ *
+ * @param paquete Puntero al puntero del paquete donde se almacenará la estructura serializada.
+ * @param read Puntero a la estructura t_memoria_entrada_salida_io_stdin_read que se desea serializar.
+ */
+void serializar_t_memoria_entrada_salida_io_stdin_read(t_paquete **paquete, t_memoria_entrada_salida_io_stdin_read *read);
+
+/**
+ * @brief Deserializa una estructura t_memoria_entrada_salida_io_stdin_read desde un buffer.
+ *
+ * Esta función toma un buffer que contiene una estructura t_memoria_entrada_salida_io_stdin_read serializada
+ * y la deserializa en una estructura t_memoria_entrada_salida_io_stdin_read.
+ *
+ * @param buffer Puntero al buffer que contiene la estructura serializada.
+ * @return Puntero a la estructura t_memoria_entrada_salida_io_stdin_read deserializada.
+ */
+t_memoria_entrada_salida_io_stdin_read *deserializar_t_memoria_entrada_salida_io_stdin_read(t_buffer *buffer);
 
 #endif
