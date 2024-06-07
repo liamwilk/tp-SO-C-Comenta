@@ -278,9 +278,15 @@ void espacio_usuario_escribir_int(t_args *args, uint32_t direccion_fisica, int v
 }
 
 // Escribir un uint32_t
-void espacio_usuario_escribir_uint32(t_args *args, uint32_t direccion_fisica, uint32_t valor)
+void espacio_usuario_escribir_uint32_t(t_args *args, uint32_t direccion_fisica, uint32_t valor)
 {
     espacio_usuario_escribir_dato(args, direccion_fisica, &valor, sizeof(uint32_t));
+}
+
+// Escribir un uint8_t
+void espacio_usuario_escribir_uint8_t(t_args *args, uint32_t direccion_fisica, uint8_t valor)
+{
+    espacio_usuario_escribir_dato(args, direccion_fisica, &valor, sizeof(uint8_t));
 }
 
 // Escribir un flotante
@@ -343,6 +349,14 @@ int espacio_usuario_leer_int(t_args *args, uint32_t direccion_fisica)
 {
     int valor;
     espacio_usuario_leer_dato(args, direccion_fisica, &valor, sizeof(int));
+    return valor;
+}
+
+// Leer un uint8_t
+uint8_t espacio_usuario_leer_uint8(t_args *args, uint8_t direccion_fisica)
+{
+    uint8_t valor;
+    espacio_usuario_leer_dato(args, direccion_fisica, &valor, sizeof(uint8_t));
     return valor;
 }
 

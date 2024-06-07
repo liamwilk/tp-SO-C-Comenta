@@ -4,7 +4,7 @@ void instruccion_ciclo(t_cpu *args, t_buffer *buffer)
 {
     if (instruccion_recibir(args, buffer))
     {
-        log_error(args->logger, "Instruccion invalida");
+        log_error(args->logger, "Instruccion invalida.");
         return;
     }
 
@@ -12,9 +12,15 @@ void instruccion_ciclo(t_cpu *args, t_buffer *buffer)
     {
         if (args->tipo_instruccion != EXIT)
         {
-            log_debug(args->logger, "Se difurca la ejecucion del proceso PID <%d> en la instruccion <%s>.", args->proceso.pid, args->instruccion.array[0]);
+            log_debug(args->logger, "Se bifurca el ciclo de instruccion en la ejecucion del proceso PID <%d> en la instruccion <%s>.", args->proceso.pid, args->instruccion.array[0]);
         }
         return;
+    }
+    else if (args->tipo_instruccion == -1)
+    {
+        log_error(args->logger, "Se finaliza la ejecucion del proceso PID <%d> por error en la instruccion <%s>.", args->proceso.pid, args->instruccion.array[0]);
+        args->proceso.ejecutado = 0;
+        instruccion_finalizar(args);
     }
 
     if (args->flag_interrupt)
