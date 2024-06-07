@@ -4,6 +4,168 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 {
 	switch (codigo_operacion)
 	{
+	case CPU_MEMORIA_MOV_OUT_2:
+	{
+		t_mov_out *paquete_recibido = deserializar_t_mov_out(buffer);
+
+		log_debug(argumentos->logger, "Se recibio la solicitud de escritura de <%d> bytes desde la direccion fisica <%d> asociado al proceso PID <%d>", paquete_recibido->tamanio_registro_datos, paquete_recibido->direccion_fisica, paquete_recibido->pid);
+
+		t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_MOV_OUT_2);
+		t_mov_out *paquete_enviar = malloc(sizeof(t_mov_out));
+
+		// Escribo el dato en el espacio de usuario
+		if (paquete_recibido->tamanio_registro_datos > 0 && paquete_recibido->tamanio_registro_datos <= 4)
+		{
+			if (paquete_recibido->tamanio_registro_datos == 4) // Debo escribir 4 bytes desde DF
+			{
+				espacio_usuario_escribir_uint32_t(argumentos, paquete_recibido->direccion_fisica, paquete_recibido->dato_32);
+				log_debug(argumentos->logger, "Se escribio en espacio de usuario desde a la direccion fisica <%d> el siguiente numero de 4 bytes: %d", paquete_recibido->direccion_fisica, paquete_recibido->dato_32);
+			}
+			else if (paquete_recibido->tamanio_registro_datos == 1) // Debo escribir 1 byte desde DF
+			{
+				espacio_usuario_escribir_uint8_t(argumentos, paquete_recibido->direccion_fisica, paquete_recibido->dato_8);
+				log_debug(argumentos->logger, "Se escribio en espacio de usuario desde a la direccion fisica <%d> el siguiente numero de 1 byte: %d", paquete_recibido->direccion_fisica, paquete_recibido->dato_8);
+			}
+		}
+		else
+		{
+			log_error(argumentos->logger, "No se puede escribir un registro de <%d> bytes porque la instruccion solicitada no lo contempla.", paquete_recibido->tamanio_registro_datos);
+
+			paquete_enviar->pid = paquete_recibido->pid;
+			paquete_enviar->direccion_fisica = paquete_recibido->direccion_fisica;
+			paquete_enviar->tamanio_registro_datos = paquete_recibido->tamanio_registro_datos;
+			paquete_enviar->numero_marco = paquete_recibido->numero_marco;
+			paquete_enviar->numero_pagina = paquete_recibido->numero_pagina;
+			paquete_enviar->registro_datos = paquete_recibido->registro_datos;
+			paquete_enviar->registro_direccion = paquete_recibido->registro_direccion;
+			paquete_enviar->resultado = 0;
+			paquete_enviar->dato_32 = 0;
+			paquete_enviar->dato_8 = 0;
+
+			serializar_t_mov_out(&paquete, paquete_enviar);
+			enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+			eliminar_paquete(paquete);
+
+			free(paquete_enviar);
+			free(paquete_recibido);
+			break;
+		}
+
+		
+		paquete_enviar->dato_8 = paquete_recibido->dato_8;
+		paquete_enviar->dato_32 = paquete_recibido->dato_32;
+		paquete_enviar->pid = paquete_recibido->pid;
+		paquete_enviar->direccion_fisica = paquete_recibido->direccion_fisica;
+		paquete_enviar->tamanio_registro_datos = paquete_recibido->tamanio_registro_datos;
+		paquete_enviar->numero_marco = paquete_recibido->numero_marco;
+		paquete_enviar->numero_pagina = paquete_recibido->numero_pagina;
+		paquete_enviar->registro_datos = paquete_recibido->registro_datos;
+		paquete_enviar->registro_direccion = paquete_recibido->registro_direccion;
+		paquete_enviar->resultado = 1;
+
+		serializar_t_mov_out(&paquete, paquete_enviar);
+		enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+		eliminar_paquete(paquete);
+
+		free(paquete_enviar);
+		free(paquete_recibido);
+
+		break;
+	}
+	case CPU_MEMORIA_MOV_OUT:
+	{
+		t_mov_out *proceso_recibido = deserializar_t_mov_out(buffer);
+
+		log_debug(argumentos->logger, "Se recibio una peticion de busqueda de marco en la pagina <%d> del proceso PID <%d> asociado a la instruccion <MOV_OUT>", proceso_recibido->pid, proceso_recibido->numero_pagina);
+
+		// Busco el proceso en la lista de procesos globales
+		t_proceso *proceso = buscar_proceso(argumentos, proceso_recibido->pid);
+
+		// Si el proceso no existe, envio un mensaje a CPU
+		if (proceso == NULL)
+		{
+			log_error(argumentos->logger, "No se encontro el proceso con PID <%d> en Memoria", proceso_recibido->pid);
+
+			t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_MOV_OUT);
+			t_mov_out *proceso_enviar = malloc(sizeof(t_mov_out));
+
+			// Le devuelvo lo que me envio, pero con resultado 0 que indica que fallo
+			proceso_enviar->pid = proceso_recibido->pid;
+			proceso_enviar->resultado = 0;
+			proceso_enviar->numero_marco = proceso_recibido->numero_marco;
+			proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
+			proceso_enviar->tamanio_registro_datos = proceso_recibido->tamanio_registro_datos;
+			proceso_enviar->direccion_fisica = proceso_recibido->direccion_fisica;
+			proceso_enviar->registro_datos = proceso_recibido->registro_datos;
+			proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
+
+			serializar_t_mov_out(&paquete, proceso_enviar);
+			enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+			eliminar_paquete(paquete);
+
+			free(proceso_enviar);
+			free(proceso_recibido);
+
+			break;
+		}
+
+		// Si el proceso existe, verifico si la pagina solicitada existe
+		int numero_marco = tabla_paginas_acceder_pagina(argumentos, proceso, proceso_recibido->numero_pagina);
+
+		// Si la pagina no existe, envio un mensaje a CPU
+		if (numero_marco == -1)
+		{
+			log_error(argumentos->logger, "No se encontro la pagina <%d> para el proceso con PID <%d> asociado a la instruccion <MOV_OUT>", proceso_recibido->numero_pagina, proceso_recibido->pid);
+
+			// Le devuelvo lo que me envio, pero con resultado 0 que indica que fallo
+			t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_MOV_OUT);
+			t_mov_out *proceso_enviar = malloc(sizeof(t_mov_out));
+
+			// Le devuelvo lo que me envio, pero con resultado 0 que indica que fallo
+			proceso_enviar->pid = proceso_recibido->pid;
+			proceso_enviar->resultado = 0;
+			proceso_enviar->numero_marco = proceso_recibido->numero_marco;
+			proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
+			proceso_enviar->tamanio_registro_datos = proceso_recibido->tamanio_registro_datos;
+			proceso_enviar->direccion_fisica = proceso_recibido->direccion_fisica;
+			proceso_enviar->registro_datos = proceso_recibido->registro_datos;
+			proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
+
+			serializar_t_mov_out(&paquete, proceso_enviar);
+			enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+			eliminar_paquete(paquete);
+
+			free(proceso_enviar);
+			free(proceso_recibido);
+			break;
+		}
+
+		// Si la pagina existe, envio el marco recuperado de la tabla de paginas a CPU
+		t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_MOV_OUT);
+		t_mov_out *proceso_enviar = malloc(sizeof(t_mov_out));
+
+		// Le devuelvo lo que me envio, pero con resultado 1 que indica que tuvo exito
+		proceso_enviar->pid = proceso_recibido->pid;
+		proceso_enviar->resultado = 1;
+		proceso_enviar->numero_marco = numero_marco;
+		proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
+		proceso_enviar->tamanio_registro_datos = proceso_recibido->tamanio_registro_datos;
+		proceso_enviar->direccion_fisica = proceso_recibido->direccion_fisica;
+		proceso_enviar->registro_datos = proceso_recibido->registro_datos;
+		proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
+		proceso_enviar->dato_32 = proceso_recibido->dato_32;
+		proceso_enviar->dato_8 = proceso_recibido->dato_8;
+
+		serializar_t_mov_out(&paquete, proceso_enviar);
+		enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+		eliminar_paquete(paquete);
+
+		free(proceso_enviar);
+		free(proceso_recibido);
+		break;
+
+		break;
+	}
 	case CPU_MEMORIA_MOV_IN_2:
 	{
 		t_mov_in *paquete_recibido = deserializar_t_mov_in(buffer);
@@ -27,7 +189,6 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 				paquete_enviar->dato_32 = 0;
 				paquete_enviar->dato_8 = espacio_usuario_leer_uint8(argumentos, paquete_recibido->direccion_fisica);
 				log_debug(argumentos->logger, "Se leyo del espacio de usuario asociado a la direccion fisica <%d> el siguiente numero: %d", paquete_recibido->direccion_fisica, paquete_recibido->dato_8);
-
 			}
 		}
 		else

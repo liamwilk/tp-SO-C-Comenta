@@ -25,7 +25,7 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 		// Inicializo la tabla de paginas asociada al proceso
 		tabla_paginas_inicializar(argumentos, proceso);
 
-		// /* Caso prueba espacio de usuario:
+		/* Caso prueba espacio de usuario:
 		{
 			// Se deben asignar las paginas al proceso antes de escribirlas
 			t_pagina *pagina1 = tabla_paginas_asignar_pagina(argumentos, proceso, 0, 0);
@@ -42,7 +42,7 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 			int marco_inicio_escritura = espacio_usuario_escribir_dato_frame_inicio(argumentos, 0, strlen(cadena));
 			int marco_fin_escritura = espacio_usuario_escribir_dato_frame_fin(argumentos, 0, strlen(cadena));
 		}
-		// */
+		*/
 
 		/* Caso prueba mov_in 4 bytes:
 		{
@@ -56,7 +56,7 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 		}
 		*/
 
-		/* Caso prueba mov_in 1 byte:
+		// /* Caso prueba mov_in 1 byte:
 		{
 			tabla_paginas_asignar_pagina(argumentos, proceso, 0, 0);
 
@@ -66,7 +66,7 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 			espacio_usuario_escribir_uint8_t(argumentos, 0, numero);
 			proceso->bytes_usados += sizeof(uint8_t);
 		}
-		*/
+		// */
 
 		// Leo las instrucciones del archivo y las guardo en la lista de instrucciones del proceso
 		proceso->instrucciones = leer_instrucciones(argumentos, path_completo, proceso->pid);
