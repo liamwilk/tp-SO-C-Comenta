@@ -7,7 +7,6 @@ void ejecutar_script(char *path_instrucciones, hilos_args *hiloArgs)
         kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "Path de instrucciones nulo. No se puede leer el archivo");
         return;
     }
-
     char *current_dir = getcwd(NULL, 0);
 
     char ruta_completa[PATH_MAX];

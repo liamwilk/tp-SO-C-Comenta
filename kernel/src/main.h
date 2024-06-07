@@ -14,7 +14,6 @@
 #include <semaphore.h>
 #include <time.h>
 #include <signal.h>
-#include "recursos.h"
 
 timer_args_t temporizador;
 t_kernel kernel;
