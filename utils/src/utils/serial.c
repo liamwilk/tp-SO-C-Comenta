@@ -1147,12 +1147,13 @@ t_kernel_io_interrupcion *deserializar_t_kernel_io_interrupcion(t_buffer *buffer
 
 void serializar_t_io_stdin_read(t_paquete **paquete, t_io_stdin_read *read)
 {
-	actualizar_buffer(*paquete, sizeof(uint32_t) * 16 + sizeof(uint8_t) * 4 + read->size_interfaz);
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 17 + sizeof(uint8_t) * 4 + read->size_interfaz);
 	serializar_uint32_t(read->pid, *paquete);
 	serializar_uint32_t(read->resultado, *paquete);
 	serializar_uint32_t(read->registro_direccion, *paquete);
 	serializar_uint32_t(read->registro_tamanio, *paquete);
-	serializar_uint32_t(read->marco, *paquete);
+	serializar_uint32_t(read->marco_inicial, *paquete);
+	serializar_uint32_t(read->marco_final, *paquete);
 	serializar_uint32_t(read->numero_pagina, *paquete);
 	serializar_uint32_t(read->direccion_fisica, *paquete);
 	serializar_uint32_t(read->desplazamiento, *paquete);
@@ -1184,7 +1185,8 @@ t_io_stdin_read *deserializar_t_io_stdin_read(t_buffer *buffer)
 	deserializar_uint32_t(&stream, &(read->resultado));
 	deserializar_uint32_t(&stream, &(read->registro_direccion));
 	deserializar_uint32_t(&stream, &(read->registro_tamanio));
-	deserializar_uint32_t(&stream, &(read->marco));
+	deserializar_uint32_t(&stream, &(read->marco_inicial));
+	deserializar_uint32_t(&stream, &(read->marco_final));
 	deserializar_uint32_t(&stream, &(read->numero_pagina));
 	deserializar_uint32_t(&stream, &(read->direccion_fisica));
 	deserializar_uint32_t(&stream, &(read->desplazamiento));
@@ -1230,12 +1232,13 @@ t_kernel_cpu_io_stdin_read *deserializar_t_kernel_cpu_io_stdin_read(t_buffer *bu
 
 void serializar_t_kernel_io_stdin_read(t_paquete **paquete, t_kernel_io_stdin_read *read)
 {
-	actualizar_buffer(*paquete, sizeof(uint32_t) * 16 + sizeof(uint8_t) * 4 + read->size_interfaz);
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 17 + sizeof(uint8_t) * 4 + read->size_interfaz);
 	serializar_uint32_t(read->pid, *paquete);
 	serializar_uint32_t(read->resultado, *paquete);
 	serializar_uint32_t(read->registro_direccion, *paquete);
 	serializar_uint32_t(read->registro_tamanio, *paquete);
-	serializar_uint32_t(read->marco, *paquete);
+	serializar_uint32_t(read->marco_inicial, *paquete);
+	serializar_uint32_t(read->marco_final, *paquete);
 	serializar_uint32_t(read->numero_pagina, *paquete);
 	serializar_uint32_t(read->direccion_fisica, *paquete);
 	serializar_uint32_t(read->desplazamiento, *paquete);
@@ -1267,7 +1270,8 @@ t_kernel_io_stdin_read *deserializar_t_kernel_io_stdin_read(t_buffer *buffer)
 	deserializar_uint32_t(&stream, &(read->resultado));
 	deserializar_uint32_t(&stream, &(read->registro_direccion));
 	deserializar_uint32_t(&stream, &(read->registro_tamanio));
-	deserializar_uint32_t(&stream, &(read->marco));
+	deserializar_uint32_t(&stream, &(read->marco_inicial));
+	deserializar_uint32_t(&stream, &(read->marco_final));
 	deserializar_uint32_t(&stream, &(read->numero_pagina));
 	deserializar_uint32_t(&stream, &(read->direccion_fisica));
 	deserializar_uint32_t(&stream, &(read->desplazamiento));

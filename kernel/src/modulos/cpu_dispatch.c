@@ -245,7 +245,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         proceso_completo->resultado = proceso_recibido->resultado;
         proceso_completo->registro_direccion = proceso_recibido->registro_direccion;
         proceso_completo->registro_tamanio = proceso_recibido->registro_tamanio;
-        proceso_completo->marco = proceso_recibido->marco;
+        proceso_completo->marco_inicial = proceso_recibido->marco_inicial;
+        proceso_completo->marco_final = proceso_recibido->marco_final;
         proceso_completo->numero_pagina = proceso_recibido->numero_pagina;
         proceso_completo->direccion_fisica = proceso_recibido->direccion_fisica;
         proceso_completo->desplazamiento = proceso_recibido->desplazamiento;

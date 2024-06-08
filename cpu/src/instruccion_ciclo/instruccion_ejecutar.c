@@ -591,8 +591,9 @@ int instruccion_ejecutar(t_cpu *args)
         // El tamaño del identificador de la interfaz
         proceso->size_interfaz = strlen(interfaz) + 1;
         
-        // Este es el dato que me va a devolver memoria
-        proceso->marco = 0;
+        // Estos son los datos que me va a devolver memoria
+        proceso->marco_inicial = 0;
+        proceso->marco_final = 0;
 
         // Esto tambien me lo devuelve memoria
         proceso->resultado = 0;

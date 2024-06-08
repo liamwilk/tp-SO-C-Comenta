@@ -301,7 +301,8 @@ typedef struct
 	uint32_t resultado;
 	uint32_t registro_direccion;
 	uint32_t registro_tamanio;
-	uint32_t marco;
+	uint32_t marco_inicial;
+	uint32_t marco_final;
 	uint32_t numero_pagina;
 	uint32_t direccion_fisica;
 	uint32_t desplazamiento;
@@ -316,7 +317,8 @@ typedef struct
 	uint32_t resultado;
 	uint32_t registro_direccion;
 	uint32_t registro_tamanio;
-	uint32_t marco;
+	uint32_t marco_inicial;
+	uint32_t marco_final;
 	uint32_t numero_pagina;
 	uint32_t direccion_fisica;
 	uint32_t desplazamiento;

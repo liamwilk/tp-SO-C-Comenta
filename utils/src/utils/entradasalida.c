@@ -515,6 +515,11 @@ char *leer_input_usuario(uint32_t size_input)
 
         if (strlen(input) <= size_input)
         {
+            for (int i = strlen(input); i < size_input; i++)
+            {
+                input[i] = '\n';
+            }
+            printf("Size cadena: %ld\n", strlen(input));
             break;
         }
 

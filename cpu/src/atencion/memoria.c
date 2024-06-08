@@ -65,10 +65,10 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 		// Si se obtuvo el marco correctamente
 		if (proceso_recibido->resultado)
 		{
-			log_debug(args->logger, "Se obtuvo el marco <%d> de la pagina <%d> asociado a la instruccion IO_STDIN_READ del proceso PID <%d>", proceso_recibido->marco, proceso_recibido->numero_pagina, proceso_recibido->pid);
+			log_debug(args->logger, "Se obtuvo el marco inicial <%d> de la pagina <%d> asociado a la instruccion IO_STDIN_READ del proceso PID <%d>", proceso_recibido->marco_inicial, proceso_recibido->numero_pagina, proceso_recibido->pid);
 
 			// Genero la direccion fisica con la MMU
-			uint32_t direccion_fisica = mmu(args, proceso_recibido->registro_direccion, proceso_recibido->marco);
+			uint32_t direccion_fisica = mmu(args, proceso_recibido->registro_direccion, proceso_recibido->marco_inicial);
 
 			// Inicio la peticion contra Kernel para que retransmita a la interfaz
 			t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_STDIN_READ);
@@ -78,7 +78,8 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 			proceso_completo->resultado = proceso_recibido->resultado;
 			proceso_completo->registro_direccion = proceso_recibido->registro_direccion;
 			proceso_completo->registro_tamanio = proceso_recibido->registro_tamanio;
-			proceso_completo->marco = proceso_recibido->marco;
+			proceso_completo->marco_inicial = proceso_recibido->marco_inicial;
+			proceso_completo->marco_final = proceso_recibido->marco_final;
 			proceso_completo->numero_pagina = proceso_recibido->numero_pagina;
 			proceso_completo->direccion_fisica = direccion_fisica;
 			proceso_completo->desplazamiento = proceso_recibido->desplazamiento;
