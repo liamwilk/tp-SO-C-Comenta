@@ -509,7 +509,7 @@ void espacio_usuario_escribir_generic(t_args *args, uint32_t direccion_fisica, v
  * @param direccion_fisica Dirección física donde se escribirá el valor.
  * @param valor Valor a escribir.
  */
-void espacio_usuario_escribir_uint32(t_args *args, uint32_t direccion_fisica, uint32_t valor);
+void espacio_usuario_escribir_uint32_t(t_args *args, uint32_t direccion_fisica, uint32_t valor);
 
 /**
  * Lee un dato de memoria de la dirección física especificada y lo guarda en el destino proporcionado.
@@ -646,5 +646,9 @@ int espacio_usuario_frame_bytes(t_args *args, uint32_t frame);
 uint32_t espacio_usuario_escribir_dato_frame_inicio(t_args *args, uint32_t direccion_fisica, size_t tamano);
 
 uint32_t espacio_usuario_escribir_dato_frame_fin(t_args *args, uint32_t direccion_fisica, size_t tamano);
+
+uint8_t espacio_usuario_leer_uint8(t_args *args, uint8_t direccion_fisica);
+
+void espacio_usuario_escribir_uint8_t(t_args *args, uint32_t direccion_fisica, uint8_t valor);
 
 #endif // MEMORIA_H

@@ -23,7 +23,14 @@ typedef enum
 	CPU_KERNEL_SIGNAL,
 	CPU_MEMORIA_RESIZE,
 	CPU_KERNEL_RESIZE,
-	// IO_STDOUT_WRITE ///////////////////
+	CPU_MEMORIA_MOV_OUT,
+	CPU_MEMORIA_MOV_OUT_2,
+	CPU_MEMORIA_MOV_IN,
+	CPU_MEMORIA_MOV_IN_2,
+	MEMORIA_CPU_IO_MOV_OUT,
+	MEMORIA_CPU_IO_MOV_OUT_2,
+	MEMORIA_CPU_IO_MOV_IN,
+	MEMORIA_CPU_IO_MOV_IN_2,
 	MEMORIA_CPU_IO_STDOUT_WRITE,
 	CPU_MEMORIA_IO_STDOUT_WRITE,
 	CPU_KERNEL_IO_STDOUT_WRITE,
@@ -32,7 +39,6 @@ typedef enum
 	ENTRADA_SALIDA_KERNEL_IO_STDOUT_WRITE,
 	MEMORIA_ENTRADA_SALIDA_IO_STDOUT_WRITE,
 	KERNEL_CPU_IO_STDOUT_WRITE,
-	//////////////////////////////////////
 	ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP,
 	MEMORIA_KERNEL_NUEVO_PROCESO,
 	MEMORIA_CPU_PROXIMA_INSTRUCCION,
@@ -285,6 +291,34 @@ typedef struct
 	uint32_t size_motivo;
 	char *motivo;
 } t_kernel_cpu_io_stdout_write;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t tamanio_registro_datos;
+	uint32_t registro_direccion;
+	uint32_t registro_datos;
+	uint32_t numero_pagina;
+	uint32_t numero_marco;
+	uint32_t resultado;
+	uint32_t direccion_fisica;
+	uint32_t dato_32;
+	uint8_t dato_8;
+} t_mov_in;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t registro_direccion;
+	uint32_t registro_datos;
+	uint32_t numero_pagina;
+	uint32_t numero_marco;
+	uint32_t direccion_fisica;
+	uint32_t resultado;
+	uint32_t tamanio_registro_datos;
+	uint32_t dato_32;
+	uint8_t dato_8;
+} t_mov_out;
 
 /**
  * @fn    *crear_paquete
@@ -876,5 +910,13 @@ void serializar_t_entrada_salida_kernel_io_stdout_write(t_paquete **paquete, t_e
 void serializar_t_kernel_cpu_io_stdout_write(t_paquete **paquete, t_kernel_cpu_io_stdout_write *write);
 
 t_kernel_cpu_io_stdout_write *deserializar_t_kernel_cpu_io_stdout_write(t_buffer *buffer);
+
+void serializar_t_mov_in(t_paquete **paquete, t_mov_in *mov);
+
+t_mov_in *deserializar_t_mov_in(t_buffer *buffer);
+
+t_mov_out *deserializar_t_mov_out(t_buffer *buffer);
+
+void serializar_t_mov_out(t_paquete **paquete, t_mov_out *mov);
 
 #endif
