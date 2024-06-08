@@ -255,38 +255,62 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 
 		log_debug(args->logger, "Se recibio respuesta de Memoria sobre el pedido de RESIZE para el proceso <%d>", proceso_recibido->pid);
 
+		t_paquete *paquete = crear_paquete(CPU_KERNEL_RESIZE);
+		t_cpu_kernel_resize *proceso_enviar = malloc(sizeof(t_cpu_kernel_resize));
+
 		if (proceso_recibido->resultado)
+		{
+			log_debug(args->logger, "Se redimensiono el proceso con PID <%d> a <%d> bytes.", proceso_recibido->pid, proceso_recibido->bytes);
+
+			// Notifico que se redimensiono el proceso
+
+			proceso_enviar->pid = proceso_recibido->pid;
+			proceso_enviar->motivo = strdup(proceso_recibido->motivo);
+			proceso_enviar->size_motivo = strlen(proceso_recibido->motivo) + 1;
+			proceso_enviar->resultado = proceso_recibido->resultado;
+			proceso_enviar->registros = args->registros;
+
+			serializar_t_cpu_kernel_resize(&paquete, proceso_enviar);
+
+			enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);
+			eliminar_paquete(paquete);
+			free(proceso_recibido->motivo);
+			free(proceso_recibido);
+			free(proceso_enviar->motivo);
+			free(proceso_enviar);
+
+			// Reanudo el ciclo de ejecucion por finalizacion de la instruccion atomica RESIZE
+
+			if (args->flag_interrupt)
+			{
+				instruccion_interrupt(args);
+				break;
+			}
+
+			instruccion_solicitar(args);
+		}
+		else
 		{
 			log_debug(args->logger, "No se pudo redimensionar el proceso <%d>", proceso_recibido->pid);
 			log_debug(args->logger, "Motivo: <%s>", proceso_recibido->motivo);
 
 			/* "En caso de que la respuesta de la memoria sea Out of Memory, se deberá devolver el contexto de ejecución al Kernel informando de esta situación." */
 
-			t_paquete *paquete = crear_paquete(CPU_KERNEL_RESIZE);
+			proceso_enviar->pid = proceso_recibido->pid;
+			proceso_enviar->motivo = strdup(proceso_recibido->motivo);
+			proceso_enviar->size_motivo = strlen(proceso_recibido->motivo) + 1;
+			proceso_enviar->resultado = proceso_recibido->resultado;
+			proceso_enviar->registros = args->registros;
 
-			t_cpu_kernel_resize *proceso_fallido = malloc(sizeof(t_cpu_kernel_resize));
-
-			proceso_fallido->pid = proceso_recibido->pid;
-			proceso_fallido->motivo = strdup(proceso_recibido->motivo);
-			proceso_fallido->size_motivo = strlen(proceso_recibido->motivo) + 1;
-			proceso_fallido->resultado = proceso_recibido->resultado;
-			proceso_fallido->registros = args->registros;
-
-			serializar_t_cpu_kernel_resize(&paquete, proceso_fallido);
+			serializar_t_cpu_kernel_resize(&paquete, proceso_enviar);
 
 			enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);
 			eliminar_paquete(paquete);
-			free(proceso_fallido);
+			free(proceso_recibido->motivo);
+			free(proceso_recibido);
+			free(proceso_enviar->motivo);
+			free(proceso_enviar);
 		}
-		else
-		{
-			log_debug(args->logger, "Se redimensiono el proceso con PID <%d> a <%d> bytes.", proceso_recibido->pid, proceso_recibido->bytes);
-		}
-
-		instruccion_solicitar(args);
-
-		free(proceso_recibido->motivo);
-		free(proceso_recibido);
 		break;
 	}
 	case MEMORIA_CPU_PROXIMA_INSTRUCCION:

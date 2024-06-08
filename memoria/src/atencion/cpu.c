@@ -504,7 +504,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			t_memoria_cpu_resize *proceso_enviar = malloc(sizeof(t_memoria_cpu_resize));
 			proceso_enviar->pid = proceso_recibido->pid;
 			proceso_enviar->bytes = proceso_recibido->bytes;
-			proceso_enviar->resultado = 1;
+			proceso_enviar->resultado = 0;
 			proceso_enviar->motivo = strdup("No se encontro el proceso con PID solicitado");
 			proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
 
@@ -543,7 +543,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 				t_memoria_cpu_resize *proceso_enviar = malloc(sizeof(t_memoria_cpu_resize));
 				proceso_enviar->pid = proceso_recibido->pid;
 				proceso_enviar->bytes = proceso_recibido->bytes;
-				proceso_enviar->resultado = 1;
+				proceso_enviar->resultado = 0;
 				proceso_enviar->motivo = strdup("Out of Memory");
 				proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
 
@@ -567,7 +567,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 
 			proceso_enviar->pid = proceso_recibido->pid;
 			proceso_enviar->bytes = proceso_recibido->bytes;
-			proceso_enviar->resultado = 0;
+			proceso_enviar->resultado = 1;
 			proceso_enviar->motivo = strdup("OK");
 			proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
 
@@ -596,7 +596,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 
 			proceso_enviar->pid = proceso_recibido->pid;
 			proceso_enviar->bytes = proceso_recibido->bytes;
-			proceso_enviar->resultado = 0;
+			proceso_enviar->resultado = 1;
 			proceso_enviar->motivo = strdup("OK");
 			proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
 
