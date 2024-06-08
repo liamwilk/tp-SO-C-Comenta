@@ -291,10 +291,10 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
     {
         t_cpu_kernel_resize *proceso_recibido = deserializar_t_cpu_kernel_resize(buffer);
 
-        log_debug(args->logger, "Se recibio respuesta de Memoria sobre el pedido de RESIZE para el proceso <%d>", proceso_recibido->pid);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se recibio respuesta de Memoria sobre el pedido de RESIZE para el proceso <%d>", proceso_recibido->pid);
 
-        log_debug(args->logger, "No se pudo redimensionar el proceso <%d>", proceso_recibido->pid);
-        log_debug(args->logger, "Motivo: <%s>", proceso_recibido->motivo);
+        kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo redimensionar el proceso <%d>", proceso_recibido->pid);
+        kernel_log_generic(args, LOG_LEVEL_ERROR, "Motivo: <%s>", proceso_recibido->motivo);
 
         /*
         RESIZE (Tamaño): Solicitará a la Memoria ajustar el tamaño del proceso al tamaño pasado por parámetro. En caso de que la respuesta de la memoria sea Out of Memory, se deberá devolver el contexto de ejecución al Kernel informando de esta situación.
@@ -303,21 +303,21 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         t_pcb *proceso_en_exec = proceso_buscar_exec(args->estados, proceso_recibido->pid);
         if (proceso_en_exec == NULL)
         {
-            log_error(args->logger, "[CPU Dispatch/RESIZE] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch/RESIZE] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
         }
 
-        log_debug(args->logger, "Registros del proceso <%d>:", proceso_recibido->pid);
-        log_debug(args->logger, "PC: %d", proceso_recibido->registros.pc);
-        log_debug(args->logger, "AX: %d", proceso_recibido->registros.ax);
-        log_debug(args->logger, "BX: %d", proceso_recibido->registros.bx);
-        log_debug(args->logger, "CX: %d", proceso_recibido->registros.cx);
-        log_debug(args->logger, "DX: %d", proceso_recibido->registros.dx);
-        log_debug(args->logger, "EAX: %d", proceso_recibido->registros.eax);
-        log_debug(args->logger, "EBX: %d", proceso_recibido->registros.ebx);
-        log_debug(args->logger, "ECX: %d", proceso_recibido->registros.ecx);
-        log_debug(args->logger, "EDX: %d", proceso_recibido->registros.edx);
-        log_debug(args->logger, "SI: %d", proceso_recibido->registros.si);
-        log_debug(args->logger, "DI: %d", proceso_recibido->registros.di);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Registros del proceso <%d>:", proceso_recibido->pid);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "PC: %d", proceso_recibido->registros.pc);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "AX: %d", proceso_recibido->registros.ax);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "BX: %d", proceso_recibido->registros.bx);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "CX: %d", proceso_recibido->registros.cx);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "DX: %d", proceso_recibido->registros.dx);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "EAX: %d", proceso_recibido->registros.eax);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "EBX: %d", proceso_recibido->registros.ebx);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "ECX: %d", proceso_recibido->registros.ecx);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "EDX: %d", proceso_recibido->registros.edx);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "SI: %d", proceso_recibido->registros.si);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "DI: %d", proceso_recibido->registros.di);
 
         // TODO: Preguntar que se hace en este caso? El proceso va a exit?
         proceso_en_exec->quantum = interrumpir_temporizador(args);
@@ -336,7 +336,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         if (proceso_en_exit != NULL)
         {
             // Detener QUANTUM si es RR o VRR
-            log_info(args->logger, "Finaliza el proceso <%d> - Motivo: <INTERRUPTED_BY_USER>", proceso_en_exit->pid);
+            kernel_log_generic(args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> - Motivo: <INTERRUPTED_BY_USER>", proceso_en_exit->pid);
             proceso_matar(args->estados, string_itoa(proceso_en_exit->pid));
             free(proceso);
             avisar_planificador(args);

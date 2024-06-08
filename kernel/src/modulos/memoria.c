@@ -48,7 +48,7 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *
     }
     default:
     {
-        log_warning(args->logger, "[Memoria] Se recibio un codigo de operacion desconocido. Cierro hilo");
+        kernel_log_generic(args, LOG_LEVEL_WARNING, "[Memoria] Se recibio un codigo de operacion desconocido. Cierro hilo");
         liberar_conexion(&args->kernel->sockets.memoria);
         break;
     }

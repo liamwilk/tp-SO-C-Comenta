@@ -95,7 +95,7 @@ void *hilos_atender_consola(void *args)
         }
         default:
         {
-            log_error(hiloArgs->logger, "Comando no reconocido: %s", separar_linea[0]);
+            kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "Comando no reconocido: %s", separar_linea[0]);
             break;
         }
         }
@@ -199,7 +199,7 @@ void *hilos_conectar_memoria(void *args)
         liberar_conexion(&socket);
         pthread_exit(0);
     }
-    log_debug(hiloArgs->logger, "Conectado a Memoria en socket %d", socket);
+    kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Conectado a Memoria en socket %d", socket);
     pthread_exit(0);
 }
 
@@ -244,7 +244,7 @@ void *hilos_conectar_cpu_dispatch(void *args)
         liberar_conexion(&socket);
         pthread_exit(0);
     }
-    log_debug(hiloArgs->logger, "Conectado a CPU por Dispatch en socket %d", socket);
+    kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Conectado a CPU por Dispatch en socket %d", socket);
     pthread_exit(0);
 };
 
@@ -267,7 +267,7 @@ void *hilos_conectar_cpu_interrupt(void *args)
         liberar_conexion(&socket);
         pthread_exit(0);
     }
-    log_debug(hiloArgs->logger, "Conectado a CPU por Interrupt en socket %d", socket);
+    kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Conectado a CPU por Interrupt en socket %d", socket);
     pthread_exit(0);
 };
 
@@ -304,7 +304,7 @@ void *hilos_esperar_entrada_salida(void *args)
 
         if (socket_cliente == -1)
         {
-            log_error(hiloArgs->logger, "Error al esperar conexion de modulo de Entrada/Salida");
+            kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "Error al esperar conexion de modulo de Entrada/Salida");
             break;
         }
 
@@ -312,12 +312,12 @@ void *hilos_esperar_entrada_salida(void *args)
 
         if (modulo == ERROR)
         {
-            log_error(hiloArgs->logger, "Error al recibir handshake de modulo de Entrada/Salida");
+            kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "Error al recibir handshake de modulo de Entrada/Salida");
             liberar_conexion(&socket_cliente);
             break;
         }
 
-        log_debug(hiloArgs->logger, "Conexion por handshake recibida y establecida con modulo de Entrada/Salida");
+        kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Conexion por handshake recibida y establecida con modulo de Entrada/Salida");
 
         pthread_t thread_atender_entrada_salida;
         hilos_io_args *io_args = malloc(sizeof(hilos_io_args));
@@ -327,21 +327,21 @@ void *hilos_esperar_entrada_salida(void *args)
         switch (modulo)
         {
         case KERNEL_ENTRADA_SALIDA_GENERIC:
-            log_debug(hiloArgs->logger, "Se conecto un modulo de entrada/salida generico con socket %d", socket_cliente);
+            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida generico con socket %d", socket_cliente);
             io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_GENERIC, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_generic, io_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
         case KERNEL_ENTRADA_SALIDA_STDIN:
-            log_debug(hiloArgs->logger, "Se conecto un modulo de entrada/salida STDIN con socket %d", socket_cliente);
+            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida STDIN con socket %d", socket_cliente);
             io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_STDIN, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_stdin, io_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
         case KERNEL_ENTRADA_SALIDA_STDOUT:
-            log_debug(hiloArgs->logger, "Se conecto un modulo de entrada/salida STDOUT con socket %d", socket_cliente);
+            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida STDOUT con socket %d", socket_cliente);
             io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_STDOUT, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_stdout, io_args);
@@ -355,7 +355,7 @@ void *hilos_esperar_entrada_salida(void *args)
             pthread_detach(thread_atender_entrada_salida);
             break;
         default:
-            log_error(hiloArgs->logger, "Se conecto un modulo de entrada/salida desconocido. Cerrando...");
+            kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "Se conecto un modulo de entrada/salida desconocido. Cerrando...");
             liberar_conexion(&socket_cliente);
             break;
         }
