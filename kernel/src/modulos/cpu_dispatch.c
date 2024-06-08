@@ -151,35 +151,44 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se recibio respuesta de Memoria sobre el pedido de RESIZE para el proceso <%d>", proceso_recibido->pid);
 
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "No se pudo redimensionar el proceso <%d>", proceso_recibido->pid);
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Motivo: <%s>", proceso_recibido->motivo);
+        t_pcb *proceso = proceso_buscar_exec(args->estados, proceso_recibido->pid);
 
-        /*
-        RESIZE (Tamaño): Solicitará a la Memoria ajustar el tamaño del proceso al tamaño pasado por parámetro. En caso de que la respuesta de la memoria sea Out of Memory, se deberá devolver el contexto de ejecución al Kernel informando de esta situación.
-        */
-
-        t_pcb *proceso_en_exec = proceso_buscar_exec(args->estados, proceso_recibido->pid);
-        if (proceso_en_exec == NULL)
+        if (proceso == NULL)
         {
             kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch/RESIZE] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
+            interrumpir_temporizador(args);
+            kernel_finalizar_proceso(args, proceso_recibido->pid, OUT_OF_MEMORY);
+            break;
         }
 
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Registros del proceso <%d>:", proceso_recibido->pid);
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "PC: %d", proceso_recibido->registros.pc);
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "AX: %d", proceso_recibido->registros.ax);
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "BX: %d", proceso_recibido->registros.bx);
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "CX: %d", proceso_recibido->registros.cx);
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "DX: %d", proceso_recibido->registros.dx);
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "EAX: %d", proceso_recibido->registros.eax);
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "EBX: %d", proceso_recibido->registros.ebx);
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "ECX: %d", proceso_recibido->registros.ecx);
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "EDX: %d", proceso_recibido->registros.edx);
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "SI: %d", proceso_recibido->registros.si);
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "DI: %d", proceso_recibido->registros.di);
+        if (proceso_recibido->resultado)
+        {
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se pudo redimensionar el proceso <%d>", proceso_recibido->pid);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Motivo: <%s>", proceso_recibido->motivo);
+            avisar_planificador(args);
+        }
+        else
+        {
+            proceso->quantum = interrumpir_temporizador(args);
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo redimensionar el proceso <%d>", proceso_recibido->pid);
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "Motivo: <%s>", proceso_recibido->motivo);
 
-        // TODO: Preguntar que se hace en este caso? El proceso va a exit?
-        proceso_en_exec->quantum = interrumpir_temporizador(args);
-        kernel_finalizar_proceso(args, proceso_recibido->pid, SUCCESS);
+            proceso_actualizar_registros(proceso, proceso_recibido->registros);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Registros del proceso <%d>:", proceso->pid);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "PC: %d", proceso->registros_cpu->pc);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "AX: %d", proceso->registros_cpu->ax);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "BX: %d", proceso->registros_cpu->bx);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "CX: %d", proceso->registros_cpu->cx);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "DX: %d", proceso->registros_cpu->dx);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "EAX: %d", proceso->registros_cpu->eax);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "EBX: %d", proceso->registros_cpu->ebx);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "ECX: %d", proceso->registros_cpu->ecx);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "EDX: %d", proceso->registros_cpu->edx);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "SI: %d", proceso->registros_cpu->si);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "DI: %d", proceso->registros_cpu->di);
+            kernel_finalizar_proceso(args, proceso_recibido->pid, OUT_OF_MEMORY);
+            avisar_planificador(args);
+        }
 
         free(proceso_recibido->motivo);
         free(proceso_recibido);
@@ -210,7 +219,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
                 interrumpir_temporizador(args);
             }
             kernel_finalizar_proceso(args, proceso->pid, SUCCESS);
-            kernel_avisar_memoria_finalizacion_proceso(args, proceso->pid);
         }
         else if (proceso->ejecutado == 2) // El proceso se ejecuto parcialmente por interrupcion
         {

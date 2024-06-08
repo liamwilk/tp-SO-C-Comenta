@@ -512,6 +512,7 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
             interrumpir_temporizador(kernel_hilos_args);
             kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "El proceso <%d> se encuentra en ejecucion, se procede a desalojarlo", pid);
             kernel_interrumpir_cpu(kernel_hilos_args, pid, "FINALIZAR_PROCESO");
+            kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
             kernel_transicion_exec_exit(kernel_hilos_args);
             return false;
         }
@@ -520,11 +521,13 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
             kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "El proceso <%d> se encuentra bloqueado, se procede a desbloquearlo", pid);
             kernel_transicion_block_exit(kernel_hilos_args, pid);
             kernel_interrumpir_io(kernel_hilos_args, pid, "FINALIZAR_PROCESO");
+            kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
             return false;
         }
 
         // Esta en ready o en new por lo tanto se puede eliminar tranquilamente
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INTERRUPTED_BY_USER>", pid);
+        kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
         proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
         return true;
     }
@@ -532,6 +535,7 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
     {
         t_pcb *pcb_en_exit = kernel_transicion_exec_exit(kernel_hilos_args);
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INVALID_INTERFACE>", pcb_en_exit->pid);
+        kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
         proceso_matar(kernel_hilos_args->estados, string_itoa(pcb_en_exit->pid));
         return true;
     }
@@ -541,7 +545,20 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
         {
             kernel_transicion_exec_exit(kernel_hilos_args);
         }
+
+        kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <SUCCESS>", pid);
+        proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+        return true;
+    }
+    case OUT_OF_MEMORY:
+    {
+        if (strcmp(estado, "EXEC") == 0)
+        {
+            kernel_transicion_exec_exit(kernel_hilos_args);
+        }
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <OUT_OF_MEMORY>", pid);
+        kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
         proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
         return true;
     }
