@@ -28,9 +28,9 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 		/* Caso prueba espacio de usuario:
 		{
 			// Se deben asignar las paginas al proceso antes de escribirlas
-			t_pagina *pagina1 = tabla_paginas_asignar_pagina(argumentos, proceso, 0, 0);
-			t_pagina *pagina2 = tabla_paginas_asignar_pagina(argumentos, proceso, 1, 1);
-			t_pagina *pagina3 = tabla_paginas_asignar_pagina(argumentos, proceso, 2, 2);
+			t_pagina *pagina1 = tabla_paginas_asignar_pagina(argumentos, proceso);
+			t_pagina *pagina2 = tabla_paginas_asignar_pagina(argumentos, proceso);
+			t_pagina *pagina3 = tabla_paginas_asignar_pagina(argumentos, proceso);
 
 			char *cadena = "CURSADA DE SISTEMAS OPERATIVOS 1c 2024";
 
@@ -46,7 +46,7 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 
 		/* Caso prueba mov_in 4 bytes:
 		{
-			tabla_paginas_asignar_pagina(argumentos, proceso, 0, 0);
+			tabla_paginas_asignar_pagina(argumentos, proceso);
 
 			uint32_t numero = 12345;
 
@@ -56,9 +56,9 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 		}
 		*/
 
-		// /* Caso prueba mov_in 1 byte:
+		/* Caso prueba mov_in 1 byte:
 		{
-			tabla_paginas_asignar_pagina(argumentos, proceso, 0, 0);
+			tabla_paginas_asignar_pagina(argumentos, proceso);
 
 			uint8_t numero = 123;
 
@@ -66,7 +66,7 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 			espacio_usuario_escribir_uint8_t(argumentos, 0, numero);
 			proceso->bytes_usados += sizeof(uint8_t);
 		}
-		// */
+		*/
 
 		// Leo las instrucciones del archivo y las guardo en la lista de instrucciones del proceso
 		proceso->instrucciones = leer_instrucciones(argumentos, path_completo, proceso->pid);
