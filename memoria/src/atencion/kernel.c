@@ -25,27 +25,20 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 		// Inicializo la tabla de paginas asociada al proceso
 		tabla_paginas_inicializar(argumentos, proceso);
 
-		/* Caso prueba espacio de usuario:
+		// /* Caso prueba espacio de usuario:
 		{
 			// Se deben asignar las paginas al proceso antes de escribirlas
-			tabla_paginas_asignar_pagina(argumentos, proceso, 0);
-			tabla_paginas_asignar_pagina(argumentos, proceso, 1);
-			tabla_paginas_asignar_pagina(argumentos, proceso, 2);
-			tabla_paginas_asignar_pagina(argumentos, proceso, 3);
-			tabla_paginas_asignar_pagina(argumentos, proceso, 4);
-			tabla_paginas_asignar_pagina(argumentos, proceso, 5);
-			tabla_paginas_asignar_pagina(argumentos, proceso, 6);
-			tabla_paginas_asignar_pagina(argumentos, proceso, 7);
-			tabla_paginas_asignar_pagina(argumentos, proceso, 8);
-			tabla_paginas_asignar_pagina(argumentos, proceso, 9);
+			tabla_paginas_asignar_pagina(argumentos, proceso, 0, 0);
+			tabla_paginas_asignar_pagina(argumentos, proceso, 1, 1);
+			tabla_paginas_asignar_pagina(argumentos, proceso, 2, 2);
 
 			char *cadena = "CURSADA DE SISTEMAS OPERATIVOS 1c 2024";
 
 			// Se deben actualizar los bytes usados del proceso cada vez que se escriba
-			espacio_usuario_escribir_char(argumentos, 100, cadena);
+			espacio_usuario_escribir_char(argumentos, 0, cadena);
 			proceso->bytes_usados += strlen(cadena);
 		}
-		*/
+		// */
 
 		/* Caso prueba mov_in 4 bytes:
 		{

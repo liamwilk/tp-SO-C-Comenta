@@ -506,14 +506,15 @@ void cpu_enviar_aviso_memoria_tam_pagina(t_cpu *cpu)
 int mmu(t_cpu *cpu, uint32_t direccion_logica, uint32_t numero_marco)
 {
     int numero_pagina = calcular_numero_pagina(cpu, direccion_logica);
-    int desplazamiento = direccion_logica - numero_pagina * cpu->tam_pagina;
 
-    int direccion_fisica = numero_marco * cpu->tam_pagina + desplazamiento;
+    int desplazamiento = direccion_logica - (numero_pagina * cpu->tam_pagina);
+
+    int direccion_fisica = (numero_marco * cpu->tam_pagina) + desplazamiento;
 
     return direccion_fisica;
 }
 
 uint32_t calcular_numero_pagina(t_cpu *cpu, uint32_t direccion_logica)
 {
-    return floor(direccion_logica / cpu->tam_pagina);
+    return direccion_logica / cpu->tam_pagina;
 }
