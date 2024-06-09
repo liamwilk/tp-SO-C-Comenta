@@ -51,7 +51,6 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			break;
 		}
 
-		
 		paquete_enviar->dato_8 = paquete_recibido->dato_8;
 		paquete_enviar->dato_32 = paquete_recibido->dato_32;
 		paquete_enviar->pid = paquete_recibido->pid;
@@ -476,6 +475,160 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		proceso_enviar->registros = proceso_recibido->registros;
 
 		serializar_t_io_stdout_write(&paquete, proceso_enviar);
+		enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+		eliminar_paquete(paquete);
+
+		free(proceso_enviar->interfaz);
+		free(proceso_enviar);
+
+		free(proceso_recibido->interfaz);
+		free(proceso_recibido);
+		break;
+	}
+	case CPU_MEMORIA_IO_STDIN_READ:
+	{
+		t_io_stdin_read *proceso_recibido = deserializar_t_io_stdin_read(buffer);
+
+		log_debug(argumentos->logger, "Se recibio una peticion de asignacion de marco de <%d> bytes para el proceso PID <%d>", proceso_recibido->registro_tamanio, proceso_recibido->pid);
+
+		// Busco el proceso en la lista de procesos globales
+		t_proceso *proceso = buscar_proceso(argumentos, proceso_recibido->pid);
+
+		// Si el proceso no existe, envio una señal a CPU
+		if (proceso == NULL)
+		{
+			log_error(argumentos->logger, "No se encontro el proceso con PID <%d> en Memoria", proceso_recibido->pid);
+
+			t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_STDIN_READ);
+			t_io_stdin_read *proceso_enviar = malloc(sizeof(t_io_stdin_read));
+
+			// Le devuelvo lo que recibi, pero con resultado 0 indicando que fallo
+			proceso_enviar->pid = proceso_recibido->pid;
+			proceso_enviar->resultado = 1;
+			proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
+			proceso_enviar->registro_tamanio = proceso_recibido->registro_tamanio;
+			proceso_enviar->marco_inicial = proceso_recibido->marco_inicial;
+			proceso_enviar->marco_final = proceso_recibido->marco_final;
+			proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
+			proceso_enviar->direccion_fisica = proceso_recibido->direccion_fisica;
+			proceso_enviar->desplazamiento = proceso_recibido->desplazamiento;
+			proceso_enviar->interfaz = strdup(proceso_recibido->interfaz);
+			proceso_enviar->size_interfaz = proceso_recibido->size_interfaz;
+			proceso_enviar->registros = proceso_recibido->registros;
+
+			serializar_t_io_stdin_read(&paquete, proceso_enviar);
+			enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+			eliminar_paquete(paquete);
+
+			free(proceso_enviar->interfaz);
+			free(proceso_enviar);
+
+			free(proceso_recibido->interfaz);
+			free(proceso_recibido);
+			break;
+		}
+
+		// Verifico si la página solicitada existe
+		t_pagina *pagina = list_get(proceso->tabla_paginas, proceso_recibido->numero_pagina);
+
+		if (pagina == NULL)
+		{
+			log_error(argumentos->logger, "No se encontro la pagina %d para el proceso con PID <%d> asociado a IO_STDIN_READ", proceso_recibido->numero_pagina, proceso_recibido->pid);
+			t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_STDIN_READ);
+			t_io_stdin_read *proceso_enviar = malloc(sizeof(t_io_stdin_read));
+
+			// Le devuelvo lo que recibi, pero con resultado 0 indicando que fallo
+			proceso_enviar->pid = proceso_recibido->pid;
+			proceso_enviar->resultado = 0;
+			proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
+			proceso_enviar->registro_tamanio = proceso_recibido->registro_tamanio;
+			proceso_enviar->marco_inicial = proceso_recibido->marco_inicial;
+			proceso_enviar->marco_final = proceso_recibido->marco_final;
+			proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
+			proceso_enviar->direccion_fisica = proceso_recibido->direccion_fisica;
+			proceso_enviar->desplazamiento = proceso_recibido->desplazamiento;
+			proceso_enviar->interfaz = strdup(proceso_recibido->interfaz);
+			proceso_enviar->size_interfaz = proceso_recibido->size_interfaz;
+			proceso_enviar->registros = proceso_recibido->registros;
+
+			serializar_t_io_stdin_read(&paquete, proceso_enviar);
+			enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+			eliminar_paquete(paquete);
+
+			free(proceso_enviar->interfaz);
+			free(proceso_enviar);
+
+			free(proceso_recibido->interfaz);
+			free(proceso_recibido);
+			break;
+		}
+
+		// Si no hay espacio en la tabla de paginas para escribir el tamaño solicitado, envio un mensaje a CPU
+		if (proceso_recibido->registro_tamanio > espacio_usuario_bytes_disponibles(argumentos))
+		{
+			log_error(argumentos->logger, "No hay espacio suficiente para poder escribir %d bytes en el proceso con PID <%d> asociado a IO_STDIN_READ", proceso_recibido->registro_tamanio, proceso_recibido->pid);
+
+			// Notifico a CPU que el tamaño solicitado a leer no coincide con lo que fue escrito por el proceso
+			t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_STDIN_READ);
+			t_io_stdin_read *proceso_enviar = malloc(sizeof(t_io_stdin_read));
+
+			// Le devuelvo lo que recibi, pero con resultado 0 indicando que fallo
+			proceso_enviar->pid = proceso_recibido->pid;
+			proceso_enviar->resultado = 0;
+			proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
+			proceso_enviar->registro_tamanio = proceso_recibido->registro_tamanio;
+			proceso_enviar->marco_inicial = proceso_recibido->marco_inicial;
+			proceso_enviar->marco_final = proceso_recibido->marco_final;
+			proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
+			proceso_enviar->direccion_fisica = proceso_recibido->direccion_fisica;
+			proceso_enviar->desplazamiento = proceso_recibido->desplazamiento;
+			proceso_enviar->interfaz = strdup(proceso_recibido->interfaz);
+			proceso_enviar->size_interfaz = proceso_recibido->size_interfaz;
+			proceso_enviar->registros = proceso_recibido->registros;
+
+			serializar_t_io_stdin_read(&paquete, proceso_enviar);
+			enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+			eliminar_paquete(paquete);
+
+			free(proceso_enviar->interfaz);
+			free(proceso_enviar);
+
+			free(proceso_recibido->interfaz);
+			free(proceso_recibido);
+			break;
+		}
+
+		int j = 0;
+		proceso_recibido->marco_inicial = proceso_recibido->registro_direccion / argumentos->memoria.tamPagina;
+		proceso_recibido->marco_final = (proceso_recibido->registro_direccion + proceso_recibido->registro_tamanio - 1) / argumentos->memoria.tamPagina;
+
+		log_debug(argumentos->logger, "Se asignaron los marcos <%d> al <%d> para el proceso con PID <%d> asociado a IO_STDIN_READ", proceso_recibido->marco_inicial, proceso_recibido->marco_final, proceso_recibido->pid);
+
+		for (int i = proceso_recibido->marco_inicial; i <= proceso_recibido->marco_final; i++)
+		{
+			// Le asigno el marco y pagina al proceso
+			tabla_paginas_asignar_pagina(argumentos, proceso, proceso_recibido->numero_pagina + j, i);
+			j++;
+		}
+
+		// Notifico a CPU que se asigno el marco
+		t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_STDIN_READ);
+		t_io_stdin_read *proceso_enviar = malloc(sizeof(t_io_stdin_read));
+
+		proceso_enviar->pid = proceso_recibido->pid;
+		proceso_enviar->resultado = 1;
+		proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
+		proceso_enviar->registro_tamanio = proceso_recibido->registro_tamanio;
+		proceso_enviar->marco_inicial = proceso_recibido->marco_inicial;
+		proceso_enviar->marco_final = proceso_recibido->marco_final;
+		proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
+		proceso_enviar->direccion_fisica = proceso_recibido->direccion_fisica;
+		proceso_enviar->desplazamiento = proceso_recibido->desplazamiento;
+		proceso_enviar->interfaz = strdup(proceso_recibido->interfaz);
+		proceso_enviar->size_interfaz = proceso_recibido->size_interfaz;
+		proceso_enviar->registros = proceso_recibido->registros;
+
+		serializar_t_io_stdin_read(&paquete, proceso_enviar);
 		enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
 		eliminar_paquete(paquete);
 

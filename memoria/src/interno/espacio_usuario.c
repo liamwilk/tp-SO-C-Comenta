@@ -17,7 +17,7 @@ void espacio_usuario_inicializar(t_args *args)
 
     log_debug(args->logger, "Se creo el espacio de usuario con %d bytes y %d frames disponibles.", args->memoria.tamMemoria, frames);
 
-    // Inicializo toda la memoria en 0xFF
+    // Inicializo toda la memoria en \n
     memset(args->memoria.espacio_usuario, '\n', args->memoria.tamMemoria);
 
     args->memoria.bytes_usados = (int *)calloc(frames, sizeof(int));
@@ -78,7 +78,7 @@ int espacio_usuario_escribir_dato(t_args *args, uint32_t direccion_fisica, void 
     // Alarma por si se sobreescriben datos
     for (size_t i = 0; i < tamano; i++)
     {
-        if (destino[i] != 0xFF)
+        if (destino[i] != '\n')
         {
             log_warning(args->logger, "Sobrescribiendo datos en la dirección física %ld.", direccion_fisica + i);
         }
@@ -142,7 +142,7 @@ int espacio_usuario_leer_dato(t_args *args, uint32_t direccion_fisica, void *des
     // Reviso que la dirección física tenga datos
     for (size_t i = 0; i < tamano; i++)
     {
-        if (origen[i] == 0xFF)
+        if (origen[i] == '\n')
         {
             log_warning(args->logger, "Se intento leer la dirección física %lu, pero está vacía.", direccion_fisica + i);
             return -1;
@@ -156,7 +156,7 @@ int espacio_usuario_leer_dato(t_args *args, uint32_t direccion_fisica, void *des
     // Alerto si es que la lectura abarca más de un frame
     if (frame_inicio != frame_fin)
     {
-        log_debug(args->logger, "La lectura de %ld bytes desde la direccion fisica %d (%ld -> %ld) comienza en el frame %d hasta el %d.", tamano, direccion_fisica, tamano, tamano + direccion_fisica, frame_inicio, frame_fin);
+        log_debug(args->logger, "La lectura de %ld bytes desde la direccion fisica %d (%d -> %ld) comienza en el frame %d hasta el %d.", tamano, direccion_fisica, direccion_fisica, tamano + direccion_fisica, frame_inicio, frame_fin);
     }
 
     // Copio los datos

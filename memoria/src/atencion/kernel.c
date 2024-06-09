@@ -28,19 +28,22 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 		/* Caso prueba espacio de usuario:
 		{
 			// Se deben asignar las paginas al proceso antes de escribirlas
-			t_pagina *pagina1 = tabla_paginas_asignar_pagina(argumentos, proceso);
-			t_pagina *pagina2 = tabla_paginas_asignar_pagina(argumentos, proceso);
-			t_pagina *pagina3 = tabla_paginas_asignar_pagina(argumentos, proceso);
+			tabla_paginas_asignar_pagina(argumentos, proceso, 0);
+			tabla_paginas_asignar_pagina(argumentos, proceso, 1);
+			tabla_paginas_asignar_pagina(argumentos, proceso, 2);
+			tabla_paginas_asignar_pagina(argumentos, proceso, 3);
+			tabla_paginas_asignar_pagina(argumentos, proceso, 4);
+			tabla_paginas_asignar_pagina(argumentos, proceso, 5);
+			tabla_paginas_asignar_pagina(argumentos, proceso, 6);
+			tabla_paginas_asignar_pagina(argumentos, proceso, 7);
+			tabla_paginas_asignar_pagina(argumentos, proceso, 8);
+			tabla_paginas_asignar_pagina(argumentos, proceso, 9);
 
 			char *cadena = "CURSADA DE SISTEMAS OPERATIVOS 1c 2024";
 
 			// Se deben actualizar los bytes usados del proceso cada vez que se escriba
-			espacio_usuario_escribir_char(argumentos, 0, cadena);
+			espacio_usuario_escribir_char(argumentos, 100, cadena);
 			proceso->bytes_usados += strlen(cadena);
-
-			// Se pueden obtener los marcos de inicio y fin de la escritura, y con esto todos los marcos que se ocuparon
-			int marco_inicio_escritura = espacio_usuario_escribir_dato_frame_inicio(argumentos, 0, strlen(cadena));
-			int marco_fin_escritura = espacio_usuario_escribir_dato_frame_fin(argumentos, 0, strlen(cadena));
 		}
 		*/
 

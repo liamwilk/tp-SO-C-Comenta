@@ -1210,3 +1210,207 @@ t_kernel_io_interrupcion *deserializar_t_kernel_io_interrupcion(t_buffer *buffer
 	deserializar_char(&stream, &(interrupcion->motivo), interrupcion->len_motivo);
 	return interrupcion;
 }
+
+void serializar_t_io_stdin_read(t_paquete **paquete, t_io_stdin_read *read)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 17 + sizeof(uint8_t) * 4 + read->size_interfaz);
+	serializar_uint32_t(read->pid, *paquete);
+	serializar_uint32_t(read->resultado, *paquete);
+	serializar_uint32_t(read->registro_direccion, *paquete);
+	serializar_uint32_t(read->registro_tamanio, *paquete);
+	serializar_uint32_t(read->marco_inicial, *paquete);
+	serializar_uint32_t(read->marco_final, *paquete);
+	serializar_uint32_t(read->numero_pagina, *paquete);
+	serializar_uint32_t(read->direccion_fisica, *paquete);
+	serializar_uint32_t(read->desplazamiento, *paquete);
+	serializar_uint32_t(read->size_interfaz, *paquete);
+
+	// Registros de CPU
+
+	serializar_uint32_t(read->registros.pc, *paquete);
+	serializar_uint32_t(read->registros.eax, *paquete);
+	serializar_uint32_t(read->registros.ebx, *paquete);
+	serializar_uint32_t(read->registros.ecx, *paquete);
+	serializar_uint32_t(read->registros.edx, *paquete);
+	serializar_uint32_t(read->registros.si, *paquete);
+	serializar_uint32_t(read->registros.di, *paquete);
+	serializar_uint8_t(read->registros.ax, *paquete);
+	serializar_uint8_t(read->registros.bx, *paquete);
+	serializar_uint8_t(read->registros.cx, *paquete);
+	serializar_uint8_t(read->registros.dx, *paquete);
+
+	serializar_char(read->interfaz, *paquete);
+}
+
+t_io_stdin_read *deserializar_t_io_stdin_read(t_buffer *buffer)
+{
+	t_io_stdin_read *read = malloc(sizeof(t_io_stdin_read));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(read->pid));
+	deserializar_uint32_t(&stream, &(read->resultado));
+	deserializar_uint32_t(&stream, &(read->registro_direccion));
+	deserializar_uint32_t(&stream, &(read->registro_tamanio));
+	deserializar_uint32_t(&stream, &(read->marco_inicial));
+	deserializar_uint32_t(&stream, &(read->marco_final));
+	deserializar_uint32_t(&stream, &(read->numero_pagina));
+	deserializar_uint32_t(&stream, &(read->direccion_fisica));
+	deserializar_uint32_t(&stream, &(read->desplazamiento));
+	deserializar_uint32_t(&stream, &(read->size_interfaz));
+
+	// Registros CPU
+	deserializar_uint32_t(&stream, &(read->registros.pc));
+	deserializar_uint32_t(&stream, &(read->registros.eax));
+	deserializar_uint32_t(&stream, &(read->registros.ebx));
+	deserializar_uint32_t(&stream, &(read->registros.ecx));
+	deserializar_uint32_t(&stream, &(read->registros.edx));
+	deserializar_uint32_t(&stream, &(read->registros.si));
+	deserializar_uint32_t(&stream, &(read->registros.di));
+	deserializar_uint8_t(&stream, &(read->registros.ax));
+	deserializar_uint8_t(&stream, &(read->registros.bx));
+	deserializar_uint8_t(&stream, &(read->registros.cx));
+	deserializar_uint8_t(&stream, &(read->registros.dx));
+
+	deserializar_char(&stream, &(read->interfaz), read->size_interfaz);
+	return read;
+}
+
+void serializar_t_kernel_cpu_io_stdin_read(t_paquete **paquete, t_kernel_cpu_io_stdin_read *read)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 4 + read->size_motivo);
+	serializar_uint32_t(read->pid, *paquete);
+	serializar_uint32_t(read->resultado, *paquete);
+	serializar_uint32_t(read->size_motivo, *paquete);
+	serializar_char(read->motivo, *paquete);
+}
+
+t_kernel_cpu_io_stdin_read *deserializar_t_kernel_cpu_io_stdin_read(t_buffer *buffer)
+{
+	t_kernel_cpu_io_stdin_read *read = malloc(sizeof(t_kernel_cpu_io_stdin_read));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(read->pid));
+	deserializar_uint32_t(&stream, &(read->resultado));
+	deserializar_uint32_t(&stream, &(read->size_motivo));
+	deserializar_char(&stream, &(read->motivo), read->size_motivo);
+	return read;
+}
+
+void serializar_t_kernel_io_stdin_read(t_paquete **paquete, t_kernel_io_stdin_read *read)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 17 + sizeof(uint8_t) * 4 + read->size_interfaz);
+	serializar_uint32_t(read->pid, *paquete);
+	serializar_uint32_t(read->resultado, *paquete);
+	serializar_uint32_t(read->registro_direccion, *paquete);
+	serializar_uint32_t(read->registro_tamanio, *paquete);
+	serializar_uint32_t(read->marco_inicial, *paquete);
+	serializar_uint32_t(read->marco_final, *paquete);
+	serializar_uint32_t(read->numero_pagina, *paquete);
+	serializar_uint32_t(read->direccion_fisica, *paquete);
+	serializar_uint32_t(read->desplazamiento, *paquete);
+	serializar_uint32_t(read->size_interfaz, *paquete);
+
+	// Registros de CPU
+
+	serializar_uint32_t(read->registros.pc, *paquete);
+	serializar_uint32_t(read->registros.eax, *paquete);
+	serializar_uint32_t(read->registros.ebx, *paquete);
+	serializar_uint32_t(read->registros.ecx, *paquete);
+	serializar_uint32_t(read->registros.edx, *paquete);
+	serializar_uint32_t(read->registros.si, *paquete);
+	serializar_uint32_t(read->registros.di, *paquete);
+	serializar_uint8_t(read->registros.ax, *paquete);
+	serializar_uint8_t(read->registros.bx, *paquete);
+	serializar_uint8_t(read->registros.cx, *paquete);
+	serializar_uint8_t(read->registros.dx, *paquete);
+
+	serializar_char(read->interfaz, *paquete);
+}
+
+t_kernel_io_stdin_read *deserializar_t_kernel_io_stdin_read(t_buffer *buffer)
+{
+	t_kernel_io_stdin_read *read = malloc(sizeof(t_kernel_io_stdin_read));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(read->pid));
+	deserializar_uint32_t(&stream, &(read->resultado));
+	deserializar_uint32_t(&stream, &(read->registro_direccion));
+	deserializar_uint32_t(&stream, &(read->registro_tamanio));
+	deserializar_uint32_t(&stream, &(read->marco_inicial));
+	deserializar_uint32_t(&stream, &(read->marco_final));
+	deserializar_uint32_t(&stream, &(read->numero_pagina));
+	deserializar_uint32_t(&stream, &(read->direccion_fisica));
+	deserializar_uint32_t(&stream, &(read->desplazamiento));
+	deserializar_uint32_t(&stream, &(read->size_interfaz));
+
+	// Registros CPU
+	deserializar_uint32_t(&stream, &(read->registros.pc));
+	deserializar_uint32_t(&stream, &(read->registros.eax));
+	deserializar_uint32_t(&stream, &(read->registros.ebx));
+	deserializar_uint32_t(&stream, &(read->registros.ecx));
+	deserializar_uint32_t(&stream, &(read->registros.edx));
+	deserializar_uint32_t(&stream, &(read->registros.si));
+	deserializar_uint32_t(&stream, &(read->registros.di));
+	deserializar_uint8_t(&stream, &(read->registros.ax));
+	deserializar_uint8_t(&stream, &(read->registros.bx));
+	deserializar_uint8_t(&stream, &(read->registros.cx));
+	deserializar_uint8_t(&stream, &(read->registros.dx));
+
+	deserializar_char(&stream, &(read->interfaz), read->size_interfaz);
+	return read;
+}
+
+void serializar_t_io_memoria_stdin(t_paquete **paquete, t_io_memoria_stdin *read)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 4 + read->size_input);
+	serializar_uint32_t(read->pid, *paquete);
+	serializar_uint32_t(read->direccion_fisica, *paquete);
+	serializar_uint32_t(read->size_input, *paquete);
+	serializar_char(read->input, *paquete);
+}
+
+t_io_memoria_stdin *deserializar_t_io_memoria_stdin(t_buffer *buffer)
+{
+	t_io_memoria_stdin *read = malloc(sizeof(t_io_memoria_stdin));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(read->pid));
+	deserializar_uint32_t(&stream, &(read->direccion_fisica));
+	deserializar_uint32_t(&stream, &(read->size_input));
+	deserializar_char(&stream, &(read->input), read->size_input);
+	return read;
+}
+
+void serializar_t_entrada_salida_kernel_io_stdin_read(t_paquete **paquete, t_entrada_salida_kernel_io_stdin_read *read)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 2);
+	serializar_uint32_t(read->pid, *paquete);
+	serializar_uint32_t(read->resultado, *paquete);
+}
+
+t_entrada_salida_kernel_io_stdin_read *deserializar_t_entrada_salida_kernel_io_stdin_read(t_buffer *buffer)
+{
+	t_entrada_salida_kernel_io_stdin_read *read = malloc(sizeof(t_entrada_salida_kernel_io_stdin_read));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(read->pid));
+	deserializar_uint32_t(&stream, &(read->resultado));
+	return read;
+}
+
+void serializar_t_memoria_entrada_salida_io_stdin_read(t_paquete **paquete, t_memoria_entrada_salida_io_stdin_read *read)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 2);
+	serializar_uint32_t(read->pid, *paquete);
+	serializar_uint32_t(read->resultado, *paquete);
+}
+
+t_memoria_entrada_salida_io_stdin_read *deserializar_t_memoria_entrada_salida_io_stdin_read(t_buffer *buffer)
+{
+	t_memoria_entrada_salida_io_stdin_read *read = malloc(sizeof(t_memoria_entrada_salida_io_stdin_read));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(read->pid));
+	deserializar_uint32_t(&stream, &(read->resultado));
+	return read;
+}

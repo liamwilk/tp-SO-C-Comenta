@@ -490,3 +490,42 @@ void interfaz_manejador_temporizador(union sigval arg)
     }
     }
 }
+
+char *leer_input_usuario(uint32_t size_input)
+{
+    char *input = NULL;
+    printf("Introduce un texto (maximo <%d> bytes):\n", size_input);
+
+    while (1)
+    {
+        input = readline("Dato a guardar en Memoria > ");
+
+        if (input == NULL)
+        {
+            fprintf(stderr, "Error al leer el input\n");
+            return NULL;
+        }
+
+        if (strlen(input) == 0)
+        {
+            printf("Error: No se ha introducido ningún texto. Intentalo de nuevo.\n");
+            free(input);
+            continue;
+        }
+
+        if (strlen(input) <= size_input)
+        {
+            for (int i = strlen(input); i < size_input; i++)
+            {
+                input[i] = ' ';
+            }
+            printf("Size cadena: %ld", strlen(input));
+            break;
+        }
+
+        printf("Error: El texto introducido supera el límite de <%d> bytes. Intentalo de nuevo.\n", size_input);
+        free(input);
+    }
+
+    return input;
+}

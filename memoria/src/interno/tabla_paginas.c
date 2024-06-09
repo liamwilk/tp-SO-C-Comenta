@@ -4,9 +4,30 @@
 void tabla_paginas_inicializar(t_args *args, t_proceso *proceso)
 {
     pthread_mutex_init(&proceso->mutex_tabla_paginas, NULL);
-    
+
+    int paginas = args->memoria.tamMemoria / args->memoria.tamPagina;
+
     // Creo la tabla de paginas
     proceso->tabla_paginas = list_create();
+
+    for (int i = 0; i < paginas; i++)
+    {
+        t_pagina *pagina = malloc(sizeof(t_pagina));
+
+        if (pagina == NULL)
+        {
+            log_error(args->logger, "Error al asignar memoria para página %d del proceso %d", i, proceso->pid);
+            tabla_paginas_liberar(args, proceso);
+            return;
+        }
+
+        pagina->marco = 0;
+        pagina->validez = 0;
+        pagina->bytes = 0;
+        pagina->offset = 0;
+
+        list_add(proceso->tabla_paginas, pagina);
+    }
 
     if (proceso->tabla_paginas == NULL)
     {
@@ -22,13 +43,13 @@ void tabla_paginas_liberar(t_args *argumentos, t_proceso *proceso)
 {
     log_info(argumentos->logger, "Destrucción tabla de páginas: PID: <%d> - Tamaño: <%d>", proceso->pid, list_size(proceso->tabla_paginas));
 
-    for (int i = 0; i < list_size(proceso->tabla_paginas); i++)
+    // int cantidad = list_size(proceso->tabla_paginas) - 1;
+    // log_warning(argumentos->logger, "Cantidad de páginas a liberar: %d", cantidad);
+
+    while (list_size(proceso->tabla_paginas) > 0)
     {
-        t_pagina *pagina = list_get(proceso->tabla_paginas, i);
-        if (pagina != NULL && pagina->validez == 1)
-        {
-            tabla_paginas_liberar_pagina(argumentos, proceso, i);
-        }
+        tabla_paginas_liberar_pagina(argumentos, proceso, list_size(proceso->tabla_paginas)-1);
+        // cantidad--;
     }
 
     pthread_mutex_destroy(&proceso->mutex_tabla_paginas);
@@ -36,22 +57,20 @@ void tabla_paginas_liberar(t_args *argumentos, t_proceso *proceso)
 }
 
 // Asigna el marco a la página del proceso, y marca el marco como ocupado en el bitmap
-t_pagina *tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso)
+t_pagina *tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina, uint32_t frame)
 {
-    t_pagina *pagina = malloc(sizeof(t_pagina));
+    t_pagina *pagina = list_get(proceso->tabla_paginas, numero_pagina);
 
     if (pagina == NULL)
     {
-        log_error(argumentos->logger, "Error al asignar memoria para página %d del proceso %d", list_size(proceso->tabla_paginas)+1,proceso->pid);
+        log_error(argumentos->logger, "Error al asignar memoria para página %d del proceso %d", list_size(proceso->tabla_paginas) + 1, proceso->pid);
         tabla_paginas_liberar(argumentos, proceso);
         return NULL;
     }
 
-    int frame = espacio_usuario_proximo_frame(argumentos, argumentos->memoria.tamPagina);
-
     if (frame == -1)
     {
-        log_error(argumentos->logger, "No hay frames disponibles en espacio de usuario para asignar a la página <%d> del proceso <%d>", list_size(proceso->tabla_paginas)+1, proceso->pid);
+        log_error(argumentos->logger, "No hay frames disponibles en espacio de usuario para asignar a la página <%d> del proceso <%d>", list_size(proceso->tabla_paginas) + 1, proceso->pid);
         return NULL;
     }
 
@@ -62,10 +81,7 @@ t_pagina *tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso)
 
     argumentos->memoria.bitmap_array[pagina->marco] = 1;
 
-    list_add(proceso->tabla_paginas, pagina);
-
-
-    log_info(argumentos->logger, "Asignación de tabla de páginas: PID: <%d> - Página: <%d> - Marco: <%d>", proceso->pid, list_size(proceso->tabla_paginas)-1, pagina->marco);
+    log_info(argumentos->logger, "Asignación de tabla de páginas: PID: <%d> - Página: <%d> - Marco: <%d>", proceso->pid, list_size(proceso->tabla_paginas) - 1, pagina->marco);
 
     return pagina;
 }
@@ -147,7 +163,7 @@ int tabla_paginas_resize(t_args *args, t_proceso *proceso, uint32_t bytes_nuevos
     {
         for (int i = frames_actuales; i < frames_nuevos; i++)
         {
-            tabla_paginas_asignar_pagina(args, proceso);
+            tabla_paginas_asignar_pagina(args, proceso, i, espacio_usuario_proximo_frame(args, args->memoria.tamPagina));
         }
     }
 

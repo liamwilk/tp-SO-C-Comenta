@@ -133,7 +133,7 @@ void hilo_ejecutar_kernel(int socket, hilos_args *args, char *modulo, t_funcion_
     }
     sem_post(&args->kernel->sistema_finalizar);
 
-    kernel_log_generic(args, LOG_LEVEL_DEBUG, "Finalizando hilo de atencion a %s", modulo);
+    kernel_log_generic(args, LOG_LEVEL_INFO, "Finalizando hilo de atencion a %s", modulo);
 }
 
 void revisar_paquete_kernel(hilos_args *args, t_paquete *paquete, char *modulo)

@@ -137,7 +137,7 @@ void *hilo_planificador(void *args)
         // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
         if (obtener_key_detencion_algoritmo(hiloArgs))
         {
-            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion %s pausada.", hiloArgs->kernel->algoritmoPlanificador);
+            log_debug(hiloArgs->logger, "Planificacion %s pausada.", hiloArgs->kernel->algoritmoPlanificador);
             continue;
         }
 
@@ -348,7 +348,7 @@ void *hilos_esperar_entrada_salida(void *args)
             pthread_detach(thread_atender_entrada_salida);
             break;
         case KERNEL_ENTRADA_SALIDA_DIALFS:
-            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida DialFS con socket %d", socket_cliente);
+            log_debug(hiloArgs->logger, "Se conecto un modulo de entrada/salida DialFS con socket %d", socket_cliente);
             io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_DIALFS, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_dialfs, io_args);

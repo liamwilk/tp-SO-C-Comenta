@@ -480,9 +480,9 @@ int tabla_paginas_acceder_pagina(t_args *argumentos, t_proceso *proceso, uint32_
  * @param argumentos Puntero a la estructura de argumentos.
  * @param proceso El proceso.
  * @param numero_pagina Número de página a asignar.
- * @param numero_marco Número de marco a asignar a la página.
+ * @param frame Número de marco a asignar.
  */
-t_pagina *tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso);
+t_pagina *tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina, uint32_t frame);
 
 void agregar_identificador(t_args_hilo *argumentos, char *identificador);
 void avisar_rechazo_identificador_memoria(int socket);

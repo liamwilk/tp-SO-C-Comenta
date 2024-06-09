@@ -145,6 +145,148 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         break;
     }
+    case CPU_KERNEL_IO_STDIN_READ:
+    {
+        t_io_stdin_read *proceso_recibido = deserializar_t_io_stdin_read(buffer);
+
+        t_kernel_entrada_salida *entrada_salida = entrada_salida_buscar_interfaz(args, proceso_recibido->interfaz);
+
+        // Si la interfaz de entrada salida no esta conectada
+        if (entrada_salida == NULL)
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "Aviso a CPU que no se pudo enviar el paquete a la interfaz <%s> porque no esta conectada", proceso_recibido->interfaz);
+
+            t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDIN_READ);
+            t_kernel_cpu_io_stdin_read *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdin_read));
+
+            proceso_enviar->pid = proceso_recibido->pid;
+            proceso_enviar->resultado = 0;
+            proceso_enviar->motivo = strdup("La interfaz solicitada no se encuentra conectada a Kernel");
+            proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
+
+            serializar_t_kernel_cpu_io_stdin_read(&paquete, proceso_enviar);
+            enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
+            eliminar_paquete(paquete);
+
+            kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
+
+            free(proceso_enviar->motivo);
+            free(proceso_enviar);
+            free(proceso_recibido->interfaz);
+            free(proceso_recibido);
+
+            break;
+        }
+
+        // Si la interfaz de entrada salida pedida no es del tipo STDIN
+        if (entrada_salida->tipo != ENTRADA_SALIDA_STDIN)
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque no es del tipo IO_STDIN.", proceso_recibido->interfaz);
+
+            t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDIN_READ);
+            t_kernel_cpu_io_stdin_read *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdin_read));
+
+            proceso_enviar->pid = proceso_recibido->pid;
+            proceso_enviar->resultado = 0;
+            proceso_enviar->motivo = strdup("La interfaz solicitada no puede ejecutar la instruccion IO_STDIN_READ porque no es del tipo IO_STDIN");
+            proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
+
+            serializar_t_kernel_cpu_io_stdin_read(&paquete, proceso_enviar);
+            enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
+            eliminar_paquete(paquete);
+
+            kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
+
+            free(proceso_enviar->motivo);
+            free(proceso_enviar);
+            free(proceso_recibido->interfaz);
+            free(proceso_recibido);
+
+            break;
+        }
+
+        // Si la interfaz de entrada salida esta ocupada
+        if (entrada_salida->ocupado)
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque esta ocupada con el proceso %d.", proceso_recibido->interfaz, entrada_salida->pid);
+
+            t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDIN_READ);
+            t_kernel_cpu_io_stdin_read *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdin_read));
+
+            proceso_enviar->pid = proceso_recibido->pid;
+            proceso_enviar->resultado = 0;
+            proceso_enviar->motivo = strdup("La interfaz solicitada no puede ejecutar la instruccion IO_STDIN_READ porque se encuentra ocupada con otro proceso");
+            proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
+
+            serializar_t_kernel_cpu_io_stdin_read(&paquete, proceso_enviar);
+            enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
+            eliminar_paquete(paquete);
+
+            kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
+
+            free(proceso_enviar->motivo);
+            free(proceso_enviar);
+            free(proceso_recibido->interfaz);
+            free(proceso_recibido);
+
+            break;
+        }
+
+        // Actualizo la interfaz de entrada salida
+        entrada_salida->ocupado = 1;
+        entrada_salida->pid = proceso_recibido->pid;
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envia el paquete a la interfaz <%s> asociado a la instruccion IO_STDIN_READ del proceso PID <%d>", proceso_recibido->interfaz, proceso_recibido->pid);
+
+        t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_STDIN_READ);
+        t_kernel_io_stdin_read *proceso_completo = malloc(sizeof(t_kernel_io_stdin_read));
+
+        proceso_completo->pid = proceso_recibido->pid;
+        proceso_completo->resultado = proceso_recibido->resultado;
+        proceso_completo->registro_direccion = proceso_recibido->registro_direccion;
+        proceso_completo->registro_tamanio = proceso_recibido->registro_tamanio;
+        proceso_completo->marco_inicial = proceso_recibido->marco_inicial;
+        proceso_completo->marco_final = proceso_recibido->marco_final;
+        proceso_completo->numero_pagina = proceso_recibido->numero_pagina;
+        proceso_completo->direccion_fisica = proceso_recibido->direccion_fisica;
+        proceso_completo->desplazamiento = proceso_recibido->desplazamiento;
+        proceso_completo->size_interfaz = proceso_recibido->size_interfaz;
+        proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
+        proceso_completo->registros = proceso_recibido->registros;
+
+        // Actualizo los registros del proceso en Kernel
+
+        t_pcb *pcb = proceso_buscar_exec(args->estados, proceso_recibido->pid);
+
+        pcb->registros_cpu->ax = proceso_recibido->registros.ax;
+        pcb->registros_cpu->bx = proceso_recibido->registros.bx;
+        pcb->registros_cpu->cx = proceso_recibido->registros.cx;
+        pcb->registros_cpu->dx = proceso_recibido->registros.dx;
+        pcb->registros_cpu->pc = proceso_recibido->registros.pc;
+        pcb->registros_cpu->eax = proceso_recibido->registros.eax;
+        pcb->registros_cpu->ebx = proceso_recibido->registros.ebx;
+        pcb->registros_cpu->ecx = proceso_recibido->registros.ecx;
+        pcb->registros_cpu->edx = proceso_recibido->registros.edx;
+        pcb->registros_cpu->si = proceso_recibido->registros.si;
+        pcb->registros_cpu->di = proceso_recibido->registros.di;
+
+        serializar_t_kernel_io_stdin_read(&paquete, proceso_completo);
+        enviar_paquete(paquete, entrada_salida->socket);
+        eliminar_paquete(paquete);
+
+        free(proceso_completo->interfaz);
+        free(proceso_completo);
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio la instruccion de IO_STDIN_READ a la interfaz %s", entrada_salida->interfaz);
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se transiciona el PID <%d> a BLOCK por ejecucion de IO_STDIN_READ.", proceso_recibido->pid);
+        kernel_transicion_exec_block(args);
+
+        free(proceso_recibido->interfaz);
+        free(proceso_recibido);
+
+        break;
+    }
     case CPU_KERNEL_RESIZE:
     {
         t_cpu_kernel_resize *proceso_recibido = deserializar_t_cpu_kernel_resize(buffer);
