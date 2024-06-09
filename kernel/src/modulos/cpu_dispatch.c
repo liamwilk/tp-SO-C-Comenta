@@ -8,7 +8,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
     {
         t_io_stdout_write *proceso_recibido = deserializar_t_io_stdout_write(buffer);
 
-        t_kernel_entrada_salida *entrada_salida = entrada_salida_buscar_interfaz(args, proceso_recibido->interfaz);
+        t_kernel_entrada_salida *entrada_salida = kernel_entrada_salida_buscar_interfaz(args, proceso_recibido->interfaz);
 
         // Si la interfaz de entrada salida no esta conectada
         if (entrada_salida == NULL)
@@ -149,7 +149,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
     {
         t_io_stdin_read *proceso_recibido = deserializar_t_io_stdin_read(buffer);
 
-        t_kernel_entrada_salida *entrada_salida = entrada_salida_buscar_interfaz(args, proceso_recibido->interfaz);
+        t_kernel_entrada_salida *entrada_salida = kernel_entrada_salida_buscar_interfaz(args, proceso_recibido->interfaz);
 
         // Si la interfaz de entrada salida no esta conectada
         if (entrada_salida == NULL)

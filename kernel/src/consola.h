@@ -102,7 +102,6 @@ void entrada_salida_remover_interfaz(hilos_args *args, char *interfaz);
  *
  * @return Un puntero a la estructura de entrada/salida encontrada, o NULL si no se encontró.
  */
-t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz);
 t_kernel_entrada_salida *kernel_sockets_agregar_entrada_salida(hilos_args *args, KERNEL_SOCKETS type, int socket);
 void entrada_salida_agregar_identificador(hilos_io_args *args, char *identificador);
 void hilos_ejecutar_entrada_salida(hilos_io_args *io_args, char *modulo, t_funcion_kernel_io_prt switch_case_atencion);

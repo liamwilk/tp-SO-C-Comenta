@@ -89,7 +89,7 @@ void kernel_finalizar(hilos_args *args)
         {
             char *interfaz = list_get(conectados, i);
             char *interfaz_copia = strdup(interfaz);
-            t_kernel_entrada_salida *modulo = entrada_salida_buscar_interfaz(args, interfaz);
+            t_kernel_entrada_salida *modulo = kernel_entrada_salida_buscar_interfaz(args, interfaz);
 
             // Liberar la conexion rompe el hilo de entrada/salida y se auto-elimina.
             liberar_conexion(&modulo->socket);

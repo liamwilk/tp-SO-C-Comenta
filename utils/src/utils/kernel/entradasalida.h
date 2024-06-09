@@ -5,6 +5,7 @@
 #include "commons/collections/list.h"
 #include "../serial.h"
 #include "structs.h"
+#include "consola.h"
 
 /**
  * @brief Interrumpe las operaciones de E/S para un proceso específico en el kernel.
@@ -16,16 +17,21 @@
  * @param pid El PID (Identificador de Proceso) del proceso para interrumpir sus operaciones de E/S.
  * @param motivo Una cadena que especifica la razón para interrumpir las operaciones de E/S.
  */
-void kernel_interrumpir_io(t_list *list_entrada_salida, uint32_t pid, char *motivo);
+void kernel_interrumpir_io(hilos_args *args, uint32_t pid, char *motivo);
 
 /**
- * Busca una interfaz de entrada/salida del kernel basada en los argumentos del hilo y el ID del proceso.
+ * @brief Busca una interfaz de entrada/salida en el kernel.
+ *
+ * Esta función se encarga de buscar una interfaz de entrada/salida en el kernel.
  *
  * @param args Los argumentos del hilo.
- * @param pid El ID del proceso.
- * @return Un puntero a la interfaz t_kernel_entrada_salida encontrada, o NULL si no se encuentra.
+ * @param interfaz La interfaz a buscar.
+ *
+ * @return Un puntero a la estructura de entrada/salida encontrada, o NULL si no se encontró.
  */
-t_kernel_entrada_salida *kernel_entrada_salida_buscar_interfaz(t_list *list_entrada_salida, uint32_t pid);
+t_kernel_entrada_salida *kernel_entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz);
+
+t_kernel_entrada_salida *kernel_entrada_salida_buscar_interfaz_pid(hilos_args *args, uint32_t pid);
 
 /**SWITCH CASE PARTICULAR PARA CADA ENTRADASALIDA**/
 void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *modulo, t_op_code codigo_operacion, t_buffer *buffer);

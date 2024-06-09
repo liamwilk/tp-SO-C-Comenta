@@ -343,7 +343,7 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
             }
             else
             {
-                kernel_interrumpir_io(kernel_hilos_args->kernel->sockets.list_entrada_salida, pid, "FINALIZAR_PROCESO");
+                kernel_interrumpir_io(kernel_hilos_args, pid, "FINALIZAR_PROCESO");
             }
             kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
             return false;

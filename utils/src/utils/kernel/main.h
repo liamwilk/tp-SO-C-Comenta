@@ -55,7 +55,7 @@ void kernel_finalizar(hilos_args *args);
  * @param interfaz El nombre de la interfaz a buscar.
  * @return Un puntero a la estructura de entrada/salida encontrada, o NULL si no se encuentra.
  */
-t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz);
+t_kernel_entrada_salida *kernel_entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz);
 
 /**
  * @brief Función para revisar un paquete recibido por el kernel.

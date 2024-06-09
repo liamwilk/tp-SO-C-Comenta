@@ -300,30 +300,6 @@ void entrada_salida_remover_interfaz(hilos_args *args, char *identificador)
     // No lo elimino de la lista porque no se puede hacer un list_remove sin reorganizar los indices. Lo dejo en la lista pero no se puede acceder a el porque está vacio. Al finalizar el programa, destruyo la estructura de la lista entera.
 }
 
-t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz)
-{
-    // Busco el indice en la lista de entrada/salida
-    int *indice = dictionary_get(args->kernel->sockets.dictionary_entrada_salida, interfaz);
-
-    // Si no se encuentra la interfaz en el diccionario, no se puede buscar
-    if (indice == NULL)
-    {
-        return NULL;
-    }
-
-    // Obtengo el TAD de la lista de entrada/salida
-    t_kernel_entrada_salida *entrada_salida = list_get(args->kernel->sockets.list_entrada_salida, *indice);
-
-    if (entrada_salida == NULL)
-    {
-        return NULL;
-    }
-
-    kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se encontro el modulo de entrada/salida en el socket %d asociado a la interfaz %s", entrada_salida->socket, interfaz);
-
-    return entrada_salida;
-}
-
 void entrada_salida_agregar_identificador(hilos_io_args *argumentos, char *identificador)
 {
     // Duplico la cadena para guardarla en el TAD y poder identificar la IO (esto pide malloc y hay que liberarlo cuando se desconecta la IO)
