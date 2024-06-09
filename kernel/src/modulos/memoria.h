@@ -3,7 +3,7 @@
 #include <commons/log.h>
 #include <utils/serial.h>
 #include <utils/template.h>
-#include <utils/kernel.h>
+#include <utils/kernel/main.h>
 #include "consola.h"
 
 /**

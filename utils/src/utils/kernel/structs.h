@@ -1,3 +1,6 @@
+
+#ifndef KERNEL_STRUCTS_H_
+#define KERNEL_STRUCTS_H_
 #include "commons/collections/dictionary.h"
 #include <semaphore.h>
 #include "../procesos.h"
@@ -31,6 +34,18 @@ typedef enum
     ENTRADA_SALIDA_STDOUT,
     ENTRADA_SALIDA_DIALFS
 } KERNEL_SOCKETS;
+
+typedef struct
+{
+    int pid;
+    int ocupado;
+    int orden;
+    int socket;
+    bool identificado;
+    bool valido;
+    char *interfaz;
+    KERNEL_SOCKETS tipo;
+} t_kernel_entrada_salida;
 
 typedef enum
 {
@@ -130,18 +145,6 @@ typedef struct
 
 typedef struct
 {
-    int pid;
-    int ocupado;
-    int orden;
-    int socket;
-    bool identificado;
-    bool valido;
-    char *interfaz;
-    KERNEL_SOCKETS tipo;
-} t_kernel_entrada_salida;
-
-typedef struct
-{
     hilos_args *args;
 } timer_args_t;
 
@@ -159,3 +162,5 @@ typedef struct t_recurso
 
 typedef void (*t_funcion_kernel_ptr)(t_log *, t_op_code, hilos_args *, t_buffer *);
 typedef void (*t_funcion_kernel_io_prt)(hilos_io_args *, char *, t_op_code, t_buffer *);
+
+#endif /* KERNEL_STRUCTS_H_ */

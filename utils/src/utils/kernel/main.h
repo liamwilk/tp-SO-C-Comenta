@@ -10,12 +10,12 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <limits.h>
-#include "conexiones.h"
+#include "../conexiones.h"
 #include <sys/ioctl.h>
 #include <dirent.h>
 #include <pwd.h>
 #include <ctype.h>
-#include "kernel/transiciones.h"
+#include "transiciones.h"
 
 /*Estructura basica del kernel*/
 
@@ -67,61 +67,6 @@ t_kernel_entrada_salida *entrada_salida_buscar_interfaz(hilos_args *args, char *
 void kernel_revisar_paquete(t_paquete *paquete, hilos_args *args, char *modulo);
 
 /**
- * @brief Función para iniciar un proceso en el kernel.
- *
- * @param separar_linea Array de strings con los argumentos de la línea de comando.
- * @param hiloArgs Estructura de argumentos del hilo.
- */
-void iniciar_proceso(char **separar_linea, hilos_args *hiloArgs);
-
-/**
- * @brief Función para finalizar un proceso en el kernel.
- *
- * @param separar_linea Array de strings con los argumentos de la línea de comando.
- * @param hiloArgs Estructura de argumentos del hilo.
- */
-void finalizar_proceso(char **separar_linea, hilos_args *hiloArgs);
-
-/**
- * @brief Función para iniciar la planificación de procesos en el kernel.
- *
- * @param separar_linea Array de strings con los argumentos de la línea de comando.
- * @param hiloArgs Estructura de argumentos del hilo.
- */
-void iniciar_planificacion(char **separar_linea, hilos_args *hiloArgs);
-
-/**
- * @brief Función para detener la planificación de procesos en el kernel.
- *
- * @param separar_linea Array de strings con los argumentos de la línea de comando.
- * @param hiloArgs Estructura de argumentos del hilo.
- */
-void detener_planificacion(char **separar_linea, hilos_args *hiloArgs);
-
-/**
- * @brief Función para establecer el grado de multiprogramación en el kernel.
- *
- * @param separar_linea Array de strings con los argumentos de la línea de comando.
- * @param hiloArgs Estructura de argumentos del hilo.
- */
-void multiprogramacion(char **separar_linea, hilos_args *hiloArgs);
-
-/**
- * @brief Función para mostrar el estado de los procesos en el kernel.
- *
- * @param hiloArgs Estructura de argumentos del hilo.
- */
-void procesos_estados(hilos_args *hiloArgs);
-
-/**
- * @brief Función para finalizar la consola del kernel.
- *
- * @param separar_linea Array de strings con los argumentos de la línea de comando.
- * @param hiloArgs Estructura de argumentos del hilo.
- */
-void finalizar_consola(char **separar_linea, hilos_args *hiloArgs);
-
-/**
  * @brief Crea un nuevo proceso en el kernel.
  *
  * Esta función se encarga de crear un nuevo proceso en el kernel. Envia el struct t_kernel_memoria_proceso al modulo memoria
@@ -159,11 +104,5 @@ void hilo_planificador_detener(hilos_args *args);
  * @brief Registra el manejador de señales.
  */
 void registrar_manejador_senales();
-
-void hilos_ejecutar_entrada_salida(hilos_io_args *io_args, char *modulo, t_funcion_kernel_io_prt switch_case_atencion);
-void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *modulo, t_op_code codigo_operacion, t_buffer *buffer);
-void switch_case_kernel_entrada_salida_stdin(hilos_io_args *io_args, char *modulo, t_op_code codigo_operacion, t_buffer *buffer);
-void switch_case_kernel_entrada_salida_stdout(hilos_io_args *io_args, char *modulo, t_op_code codigo_operacion, t_buffer *buffer);
-void switch_case_kernel_entrada_salida_dialfs(hilos_io_args *io_args, char *modulo, t_op_code codigo_operacion, t_buffer *buffer);
 
 #endif /* KERNEL_H */

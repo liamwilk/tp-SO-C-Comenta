@@ -1,5 +1,6 @@
-#include "kernel.h"
+#include "main.h"
 
+/**FUNCIONES DE PROPOSITO GENERAL PARA KERNEL**/
 t_diagrama_estados kernel_inicializar_estados(t_diagrama_estados *estados)
 {
     t_list *new = malloc(sizeof(t_list));

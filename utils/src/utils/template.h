@@ -18,13 +18,12 @@
 #include <utils/configs.h>
 #include <utils/serial.h>
 #include <commons/collections/list.h>
-#include <utils/kernel.h>
+#include <utils/kernel/main.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <sys/types.h>
 #include <sys/types.h>
 #include <pwd.h>
-#include "kernel.h"
 
 typedef void (*t_funcion_ptr)(t_log *, t_op_code, t_buffer *);
 

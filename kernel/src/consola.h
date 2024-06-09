@@ -9,7 +9,7 @@
 #include "utils/conexiones.h"
 #include "commons/string.h"
 #include "utils/procesos.h"
-#include <utils/kernel.h>
+#include <utils/kernel/main.h>
 
 t_consola_operacion obtener_operacion(char *funcion);
 void imprimir_comandos(hilos_args *args);

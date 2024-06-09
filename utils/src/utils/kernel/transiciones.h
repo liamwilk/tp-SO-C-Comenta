@@ -2,6 +2,7 @@
 #define KERNEL_TRANSICIONES_H_
 #include "../serial.h"
 #include "consola.h"
+#include "entradasalida.h"
 
 /**
  * Transiciona un PCB del estado EXEC al estado READY en el diagrama de estados del kernel.
@@ -115,6 +116,8 @@ void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready T
  */
 bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNEL_MOTIVO_FINALIZACION MOTIVO);
 
+// TODO: Mover a un archivo de recursos
+
 typedef enum t_recurso_motivo_liberacion
 {
     SIGNAL_RECURSO,
@@ -180,29 +183,7 @@ void kernel_recurso_log(hilos_args *args);
 // TODO: Mover a un archivo de interrupciones/utilidades
 void manejador_interrupciones(union sigval arg);
 int interrumpir_temporizador(hilos_args *args);
-void kernel_interrumpir_cpu(hilos_args *args, uint32_t pid, char *motivo);
 void kernel_avisar_memoria_finalizacion_proceso(hilos_args *args, uint32_t pid);
-
-// TODO: Mover a un archivo de entrada/salida
-/**
- * @brief Interrumpe las operaciones de E/S para un proceso específico en el kernel.
- *
- * Esta función interrumpe las operaciones de E/S para un proceso específico identificado por su PID.
- * La interrupción se realiza con una razón dada especificada por el parámetro `motivo`.
- *
- * @param args Un puntero a la estructura `hilos_args` que contiene los argumentos necesarios para el kernel.
- * @param pid El PID (Identificador de Proceso) del proceso para interrumpir sus operaciones de E/S.
- * @param motivo Una cadena que especifica la razón para interrumpir las operaciones de E/S.
- */
-void kernel_interrumpir_io(hilos_args *args, uint32_t pid, char *motivo);
-
-/**
- * Busca una interfaz de entrada/salida del kernel basada en los argumentos del hilo y el ID del proceso.
- *
- * @param args Los argumentos del hilo.
- * @param pid El ID del proceso.
- * @return Un puntero a la interfaz t_kernel_entrada_salida encontrada, o NULL si no se encuentra.
- */
-t_kernel_entrada_salida *kernel_entrada_salida_buscar_interfaz(hilos_args *args, uint32_t pid);
+void kernel_interrumpir_cpu(hilos_args *args, uint32_t pid, char *motivo);
 
 #endif /* KERNEL_TRANSICIONES_H_ */

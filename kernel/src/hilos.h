@@ -22,7 +22,7 @@
 #include "modulos/cpu_dispatch.h"
 #include "modulos/cpu_interrupt.h"
 #include "modulos/memoria.h"
-#include <utils/kernel.h>
+#include <utils/kernel/main.h>
 
 /*----ATENDER----*/
 

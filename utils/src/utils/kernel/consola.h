@@ -1,3 +1,5 @@
+#ifndef KERNEL_CONSOLA_H_
+#define KERNEL_CONSOLA_H_
 #include "structs.h"
 #include <unistd.h>
 #include <limits.h>
@@ -110,6 +112,65 @@ char *generar_prompt();
  */
 void reiniciar_prompt(hilos_args *hiloArgs);
 
+/**SCRIPT DE CONSOLA**/
+
+/**
+ * @brief Función para iniciar un proceso en el kernel.
+ *
+ * @param separar_linea Array de strings con los argumentos de la línea de comando.
+ * @param hiloArgs Estructura de argumentos del hilo.
+ */
+void iniciar_proceso(char **separar_linea, hilos_args *hiloArgs);
+
+/**
+ * @brief Función para finalizar un proceso en el kernel.
+ *
+ * @param separar_linea Array de strings con los argumentos de la línea de comando.
+ * @param hiloArgs Estructura de argumentos del hilo.
+ */
+void finalizar_proceso(char **separar_linea, hilos_args *hiloArgs);
+
+/**
+ * @brief Función para iniciar la planificación de procesos en el kernel.
+ *
+ * @param separar_linea Array de strings con los argumentos de la línea de comando.
+ * @param hiloArgs Estructura de argumentos del hilo.
+ */
+void iniciar_planificacion(char **separar_linea, hilos_args *hiloArgs);
+
+/**
+ * @brief Función para detener la planificación de procesos en el kernel.
+ *
+ * @param separar_linea Array de strings con los argumentos de la línea de comando.
+ * @param hiloArgs Estructura de argumentos del hilo.
+ */
+void detener_planificacion(char **separar_linea, hilos_args *hiloArgs);
+
+/**
+ * @brief Función para establecer el grado de multiprogramación en el kernel.
+ *
+ * @param separar_linea Array de strings con los argumentos de la línea de comando.
+ * @param hiloArgs Estructura de argumentos del hilo.
+ */
+void multiprogramacion(char **separar_linea, hilos_args *hiloArgs);
+
+/**
+ * @brief Función para mostrar el estado de los procesos en el kernel.
+ *
+ * @param hiloArgs Estructura de argumentos del hilo.
+ */
+void procesos_estados(hilos_args *hiloArgs);
+
+/**
+ * @brief Función para finalizar la consola del kernel.
+ *
+ * @param separar_linea Array de strings con los argumentos de la línea de comando.
+ * @param hiloArgs Estructura de argumentos del hilo.
+ */
+void finalizar_consola(char **separar_linea, hilos_args *hiloArgs);
+
 // TODO: Mover a un archivo de utilidades
 void inicializar_temporizador(hilos_args *args, timer_args_t *temporizador);
 void iniciar_temporizador(hilos_args *args, int duracion);
+
+#endif /* KERNEL_CONSOLA_H_ */

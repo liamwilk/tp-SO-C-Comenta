@@ -1,4 +1,4 @@
-#include <utils/kernel.h>
+#include <utils/kernel/main.h>
 
 // Función de comparación para ordenar las claves numéricas
 bool comparar_claves_numericas(void *a, void *b)

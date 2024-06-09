@@ -343,7 +343,7 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
             }
             else
             {
-                kernel_interrumpir_io(kernel_hilos_args, pid, "FINALIZAR_PROCESO");
+                kernel_interrumpir_io(kernel_hilos_args->kernel->sockets.list_entrada_salida, pid, "FINALIZAR_PROCESO");
             }
             kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
             return false;
@@ -579,32 +579,4 @@ void kernel_avisar_memoria_finalizacion_proceso(hilos_args *args, uint32_t pid)
     enviar_paquete(paquete, args->kernel->sockets.memoria);
     eliminar_paquete(paquete);
     free(proceso);
-}
-
-void kernel_interrumpir_io(hilos_args *args, uint32_t pid, char *motivo)
-{
-    t_paquete *paquete = crear_paquete(KERNEL_IO_INTERRUPCION);
-    t_kernel_io_interrupcion interrupcion = {.pid = pid, .motivo = motivo, .len_motivo = strlen(motivo) + 1};
-    serializar_t_kernel_io_interrupcion(&paquete, &interrupcion);
-
-    t_kernel_entrada_salida *io = kernel_entrada_salida_buscar_interfaz(args, pid);
-
-    io->ocupado = 0;
-    io->pid = 0;
-
-    enviar_paquete(paquete, io->socket);
-    eliminar_paquete(paquete);
-}
-
-t_kernel_entrada_salida *kernel_entrada_salida_buscar_interfaz(hilos_args *args, uint32_t pid)
-{
-    for (int i = 0; i < list_size(args->kernel->sockets.list_entrada_salida); i++)
-    {
-        t_kernel_entrada_salida *modulo = list_get(args->kernel->sockets.list_entrada_salida, i);
-        if (modulo->pid == pid)
-        {
-            return modulo;
-        }
-    }
-    return NULL;
 }
