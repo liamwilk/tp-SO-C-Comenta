@@ -1,6 +1,6 @@
 #ifndef MAINSPEC_KERNEL_H_
 #define MAINSPEC_KERNEL_H_
-#include <utils/kernel.h>
+#include <utils/kernel/main.h>
 #include <cspecs/cspec.h>
 
 context(test_kernel)
