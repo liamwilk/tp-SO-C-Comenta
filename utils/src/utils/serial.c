@@ -885,7 +885,7 @@ t_kernel_cpu_io_stdout_write *deserializar_t_kernel_cpu_io_stdout_write(t_buffer
 
 void serializar_t_memoria_io_stdout(t_paquete **paquete, t_memoria_io_stdout *write)
 {
-	actualizar_buffer(*paquete, sizeof(uint32_t) * 4 + write->size_dato);
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 5 + write->size_dato);
 
 	serializar_uint32_t(write->pid, *paquete);
 	serializar_uint32_t(write->direccion_fisica, *paquete);
