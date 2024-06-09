@@ -440,7 +440,6 @@ void inicializar_modulo(t_args *argumentos)
 void memoria_finalizar(t_args *argumentos)
 {
     eliminar_procesos(argumentos);
-    bitmap_liberar(argumentos);
     espacio_usuario_liberar(argumentos);
     config_destroy(argumentos->memoria.config);
     log_destroy(argumentos->logger);

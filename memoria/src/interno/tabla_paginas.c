@@ -41,17 +41,16 @@ void tabla_paginas_inicializar(t_args *args, t_proceso *proceso)
 // Libera la tabla de páginas del proceso
 void tabla_paginas_liberar(t_args *argumentos, t_proceso *proceso)
 {
-    log_info(argumentos->logger, "Destrucción tabla de páginas: PID: <%d> - Tamaño: <%d>", proceso->pid, list_size(proceso->tabla_paginas));
-
-    // int cantidad = list_size(proceso->tabla_paginas) - 1;
-    // log_warning(argumentos->logger, "Cantidad de páginas a liberar: %d", cantidad);
-
-    while (list_size(proceso->tabla_paginas) > 0)
+    for (int i = 0; i < list_size(proceso->tabla_paginas); i++)
     {
-        tabla_paginas_liberar_pagina(argumentos, proceso, list_size(proceso->tabla_paginas)-1);
-        // cantidad--;
+        t_pagina *pagina = list_get(proceso->tabla_paginas, i);
+        if (pagina != NULL)
+        {
+            argumentos->memoria.bitmap_array[pagina->marco] = 0;
+        }
     }
 
+    log_info(argumentos->logger, "Destrucción tabla de páginas: PID: <%d> - Tamaño: <%d>", proceso->pid, list_size(proceso->tabla_paginas));
     pthread_mutex_destroy(&proceso->mutex_tabla_paginas);
     list_destroy_and_destroy_elements(proceso->tabla_paginas, free);
 }
@@ -89,7 +88,15 @@ t_pagina *tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, u
 // Libera la página, y borra los datos del frame en la memoria
 int tabla_paginas_liberar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina)
 {
-    t_pagina *pagina = list_remove(proceso->tabla_paginas, numero_pagina);
+    log_info(argumentos->logger, "Liberación de tabla de páginas: PID: <%d> - Página: <%d>", proceso->pid, numero_pagina);
+
+    if (numero_pagina >= list_size(proceso->tabla_paginas))
+    {
+        log_error(argumentos->logger, "La página %d no existe en la tabla de páginas del proceso %d", numero_pagina, proceso->pid);
+        return -1;
+    }
+
+    t_pagina *pagina = list_get(proceso->tabla_paginas, numero_pagina);
 
     if (pagina == NULL)
     {
@@ -97,15 +104,16 @@ int tabla_paginas_liberar_pagina(t_args *argumentos, t_proceso *proceso, uint32_
         return -1;
     }
 
-    uint32_t direccion_fisica = pagina->marco * argumentos->memoria.tamPagina;
+    int direccion_fisica = pagina->marco * argumentos->memoria.tamPagina;
 
     espacio_usuario_liberar_dato(argumentos, direccion_fisica, argumentos->memoria.tamPagina);
 
-    free(pagina);
+    pagina->marco = 0;
+    pagina->validez = 0;
+    pagina->bytes = 0;
+    pagina->offset = 0;
 
-    log_info(argumentos->logger, "Liberación de tabla de páginas: PID: <%d> - Página: <%d>", proceso->pid, numero_pagina);
-
-    return 1;
+    return 0;
 }
 
 // Retorna el marco de la página, si es que existe
@@ -163,7 +171,16 @@ int tabla_paginas_resize(t_args *args, t_proceso *proceso, uint32_t bytes_nuevos
     {
         for (int i = frames_actuales; i < frames_nuevos; i++)
         {
-            tabla_paginas_asignar_pagina(args, proceso, i, espacio_usuario_proximo_frame(args, args->memoria.tamPagina));
+            int proximo_frame = espacio_usuario_proximo_frame(args, args->memoria.tamPagina);
+
+            if(args->memoria.bitmap_array[proximo_frame] == 1)
+            {
+                log_error(args->logger, "El frame %d ya esta ocupado", proximo_frame);
+                pthread_mutex_unlock(&proceso->mutex_tabla_paginas);
+                return -1;
+            }
+
+            tabla_paginas_asignar_pagina(args, proceso, i, proximo_frame);
         }
     }
 

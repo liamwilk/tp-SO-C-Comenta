@@ -8,35 +8,35 @@ void switch_case_memoria_entrada_salida_stdin(t_args_hilo *argumentos, char *mod
 	{
 		t_io_memoria_stdin *paquete_recibido = deserializar_t_io_memoria_stdin(buffer);
 
-		log_debug(argumentos->argumentos->logger, "Se solicito escribir en el espacio de usuario asociado a la direccion fisica <%d> la siguiente cadena: <%s>", paquete_recibido->direccion_fisica, paquete_recibido->input);
+		log_debug(argumentos->argumentos->logger, "Se solicito escribir <%ld> bytes en el espacio de usuario desde a la direccion fisica <%d>", strlen(paquete_recibido->input), paquete_recibido->direccion_fisica);
 
 		t_proceso *proceso = buscar_proceso(argumentos->argumentos, paquete_recibido->pid);
 
-		log_debug(argumentos->argumentos->logger, "Se recibio la solicitud de escritura de %d bytes en la direccion fisica %d", paquete_recibido->size_input-1, paquete_recibido->direccion_fisica);
-		
-		log_warning(argumentos->argumentos->logger, "Tamaño del input: %ld", strlen(paquete_recibido->input));
-
-		
-
-		espacio_usuario_escribir_char(argumentos->argumentos, paquete_recibido->direccion_fisica, paquete_recibido->input);
-		proceso->bytes_usados += paquete_recibido->size_input;
+		int resultado = espacio_usuario_escribir_char(argumentos->argumentos, paquete_recibido->direccion_fisica, paquete_recibido->input);
+		proceso->bytes_usados += strlen(paquete_recibido->input);
 
 		t_paquete *paquete = crear_paquete(MEMORIA_ENTRADA_SALIDA_IO_STDIN_READ);
 		t_memoria_entrada_salida_io_stdin_read *paquete_enviar = malloc(sizeof(t_memoria_entrada_salida_io_stdin_read));
 
-		paquete_enviar->pid = paquete_recibido->pid;
-		paquete_enviar->resultado = 1;
+		if (resultado == -1)
+		{
+			log_error(argumentos->argumentos->logger, "No se pudo escribir en el espacio de usuario");
+			paquete_enviar->pid = paquete_recibido->pid;
+			paquete_enviar->resultado = 0;
+		}
+		else
+		{
+			log_debug(argumentos->argumentos->logger, "Se escribieron <%ld> bytes en el espacio de usuario desde a la direccion fisica <%d>", strlen(paquete_recibido->input), paquete_recibido->direccion_fisica);
+			paquete_enviar->pid = paquete_recibido->pid;
+			paquete_enviar->resultado = 1;
+		}
 
 		serializar_t_memoria_entrada_salida_io_stdin_read(&paquete, paquete_enviar);
-
 		enviar_paquete(paquete, argumentos->entrada_salida->socket);
 
-		log_debug(argumentos->argumentos->logger, "Se envio la confirmacion a IO_STDIN");
-
-		eliminar_paquete(paquete); 
+		eliminar_paquete(paquete);
 		free(paquete_enviar);
 		free(paquete_recibido);
-
 		break;
 	}
 	case MEMORIA_ENTRADA_SALIDA_IDENTIFICACION:

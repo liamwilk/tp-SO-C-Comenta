@@ -85,8 +85,6 @@ typedef struct
     void *espacio_usuario;
     int *bytes_usados;
     int *bitmap_array;
-    t_bitarray *bitmap;
-    char *bitmap_data;
     pthread_mutex_t mutex_diccionario_procesos;
     t_log *logger;
     t_config *config;
@@ -491,14 +489,9 @@ void agregar_identificador_rechazado(t_args_hilo *argumentos, char *identificado
 // Internas de memoria
 void espacio_usuario_inicializar(t_args *args);
 void espacio_usuario_liberar(t_args *args);
-void bitmap_inicializar(t_args *args);
-void bitmap_liberar(t_args *args);
-void bitmap_marcar_ocupado(t_args *args, uint32_t frame);
-void bitmap_marcar_libre(t_args *args, uint32_t frame);
-bool bitmap_frame_libre(t_bitarray *bitmap, uint32_t frame);
 int espacio_usuario_escribir_dato(t_args *args, uint32_t direccion_fisica, void *dato, size_t tamano);
 int espacio_usuario_liberar_dato(t_args *args, uint32_t direccion_fisica, size_t tamano);
-void espacio_usuario_escribir_char(t_args *args, uint32_t direccion_fisica, const char *cadena);
+int espacio_usuario_escribir_char(t_args *args, uint32_t direccion_fisica, const char *cadena);
 /**
  * Escribe un valor de tipo uint32_t en la dirección física especificada.
  *

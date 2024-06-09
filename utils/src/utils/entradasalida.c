@@ -519,7 +519,6 @@ char *leer_input_usuario(uint32_t size_input)
             {
                 input[i] = ' ';
             }
-            printf("Size cadena: %ld", strlen(input));
             break;
         }
 

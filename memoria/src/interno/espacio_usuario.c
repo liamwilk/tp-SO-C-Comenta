@@ -337,9 +337,9 @@ void espacio_usuario_escribir_uint8_t(t_args *args, uint32_t direccion_fisica, u
 }
 
 // Escribir una cadena
-void espacio_usuario_escribir_char(t_args *args, uint32_t direccion_fisica, const char *cadena)
+int espacio_usuario_escribir_char(t_args *args, uint32_t direccion_fisica, const char *cadena)
 {
-    espacio_usuario_escribir_dato(args, direccion_fisica, (void *)cadena, strlen(cadena));
+    return espacio_usuario_escribir_dato(args, direccion_fisica, (void *)cadena, strlen(cadena));
 }
 
 // Leer un uint8_t
@@ -363,7 +363,14 @@ char *espacio_usuario_leer_char(t_args *args, uint32_t direccion_fisica, size_t 
 {
     int bytes_totales = tamano_max + 1;
     char *destino = malloc(bytes_totales);
-    espacio_usuario_leer_dato(args, direccion_fisica, destino, tamano_max);
+    int resultado = espacio_usuario_leer_dato(args, direccion_fisica, destino, tamano_max);
+
+    if(resultado == -1)
+    {
+        free(destino);
+        return NULL;
+    }
+
     destino[bytes_totales - 1] = '\0';
     return destino;
 }

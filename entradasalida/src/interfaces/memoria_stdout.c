@@ -8,17 +8,23 @@ void switch_case_memoria_stdout(t_io *args, t_op_code codigo_operacion, t_buffer
     {
         t_memoria_io_stdout *proceso_recibido = deserializar_t_memoria_io_stdout(buffer);
 
-        // Imprimo lo que memoria me envio
         log_debug(args->logger, "Se recibio respuesta de Memoria sobre la lectura de espacio de usuario asociada la instruccion IO_STDOUT_WRITE para el proceso PID <%d>", proceso_recibido->pid);
-        log_info(args->logger, "Mensaje recuperado de Memoria: %s", proceso_recibido->dato);
-
-        // Notifico a Kernel que se completo la operacion
 
         t_paquete *paquete = crear_paquete(ENTRADA_SALIDA_KERNEL_IO_STDOUT_WRITE);
         t_entrada_salida_kernel_io_stdout_write *proceso_enviar = malloc(sizeof(t_entrada_salida_kernel_io_stdout_write));
 
-        proceso_enviar->pid = proceso_recibido->pid;
-        proceso_enviar->resultado = 1;
+        if (proceso_recibido->resultado)
+        {
+            log_info(args->logger, "Mensaje recuperado de Memoria: %s", proceso_recibido->dato);
+            proceso_enviar->pid = proceso_recibido->pid;
+            proceso_enviar->resultado = 1;
+        }
+        else
+        {
+            log_error(args->logger, "No se pudo leer del espacio de usuario");
+            proceso_enviar->pid = proceso_recibido->pid;
+            proceso_enviar->resultado = 0;
+        }
 
         serializar_t_entrada_salida_kernel_io_stdout_write(&paquete, proceso_enviar);
         enviar_paquete(paquete, args->sockets.socket_kernel_stdout);
@@ -27,7 +33,7 @@ void switch_case_memoria_stdout(t_io *args, t_op_code codigo_operacion, t_buffer
         free(proceso_enviar);
         free(proceso_recibido->dato);
         free(proceso_recibido);
-        
+
         break;
     }
     case MEMORIA_ENTRADA_SALIDA_IDENTIFICACION_RECHAZO:

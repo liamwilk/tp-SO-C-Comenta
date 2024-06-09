@@ -890,6 +890,7 @@ void serializar_t_memoria_io_stdout(t_paquete **paquete, t_memoria_io_stdout *wr
 	serializar_uint32_t(write->pid, *paquete);
 	serializar_uint32_t(write->direccion_fisica, *paquete);
 	serializar_uint32_t(write->tamanio, *paquete);
+	serializar_uint32_t(write->resultado, *paquete);
 	serializar_uint32_t(write->size_dato, *paquete);
 	serializar_char(write->dato, *paquete);
 }
@@ -902,6 +903,7 @@ t_memoria_io_stdout *deserializar_t_memoria_io_stdout(t_buffer *buffer)
 	deserializar_uint32_t(&stream, &(write->pid));
 	deserializar_uint32_t(&stream, &(write->direccion_fisica));
 	deserializar_uint32_t(&stream, &(write->tamanio));
+	deserializar_uint32_t(&stream, &(write->resultado));
 	deserializar_uint32_t(&stream, &(write->size_dato));
 	deserializar_char(&stream, &(write->dato), write->size_dato);
 	return write;

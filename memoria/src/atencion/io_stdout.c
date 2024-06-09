@@ -10,32 +10,42 @@ void switch_case_memoria_entrada_salida_stdout(t_args_hilo *argumentos, char *mo
 
 		log_debug(argumentos->argumentos->logger, "Se recibio la solicitud de lectura de %d bytes en la direccion fisica %d", paquete_recibido->tamanio, paquete_recibido->direccion_fisica);
 
-		char *lectura = espacio_usuario_leer_char(argumentos->argumentos, paquete_recibido->direccion_fisica, paquete_recibido->tamanio);
-
-		log_debug(argumentos->argumentos->logger, "Se leyo del espacio de usuario asociado a la direccion fisica %d la siguiente cadena: %s", paquete_recibido->direccion_fisica, lectura);
-
 		t_paquete *paquete = crear_paquete(MEMORIA_ENTRADA_SALIDA_IO_STDOUT_WRITE);
 		t_memoria_io_stdout *paquete_enviar = malloc(sizeof(t_memoria_io_stdout));
 
-		paquete_enviar->pid = paquete_recibido->pid;
-		paquete_enviar->tamanio = paquete_recibido->tamanio;
-		paquete_enviar->dato = strdup(lectura);
-		paquete_enviar->size_dato = strlen(lectura) + 1;
-		paquete_enviar->direccion_fisica = paquete_recibido->direccion_fisica;
+		char *lectura = espacio_usuario_leer_char(argumentos->argumentos, paquete_recibido->direccion_fisica, paquete_recibido->tamanio);
+
+		if (lectura == NULL)
+		{
+			log_error(argumentos->argumentos->logger, "No se pudo leer del espacio de usuario");
+
+			paquete_enviar->pid = paquete_recibido->pid;
+			paquete_enviar->tamanio = paquete_recibido->tamanio;
+			paquete_enviar->dato = strdup("ERROR");
+			paquete_enviar->resultado = 0;
+			paquete_enviar->size_dato = strlen(lectura) + 1;
+			paquete_enviar->direccion_fisica = paquete_recibido->direccion_fisica;
+		}
+		else
+		{
+			log_debug(argumentos->argumentos->logger, "Se leyo del espacio de usuario asociado a la direccion fisica %d la siguiente cadena: %s", paquete_recibido->direccion_fisica, lectura);
+
+			paquete_enviar->pid = paquete_recibido->pid;
+			paquete_enviar->tamanio = paquete_recibido->tamanio;
+			paquete_enviar->dato = strdup(lectura);
+			paquete_enviar->resultado = 1;
+			paquete_enviar->size_dato = strlen(lectura) + 1;
+			paquete_enviar->direccion_fisica = paquete_recibido->direccion_fisica;
+			
+			free(lectura);
+		}
 
 		serializar_t_memoria_io_stdout(&paquete, paquete_enviar);
-
 		enviar_paquete(paquete, argumentos->entrada_salida->socket);
-
-		log_debug(argumentos->argumentos->logger, "Se enviaron los datos leidos al modulo de IO_STDOUT");
-
 		eliminar_paquete(paquete);
-
-		free(lectura);
 		free(paquete_enviar->dato);
 		free(paquete_enviar);
 		free(paquete_recibido);
-
 		break;
 	}
 	case MEMORIA_ENTRADA_SALIDA_IDENTIFICACION:

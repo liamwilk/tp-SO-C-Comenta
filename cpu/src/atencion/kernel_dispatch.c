@@ -50,7 +50,6 @@ void switch_case_kernel_dispatch(t_cpu *args, t_op_code codigo_operacion, t_buff
 
 			log_debug(args->logger, "Mensaje recuperado de Kernel: %s", proceso_recibido->motivo);
 			args->proceso.ejecutado = 0;
-
 		}
 
 		free(proceso_recibido);

@@ -254,21 +254,9 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
         proceso_completo->registros = proceso_recibido->registros;
 
-        // Actualizo los registros del proceso en Kernel
+        proceso_recibido->registros.pc += 1;
 
-        t_pcb *pcb = proceso_buscar_exec(args->estados, proceso_recibido->pid);
-
-        pcb->registros_cpu->ax = proceso_recibido->registros.ax;
-        pcb->registros_cpu->bx = proceso_recibido->registros.bx;
-        pcb->registros_cpu->cx = proceso_recibido->registros.cx;
-        pcb->registros_cpu->dx = proceso_recibido->registros.dx;
-        pcb->registros_cpu->pc = proceso_recibido->registros.pc;
-        pcb->registros_cpu->eax = proceso_recibido->registros.eax;
-        pcb->registros_cpu->ebx = proceso_recibido->registros.ebx;
-        pcb->registros_cpu->ecx = proceso_recibido->registros.ecx;
-        pcb->registros_cpu->edx = proceso_recibido->registros.edx;
-        pcb->registros_cpu->si = proceso_recibido->registros.si;
-        pcb->registros_cpu->di = proceso_recibido->registros.di;
+        proceso_actualizar_registros(proceso_buscar_exec(args->estados, proceso_recibido->pid), proceso_recibido->registros);
 
         serializar_t_kernel_io_stdin_read(&paquete, proceso_completo);
         enviar_paquete(paquete, entrada_salida->socket);
@@ -280,6 +268,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio la instruccion de IO_STDIN_READ a la interfaz %s", entrada_salida->interfaz);
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se transiciona el PID <%d> a BLOCK por ejecucion de IO_STDIN_READ.", proceso_recibido->pid);
+
         kernel_transicion_exec_block(args);
 
         free(proceso_recibido->interfaz);
