@@ -140,9 +140,9 @@ void revisar_paquete_kernel(hilos_args *args, t_paquete *paquete, char *modulo)
 {
     if (paquete->codigo_operacion != FINALIZAR_SISTEMA)
     {
-        log_debug(args->logger, "Paquete recibido de modulo %s", modulo);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Paquete recibido de modulo %s", modulo);
         // kernel_log_generic(args, LOG_LEVEL_TRACE, "Deserializado del paquete:");
-        log_trace(args->logger, "Codigo de operacion: %d", paquete->codigo_operacion);
+        kernel_log_generic(args, LOG_LEVEL_TRACE, "Codigo de operacion: %d", paquete->codigo_operacion);
         // kernel_log_generic(args, LOG_LEVEL_TRACE, "Size del buffer en paquete: %d", paquete->size_buffer);
         // kernel_log_generic(args, LOG_LEVEL_TRACE, "Deserializado del buffer:");
         // kernel_log_generic(args, LOG_LEVEL_TRACE, "Size del stream: %d", paquete->buffer->size);
@@ -155,7 +155,7 @@ void revisar_paquete_kernel(hilos_args *args, t_paquete *paquete, char *modulo)
     }
     else
     {
-        log_debug(args->logger, "Paquete de finalizacion recibido de modulo %s", modulo);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Paquete de finalizacion recibido de modulo %s", modulo);
     }
 }
 

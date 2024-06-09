@@ -996,6 +996,72 @@ t_io_stdout_write *deserializar_t_io_stdout_write(t_buffer *buffer)
 	return write;
 }
 
+void serializar_t_mov_out(t_paquete **paquete, t_mov_out *mov)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 9 + sizeof(uint8_t));
+	serializar_uint32_t(mov->pid, *paquete);
+	serializar_uint32_t(mov->tamanio_registro_datos, *paquete);
+	serializar_uint32_t(mov->registro_direccion, *paquete);
+	serializar_uint32_t(mov->registro_datos, *paquete);
+	serializar_uint32_t(mov->numero_pagina, *paquete);
+	serializar_uint32_t(mov->numero_marco, *paquete);
+	serializar_uint32_t(mov->resultado, *paquete);
+	serializar_uint32_t(mov->direccion_fisica, *paquete);
+	serializar_uint32_t(mov->dato_32, *paquete);
+	serializar_uint8_t(mov->dato_8, *paquete);
+}
+
+t_mov_out *deserializar_t_mov_out(t_buffer *buffer)
+{
+	t_mov_out *paquete = malloc(sizeof(t_mov_out));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(paquete->pid));
+	deserializar_uint32_t(&stream, &(paquete->tamanio_registro_datos));
+	deserializar_uint32_t(&stream, &(paquete->registro_direccion));
+	deserializar_uint32_t(&stream, &(paquete->registro_datos));
+	deserializar_uint32_t(&stream, &(paquete->numero_pagina));
+	deserializar_uint32_t(&stream, &(paquete->numero_marco));
+	deserializar_uint32_t(&stream, &(paquete->resultado));
+	deserializar_uint32_t(&stream, &(paquete->direccion_fisica));
+	deserializar_uint32_t(&stream, &(paquete->dato_32));
+	deserializar_uint8_t(&stream, &(paquete->dato_8));
+	return paquete;
+}
+
+void serializar_t_mov_in(t_paquete **paquete, t_mov_in *mov)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 9 + sizeof(uint8_t));
+	serializar_uint32_t(mov->pid, *paquete);
+	serializar_uint32_t(mov->tamanio_registro_datos, *paquete);
+	serializar_uint32_t(mov->registro_direccion, *paquete);
+	serializar_uint32_t(mov->registro_datos, *paquete);
+	serializar_uint32_t(mov->numero_pagina, *paquete);
+	serializar_uint32_t(mov->numero_marco, *paquete);
+	serializar_uint32_t(mov->resultado, *paquete);
+	serializar_uint32_t(mov->direccion_fisica, *paquete);
+	serializar_uint32_t(mov->dato_32, *paquete);
+	serializar_uint8_t(mov->dato_8, *paquete);
+}
+
+t_mov_in *deserializar_t_mov_in(t_buffer *buffer)
+{
+	t_mov_in *paquete = malloc(sizeof(t_mov_in));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(paquete->pid));
+	deserializar_uint32_t(&stream, &(paquete->tamanio_registro_datos));
+	deserializar_uint32_t(&stream, &(paquete->registro_direccion));
+	deserializar_uint32_t(&stream, &(paquete->registro_datos));
+	deserializar_uint32_t(&stream, &(paquete->numero_pagina));
+	deserializar_uint32_t(&stream, &(paquete->numero_marco));
+	deserializar_uint32_t(&stream, &(paquete->resultado));
+	deserializar_uint32_t(&stream, &(paquete->direccion_fisica));
+	deserializar_uint32_t(&stream, &(paquete->dato_32));
+	deserializar_uint8_t(&stream, &(paquete->dato_8));
+	return paquete;
+}
+
 void serializar_t_kernel_io_interrupcion(t_paquete **paquete, t_kernel_io_interrupcion *interrupcion)
 {
 	actualizar_buffer(*paquete, sizeof(uint32_t) + sizeof(uint32_t) + interrupcion->len_motivo);

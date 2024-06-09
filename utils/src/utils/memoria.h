@@ -84,6 +84,7 @@ typedef struct
 {
     void *espacio_usuario;
     int *bytes_usados;
+    int *bitmap_array;
     t_bitarray *bitmap;
     char *bitmap_data;
     pthread_mutex_t mutex_diccionario_procesos;
@@ -479,9 +480,9 @@ int tabla_paginas_acceder_pagina(t_args *argumentos, t_proceso *proceso, uint32_
  * @param argumentos Puntero a la estructura de argumentos.
  * @param proceso El proceso.
  * @param numero_pagina Número de página a asignar.
- * @param numero_marco Número de marco a asignar a la página.
+ * @param frame Número de marco a asignar.
  */
-t_pagina *tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina, uint32_t numero_marco);
+t_pagina *tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina, uint32_t frame);
 
 void agregar_identificador(t_args_hilo *argumentos, char *identificador);
 void avisar_rechazo_identificador_memoria(int socket);
@@ -495,12 +496,9 @@ void bitmap_liberar(t_args *args);
 void bitmap_marcar_ocupado(t_args *args, uint32_t frame);
 void bitmap_marcar_libre(t_args *args, uint32_t frame);
 bool bitmap_frame_libre(t_bitarray *bitmap, uint32_t frame);
-void espacio_usuario_escribir_dato(t_args *args, uint32_t direccion_fisica, void *dato, size_t tamano);
-void espacio_usuario_liberar_dato(t_args *args, uint32_t direccion_fisica, size_t tamano);
-void espacio_usuario_escribir_int(t_args *args, uint32_t direccion_fisica, int valor);
-void espacio_usuario_escribir_float(t_args *args, uint32_t direccion_fisica, float valor);
+int espacio_usuario_escribir_dato(t_args *args, uint32_t direccion_fisica, void *dato, size_t tamano);
+int espacio_usuario_liberar_dato(t_args *args, uint32_t direccion_fisica, size_t tamano);
 void espacio_usuario_escribir_char(t_args *args, uint32_t direccion_fisica, const char *cadena);
-void espacio_usuario_escribir_generic(t_args *args, uint32_t direccion_fisica, void *estructura, size_t tamano_estructura);
 /**
  * Escribe un valor de tipo uint32_t en la dirección física especificada.
  *
@@ -509,7 +507,7 @@ void espacio_usuario_escribir_generic(t_args *args, uint32_t direccion_fisica, v
  * @param direccion_fisica Dirección física donde se escribirá el valor.
  * @param valor Valor a escribir.
  */
-void espacio_usuario_escribir_uint32(t_args *args, uint32_t direccion_fisica, uint32_t valor);
+void espacio_usuario_escribir_uint32_t(t_args *args, uint32_t direccion_fisica, uint32_t valor);
 
 /**
  * Lee un dato de memoria de la dirección física especificada y lo guarda en el destino proporcionado.
@@ -519,7 +517,7 @@ void espacio_usuario_escribir_uint32(t_args *args, uint32_t direccion_fisica, ui
  * @param destino Puntero al destino donde se guardará el dato leído.
  * @param tamano Tamaño del dato a leer.
  */
-void espacio_usuario_leer_dato(t_args *args, uint32_t direccion_fisica, void *destino, size_t tamano);
+int espacio_usuario_leer_dato(t_args *args, uint32_t direccion_fisica, void *destino, size_t tamano);
 
 /**
  * Lee un valor de tipo uint32_t de la dirección física especificada.
@@ -531,24 +529,6 @@ void espacio_usuario_leer_dato(t_args *args, uint32_t direccion_fisica, void *de
 uint32_t espacio_usuario_leer_uint32(t_args *args, uint32_t direccion_fisica);
 
 /**
- * Lee un valor de tipo int de la dirección física especificada.
- *
- * @param args Puntero a la estructura de argumentos.
- * @param direccion_fisica Dirección física de donde se leerá el valor.
- * @return Valor de tipo int leído.
- */
-int espacio_usuario_leer_int(t_args *args, uint32_t direccion_fisica);
-
-/**
- * Lee un valor de tipo float de la dirección física especificada.
- *
- * @param args Puntero a la estructura de argumentos.
- * @param direccion_fisica Dirección física de donde se leerá el valor.
- * @return Valor de tipo float leído.
- */
-float espacio_usuario_leer_float(t_args *args, uint32_t direccion_fisica);
-
-/**
  * Lee una cadena de caracteres de la dirección física especificada.
  *
  * @param args Puntero a la estructura de argumentos.
@@ -557,16 +537,6 @@ float espacio_usuario_leer_float(t_args *args, uint32_t direccion_fisica);
  * @return Puntero a la cadena de caracteres leída.
  */
 char *espacio_usuario_leer_char(t_args *args, uint32_t direccion_fisica, size_t tamano_max);
-
-/**
- * Lee una estructura genérica de memoria de la dirección física especificada y la guarda en la estructura proporcionada.
- *
- * @param args Puntero a la estructura de argumentos.
- * @param direccion_fisica Dirección física de donde se leerá la estructura.
- * @param estructura Puntero a la estructura donde se guardará la estructura leída.
- * @param tamano_estructura Tamaño de la estructura a leer.
- */
-void espacio_usuario_leer_generic(t_args *args, uint32_t direccion_fisica, void *estructura, size_t tamano_estructura);
 
 /**
  * Obtiene la próxima dirección disponible para asignar memoria de tamaño especificado.
@@ -629,7 +599,7 @@ t_char_framentado *espacio_usuario_fragmentar_char(char *input, int frame_size);
  */
 int obtener_numero_pagina(uint32_t direccion_fisica, uint32_t tam_pagina);
 
-void tabla_paginas_liberar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina);
+int tabla_paginas_liberar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina);
 
 int tabla_paginas_frames_ocupados(t_args *args, t_proceso *proceso);
 
@@ -646,5 +616,11 @@ int espacio_usuario_frame_bytes(t_args *args, uint32_t frame);
 uint32_t espacio_usuario_escribir_dato_frame_inicio(t_args *args, uint32_t direccion_fisica, size_t tamano);
 
 uint32_t espacio_usuario_escribir_dato_frame_fin(t_args *args, uint32_t direccion_fisica, size_t tamano);
+
+uint8_t espacio_usuario_leer_uint8(t_args *args, uint8_t direccion_fisica);
+
+void espacio_usuario_escribir_uint8_t(t_args *args, uint32_t direccion_fisica, uint8_t valor);
+
+uint32_t espacio_usuario_obtener_frame(uint32_t direccion_fisica, uint32_t tamPagina);
 
 #endif // MEMORIA_H

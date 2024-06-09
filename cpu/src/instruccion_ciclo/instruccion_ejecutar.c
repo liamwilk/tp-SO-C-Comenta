@@ -498,32 +498,216 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case MOV_IN:
     {
-        log_debug(args->logger, "reconoci un MOV_IN");
+        /*
+        MOV_IN        EDX             ECX
+        MOV_IN (Registro Datos, Registro Dirección)
 
-        // TODO: Implementar
+        Lee el valor de memoria correspondiente a la Dirección Lógica que se encuentra en el Registro Dirección y lo almacena en el Registro Datos.
+        */
 
-        // Ahora lo que hago es testear si funciona la MMU correctamente
+        // Creo copias
+        char *registro_datos = strdup(args->instruccion.array[1]);
+        char *registro_direccion = strdup(args->instruccion.array[2]);
 
-        // t_cpu_memoria_numero_frame *proceso = malloc(sizeof(t_cpu_memoria_numero_frame));
-        // proceso->pid = cpu_proceso->pid;
+        // Determino que tipo de registros debo operar
+        t_registro registro_datos_tipo = obtener_tipo_registro(registro_datos);
+        t_registro registro_direccion_tipo = obtener_tipo_registro(registro_direccion);
 
-        // proceso->numero_pagina = calcular_numero_pagina(cpu_proceso);
+        // Si alguno de los registros es invalido, no se puede continuar
+        if (registro_direccion_tipo == INVALIDO || registro_datos_tipo == INVALIDO)
+        {
+            log_error(args->logger, "Registro invalido");
+            return -1;
+        }
 
-        // t_paquete *paquete = crear_paquete(CPU_MEMORIA_NUMERO_FRAME);
-        // serializar_t_cpu_memoria_numero_frame(&paquete, proceso);
+        // Casos posibles:
+        // 1. Registro datos (32) y registro direccion (32). Leo 4 bytes
+        // 2. Registro datos (32) y registro direccion (8). Leo 4 bytes
+        // 3. Registro datos (8) y registro direccion (32). Leo 1 byte
+        // 4. Registro datos (8) y registro direccion (8). Leo 1 byte
 
-        // enviar_paquete(paquete, cpu_paquete.socket_memoria);
-        // free(paquete);
+        t_paquete *paquete = crear_paquete(CPU_MEMORIA_MOV_IN);
+        t_mov_in *proceso = malloc(sizeof(t_mov_in));
 
-        // uint32_t numero_marco = deserializar_t_memoria_cpu_numero_marco(recibir_paquete(cpu_paquete.socket_memoria));
+        // Inicializo
+        proceso->pid = args->proceso.pid;
+        proceso->numero_marco = 0;
+        proceso->resultado = 0;
+        proceso->direccion_fisica = 0;
 
-        // log_info(args->logger, "Numero de marco: %d", numero_marco);
+        // Paso el valor de los registros a la estructura que le voy a mandar a memoria
+        if (registro_datos_tipo == REGISTRO_32) // El registro datos es de 32 bits
+        {
+            proceso->tamanio_registro_datos = 4;
+
+            if (registro_direccion_tipo == REGISTRO_32) // && El registro direccion es de 32 bits
+            {
+                uint32_t *registro_direccion_ptr = determinar_tipo_registro_uint32_t(registro_direccion, &args->proceso);
+                uint32_t *registro_datos_ptr = determinar_tipo_registro_uint32_t(registro_datos, &args->proceso);
+
+                proceso->registro_direccion = *registro_direccion_ptr;
+                proceso->registro_datos = *registro_datos_ptr;
+                proceso->numero_pagina = calcular_numero_pagina(args, *registro_direccion_ptr);
+            }
+            else // && El registro direccion es de 8 bits
+            {
+                uint32_t *registro_datos_tipo = determinar_tipo_registro_uint32_t(registro_datos, &args->proceso);
+                uint8_t *registro_direccion_ptr = determinar_tipo_registro_uint8_t(registro_direccion, &args->proceso);
+
+                uint32_t registro_direccion_casteado = casteo_uint32_t(*registro_direccion_ptr);
+
+                proceso->registro_direccion = registro_direccion_casteado;
+                proceso->registro_datos = *registro_datos_tipo;
+                proceso->numero_pagina = calcular_numero_pagina(args, *registro_direccion_ptr);
+            }
+        }
+        else // El registro datos es de 8 bits
+        {
+            proceso->tamanio_registro_datos = 1;
+
+            if (registro_direccion_tipo == REGISTRO_32) // && El registro direccion es de 32 bits
+            {
+                uint8_t *registro_datos_ptr = determinar_tipo_registro_uint8_t(registro_datos, &args->proceso);
+                uint32_t *registro_direccion_ptr = determinar_tipo_registro_uint32_t(registro_direccion, &args->proceso);
+
+                uint32_t registro_datos_casteado = casteo_uint32_t(*registro_datos_ptr);
+
+                proceso->registro_direccion = *registro_direccion_ptr;
+                proceso->registro_datos = registro_datos_casteado;
+                proceso->numero_pagina = calcular_numero_pagina(args, *registro_direccion_ptr);
+            }
+            else // && El registro direccion es de 8 bits
+            {
+                uint8_t *registro_direccion_ptr = determinar_tipo_registro_uint8_t(registro_direccion, &args->proceso);
+                uint8_t *registro_datos_ptr = determinar_tipo_registro_uint8_t(registro_datos, &args->proceso);
+
+                uint32_t registro_direccion_casteado = casteo_uint32_t(*registro_direccion_ptr);
+                uint32_t registro_datos_casteado = casteo_uint32_t(*registro_datos_ptr);
+
+                proceso->registro_direccion = registro_direccion_casteado;
+                proceso->registro_datos = registro_datos_casteado;
+                proceso->numero_pagina = calcular_numero_pagina(args, registro_direccion_casteado);
+            }
+        }
+
+        // Serializo la estructura y la envio a memoria
+        serializar_t_mov_in(&paquete, proceso);
+        enviar_paquete(paquete, args->config_leida.socket_memoria);
+        eliminar_paquete(paquete);
+
+        free(proceso);
+        free(registro_datos);
+        free(registro_direccion);
 
         return 1;
     }
     case MOV_OUT:
     {
-        log_debug(args->logger, "reconoci un MOV_OUT");
+        /*
+        
+        MOV_OUT         EDX                ECX
+        MOV_OUT (Registro Dirección, Registro Datos)
+        
+        Lee el valor del Registro Datos y lo escribe en la dirección física de memoria obtenida a partir de la Dirección Lógica almacenada en el Registro Dirección.
+        
+        */
+
+        // Dirección logica + desplazamiento del tamaño del registro
+        char* registro_direccion = strdup(args->instruccion.array[1]);
+        
+        // Datos a leer
+        char* registro_datos = strdup(args->instruccion.array[2]);
+
+        // Determino que tipo de registros debo operar
+        t_registro registro_datos_tipo = obtener_tipo_registro(registro_datos);
+        t_registro registro_direccion_tipo = obtener_tipo_registro(registro_direccion);
+
+        // Si alguno de los registros es invalido, no se puede continuar
+        if (registro_direccion_tipo == INVALIDO || registro_datos_tipo == INVALIDO)
+        {
+            log_error(args->logger, "Registro invalido");
+            return -1;
+        }
+
+        // Casos posibles:
+        // 1. Registro datos (32) y registro direccion (32). Escribo 4 bytes
+        // 2. Registro datos (32) y registro direccion (8). Escribo 4 bytes
+        // 3. Registro datos (8) y registro direccion (32). Escribo 1 byte
+        // 4. Registro datos (8) y registro direccion (8). Escribo 1 byte
+
+        t_paquete *paquete = crear_paquete(CPU_MEMORIA_MOV_OUT);
+        t_mov_out *proceso = malloc(sizeof(t_mov_in));
+
+        // Inicializo
+        proceso->pid = args->proceso.pid;
+        proceso->numero_marco = 0;
+        proceso->resultado = 0;
+        proceso->direccion_fisica = 0;
+
+        // Paso el valor de los registros a la estructura que le voy a mandar a memoria
+        if (registro_datos_tipo == REGISTRO_32) // El registro datos es de 32 bits
+        {
+            proceso->tamanio_registro_datos = 4;
+
+            if (registro_direccion_tipo == REGISTRO_32) // && El registro direccion es de 32 bits
+            {
+                uint32_t *registro_direccion_ptr = determinar_tipo_registro_uint32_t(registro_direccion, &args->proceso);
+                uint32_t *registro_datos_ptr = determinar_tipo_registro_uint32_t(registro_datos, &args->proceso);
+
+                proceso->registro_direccion = *registro_direccion_ptr;
+                proceso->registro_datos = *registro_datos_ptr;
+                proceso->numero_pagina = calcular_numero_pagina(args, *registro_direccion_ptr);
+            }
+            else // && El registro direccion es de 8 bits
+            {
+                uint32_t *registro_datos_tipo = determinar_tipo_registro_uint32_t(registro_datos, &args->proceso);
+                uint8_t *registro_direccion_ptr = determinar_tipo_registro_uint8_t(registro_direccion, &args->proceso);
+
+                uint32_t registro_direccion_casteado = casteo_uint32_t(*registro_direccion_ptr);
+
+                proceso->registro_direccion = registro_direccion_casteado;
+                proceso->registro_datos = *registro_datos_tipo;
+                proceso->numero_pagina = calcular_numero_pagina(args, *registro_direccion_ptr);
+            }
+        }
+        else // El registro datos es de 8 bits
+        {
+            proceso->tamanio_registro_datos = 1;
+
+            if (registro_direccion_tipo == REGISTRO_32) // && El registro direccion es de 32 bits
+            {
+                uint8_t *registro_datos_ptr = determinar_tipo_registro_uint8_t(registro_datos, &args->proceso);
+                uint32_t *registro_direccion_ptr = determinar_tipo_registro_uint32_t(registro_direccion, &args->proceso);
+
+                uint32_t registro_datos_casteado = casteo_uint32_t(*registro_datos_ptr);
+
+                proceso->registro_direccion = *registro_direccion_ptr;
+                proceso->registro_datos = registro_datos_casteado;
+                proceso->numero_pagina = calcular_numero_pagina(args, *registro_direccion_ptr);
+            }
+            else // && El registro direccion es de 8 bits
+            {
+                uint8_t *registro_direccion_ptr = determinar_tipo_registro_uint8_t(registro_direccion, &args->proceso);
+                uint8_t *registro_datos_ptr = determinar_tipo_registro_uint8_t(registro_datos, &args->proceso);
+
+                uint32_t registro_direccion_casteado = casteo_uint32_t(*registro_direccion_ptr);
+                uint32_t registro_datos_casteado = casteo_uint32_t(*registro_datos_ptr);
+
+                proceso->registro_direccion = registro_direccion_casteado;
+                proceso->registro_datos = registro_datos_casteado;
+                proceso->numero_pagina = calcular_numero_pagina(args, registro_direccion_casteado);
+            }
+        }
+
+        // Serializo la estructura y la envio a memoria
+        serializar_t_mov_out(&paquete, proceso);
+        enviar_paquete(paquete, args->config_leida.socket_memoria);
+        eliminar_paquete(paquete);
+
+        free(proceso);
+        free(registro_datos);
+        free(registro_direccion);
+
         return 1;
     }
     case RESIZE:
@@ -553,7 +737,7 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case IO_STDIN_READ:
     {
-        /*
+        /*                             129
         IO_STDIN_READ    Int2           BX                 EAX
         IO_STDIN_READ (Interfaz, Registro Dirección, Registro Tamaño)
 
@@ -706,13 +890,13 @@ int instruccion_ejecutar(t_cpu *args)
 
         // Cargo el PID
         proceso->pid = args->proceso.pid;
-        
+
         // Cargo la Interfaz
         proceso->interfaz = strdup(interfaz);
-        
+
         // El tamaño del identificador de la interfaz
         proceso->size_interfaz = strlen(interfaz) + 1;
-        
+
         // Este es el dato que me va a devolver memoria
         proceso->marco = 0;
 
@@ -774,7 +958,7 @@ int instruccion_ejecutar(t_cpu *args)
 
         // desplazamiento = dirección_lógica - número_página * tamaño_página
         proceso->desplazamiento = proceso->registro_direccion - proceso->numero_pagina * args->tam_pagina;
-        
+
         // Por ultimo, me guardo el contexto del proceso
         proceso->registros = args->proceso.registros;
 
@@ -785,6 +969,10 @@ int instruccion_ejecutar(t_cpu *args)
 
         free(proceso->interfaz);
         free(proceso);
+
+        free(interfaz);
+        free(registro_direccion);
+        free(registro_tamanio);
 
         return 1;
     }
