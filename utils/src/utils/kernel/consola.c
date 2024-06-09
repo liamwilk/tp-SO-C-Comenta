@@ -370,18 +370,6 @@ void kernel_log_ready(hilos_args *kernel_hilos_args, bool prioritaria)
     kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "%s", msg);
 }
 
-void manejador_interrupciones(union sigval arg)
-{
-    timer_args_t *timerArgs = (timer_args_t *)arg.sival_ptr;
-
-    if (list_size(timerArgs->args->estados->exec) > 0)
-    {
-        t_pcb *pcb = list_get(timerArgs->args->estados->exec, 0);
-        kernel_log_generic(timerArgs->args, LOG_LEVEL_INFO, "PID: <%d> - Desalojado por fin de Quantum", pcb->pid);
-        kernel_interrumpir_cpu(timerArgs->args, pcb->pid, "FIN DE QUANTUM");
-    }
-}
-
 // Interrumpe el temporizador y devuelve el quantum restante
 int interrumpir_temporizador(hilos_args *args)
 {
@@ -427,15 +415,6 @@ void iniciar_temporizador(hilos_args *args, int milisegundos)
 
     // Inicia el temporizador
     timer_settime(args->timer, 0, &args->its, NULL);
-}
-
-void inicializar_temporizador(hilos_args *argumentos, timer_args_t *temporizador)
-{
-    // Configura la estructura sigevent
-    argumentos->sev.sigev_notify = SIGEV_THREAD;
-    argumentos->sev.sigev_value.sival_ptr = temporizador;
-    argumentos->sev.sigev_notify_function = manejador_interrupciones;
-    argumentos->sev.sigev_notify_attributes = NULL;
 }
 
 // Que hacer si me interrumpieron por señal

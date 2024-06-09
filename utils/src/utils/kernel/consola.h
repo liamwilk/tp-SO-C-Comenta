@@ -111,7 +111,5 @@ char *generar_prompt();
 void reiniciar_prompt(hilos_args *hiloArgs);
 
 // TODO: Mover a un archivo de utilidades
-void manejador_interrupciones(union sigval arg);
-int interrumpir_temporizador(hilos_args *args);
 void inicializar_temporizador(hilos_args *args, timer_args_t *temporizador);
 void iniciar_temporizador(hilos_args *args, int duracion);
