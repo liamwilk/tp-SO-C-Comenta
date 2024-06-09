@@ -16,8 +16,8 @@ int main(int argc, char *argv[])
 
 	kernel_log(&args);
 
-	recursos_inicializar(recursos, kernel.instanciasRecursos, kernel.recursos);
-	recursos_log(&args);
+	kernel_recurso_init(recursos, kernel.instanciasRecursos, kernel.recursos);
+	kernel_recurso_log(&args);
 
 	// Inicializo las estructuras que almacenan e identifican los sockets de entrada/salida
 	kernel.sockets.dictionary_entrada_salida = dictionary_create();

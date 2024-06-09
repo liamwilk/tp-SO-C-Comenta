@@ -384,7 +384,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         t_pcb *proceso_en_exec = proceso_buscar_exec(args->estados, solicitud_recurso->pid);
 
         proceso_actualizar_registros(proceso_en_exec, *solicitud_recurso->registros);
-        recurso_ocupar_instancia(args, args->recursos, solicitud_recurso->pid, solicitud_recurso->nombre_recurso);
+        kernel_recurso_wait(args, args->recursos, solicitud_recurso->pid, solicitud_recurso->nombre_recurso);
 
         avisar_planificador(args);
 
@@ -400,7 +400,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         t_pcb *proceso_en_exec = proceso_buscar_exec(args->estados, solicitud_recurso->pid);
         proceso_actualizar_registros(proceso_en_exec, *solicitud_recurso->registros);
-        recurso_liberar_instancia(args, args->recursos, solicitud_recurso->pid, solicitud_recurso->nombre_recurso, SIGNAL_RECURSO);
+        kernel_recurso_signal(args, args->recursos, solicitud_recurso->pid, solicitud_recurso->nombre_recurso, SIGNAL_RECURSO);
         avisar_planificador(args);
         free(solicitud_recurso->nombre_recurso);
         free(solicitud_recurso);
