@@ -62,6 +62,11 @@ typedef enum
 	ENTRADA_SALIDA_KERNEL_IDENTIFICACION,
 	KERNEL_IO_INTERRUPCION,
 	KERNEL_ENTRADA_SALIDA_IDENTIFICACION_RECHAZO,
+	CPU_MEMORIA_COPY_STRING,
+	MEMORIA_CPU_COPY_STRING,
+	CPU_MEMORIA_COPY_STRING_2,
+	MEMORIA_CPU_COPY_STRING_2,
+	CPU_KERNEL_COPY_STRING,
 	PLACEHOLDER
 } t_op_code;
 
@@ -388,6 +393,23 @@ typedef struct
 	uint32_t dato_32;
 	uint8_t dato_8;
 } t_mov_out;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t direccion_si;
+	uint32_t direccion_di;
+	uint32_t direccion_fisica_si;
+	uint32_t direccion_fisica_di;
+	uint32_t num_pagina_si;
+	uint32_t num_pagina_di;
+	uint32_t marco_si;
+	uint32_t marco_di;
+	uint32_t cant_bytes;
+	uint32_t size_frase;
+	uint32_t resultado;
+	char *frase;
+} t_copy_string;
 
 /**
  * @fn    *crear_paquete
@@ -1225,5 +1247,9 @@ t_mov_in *deserializar_t_mov_in(t_buffer *buffer);
 t_mov_out *deserializar_t_mov_out(t_buffer *buffer);
 
 void serializar_t_mov_out(t_paquete **paquete, t_mov_out *mov);
+
+void serializar_t_copy_string(t_paquete **paquete, t_copy_string *copy);
+
+t_copy_string *deserializar_t_copy_string(t_buffer *buffer);
 
 #endif

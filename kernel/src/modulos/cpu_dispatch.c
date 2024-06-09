@@ -406,6 +406,34 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         free(solicitud_recurso);
         break;
     }
+    case CPU_KERNEL_COPY_STRING:
+    {
+        t_copy_string *proceso_completo = deserializar_t_copy_string(buffer);
+
+        t_pcb *pcb = buscar_proceso(args->estados, proceso_completo->pid);
+
+        if (pcb != NULL)
+        {
+            if (proceso_completo->resultado)
+            {
+                interrumpir_temporizador(args);
+                kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se copio el string correctamente del proceso <%d>", proceso_completo->pid);
+                kernel_finalizar_proceso(args, proceso_completo->pid, SUCCESS);
+            }
+            else
+            {
+                kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo copiar el string del proceso <%d>", proceso_completo->pid);
+                kernel_finalizar_proceso(args, proceso_completo->pid, INVALID_RESOURCE);
+            }
+        }
+        else
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_completo->pid);
+        }
+        free(proceso_completo->frase);
+        free(proceso_completo);
+        break;
+    }
     default:
     {
         kernel_log_generic(args, LOG_LEVEL_WARNING, "[CPU Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");

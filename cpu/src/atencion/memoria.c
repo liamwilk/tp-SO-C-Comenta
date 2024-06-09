@@ -292,7 +292,7 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 		else // Si no se obtuvo el marco
 		{
 			log_error(args->logger, "No se pudo obtener el marco de la pagina <%d> asociado a la instruccion IO_STDIN_READ del proceso PID <%d>", proceso_recibido->pid, proceso_recibido->numero_pagina);
-			
+
 			args->proceso.ejecutado = 0;
 			instruccion_finalizar(args);
 		}
@@ -378,6 +378,117 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 		log_debug(args->logger, "Tamaño de pagina recibido de Memoria: %d", args->tam_pagina);
 		free(tamPag);
 		break;
+	}
+	case MEMORIA_CPU_COPY_STRING:
+	{
+		t_copy_string *proceso_recibido = deserializar_t_copy_string(buffer);
+
+		log_debug(args->logger, "Se recibio una respuesta de Memoria acerca de la solicitud de marcos para SI y DI asociada a la instruccion <COPY_STRING> para el proceso PID <%d>", proceso_recibido->pid);
+
+		// Si se copio el string
+		if (proceso_recibido->resultado)
+		{
+			log_debug(args->logger, "Se copiaron los marcos <%d> para SI y <%d> para DI asociados a la instruccion <COPY_STRING> del proceso PID <%d>", proceso_recibido->marco_si, proceso_recibido->marco_di, proceso_recibido->pid);
+
+			// Inicio la peticion contra Memoria para que escriba
+			t_paquete *paquete = crear_paquete(CPU_MEMORIA_COPY_STRING_2);
+			t_copy_string *proceso_completo = malloc(sizeof(t_copy_string));
+
+			// Genero la direccion fisica con la MMU
+			proceso_completo->direccion_fisica_si = mmu(args, proceso_recibido->direccion_si, proceso_recibido->marco_si);
+			proceso_completo->direccion_fisica_di = mmu(args, proceso_recibido->direccion_di, proceso_recibido->marco_di);
+
+			proceso_completo->direccion_si = proceso_recibido->direccion_si;
+			proceso_completo->direccion_di = proceso_recibido->direccion_di;
+			proceso_completo->pid = proceso_recibido->pid;
+			proceso_completo->resultado = 1;
+			proceso_completo->marco_si = proceso_recibido->marco_si;
+			proceso_completo->marco_di = proceso_recibido->marco_di;
+			proceso_completo->frase = strdup(proceso_recibido->frase);
+			proceso_completo->size_frase = proceso_recibido->size_frase;
+			proceso_completo->cant_bytes = proceso_recibido->cant_bytes;
+
+			serializar_t_copy_string(&paquete, proceso_completo);
+			enviar_paquete(paquete, args->config_leida.socket_memoria);
+			eliminar_paquete(paquete);
+
+			log_debug(args->logger, "Se envio la solicitud de recuperación de dato para la instrucción <COPY_STRING> del proceso PID <%d> a Kernel", proceso_recibido->pid);
+
+			free(proceso_completo->frase);
+			free(proceso_recibido->frase);
+			free(proceso_completo);
+			free(proceso_recibido);
+			free(paquete);
+		}
+		else
+		{
+			log_error(args->logger, "No se encontró alguno de los marcos SI o DI asociados a la instruccion <COPY_STRING> del proceso PID <%d>", proceso_recibido->pid);
+
+			t_paquete *paquete = crear_paquete(CPU_KERNEL_COPY_STRING);
+			t_copy_string *proceso_completo = malloc(sizeof(t_copy_string));
+			proceso_completo->pid = proceso_recibido->pid;
+			proceso_completo->direccion_fisica_di = proceso_recibido->direccion_fisica_di;
+			proceso_completo->direccion_fisica_si = proceso_recibido->direccion_fisica_si;
+			proceso_completo->direccion_si = proceso_recibido->direccion_si;
+			proceso_completo->direccion_di = proceso_recibido->direccion_di;
+			proceso_completo->resultado = 0; // Actualizo el resultado
+			proceso_completo->marco_si = proceso_recibido->marco_si;
+			proceso_completo->marco_di = proceso_recibido->marco_di;
+			proceso_completo->frase = strdup(proceso_recibido->frase);
+			proceso_completo->size_frase = proceso_recibido->size_frase;
+			proceso_completo->cant_bytes = proceso_recibido->cant_bytes;
+
+			serializar_t_copy_string(&paquete, proceso_completo);
+			enviar_paquete(paquete, args->config_leida.socket_memoria);
+			eliminar_paquete(paquete);
+
+			log_debug(args->logger, "Se envio la solicitud de recuperación de dato para la instrucción <COPY_STRING> del proceso PID <%d> a Kernel", proceso_recibido->pid);
+
+			free(proceso_completo->frase);
+			free(proceso_recibido->frase);
+			free(proceso_completo);
+			free(proceso_recibido);
+			free(paquete);
+			instruccion_finalizar(args);
+		}
+		break;
+	}
+	case MEMORIA_CPU_COPY_STRING_2:
+	{
+		t_copy_string *proceso_recibido = deserializar_t_copy_string(buffer);
+
+		if (proceso_recibido->resultado)
+		{
+			log_debug(args->logger, "Se escribio la frase <%s> en los marcos SI y DI asociados a la instruccion <COPY_STRING> del proceso PID <%d>", proceso_recibido->frase, proceso_recibido->pid);
+			t_paquete *paquete = crear_paquete(CPU_KERNEL_COPY_STRING);
+
+			serializar_t_copy_string(&paquete, proceso_recibido);
+			enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);
+			eliminar_paquete(paquete);
+			free(proceso_recibido->frase);
+			free(proceso_recibido);
+
+			if (args->flag_interrupt)
+			{
+				instruccion_interrupt(args);
+				break;
+			}
+
+			instruccion_solicitar(args);
+			break;
+		}
+		else
+		{
+			log_error(args->logger, "No se pudo escribir la frase <%s> en los marcos SI y DI asociados a la instruccion <COPY_STRING> del proceso PID <%d>", proceso_recibido->frase, proceso_recibido->pid);
+			t_paquete *paquete = crear_paquete(CPU_KERNEL_COPY_STRING);
+
+			serializar_t_copy_string(&paquete, proceso_recibido);
+			enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);
+			eliminar_paquete(paquete);
+			free(proceso_recibido->frase);
+			free(proceso_recibido);
+			break;
+		}
 	}
 	default:
 	{

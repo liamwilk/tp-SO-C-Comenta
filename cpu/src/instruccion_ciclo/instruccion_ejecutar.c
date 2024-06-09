@@ -732,7 +732,46 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case COPY_STRING:
     {
-        log_debug(args->logger, "reconoci un COPY_STRING");
+        /* COPY_STRING cant_bytes
+         COPY_STRING (Tamaño): Toma del string apuntado por el registro SI y copia la cantidad de bytes indicadas en el parámetro tamaño a la posición de memoria apuntada por el registro DI. */
+        
+        char *registro_cant_bytes = strdup(args->instruccion.array[1]);
+
+        t_paquete *paquete = crear_paquete(CPU_MEMORIA_COPY_STRING);
+        t_copy_string *proceso = malloc(sizeof(t_copy_string));
+
+
+        // Cargo las cosas
+        proceso->pid = args->proceso.pid;
+        proceso->resultado = 0;  // Lo actualiza memoria
+        proceso->cant_bytes = atoi(registro_cant_bytes);
+        proceso->direccion_si = args->proceso.registros.si;
+        proceso->direccion_di = args->proceso.registros.di;
+        proceso->num_pagina_si = calcular_numero_pagina(args, args->registros.si);
+        proceso->num_pagina_di = calcular_numero_pagina(args, args->registros.di);
+
+        log_debug(args->logger, "Registro SI: %d", proceso->direccion_si);
+        log_debug(args->logger, "Registro DI: %d", proceso->direccion_di);
+        log_debug(args->logger, "Numero de pagina SI <%d> y de DI <%d>", proceso->num_pagina_si, proceso->num_pagina_di);
+        proceso->direccion_fisica_si = 0; // Lo carga memoria
+        proceso->direccion_fisica_di = 0; // Lo carga memoria
+
+        // Los carga memoria
+        proceso->marco_si = 0;
+        proceso->marco_di = 0;
+
+        proceso->frase = strdup("");
+        proceso->size_frase = strlen(proceso->frase) + 1;
+
+        serializar_t_copy_string(&paquete, proceso);
+        enviar_paquete(paquete, args->config_leida.socket_memoria);
+
+        log_debug(args->logger, "Se solicita copiar <%d> bytes", proceso->cant_bytes);
+
+        free(proceso->frase);
+        free(proceso);
+        free(registro_cant_bytes);
+        eliminar_paquete(paquete);
         return 1;
     }
     case IO_STDIN_READ:
