@@ -18,6 +18,7 @@
 #include <sys/ioctl.h>
 #include <dirent.h>
 #include <pwd.h>
+#include <ctype.h>
 
 /*Estructura basica del kernel*/
 
@@ -127,6 +128,7 @@ typedef struct
     t_kernel *kernel;
     t_diagrama_estados *estados;
     int kernel_orden_apagado;
+    t_dictionary *recursos;
 } hilos_args;
 
 typedef struct
@@ -138,6 +140,12 @@ typedef struct
     hilos_args *args;
     t_kernel_entrada_salida *entrada_salida;
 } hilos_io_args;
+
+typedef struct t_recurso
+{
+    int instancias;
+    t_list *procesos_bloqueados;
+} t_recurso;
 
 typedef void (*t_funcion_kernel_ptr)(t_log *, t_op_code, hilos_args *, t_buffer *);
 typedef void (*t_funcion_kernel_io_prt)(hilos_io_args *, char *, t_op_code, t_buffer *);
@@ -507,5 +515,23 @@ void manejador_interrupciones(union sigval arg);
 int interrumpir_temporizador(hilos_args *args);
 void inicializar_temporizador(hilos_args *args, timer_args_t *temporizador);
 void iniciar_temporizador(hilos_args *args, int duracion);
+
+typedef enum t_recurso_motivo_liberacion
+{
+    SIGNAL_RECURSO,
+    INTERRUPCION
+} t_recurso_motivo_liberacion;
+
+void recurso_ocupar_instancia(hilos_args *args, t_dictionary *recursoDiccionario, uint32_t pid, char *recursoSolicitado);
+
+void recurso_liberar_instancia(hilos_args *args, t_dictionary *recursos, uint32_t pid, char *recurso, t_recurso_motivo_liberacion MOTIVO);
+
+void recursos_log(hilos_args *args);
+
+void recursos_inicializar(t_dictionary *diccionario_recursos, char *instanciasRecursos, char *recursos);
+
+t_recurso *recurso_buscar(t_dictionary *diccionario_recursos, char *recursoSolicitado);
+
+char *recurso_esta_bloqueado(hilos_args *args, uint32_t pid);
 
 #endif /* KERNEL_H */

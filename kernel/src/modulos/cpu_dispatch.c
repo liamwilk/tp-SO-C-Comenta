@@ -379,10 +379,14 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
     {
         t_cpu_kernel_solicitud_recurso *solicitud_recurso = malloc(sizeof(t_cpu_kernel_solicitud_recurso));
         solicitud_recurso = deserializar_t_cpu_kernel_solicitud_recurso(buffer);
-
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Recurso solicitado (WAIT) por CPU para el proceso <PID: %d>: %s", solicitud_recurso->pid, solicitud_recurso->nombre_recurso);
 
-        // TODO: Implementar logica del manejo de WAIT en kernel.
+        t_pcb *proceso_en_exec = proceso_buscar_exec(args->estados, solicitud_recurso->pid);
+
+        proceso_actualizar_registros(proceso_en_exec, *solicitud_recurso->registros);
+        recurso_ocupar_instancia(args, args->recursos, solicitud_recurso->pid, solicitud_recurso->nombre_recurso);
+
+        avisar_planificador(args);
 
         free(solicitud_recurso->nombre_recurso);
         free(solicitud_recurso);
@@ -394,10 +398,10 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         t_cpu_kernel_solicitud_recurso *solicitud_recurso = malloc(sizeof(t_cpu_kernel_solicitud_recurso));
         solicitud_recurso = deserializar_t_cpu_kernel_solicitud_recurso(buffer);
 
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Recurso liberado (SIGNAL) por CPU para el proceso <PID: %d>: %s", solicitud_recurso->pid, solicitud_recurso->nombre_recurso);
-
-        // TODO: Implementar logica del manejo de SIGNAL en kernel.
-
+        t_pcb *proceso_en_exec = proceso_buscar_exec(args->estados, solicitud_recurso->pid);
+        proceso_actualizar_registros(proceso_en_exec, *solicitud_recurso->registros);
+        recurso_liberar_instancia(args, args->recursos, solicitud_recurso->pid, solicitud_recurso->nombre_recurso, SIGNAL_RECURSO);
+        avisar_planificador(args);
         free(solicitud_recurso->nombre_recurso);
         free(solicitud_recurso);
         break;

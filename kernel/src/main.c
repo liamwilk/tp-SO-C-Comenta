@@ -8,13 +8,16 @@ int main(int argc, char *argv[])
 	kernel = kernel_inicializar(config);
 	estados = kernel_inicializar_estados(&estados);
 	temporizador.args = &args;
+	recursos = dictionary_create();
 	inicializar_args();
 	inicializar_semaforos();
 	inicializar_temporizador(&args, &temporizador);
-
 	pthread_mutex_init(&kernel.lock, NULL);
 
 	kernel_log(&args);
+
+	recursos_inicializar(recursos, kernel.instanciasRecursos, kernel.recursos);
+	recursos_log(&args);
 
 	// Inicializo las estructuras que almacenan e identifican los sockets de entrada/salida
 	kernel.sockets.dictionary_entrada_salida = dictionary_create();
@@ -49,6 +52,7 @@ void inicializar_args()
 	args.kernel->sockets.entrada_salida_dialfs = 0;
 	args.kernel->sockets.entrada_salida = 0;
 	args.kernel->sockets.id_entrada_salida = 1;
+	args.recursos = recursos;
 }
 
 void inicializar_semaforos()
