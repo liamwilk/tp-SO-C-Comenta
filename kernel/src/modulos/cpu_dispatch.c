@@ -254,8 +254,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
         proceso_completo->registros = proceso_recibido->registros;
 
-        proceso_recibido->registros.pc += 1;
-
         proceso_actualizar_registros(proceso_buscar_exec(args->estados, proceso_recibido->pid), proceso_recibido->registros);
 
         serializar_t_kernel_io_stdin_read(&paquete, proceso_completo);
@@ -331,6 +329,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         // Este caso se da cuando el usuario interrumpio a CPU para finalizar un proceso
         t_pcb *proceso_en_exit = proceso_buscar_exit(args->estados, proceso->pid);
+
         if (proceso_en_exit != NULL)
         {
             // Detener QUANTUM si es RR o VRR
@@ -342,14 +341,15 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         }
 
         t_pcb *pcb = proceso_buscar_exec(args->estados, proceso->pid);
+
         if (proceso->ejecutado == 1)
         {
             // Checkeo que ese proceso se encuentre en exec antes de finalizarlo
             if (pcb != NULL)
             {
                 interrumpir_temporizador(args);
+                kernel_finalizar_proceso(args, proceso->pid, SUCCESS);
             }
-            kernel_finalizar_proceso(args, proceso->pid, SUCCESS);
         }
         else if (proceso->ejecutado == 2) // El proceso se ejecuto parcialmente por interrupcion
         {
@@ -367,8 +367,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             kernel_log_generic(args, LOG_LEVEL_ERROR, "Proceso PID:<%d> ejecutado fallido. Transicionar a exit", proceso->pid);
 
             kernel_finalizar_proceso(args, proceso->pid, SUCCESS);
-
-            kernel_avisar_memoria_finalizacion_proceso(args, proceso->pid);
 
             sem_post(&args->kernel->planificador_iniciar);
         }
