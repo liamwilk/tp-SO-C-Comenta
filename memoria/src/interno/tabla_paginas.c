@@ -80,7 +80,7 @@ t_pagina *tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, u
 
     argumentos->memoria.bitmap_array[pagina->marco] = 1;
 
-    log_info(argumentos->logger, "Asignación de tabla de páginas: PID: <%d> - Página: <%d> - Marco: <%d>", proceso->pid, list_size(proceso->tabla_paginas) - 1, pagina->marco);
+    log_info(argumentos->logger, "Asignación de tabla de páginas: PID: <%d> - Página: <%d> - Marco: <%d>", proceso->pid, numero_pagina, pagina->marco);
 
     return pagina;
 }

@@ -23,7 +23,7 @@ void switch_case_memoria_entrada_salida_stdout(t_args_hilo *argumentos, char *mo
 			paquete_enviar->tamanio = paquete_recibido->tamanio;
 			paquete_enviar->dato = strdup("ERROR");
 			paquete_enviar->resultado = 0;
-			paquete_enviar->size_dato = strlen(lectura) + 1;
+			paquete_enviar->size_dato = strlen(paquete_enviar->dato) + 1;
 			paquete_enviar->direccion_fisica = paquete_recibido->direccion_fisica;
 		}
 		else
@@ -32,9 +32,9 @@ void switch_case_memoria_entrada_salida_stdout(t_args_hilo *argumentos, char *mo
 
 			paquete_enviar->pid = paquete_recibido->pid;
 			paquete_enviar->tamanio = paquete_recibido->tamanio;
-			paquete_enviar->dato = strdup(lectura);
 			paquete_enviar->resultado = 1;
-			paquete_enviar->size_dato = strlen(lectura) + 1;
+			paquete_enviar->dato = strdup(lectura);
+			paquete_enviar->size_dato = strlen(paquete_enviar->dato) + 1;
 			paquete_enviar->direccion_fisica = paquete_recibido->direccion_fisica;
 			
 			free(lectura);

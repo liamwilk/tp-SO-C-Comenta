@@ -112,21 +112,10 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
         proceso_completo->registros = proceso_recibido->registros;
 
-        // Actualizo los registros del proceso en Kernel
-
         t_pcb *pcb = proceso_buscar_exec(args->estados, proceso_recibido->pid);
 
-        pcb->registros_cpu->ax = proceso_recibido->registros.ax;
-        pcb->registros_cpu->bx = proceso_recibido->registros.bx;
-        pcb->registros_cpu->cx = proceso_recibido->registros.cx;
-        pcb->registros_cpu->dx = proceso_recibido->registros.dx;
-        pcb->registros_cpu->pc = proceso_recibido->registros.pc;
-        pcb->registros_cpu->eax = proceso_recibido->registros.eax;
-        pcb->registros_cpu->ebx = proceso_recibido->registros.ebx;
-        pcb->registros_cpu->ecx = proceso_recibido->registros.ecx;
-        pcb->registros_cpu->edx = proceso_recibido->registros.edx;
-        pcb->registros_cpu->si = proceso_recibido->registros.si;
-        pcb->registros_cpu->di = proceso_recibido->registros.di;
+        // Actualizo los registros del proceso en Kernel
+        proceso_actualizar_registros(pcb, proceso_recibido->registros);
 
         serializar_t_io_stdout_write(&paquete, proceso_completo);
         enviar_paquete(paquete, entrada_salida->socket);
@@ -404,6 +393,34 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         avisar_planificador(args);
         free(solicitud_recurso->nombre_recurso);
         free(solicitud_recurso);
+        break;
+    }
+    case CPU_KERNEL_COPY_STRING:
+    {
+        t_copy_string *proceso_completo = deserializar_t_copy_string(buffer);
+
+        t_pcb *pcb = buscar_proceso(args->estados, proceso_completo->pid);
+
+        if (pcb != NULL)
+        {
+            if (proceso_completo->resultado)
+            {
+                pcb->quantum = interrumpir_temporizador(args);
+                avisar_planificador(args);
+                kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se copio el string correctamente del proceso <%d>", proceso_completo->pid);
+            }
+            else
+            {
+                kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo copiar el string del proceso <%d>", proceso_completo->pid);
+                kernel_finalizar_proceso(args, pcb->pid, INVALID_RESOURCE);
+            }
+        }
+        else
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_completo->pid);
+        }
+        free(proceso_completo->frase);
+        free(proceso_completo);
         break;
     }
     default:

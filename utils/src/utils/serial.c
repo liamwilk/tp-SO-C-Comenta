@@ -885,7 +885,7 @@ t_kernel_cpu_io_stdout_write *deserializar_t_kernel_cpu_io_stdout_write(t_buffer
 
 void serializar_t_memoria_io_stdout(t_paquete **paquete, t_memoria_io_stdout *write)
 {
-	actualizar_buffer(*paquete, sizeof(uint32_t) * 4 + write->size_dato);
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 5 + write->size_dato);
 
 	serializar_uint32_t(write->pid, *paquete);
 	serializar_uint32_t(write->direccion_fisica, *paquete);
@@ -1415,4 +1415,43 @@ t_memoria_entrada_salida_io_stdin_read *deserializar_t_memoria_entrada_salida_io
 	deserializar_uint32_t(&stream, &(read->pid));
 	deserializar_uint32_t(&stream, &(read->resultado));
 	return read;
+}
+
+void serializar_t_copy_string(t_paquete **paquete, t_copy_string *copy)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 12 + copy->size_frase);
+	serializar_uint32_t(copy->pid, *paquete);
+	serializar_uint32_t(copy->resultado, *paquete);
+	serializar_uint32_t(copy->direccion_si, *paquete);
+	serializar_uint32_t(copy->direccion_di, *paquete);
+	serializar_uint32_t(copy->direccion_fisica_si, *paquete);
+	serializar_uint32_t(copy->direccion_fisica_di, *paquete);
+	serializar_uint32_t(copy->num_pagina_si, *paquete);
+	serializar_uint32_t(copy->num_pagina_di, *paquete);
+	serializar_uint32_t(copy->marco_si, *paquete);
+	serializar_uint32_t(copy->marco_di, *paquete);
+	serializar_uint32_t(copy->cant_bytes, *paquete);
+	serializar_uint32_t(copy->size_frase, *paquete);
+	serializar_char(copy->frase, *paquete);
+}
+
+t_copy_string *deserializar_t_copy_string(t_buffer *buffer)
+{
+	t_copy_string *copy = malloc(sizeof(t_copy_string));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(copy->pid));
+	deserializar_uint32_t(&stream, &(copy->resultado));
+	deserializar_uint32_t(&stream, &(copy->direccion_si));
+	deserializar_uint32_t(&stream, &(copy->direccion_di));
+	deserializar_uint32_t(&stream, &(copy->direccion_fisica_si));
+	deserializar_uint32_t(&stream, &(copy->direccion_fisica_di));
+	deserializar_uint32_t(&stream, &(copy->num_pagina_si));
+	deserializar_uint32_t(&stream, &(copy->num_pagina_di));
+	deserializar_uint32_t(&stream, &(copy->marco_si));
+	deserializar_uint32_t(&stream, &(copy->marco_di));
+	deserializar_uint32_t(&stream, &(copy->cant_bytes));
+	deserializar_uint32_t(&stream, &(copy->size_frase));
+	deserializar_char(&stream, &(copy->frase), copy->size_frase);
+	return copy;
 }

@@ -732,7 +732,49 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case COPY_STRING:
     {
-        log_debug(args->logger, "reconoci un COPY_STRING");
+        /* 
+        COPY_STRING    38
+        COPY_STRING (Tamaño)
+        
+        Toma el string apuntado por la direccion logica del registro SI y copia la cantidad de bytes indicadas en el parámetro tamaño a la direccion logica apuntada por el registro DI.
+        
+        Pasos:
+
+        1- Obtengo los marcos correspondientes a los numeros de paginas asociados a las direcciones logicas
+        2- Con los marcos, calculo las direcciones fisicas a partir de las cuales leer y escribir los datos
+        3- Escribo en la direccion fisica de DI los datos leidos de SI
+        4- Notifico a todos los procesos que esten esperando por el resultado de la operacion
+        */
+
+        t_paquete *paquete = crear_paquete(CPU_MEMORIA_COPY_STRING);
+        t_copy_string *proceso = malloc(sizeof(t_copy_string));
+
+        // Cargo las cosas
+        proceso->pid = args->proceso.pid;
+        proceso->resultado = 0;  
+        proceso->cant_bytes = atoi(strdup(args->instruccion.array[1]));
+        proceso->direccion_si = args->proceso.registros.si;
+        proceso->direccion_di = args->proceso.registros.di;
+
+        proceso->num_pagina_si = calcular_numero_pagina(args, args->proceso.registros.si);
+        proceso->num_pagina_di = calcular_numero_pagina(args, args->proceso.registros.di);
+
+        log_warning(args->logger, "Se calculan las paginas <%d> para SI y <%d> para DI", proceso->num_pagina_si, proceso->num_pagina_di);
+
+        proceso->direccion_fisica_si = 0; 
+        proceso->direccion_fisica_di = 0; 
+        proceso->marco_si = 0;
+        proceso->marco_di = 0;
+        proceso->frase = strdup("");
+        proceso->size_frase = strlen(proceso->frase) + 1;
+
+        serializar_t_copy_string(&paquete, proceso);
+        enviar_paquete(paquete, args->config_leida.socket_memoria);
+        eliminar_paquete(paquete);
+
+        free(proceso->frase);
+        free(proceso);
+
         return 1;
     }
     case IO_STDIN_READ:
@@ -955,8 +997,6 @@ int instruccion_ejecutar(t_cpu *args)
         }
 
         // Me guardo el desplazamiento para poder calcular la dirección física
-
-        // desplazamiento = dirección_lógica - número_página * tamaño_página
         proceso->desplazamiento = proceso->registro_direccion - proceso->numero_pagina * args->tam_pagina;
 
         // Por ultimo, me guardo el contexto del proceso
