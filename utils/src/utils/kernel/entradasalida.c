@@ -245,9 +245,10 @@ void hilos_ejecutar_entrada_salida(hilos_io_args *io_args, char *modulo, t_funci
     free(io_args);
 }
 
-void kernel_cpu_entradasalida_no_conectada(hilos_args *args, t_kernel_cpu_entradasalida_no_conectada TIPO, char *interfaz, uint32_t pid)
+void kernel_cpu_entradasalida_no_conectada(hilos_args *args, t_kernel_cpu_entradasalida_error TIPO, char *interfaz, uint32_t pid)
 {
     kernel_log_generic(args, LOG_LEVEL_ERROR, "Aviso a CPU que no se pudo enviar el paquete a la interfaz <%s> porque no está conectada", interfaz);
+
     if (TIPO == CPU_IO_STDOUT_WRITE)
     {
         t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDOUT_WRITE);
@@ -259,6 +260,98 @@ void kernel_cpu_entradasalida_no_conectada(hilos_args *args, t_kernel_cpu_entrad
         proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
 
         serializar_t_kernel_cpu_io_stdout_write(&paquete, proceso_enviar);
+        enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
+        eliminar_paquete(paquete);
+        free(proceso_enviar->motivo);
+        free(proceso_enviar);
+    }
+    if (TIPO == CPU_IO_STDIN_READ)
+    {
+        t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDIN_READ);
+        t_kernel_cpu_io_stdin_read *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdin_read));
+
+        proceso_enviar->pid = pid;
+        proceso_enviar->resultado = 0;
+        proceso_enviar->motivo = strdup("La interfaz solicitada no se encuentra conectada a Kernel");
+        proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
+
+        serializar_t_kernel_cpu_io_stdin_read(&paquete, proceso_enviar);
+        enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
+        eliminar_paquete(paquete);
+        free(proceso_enviar->motivo);
+        free(proceso_enviar);
+    }
+};
+
+void kernel_cpu_entradasalida_distinto_tipo(hilos_args *args, t_kernel_cpu_entradasalida_error TIPO, char *interfaz, uint32_t pid)
+{
+    if (TIPO == CPU_IO_STDOUT_WRITE)
+    {
+        kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque no es del tipo IO_STDOUT.", interfaz);
+        t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDOUT_WRITE);
+        t_kernel_cpu_io_stdout_write *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdout_write));
+
+        proceso_enviar->pid = pid;
+        proceso_enviar->resultado = 0;
+        proceso_enviar->motivo = strdup("La interfaz solicitada no puede ejecutar la instruccion IO_STDOUT_WRITE porque no es del tipo IO_STDOUT");
+        proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
+
+        serializar_t_kernel_cpu_io_stdout_write(&paquete, proceso_enviar);
+        enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
+        eliminar_paquete(paquete);
+        free(proceso_enviar->motivo);
+        free(proceso_enviar);
+    }
+    if (TIPO == CPU_IO_STDIN_READ)
+    {
+        kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque no es del tipo IO_STDIN.", interfaz);
+        t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDIN_READ);
+        t_kernel_cpu_io_stdin_read *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdin_read));
+
+        proceso_enviar->pid = pid;
+        proceso_enviar->resultado = 0;
+        proceso_enviar->motivo = strdup("La interfaz solicitada no puede ejecutar la instruccion IO_STDIN_READ porque no es del tipo IO_STDIN");
+        proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
+
+        serializar_t_kernel_cpu_io_stdin_read(&paquete, proceso_enviar);
+        enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
+        eliminar_paquete(paquete);
+        free(proceso_enviar->motivo);
+        free(proceso_enviar);
+    }
+};
+
+void kernel_cpu_entradasalida_ocupada(hilos_args *args, t_kernel_cpu_entradasalida_error TIPO, char *interfaz, uint32_t pid)
+{
+    kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque esta ocupada con otro proceso", interfaz);
+
+    if (TIPO == CPU_IO_STDOUT_WRITE)
+    {
+        t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDOUT_WRITE);
+        t_kernel_cpu_io_stdout_write *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdout_write));
+
+        proceso_enviar->pid = pid;
+        proceso_enviar->resultado = 0;
+        proceso_enviar->motivo = strdup("La interfaz solicitada no puede ejecutar la instruccion IO_STDOUT_WRITE porque se encuentra ocupada con otro proceso");
+        proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
+
+        serializar_t_kernel_cpu_io_stdout_write(&paquete, proceso_enviar);
+        enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
+        eliminar_paquete(paquete);
+        free(proceso_enviar->motivo);
+        free(proceso_enviar);
+    }
+    if (TIPO == CPU_IO_STDIN_READ)
+    {
+        t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDIN_READ);
+        t_kernel_cpu_io_stdin_read *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdin_read));
+
+        proceso_enviar->pid = pid;
+        proceso_enviar->resultado = 0;
+        proceso_enviar->motivo = strdup("La interfaz solicitada no puede ejecutar la instruccion IO_STDIN_READ porque se encuentra ocupada con otro proceso");
+        proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
+
+        serializar_t_kernel_cpu_io_stdin_read(&paquete, proceso_enviar);
         enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
         eliminar_paquete(paquete);
         free(proceso_enviar->motivo);

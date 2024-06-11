@@ -6,6 +6,13 @@
 #include "../planificacion.h"
 #include "utils/kernel/main.h"
 
+typedef enum
+{
+    PROCESO_ERROR,
+    PROCESO_EJECUTANDO,
+    PROCESO_PARCIAL_INTERRUPCION
+} t_kernel_proceso_ejecucion;
+
 /**
  * @brief Maneja el despacho de operaciones de la CPU basado en el código de operación dado.
  *

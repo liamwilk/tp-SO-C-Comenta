@@ -125,10 +125,39 @@ void avisar_rechazo_identificador(int socket);
  * @return Un puntero a la estructura t_kernel_entrada_salida recién agregada.
  */
 t_kernel_entrada_salida *kernel_sockets_agregar_entrada_salida(hilos_args *args, KERNEL_SOCKETS type, int socket);
+
 typedef enum
 {
     CPU_IO_STDOUT_WRITE,
-} t_kernel_cpu_entradasalida_no_conectada;
-void kernel_cpu_entradasalida_no_conectada(hilos_args *args, t_kernel_cpu_entradasalida_no_conectada TIPO, char *interfaz, uint32_t pid);
+    CPU_IO_STDIN_READ
+} t_kernel_cpu_entradasalida_error;
+
+void kernel_cpu_entradasalida_no_conectada(hilos_args *args, t_kernel_cpu_entradasalida_error TIPO, char *interfaz, uint32_t pid);
+
+/**
+ * Ejecuta una operación de entrada/salida del kernel CPU de un tipo diferente.
+ *
+ * Esta función se encarga de realizar una operación de entrada/salida del kernel CPU
+ * de un tipo especificado. Recibe como parámetros los argumentos para la operación,
+ * el tipo de error a manejar, la interfaz a utilizar y el ID del proceso.
+ *
+ * @param args      Los argumentos para la operación.
+ * @param TIPO      El tipo de error a manejar.
+ * @param interfaz  La interfaz a utilizar.
+ * @param pid       El ID del proceso.
+ */
+void kernel_cpu_entradasalida_distinto_tipo(hilos_args *args, t_kernel_cpu_entradasalida_error TIPO, char *interfaz, uint32_t pid);
+
+/**
+ * @brief Notifica al kernel que la entrada/salida de una CPU está ocupada.
+ *
+ * Esta función se llama para informar al kernel que la entrada/salida de una CPU está actualmente ocupada.
+ *
+ * @param args Los argumentos para el hilo.
+ * @param TIPO El tipo de error encontrado durante la entrada/salida.
+ * @param interfaz La interfaz utilizada para la entrada/salida.
+ * @param pid El ID del proceso asociado con la operación de entrada/salida.
+ */
+void kernel_cpu_entradasalida_ocupada(hilos_args *args, t_kernel_cpu_entradasalida_error TIPO, char *interfaz, uint32_t pid);
 
 #endif /* KERNEL_ENTRADASALIDA_H_ */
