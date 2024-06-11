@@ -261,3 +261,207 @@ void *hilos_atender_entrada_salida_stdout(void *args)
     hilos_ejecutar_entrada_salida(io_args, "I/O STDOUT", switch_case_kernel_entrada_salida_stdout);
     pthread_exit(0);
 }
+
+void kernel_wait(hilos_args *args, uint32_t pid, char *recursoSolicitado)
+{
+
+    t_recurso *recurso_encontrado = recurso_buscar(args->recursos, recursoSolicitado);
+    t_pcb *proceso_en_exec = proceso_buscar_exec(args->estados, pid);
+
+    if (recurso_encontrado == NULL)
+    {
+        proceso_en_exec->quantum = interrumpir_temporizador(args);
+        kernel_log_generic(args, LOG_LEVEL_ERROR, "No se encontro el recurso <%s> solicitado por CPU", recursoSolicitado);
+        kernel_finalizar_proceso(args, pid, INVALID_RESOURCE);
+        return;
+    };
+
+    if (recurso_encontrado->instancias < 0)
+    {
+        proceso_en_exec->quantum = interrumpir_temporizador(args);
+        kernel_log_generic(args, LOG_LEVEL_INFO, "Se bloquea el proceso <%d> por falta de instancias del recurso <%s>", pid, recursoSolicitado);
+        list_add(recurso_encontrado->procesos_bloqueados, proceso_en_exec);
+        kernel_transicion_exec_block(args);
+        return;
+    }
+
+    recurso_encontrado->instancias--;
+    kernel_log_generic(args, LOG_LEVEL_INFO, "Se ocupo una instancia del recurso <%s> - Instancias restantes <%d>", recursoSolicitado, recurso_encontrado->instancias);
+    kernel_manejar_ready(args, pid, EXEC_READY);
+    return;
+}
+
+void kernel_signal(hilos_args *args, uint32_t pid, char *recurso, t_recurso_motivo_liberacion MOTIVO)
+{
+    t_recurso *recurso_encontrado = recurso_buscar(args->recursos, recurso);
+
+    if (recurso_encontrado == NULL)
+    {
+        kernel_log_generic(args, LOG_LEVEL_ERROR, "No se encontro el recurso <%s> solicitado por CPU", recurso);
+        kernel_finalizar_proceso(args, pid, INVALID_RESOURCE);
+    };
+
+    recurso_encontrado->instancias++;
+
+    kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se libero una instancia del recurso <%s> - Instancias restantes <%d>", recurso, recurso_encontrado->instancias);
+    if (list_size(recurso_encontrado->procesos_bloqueados) > 0 && recurso_encontrado->instancias >= 0)
+    {
+        t_pcb *pcb = list_remove(recurso_encontrado->procesos_bloqueados, 0);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se desbloquea el proceso <%d> por liberacion de recurso <%s>", pcb->pid, recurso);
+        if (MOTIVO == SIGNAL_RECURSO)
+        {
+            // Mando a ready el que esta bloqueado pues se libero un recurso
+            kernel_manejar_ready(args, pcb->pid, BLOCK_READY);
+        }
+        else
+        {
+            // Solamente libero el recurso ya que lo mande a exit el proceso
+            return;
+        }
+    }
+
+    kernel_manejar_ready(args, pid, EXEC_READY);
+    return;
+}
+
+bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNEL_MOTIVO_FINALIZACION MOTIVO)
+{
+    char *estado = proceso_estado(kernel_hilos_args->estados, pid);
+    if (estado == NULL)
+    {
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "El PID <%d> no existe", pid);
+        return false;
+    }
+
+    if (strcmp(estado, "EXIT") == 0)
+    {
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "El PID <%d> YA ha sido eliminado", pid);
+        return false;
+    }
+
+    switch (MOTIVO)
+    {
+    case INTERRUPTED_BY_USER:
+    {
+        if (strcmp(estado, "EXEC") == 0)
+        {
+            interrumpir_temporizador(kernel_hilos_args);
+            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "El proceso <%d> se encuentra en ejecucion, se procede a desalojarlo", pid);
+            kernel_interrumpir_cpu(kernel_hilos_args, pid, "FINALIZAR_PROCESO");
+            kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
+            kernel_transicion_exec_exit(kernel_hilos_args);
+            return false;
+        }
+        if (strcmp(estado, "BLOCK") == 0)
+        {
+            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "El proceso <%d> se encuentra bloqueado, se procede a desbloquearlo", pid);
+            kernel_transicion_block_exit(kernel_hilos_args, pid);
+            //  Verificamos que el proceso este blockeado por recurso y no por I/O
+            char *recurso_bloqueado = recurso_buscar_pid(kernel_hilos_args->recursos, pid);
+            if (recurso_bloqueado != NULL)
+            {
+                kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "El proceso <%d> se encuentra bloqueado por recurso <%s>", pid, recurso_bloqueado);
+                kernel_signal(kernel_hilos_args, pid, recurso_bloqueado, INTERRUPCION);
+            }
+            else
+            {
+                kernel_interrumpir_io(kernel_hilos_args, pid, "FINALIZAR_PROCESO");
+            }
+            kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
+            return false;
+        }
+
+        // Esta en ready o en new por lo tanto se puede eliminar tranquilamente
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INTERRUPTED_BY_USER>", pid);
+        kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
+        proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+        return true;
+    }
+    case INVALID_INTERFACE:
+    {
+        t_pcb *pcb_en_exit = kernel_transicion_exec_exit(kernel_hilos_args);
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INVALID_INTERFACE>", pcb_en_exit->pid);
+        kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
+        proceso_matar(kernel_hilos_args->estados, string_itoa(pcb_en_exit->pid));
+        return true;
+    }
+    case SUCCESS:
+    {
+        if (strcmp(estado, "EXEC") == 0)
+        {
+            kernel_transicion_exec_exit(kernel_hilos_args);
+        }
+
+        kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <SUCCESS>", pid);
+        proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+        return true;
+    }
+    case INVALID_RESOURCE:
+    {
+        if (strcmp(estado, "EXEC") == 0)
+        {
+            kernel_transicion_exec_exit(kernel_hilos_args);
+        }
+        else
+        {
+            kernel_transicion_block_exit(kernel_hilos_args, pid);
+        }
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INVALID_RESOURCE>", pid);
+        proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+    }
+    case OUT_OF_MEMORY:
+    {
+        if (strcmp(estado, "EXEC") == 0)
+        {
+            kernel_transicion_exec_exit(kernel_hilos_args);
+        }
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <OUT_OF_MEMORY>", pid);
+        kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
+        proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+        return true;
+    }
+    default:
+
+        return false;
+    }
+}
+
+void kernel_interrumpir_cpu(hilos_args *kernel_hilos_args, uint32_t pid, char *motivo)
+{
+    t_paquete *paquete = crear_paquete(KERNEL_CPU_INTERRUPCION);
+    t_kernel_cpu_interrupcion interrupcion = {.pid = pid, .motivo = motivo, .len_motivo = strlen(motivo) + 1};
+    serializar_t_kernel_cpu_interrupcion(&paquete, &interrupcion);
+    enviar_paquete(paquete, kernel_hilos_args->kernel->sockets.cpu_interrupt);
+    free(paquete);
+}
+
+void kernel_avisar_memoria_finalizacion_proceso(hilos_args *args, uint32_t pid)
+{
+    t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
+    t_kernel_memoria_finalizar_proceso *proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
+    proceso->pid = pid;
+    serializar_t_kernel_memoria_finalizar_proceso(&paquete, proceso);
+    enviar_paquete(paquete, args->kernel->sockets.memoria);
+    eliminar_paquete(paquete);
+    free(proceso);
+}
+void kernel_inicializar_temporizador(hilos_args *argumentos, timer_args_t *temporizador)
+{
+    // Configura la estructura sigevent
+    argumentos->sev.sigev_notify = SIGEV_THREAD;
+    argumentos->sev.sigev_value.sival_ptr = temporizador;
+    argumentos->sev.sigev_notify_function = kernel_fin_quantum;
+    argumentos->sev.sigev_notify_attributes = NULL;
+}
+void kernel_fin_quantum(union sigval arg)
+{
+    timer_args_t *timerArgs = (timer_args_t *)arg.sival_ptr;
+
+    if (list_size(timerArgs->args->estados->exec) > 0)
+    {
+        t_pcb *pcb = list_get(timerArgs->args->estados->exec, 0);
+        kernel_log_generic(timerArgs->args, LOG_LEVEL_INFO, "PID: <%d> - Desalojado por fin de Quantum", pcb->pid);
+        kernel_interrumpir_cpu(timerArgs->args, pcb->pid, "FIN DE QUANTUM");
+    }
+}

@@ -169,8 +169,35 @@ void procesos_estados(hilos_args *hiloArgs);
  */
 void finalizar_consola(char **separar_linea, hilos_args *hiloArgs);
 
-// TODO: Mover a un archivo de utilidades
-void inicializar_temporizador(hilos_args *args, timer_args_t *temporizador);
-void iniciar_temporizador(hilos_args *args, int duracion);
+/**
+ * Imprime los comandos disponibles.
+ *
+ * @param args Los argumentos para el hilo.
+ */
+void imprimir_comandos(hilos_args *args);
+
+/**
+ * Imprime el logo.
+ *
+ * Esta función imprime el logo utilizando los argumentos proporcionados.
+ *
+ * @param args Los argumentos para imprimir el logo.
+ */
+void imprimir_logo(hilos_args *args);
+
+/**
+ * Imprime el encabezado para la consola.
+ *
+ * @param args Los argumentos para el hilo.
+ */
+void imprimir_header(hilos_args *args);
+
+/**
+ * @fn    log_kernel
+ * @brief Log obligatorios de kernel junto con su configuracion
+ * @param kernel Instancia de kernel (kernel_inicializar)
+ * @param logger Instancia de t_log
+ */
+void kernel_log(hilos_args *args);
 
 #endif /* KERNEL_CONSOLA_H_ */

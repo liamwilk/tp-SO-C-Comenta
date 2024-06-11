@@ -53,64 +53,6 @@ void hilos_ejecutar_entrada_salida(hilos_io_args *io_args, char *modulo, t_funci
     free(io_args);
 }
 
-t_pcb *buscar_proceso(t_diagrama_estados *estados, uint32_t pid)
-{
-    t_pcb *pcb = proceso_buscar_new(estados, pid);
-    if (pcb == NULL)
-    {
-        pcb = proceso_buscar_ready(estados, pid);
-        if (pcb == NULL)
-        {
-            pcb = proceso_buscar_exec(estados, pid);
-            if (pcb == NULL)
-            {
-                pcb = proceso_buscar_block(estados, pid);
-                if (pcb == NULL)
-                {
-                    pcb = proceso_buscar_exit(estados, pid);
-                }
-            }
-        }
-    }
-    return pcb;
-}
-
-void imprimir_logo(hilos_args *args)
-{
-
-    kernel_log_generic(args, LOG_LEVEL_INFO, "              _                 _ _ _   _____ _____");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "             | |               | (_) | |  _  /  ___|");
-    kernel_log_generic(args, LOG_LEVEL_INFO, " _ __ ___  __| | ___  _ __   __| |_| |_| | | \\ `--. ");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "| '__/ _ \\/ _` |/ _ \\| '_ \\ / _` | | __| | | |`--. \\");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "| | |  __/ (_| | (_) | | | | (_| | | |_\\ \\_/ /\\__/ /");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "|_|  \\___|\\__,_|\\___/|_| |_|\\__,_|_|\\__|\\___/\\____/");
-    kernel_log_generic(args, LOG_LEVEL_INFO, " ");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "---------------------------------------------------------------");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "Implementación de C-Comenta - www.faq.utnso.com.ar/tp-c-comenta");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "Sistemas Operativos - 1C 2024 - UTN FRBA");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "---------------------------------------------------------------");
-    kernel_log_generic(args, LOG_LEVEL_INFO, " ");
-}
-
-void imprimir_comandos(hilos_args *args)
-{
-    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ EJECUTAR_SCRIPT <path>");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ INICIAR_PROCESO <path>");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ FINALIZAR_PROCESO <PID>");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ DETENER_PLANIFICACION");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ INICIAR_PLANIFICACION");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ MULTIPROGRAMACION <grado>");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ PROCESO_ESTADO <PID>");
-    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ FINALIZAR");
-}
-
-void imprimir_header(hilos_args *args)
-{
-    imprimir_logo(args);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "Comandos disponibles:");
-    imprimir_comandos(args);
-}
-
 void hilo_ejecutar_kernel(int socket, hilos_args *args, char *modulo, t_funcion_kernel_ptr switch_case_atencion)
 {
     while (1)
@@ -176,21 +118,6 @@ t_kernel kernel_inicializar(t_config *config)
         .sockets = {0, 0, 0, 0}};
     return kernel;
 };
-
-void kernel_log(hilos_args *args)
-{
-    kernel_log_generic(args, LOG_LEVEL_INFO, "PUERTO_ESCUCHA: %d", args->kernel->puertoEscucha);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "IP_MEMORIA: %s", args->kernel->ipMemoria);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "PUERTO_MEMORIA: %d", args->kernel->puertoMemoria);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "IP_CPU: %s", args->kernel->ipCpu);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "PUERTO_CPU_DISPATCH: %d", args->kernel->puertoCpuDispatch);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "PUERTO_CPU_INTERRUPT: %d", args->kernel->puertoCpuInterrupt);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "ALGORITMO_PLANIFICACION: %s", args->kernel->algoritmoPlanificador);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "QUANTUM: %d", args->kernel->quantum);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "RECURSOS: %s", args->kernel->recursos);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "INSTANCIAS_RECURSOS: %s", args->kernel->instanciasRecursos);
-    kernel_log_generic(args, LOG_LEVEL_INFO, "GRADO_MULTIPROGRAMACION: %d", args->kernel->gradoMultiprogramacion);
-}
 
 t_kernel_sockets kernel_sockets_agregar(hilos_args *args, KERNEL_SOCKETS type, int socket)
 {

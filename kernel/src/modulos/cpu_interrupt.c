@@ -63,7 +63,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         serializar_t_kernel_entrada_salida_unidad_de_trabajo(&paquete, unidad);
 
         enviar_paquete(paquete, entrada_salida->socket);
-        sem_post(&args->kernel->planificador_iniciar);
+        avisar_planificador(args);
         eliminar_paquete(paquete);
 
         free(unidad);

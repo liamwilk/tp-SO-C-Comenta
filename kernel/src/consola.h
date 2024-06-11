@@ -12,10 +12,6 @@
 #include <utils/kernel/main.h>
 
 t_consola_operacion obtener_operacion(char *funcion);
-void imprimir_comandos(hilos_args *args);
-void imprimir_logo(hilos_args *args);
-void imprimir_header(hilos_args *args);
-t_pcb *buscar_proceso(t_diagrama_estados *estados, uint32_t pid);
 
 void hilo_ejecutar_kernel(int socket, hilos_args *args, char *modulo, t_funcion_kernel_ptr switch_case_atencion);
 
@@ -36,14 +32,6 @@ t_kernel_sockets kernel_sockets_agregar(hilos_args *args, KERNEL_SOCKETS type, i
  * @return Kernel: Struct de kernel
  */
 t_kernel kernel_inicializar(t_config *config);
-
-/**
- * @fn    log_kernel
- * @brief Log obligatorios de kernel junto con su configuracion
- * @param kernel Instancia de kernel (kernel_inicializar)
- * @param logger Instancia de t_log
- */
-void kernel_log(hilos_args *args);
 
 /**----PROCESOS Y ESTADOS----**/
 

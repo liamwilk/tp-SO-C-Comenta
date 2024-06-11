@@ -370,56 +370,53 @@ void kernel_log_ready(hilos_args *kernel_hilos_args, bool prioritaria)
     kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "%s", msg);
 }
 
-// Interrumpe el temporizador y devuelve el quantum restante
-int interrumpir_temporizador(hilos_args *args)
+void imprimir_logo(hilos_args *args)
 {
-    if (determinar_algoritmo(args->kernel->algoritmoPlanificador) == FIFO)
-    {
-        return 0;
-    }
 
-    struct itimerspec quantum_restante;
-    // Obtener el tiempo restante del temporizador
-    if (timer_gettime(args->timer, &quantum_restante) == -1)
-    {
-        kernel_log_generic(args, LOG_LEVEL_ERROR, "Error al obtener el tiempo restante del temporizador");
-        return -1;
-    }
-
-    if (timer_delete(args->timer) == -1)
-    {
-        kernel_log_generic(args, LOG_LEVEL_ERROR, "Error al eliminar el temporizador");
-        return -1;
-    }
-    else
-    {
-        if (quantum_restante.it_value.tv_sec > 0)
-        {
-            kernel_log_generic(args, LOG_LEVEL_WARNING, "[QUANTUM] Al proceso en ejecución se lo ha interrumpido y le sobra QUANTUM: <%ld> milisegundos", quantum_restante.it_value.tv_sec * 1000);
-        }
-    }
-    return quantum_restante.it_value.tv_sec * 1000;
+    kernel_log_generic(args, LOG_LEVEL_INFO, "              _                 _ _ _   _____ _____");
+    kernel_log_generic(args, LOG_LEVEL_INFO, "             | |               | (_) | |  _  /  ___|");
+    kernel_log_generic(args, LOG_LEVEL_INFO, " _ __ ___  __| | ___  _ __   __| |_| |_| | | \\ `--. ");
+    kernel_log_generic(args, LOG_LEVEL_INFO, "| '__/ _ \\/ _` |/ _ \\| '_ \\ / _` | | __| | | |`--. \\");
+    kernel_log_generic(args, LOG_LEVEL_INFO, "| | |  __/ (_| | (_) | | | | (_| | | |_\\ \\_/ /\\__/ /");
+    kernel_log_generic(args, LOG_LEVEL_INFO, "|_|  \\___|\\__,_|\\___/|_| |_|\\__,_|_|\\__|\\___/\\____/");
+    kernel_log_generic(args, LOG_LEVEL_INFO, " ");
+    kernel_log_generic(args, LOG_LEVEL_INFO, "---------------------------------------------------------------");
+    kernel_log_generic(args, LOG_LEVEL_INFO, "Implementación de C-Comenta - www.faq.utnso.com.ar/tp-c-comenta");
+    kernel_log_generic(args, LOG_LEVEL_INFO, "Sistemas Operativos - 1C 2024 - UTN FRBA");
+    kernel_log_generic(args, LOG_LEVEL_INFO, "---------------------------------------------------------------");
+    kernel_log_generic(args, LOG_LEVEL_INFO, " ");
 }
 
-void iniciar_temporizador(hilos_args *args, int milisegundos)
+void imprimir_comandos(hilos_args *args)
 {
-    // Crea el temporizador
-    timer_create(CLOCK_REALTIME, &args->sev, &args->timer);
-
-    // Configura el tiempo de inicio y el intervalo del temporizador
-    int segundos = milisegundos / 1000;
-    args->its.it_value.tv_sec = segundos;
-    args->its.it_value.tv_nsec = 0;
-    args->its.it_interval.tv_sec = 0;
-    args->its.it_interval.tv_nsec = 0;
-
-    // Inicia el temporizador
-    timer_settime(args->timer, 0, &args->its, NULL);
+    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ EJECUTAR_SCRIPT <path>");
+    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ INICIAR_PROCESO <path>");
+    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ FINALIZAR_PROCESO <PID>");
+    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ DETENER_PLANIFICACION");
+    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ INICIAR_PLANIFICACION");
+    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ MULTIPROGRAMACION <grado>");
+    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ PROCESO_ESTADO <PID>");
+    kernel_log_generic(args, LOG_LEVEL_INFO, "└─ FINALIZAR");
 }
 
-// Que hacer si me interrumpieron por señal
-void signal_handler(int signum)
+void imprimir_header(hilos_args *args)
 {
-    // printf("Hilo interrumpido por señal %d\n", signum);
-    return;
+    imprimir_logo(args);
+    kernel_log_generic(args, LOG_LEVEL_INFO, "Comandos disponibles:");
+    imprimir_comandos(args);
+}
+
+void kernel_log(hilos_args *args)
+{
+    kernel_log_generic(args, LOG_LEVEL_INFO, "PUERTO_ESCUCHA: %d", args->kernel->puertoEscucha);
+    kernel_log_generic(args, LOG_LEVEL_INFO, "IP_MEMORIA: %s", args->kernel->ipMemoria);
+    kernel_log_generic(args, LOG_LEVEL_INFO, "PUERTO_MEMORIA: %d", args->kernel->puertoMemoria);
+    kernel_log_generic(args, LOG_LEVEL_INFO, "IP_CPU: %s", args->kernel->ipCpu);
+    kernel_log_generic(args, LOG_LEVEL_INFO, "PUERTO_CPU_DISPATCH: %d", args->kernel->puertoCpuDispatch);
+    kernel_log_generic(args, LOG_LEVEL_INFO, "PUERTO_CPU_INTERRUPT: %d", args->kernel->puertoCpuInterrupt);
+    kernel_log_generic(args, LOG_LEVEL_INFO, "ALGORITMO_PLANIFICACION: %s", args->kernel->algoritmoPlanificador);
+    kernel_log_generic(args, LOG_LEVEL_INFO, "QUANTUM: %d", args->kernel->quantum);
+    kernel_log_generic(args, LOG_LEVEL_INFO, "RECURSOS: %s", args->kernel->recursos);
+    kernel_log_generic(args, LOG_LEVEL_INFO, "INSTANCIAS_RECURSOS: %s", args->kernel->instanciasRecursos);
+    kernel_log_generic(args, LOG_LEVEL_INFO, "GRADO_MULTIPROGRAMACION: %d", args->kernel->gradoMultiprogramacion);
 }

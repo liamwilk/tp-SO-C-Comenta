@@ -5,6 +5,7 @@
 #include <utils/template.h>
 #include <utils/kernel/main.h>
 #include "consola.h"
+#include "planificacion.h"
 
 /**
  * @brief Función que realiza un switch case para ejecutar diferentes operaciones de memoria.

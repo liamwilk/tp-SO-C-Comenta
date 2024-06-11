@@ -356,8 +356,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             kernel_log_generic(args, LOG_LEVEL_ERROR, "Proceso PID:<%d> ejecutado fallido. Transicionar a exit", proceso->pid);
 
             kernel_finalizar_proceso(args, proceso->pid, SUCCESS);
-
-            sem_post(&args->kernel->planificador_iniciar);
+            avisar_planificador(args);
         }
 
         avisar_planificador(args);
@@ -373,7 +372,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         t_pcb *proceso_en_exec = proceso_buscar_exec(args->estados, solicitud_recurso->pid);
 
         proceso_actualizar_registros(proceso_en_exec, *solicitud_recurso->registros);
-        kernel_recurso_wait(args, args->recursos, solicitud_recurso->pid, solicitud_recurso->nombre_recurso);
+        kernel_wait(args, solicitud_recurso->pid, solicitud_recurso->nombre_recurso);
 
         avisar_planificador(args);
 
@@ -389,7 +388,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         t_pcb *proceso_en_exec = proceso_buscar_exec(args->estados, solicitud_recurso->pid);
         proceso_actualizar_registros(proceso_en_exec, *solicitud_recurso->registros);
-        kernel_recurso_signal(args, args->recursos, solicitud_recurso->pid, solicitud_recurso->nombre_recurso, SIGNAL_RECURSO);
+        kernel_signal(args, solicitud_recurso->pid, solicitud_recurso->nombre_recurso, SIGNAL_RECURSO);
         avisar_planificador(args);
         free(solicitud_recurso->nombre_recurso);
         free(solicitud_recurso);
@@ -399,7 +398,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
     {
         t_copy_string *proceso_completo = deserializar_t_copy_string(buffer);
 
-        t_pcb *pcb = buscar_proceso(args->estados, proceso_completo->pid);
+        t_pcb *pcb = proceso_buscar(args->estados, proceso_completo->pid);
 
         if (pcb != NULL)
         {

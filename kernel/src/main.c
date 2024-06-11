@@ -9,15 +9,15 @@ int main(int argc, char *argv[])
 	estados = kernel_inicializar_estados(&estados);
 	temporizador.args = &args;
 	recursos = dictionary_create();
+
 	inicializar_args();
 	inicializar_semaforos();
-	inicializar_temporizador(&args, &temporizador);
+	kernel_inicializar_temporizador(&args, &temporizador);
 	pthread_mutex_init(&kernel.lock, NULL);
 
 	kernel_log(&args);
 
-	kernel_recurso_init(recursos, kernel.instanciasRecursos, kernel.recursos);
-	kernel_recurso_log(&args);
+	recurso_init(recursos, kernel.instanciasRecursos, kernel.recursos);
 
 	// Inicializo las estructuras que almacenan e identifican los sockets de entrada/salida
 	kernel.sockets.dictionary_entrada_salida = dictionary_create();

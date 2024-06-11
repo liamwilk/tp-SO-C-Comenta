@@ -154,12 +154,6 @@ typedef struct
     t_kernel_entrada_salida *entrada_salida;
 } hilos_io_args;
 
-typedef struct t_recurso
-{
-    int instancias;
-    t_list *procesos_bloqueados;
-} t_recurso;
-
 typedef void (*t_funcion_kernel_ptr)(t_log *, t_op_code, hilos_args *, t_buffer *);
 typedef void (*t_funcion_kernel_io_prt)(hilos_io_args *, char *, t_op_code, t_buffer *);
 

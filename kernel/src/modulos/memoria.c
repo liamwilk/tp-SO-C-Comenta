@@ -34,7 +34,7 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *
             // Buscar proceso
             pcb->memoria_aceptado = true;
             kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso PID:<%d> aceptado en memoria", pcb->pid);
-            sem_post(&args->kernel->planificador_iniciar);
+            avisar_planificador(args);
         }
         else
         {

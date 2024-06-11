@@ -4,6 +4,7 @@
 #include <utils/serial.h>
 #include <utils/template.h>
 #include "../planificacion.h"
+#include "utils/kernel/main.h"
 
 /**
  * @brief Maneja el despacho de operaciones de la CPU basado en el código de operación dado.
