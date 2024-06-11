@@ -200,4 +200,13 @@ void imprimir_header(hilos_args *args);
  */
 void kernel_log(hilos_args *args);
 
+/**
+ * @brief Función para revisar un paquete recibido por el kernel.
+ *
+ * @param paquete Paquete a revisar.
+ * @param args Estructura de argumentos del kernel.
+ * @param modulo Nombre del módulo que envía el paquete.
+ */
+void kernel_revisar_paquete(t_paquete *paquete, hilos_args *args, char *modulo);
+
 #endif /* KERNEL_CONSOLA_H_ */

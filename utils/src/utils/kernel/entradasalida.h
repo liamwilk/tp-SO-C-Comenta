@@ -6,6 +6,54 @@
 #include "../serial.h"
 #include "structs.h"
 #include "consola.h"
+#include "../conexiones.h"
+
+/**
+ * Procesa una operación de entrada/salida rechazada.
+ *
+ * Esta función se encarga de manejar una operación de entrada/salida rechazada
+ * en el kernel. Recibe como entrada los argumentos para el hilo de E/S y el
+ * identificador de la operación que fue rechazada.
+ *
+ * @param argumentos Los argumentos para el hilo de E/S.
+ * @param identificador El identificador de la operación rechazada.
+ */
+void entrada_salida_procesar_rechazado(hilos_io_args *argumentos, char *identificador);
+
+/**
+ * @brief Agrega una interfaz de entrada/salida en el kernel.
+ *
+ * Esta función se encarga de agregar una interfaz de entrada/salida en el kernel.
+ *
+ * @param args Los argumentos del hilo.
+ * @param tipo El tipo de socket de la interfaz.
+ * @param socket El socket de la interfaz.
+ *
+ * @return Un puntero a la estructura de entrada/salida creada.
+ */
+t_kernel_entrada_salida *entrada_salida_agregar_interfaz(hilos_args *args, KERNEL_SOCKETS tipo, int socket);
+
+/**
+ * @brief Remueve una interfaz de entrada/salida del kernel.
+ *
+ * Esta función se encarga de remover una interfaz de entrada/salida del kernel.
+ *
+ * @param args Los argumentos del hilo.
+ * @param interfaz La interfaz a remover.
+ */
+void entrada_salida_remover_interfaz(hilos_args *args, char *interfaz);
+
+/**
+ * @brief Busca una interfaz de entrada/salida en el kernel.
+ *
+ * Esta función se encarga de buscar una interfaz de entrada/salida en el kernel.
+ *
+ * @param args Los argumentos del hilo.
+ * @param interfaz La interfaz a buscar.
+ *
+ * @return Un puntero a la estructura de entrada/salida encontrada, o NULL si no se encontró.
+ */
+void entrada_salida_agregar_identificador(hilos_io_args *args, char *identificador);
 
 /**
  * @brief Interrumpe las operaciones de E/S para un proceso específico en el kernel.
@@ -51,5 +99,36 @@ void switch_case_kernel_entrada_salida_dialfs(hilos_io_args *io_args, char *modu
  * @param switch_case_atencion El puntero a función que maneja el switch case del kernel.
  */
 void hilos_ejecutar_entrada_salida(hilos_io_args *io_args, char *modulo, t_funcion_kernel_io_prt switch_case_atencion);
+
+/**
+ * Maneja el rechazo de las operaciones de entrada/salida en el kernel.
+ *
+ * @param io_args Los argumentos para la operación de E/S.
+ */
+void kernel_entradasalida_rechazo(hilos_io_args *io_args, char *modulo, char *identificador);
+
+/**
+ * Notifica el rechazo de un identificador a través del socket especificado.
+ *
+ * @param socket El socket al que se enviará la notificación de rechazo.
+ */
+void avisar_rechazo_identificador(int socket);
+
+/**
+ * Agrega una nueva entrada para los sockets del kernel.
+ *
+ * Esta función agrega una nueva entrada para los sockets del kernel del tipo y socket especificados.
+ *
+ * @param args Los argumentos para el hilo.
+ * @param tipo El tipo de sockets del kernel.
+ * @param socket El socket a agregar.
+ * @return Un puntero a la estructura t_kernel_entrada_salida recién agregada.
+ */
+t_kernel_entrada_salida *kernel_sockets_agregar_entrada_salida(hilos_args *args, KERNEL_SOCKETS type, int socket);
+typedef enum
+{
+    CPU_IO_STDOUT_WRITE,
+} t_kernel_cpu_entradasalida_no_conectada;
+void kernel_cpu_entradasalida_no_conectada(hilos_args *args, t_kernel_cpu_entradasalida_no_conectada TIPO, char *interfaz, uint32_t pid);
 
 #endif /* KERNEL_ENTRADASALIDA_H_ */

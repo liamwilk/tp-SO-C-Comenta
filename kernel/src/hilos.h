@@ -1,6 +1,6 @@
 #ifndef HILOS_H_
 #define HILOS_H_
-#include <consola.h>
+#include <utils/kernel/consola.h>
 #include <commons/log.h>
 #include <pthread.h>
 #include <utils/serial.h>

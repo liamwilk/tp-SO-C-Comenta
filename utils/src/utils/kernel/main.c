@@ -147,29 +147,6 @@ void kernel_finalizar(hilos_args *args)
     eliminar_paquete(finalizar);
 };
 
-void kernel_revisar_paquete(t_paquete *paquete, hilos_args *args, char *modulo)
-{
-    if (paquete->codigo_operacion != FINALIZAR_SISTEMA)
-    {
-        kernel_log_generic(args, LOG_LEVEL_TRACE, "Paquete recibido de modulo %s", modulo);
-        kernel_log_generic(args, LOG_LEVEL_TRACE, "Deserializado del paquete:");
-        kernel_log_generic(args, LOG_LEVEL_TRACE, "Codigo de operacion: %d", paquete->codigo_operacion);
-        kernel_log_generic(args, LOG_LEVEL_TRACE, "Size del buffer en paquete: %d", paquete->size_buffer);
-        kernel_log_generic(args, LOG_LEVEL_TRACE, "Deserializado del buffer:");
-        kernel_log_generic(args, LOG_LEVEL_TRACE, "Size del stream: %d", paquete->buffer->size);
-        kernel_log_generic(args, LOG_LEVEL_TRACE, "Offset del stream: %d", paquete->buffer->offset);
-
-        if (paquete->size_buffer != paquete->buffer->size + (2 * sizeof(uint32_t)))
-        {
-            kernel_log_generic(args, LOG_LEVEL_WARNING, "Error en el tamaño del buffer. Se esperaba %d y se recibio %ld", paquete->size_buffer, paquete->buffer->size + (2 * sizeof(uint32_t)));
-        }
-    }
-    else
-    {
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Kernel solicito el apagado del modulo.");
-    }
-}
-
 void hilo_planificador_iniciar(hilos_args *args)
 {
     pthread_mutex_lock(&args->kernel->lock);
@@ -465,3 +442,108 @@ void kernel_fin_quantum(union sigval arg)
         kernel_interrumpir_cpu(timerArgs->args, pcb->pid, "FIN DE QUANTUM");
     }
 }
+
+bool kernel_verificar_proceso_en_exit(hilos_args *args, uint32_t pid)
+{
+    // Verifico si este proceso no ha ya sido marcado como eliminado  en kernel
+    t_pcb *pcb = proceso_buscar_exit(args->estados, pid);
+
+    if (pcb != NULL)
+    {
+        // Si tenemos RR o VRR finalizo el timer
+        interrumpir_temporizador(args);
+        proceso_matar(args->estados, string_itoa(pcb->pid));
+        kernel_log_generic(args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INTERRUPTED_BY_USER>", pid);
+        sem_post(&args->kernel->planificador_iniciar);
+        return true;
+    }
+    return false;
+}
+
+void hilo_ejecutar_kernel(int socket, hilos_args *args, char *modulo, t_funcion_kernel_ptr switch_case_atencion)
+{
+    while (1)
+    {
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Esperando paquete de %s en socket %d", modulo, socket);
+
+        t_paquete *paquete = recibir_paquete(args->logger, &socket);
+
+        if (paquete == NULL)
+        {
+            kernel_log_generic(args, LOG_LEVEL_WARNING, "%s se desconecto.", modulo);
+            break;
+        }
+
+        revisar_paquete_kernel(args, paquete, modulo);
+
+        switch_case_atencion(args->logger, paquete->codigo_operacion, args, paquete->buffer);
+
+        eliminar_paquete(paquete);
+    }
+    sem_post(&args->kernel->sistema_finalizar);
+
+    kernel_log_generic(args, LOG_LEVEL_INFO, "Finalizando hilo de atencion a %s", modulo);
+}
+
+void revisar_paquete_kernel(hilos_args *args, t_paquete *paquete, char *modulo)
+{
+    if (paquete->codigo_operacion != FINALIZAR_SISTEMA)
+    {
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Paquete recibido de modulo %s", modulo);
+        // kernel_log_generic(args, LOG_LEVEL_TRACE, "Deserializado del paquete:");
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Codigo de operacion: %d", paquete->codigo_operacion);
+        // kernel_log_generic(args, LOG_LEVEL_TRACE, "Size del buffer en paquete: %d", paquete->size_buffer);
+        // kernel_log_generic(args, LOG_LEVEL_TRACE, "Deserializado del buffer:");
+        // kernel_log_generic(args, LOG_LEVEL_TRACE, "Size del stream: %d", paquete->buffer->size);
+        // kernel_log_generic(args, LOG_LEVEL_TRACE, "Offset del stream: %d", paquete->buffer->offset);
+
+        if (paquete->size_buffer != paquete->buffer->size + (2 * sizeof(uint32_t)))
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "Error en el tamaño del buffer. Se esperaba %d y se recibio %ld", paquete->size_buffer, paquete->buffer->size + (2 * sizeof(uint32_t)));
+        }
+    }
+    else
+    {
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Paquete de finalizacion recibido de modulo %s", modulo);
+    }
+}
+
+t_kernel kernel_inicializar(t_config *config)
+{
+    t_kernel kernel = {
+        .puertoEscucha = config_get_int_value(config, "PUERTO_ESCUCHA"),
+        .ipMemoria = config_get_string_value(config, "IP_MEMORIA"),
+        .puertoMemoria = config_get_int_value(config, "PUERTO_MEMORIA"),
+        .ipCpu = config_get_string_value(config, "IP_CPU"),
+        .puertoCpuDispatch = config_get_int_value(config, "PUERTO_CPU_DISPATCH"),
+        .puertoCpuInterrupt = config_get_int_value(config, "PUERTO_CPU_INTERRUPT"),
+        .algoritmoPlanificador = config_get_string_value(config, "ALGORITMO_PLANIFICACION"),
+        .quantum = config_get_int_value(config, "QUANTUM"),
+        .recursos = config_get_string_value(config, "RECURSOS"),
+        .instanciasRecursos = config_get_string_value(config, "INSTANCIAS_RECURSOS"),
+        .gradoMultiprogramacion = config_get_int_value(config, "GRADO_MULTIPROGRAMACION"),
+        .sockets = {0, 0, 0, 0}};
+    return kernel;
+};
+
+t_kernel_sockets kernel_sockets_agregar(hilos_args *args, KERNEL_SOCKETS type, int socket)
+{
+    switch (type)
+    {
+    case MEMORIA:
+        args->kernel->sockets.memoria = socket;
+        break;
+    case CPU_DISPATCH:
+        args->kernel->sockets.cpu_dispatch = socket;
+        break;
+    case CPU_INTERRUPT:
+        args->kernel->sockets.cpu_interrupt = socket;
+        break;
+    case SERVER:
+        args->kernel->sockets.server = socket;
+        break;
+    default:
+        break;
+    }
+    return args->kernel->sockets;
+};

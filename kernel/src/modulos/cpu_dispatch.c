@@ -13,24 +13,11 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         // Si la interfaz de entrada salida no esta conectada
         if (entrada_salida == NULL)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "Aviso a CPU que no se pudo enviar el paquete a la interfaz <%s> porque no está conectada", proceso_recibido->interfaz);
-
-            t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDOUT_WRITE);
-            t_kernel_cpu_io_stdout_write *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdout_write));
-
-            proceso_enviar->pid = proceso_recibido->pid;
-            proceso_enviar->resultado = 0;
-            proceso_enviar->motivo = strdup("La interfaz solicitada no se encuentra conectada a Kernel");
-            proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
-
-            serializar_t_kernel_cpu_io_stdout_write(&paquete, proceso_enviar);
-            enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
-            eliminar_paquete(paquete);
+            // Aviso a cpu
+            kernel_cpu_entradasalida_no_conectada(args, CPU_IO_STDOUT_WRITE, proceso_recibido->interfaz, proceso_recibido->pid);
 
             kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
 
-            free(proceso_enviar->motivo);
-            free(proceso_enviar);
             free(proceso_recibido->interfaz);
             free(proceso_recibido);
 

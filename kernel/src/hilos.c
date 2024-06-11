@@ -363,14 +363,3 @@ void *hilos_esperar_entrada_salida(void *args)
     sem_post(&hiloArgs->kernel->sistema_finalizar);
     pthread_exit(0);
 };
-
-void avisar_rechazo_identificador(int socket)
-{
-    t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IDENTIFICACION_RECHAZO);
-    t_entrada_salida_identificacion *identificacion = malloc(sizeof(t_entrada_salida_identificacion));
-    identificacion->identificador = "Rechazo";
-    identificacion->size_identificador = strlen(identificacion->identificador) + 1;
-    serializar_t_entrada_salida_identificacion(&paquete, identificacion);
-    enviar_paquete(paquete, socket);
-    eliminar_paquete(paquete);
-}

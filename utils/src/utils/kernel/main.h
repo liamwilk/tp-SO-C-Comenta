@@ -60,15 +60,6 @@ void kernel_finalizar(hilos_args *args);
 t_kernel_entrada_salida *kernel_entrada_salida_buscar_interfaz(hilos_args *args, char *interfaz);
 
 /**
- * @brief Función para revisar un paquete recibido por el kernel.
- *
- * @param paquete Paquete a revisar.
- * @param args Estructura de argumentos del kernel.
- * @param modulo Nombre del módulo que envía el paquete.
- */
-void kernel_revisar_paquete(t_paquete *paquete, hilos_args *args, char *modulo);
-
-/**
  * @brief Crea un nuevo proceso en el kernel.
  *
  * Esta función se encarga de crear un nuevo proceso en el kernel. Envia el struct t_kernel_memoria_proceso al modulo memoria
@@ -141,5 +132,22 @@ void kernel_avisar_memoria_finalizacion_proceso(hilos_args *args, uint32_t pid);
 void kernel_interrumpir_cpu(hilos_args *args, uint32_t pid, char *motivo);
 void kernel_fin_quantum(union sigval arg);
 void kernel_inicializar_temporizador(hilos_args *args, timer_args_t *temporizador);
+
+/**
+ * Verifica si un proceso ha finalizado en el kernel.
+ *
+ * Esta función verifica si un proceso con el ID de proceso dado (pid) ha finalizado en el kernel.
+ * Toma un puntero a la estructura hilos_args (args) como parámetro.
+ *
+ * @param args El puntero a la estructura hilos_args.
+ * @param pid El ID del proceso a verificar.
+ */
+bool kernel_verificar_proceso_en_exit(hilos_args *args, uint32_t pid);
+
+t_kernel_sockets kernel_sockets_agregar(hilos_args *args, KERNEL_SOCKETS type, int socket);
+
+t_kernel kernel_inicializar(t_config *config);
+void revisar_paquete_kernel(hilos_args *args, t_paquete *paquete, char *modulo);
+void hilo_ejecutar_kernel(int socket, hilos_args *args, char *modulo, t_funcion_kernel_ptr switch_case_atencion);
 
 #endif /* KERNEL_H */

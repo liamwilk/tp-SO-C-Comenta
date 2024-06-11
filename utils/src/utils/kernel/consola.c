@@ -420,3 +420,25 @@ void kernel_log(hilos_args *args)
     kernel_log_generic(args, LOG_LEVEL_INFO, "INSTANCIAS_RECURSOS: %s", args->kernel->instanciasRecursos);
     kernel_log_generic(args, LOG_LEVEL_INFO, "GRADO_MULTIPROGRAMACION: %d", args->kernel->gradoMultiprogramacion);
 }
+void kernel_revisar_paquete(t_paquete *paquete, hilos_args *args, char *modulo)
+{
+    if (paquete->codigo_operacion != FINALIZAR_SISTEMA)
+    {
+        kernel_log_generic(args, LOG_LEVEL_TRACE, "Paquete recibido de modulo %s", modulo);
+        kernel_log_generic(args, LOG_LEVEL_TRACE, "Deserializado del paquete:");
+        kernel_log_generic(args, LOG_LEVEL_TRACE, "Codigo de operacion: %d", paquete->codigo_operacion);
+        kernel_log_generic(args, LOG_LEVEL_TRACE, "Size del buffer en paquete: %d", paquete->size_buffer);
+        kernel_log_generic(args, LOG_LEVEL_TRACE, "Deserializado del buffer:");
+        kernel_log_generic(args, LOG_LEVEL_TRACE, "Size del stream: %d", paquete->buffer->size);
+        kernel_log_generic(args, LOG_LEVEL_TRACE, "Offset del stream: %d", paquete->buffer->offset);
+
+        if (paquete->size_buffer != paquete->buffer->size + (2 * sizeof(uint32_t)))
+        {
+            kernel_log_generic(args, LOG_LEVEL_WARNING, "Error en el tamaño del buffer. Se esperaba %d y se recibio %ld", paquete->size_buffer, paquete->buffer->size + (2 * sizeof(uint32_t)));
+        }
+    }
+    else
+    {
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Kernel solicito el apagado del modulo.");
+    }
+}

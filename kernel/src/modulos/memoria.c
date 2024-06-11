@@ -26,7 +26,6 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *
             t_pcb *pcb = proceso_buscar_new(args->estados, proceso->pid);
             if (pcb == NULL)
             {
-
                 break;
             }
             // serializar_t_registros_cpu(&paquete, pcb->pid, pcb->registros_cpu);

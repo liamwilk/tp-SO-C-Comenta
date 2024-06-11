@@ -1,7 +1,8 @@
 #ifndef PLANIFICACION_H_
 #define PLANIFICACION_H_
 #include "pthread.h"
-#include <consola.h>
+#include <utils/kernel/consola.h>
+#include <utils/kernel/main.h>
 
 /**
  * Ejecuta el algoritmo de planificación a largo plazo.

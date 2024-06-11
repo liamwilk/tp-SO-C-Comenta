@@ -4,7 +4,7 @@
 #include <utils/serial.h>
 #include <utils/template.h>
 #include <utils/kernel/main.h>
-#include "consola.h"
+#include <utils/kernel/consola.h>
 #include "planificacion.h"
 
 /**
