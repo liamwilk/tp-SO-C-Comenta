@@ -9,17 +9,10 @@ void switch_case_kernel_entrada_salida_stdin(hilos_io_args *io_args, char *modul
         t_entrada_salida_kernel_io_stdin_read *proceso_recibido = deserializar_t_entrada_salida_kernel_io_stdin_read(buffer);
 
         // Verifico si este proceso no ha ya sido marcado como eliminado  en kernel
-        t_pcb *pcb = proceso_buscar_exit(io_args->args->estados, proceso_recibido->pid);
-
-        if (pcb != NULL)
+        if (kernel_verificar_proceso_en_exit(io_args->args, proceso_recibido->pid))
         {
-            // Si tenemos RR o VRR finalizo el timer
-            interrumpir_temporizador(io_args->args);
-            proceso_matar(io_args->args->estados, string_itoa(pcb->pid));
-            kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INTERRUPTED_BY_USER>", pid);
-            avisar_planificador(io_args->args);
             break;
-        }
+        };
 
         if (proceso_recibido->resultado)
         {
@@ -50,6 +43,7 @@ void switch_case_kernel_entrada_salida_stdin(hilos_io_args *io_args, char *modul
         else
         {
             kernel_log_generic(io_args->args, LOG_LEVEL_ERROR, "[%s/%d] Ocurrió un error en la operación de escritura en consola para el proceso PID %d", modulo, io_args->entrada_salida->orden, proceso_recibido->pid);
+            t_pcb *pcb = proceso_buscar(io_args->args->estados, proceso_recibido->pid);
             pcb->quantum = interrumpir_temporizador(io_args->args);
             // Aviso a CPU que termino la ejecucion del proceso opcode KERNEL_CPU_IO_STDOUT_WRITE
             t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDOUT_WRITE);
@@ -79,13 +73,9 @@ void switch_case_kernel_entrada_salida_stdin(hilos_io_args *io_args, char *modul
     {
         t_entrada_salida_identificacion *identificacion = deserializar_t_entrada_salida_identificacion(buffer);
 
-        if (entrada_salida_buscar_interfaz(io_args->args, identificacion->identificador) != NULL)
+        if (kernel_entrada_salida_buscar_interfaz(io_args->args, identificacion->identificador) != NULL)
         {
-            entrada_salida_procesar_rechazado(io_args, "no identificada");
-            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/%d] Se rechazo identificacion, identificador %s ocupado. Cierro hilo.", modulo, io_args->entrada_salida->orden, identificacion->identificador);
-            io_args->entrada_salida->valido = false;
-            io_args->args->kernel->sockets.id_entrada_salida--;
-            avisar_rechazo_identificador(io_args->entrada_salida->socket);
+            kernel_entradasalida_rechazo(io_args, modulo, identificacion->identificador);
             liberar_conexion(&io_args->entrada_salida->socket);
             break;
         }

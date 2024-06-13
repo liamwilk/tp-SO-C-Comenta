@@ -8,13 +8,9 @@ void switch_case_kernel_entrada_salida_dialfs(hilos_io_args *io_args, char *modu
     {
         t_entrada_salida_identificacion *identificacion = deserializar_t_entrada_salida_identificacion(buffer);
 
-        if (entrada_salida_buscar_interfaz(io_args->args, identificacion->identificador) != NULL)
+        if (kernel_entrada_salida_buscar_interfaz(io_args->args, identificacion->identificador) != NULL)
         {
-            entrada_salida_procesar_rechazado(io_args, "no identificada");
-            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/%d] Se rechazo identificacion, identificador %s ocupado. Cierro hilo.", modulo, io_args->entrada_salida->orden, identificacion->identificador);
-            io_args->entrada_salida->valido = false;
-            io_args->args->kernel->sockets.id_entrada_salida--;
-            avisar_rechazo_identificador(io_args->entrada_salida->socket);
+            kernel_entradasalida_rechazo(io_args, modulo, identificacion->identificador);
             liberar_conexion(&io_args->entrada_salida->socket);
             break;
         }

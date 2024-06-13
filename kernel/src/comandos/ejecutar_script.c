@@ -1,4 +1,4 @@
-#include <utils/kernel.h>
+#include <utils/kernel/main.h>
 
 void ejecutar_script(char *path_instrucciones, hilos_args *hiloArgs)
 {

@@ -8,29 +8,16 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
     {
         t_io_stdout_write *proceso_recibido = deserializar_t_io_stdout_write(buffer);
 
-        t_kernel_entrada_salida *entrada_salida = entrada_salida_buscar_interfaz(args, proceso_recibido->interfaz);
+        t_kernel_entrada_salida *entrada_salida = kernel_entrada_salida_buscar_interfaz(args, proceso_recibido->interfaz);
 
         // Si la interfaz de entrada salida no esta conectada
         if (entrada_salida == NULL)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "Aviso a CPU que no se pudo enviar el paquete a la interfaz <%s> porque no está conectada", proceso_recibido->interfaz);
-
-            t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDOUT_WRITE);
-            t_kernel_cpu_io_stdout_write *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdout_write));
-
-            proceso_enviar->pid = proceso_recibido->pid;
-            proceso_enviar->resultado = 0;
-            proceso_enviar->motivo = strdup("La interfaz solicitada no se encuentra conectada a Kernel");
-            proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
-
-            serializar_t_kernel_cpu_io_stdout_write(&paquete, proceso_enviar);
-            enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
-            eliminar_paquete(paquete);
+            // Aviso a cpu
+            kernel_cpu_entradasalida_no_conectada(args, CPU_IO_STDOUT_WRITE, proceso_recibido->interfaz, proceso_recibido->pid);
 
             kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
 
-            free(proceso_enviar->motivo);
-            free(proceso_enviar);
             free(proceso_recibido->interfaz);
             free(proceso_recibido);
 
@@ -40,24 +27,10 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         // Si la interfaz de entrada salida pedida no es del tipo stdout
         if (entrada_salida->tipo != ENTRADA_SALIDA_STDOUT)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque no es del tipo IO_STDOUT.", proceso_recibido->interfaz);
-
-            t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDOUT_WRITE);
-            t_kernel_cpu_io_stdout_write *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdout_write));
-
-            proceso_enviar->pid = proceso_recibido->pid;
-            proceso_enviar->resultado = 0;
-            proceso_enviar->motivo = strdup("La interfaz solicitada no puede ejecutar la instruccion IO_STDOUT_WRITE porque no es del tipo IO_STDOUT");
-            proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
-
-            serializar_t_kernel_cpu_io_stdout_write(&paquete, proceso_enviar);
-            enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
-            eliminar_paquete(paquete);
+            kernel_cpu_entradasalida_distinto_tipo(args, CPU_IO_STDOUT_WRITE, proceso_recibido->interfaz, proceso_recibido->pid);
 
             kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
 
-            free(proceso_enviar->motivo);
-            free(proceso_enviar);
             free(proceso_recibido->interfaz);
             free(proceso_recibido);
 
@@ -67,24 +40,9 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         // Si la interfaz de entrada salida esta ocupada
         if (entrada_salida->ocupado)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque esta ocupada con el proceso %d.", proceso_recibido->interfaz, entrada_salida->pid);
-
-            t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDOUT_WRITE);
-            t_kernel_cpu_io_stdout_write *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdout_write));
-
-            proceso_enviar->pid = proceso_recibido->pid;
-            proceso_enviar->resultado = 0;
-            proceso_enviar->motivo = strdup("La interfaz solicitada no puede ejecutar la instruccion IO_STDOUT_WRITE porque se encuentra ocupada con otro proceso");
-            proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
-
-            serializar_t_kernel_cpu_io_stdout_write(&paquete, proceso_enviar);
-            enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
-            eliminar_paquete(paquete);
-
+            kernel_cpu_entradasalida_ocupada(args, CPU_IO_STDOUT_WRITE, proceso_recibido->interfaz, proceso_recibido->pid);
             kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
 
-            free(proceso_enviar->motivo);
-            free(proceso_enviar);
             free(proceso_recibido->interfaz);
             free(proceso_recibido);
 
@@ -138,29 +96,14 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
     {
         t_io_stdin_read *proceso_recibido = deserializar_t_io_stdin_read(buffer);
 
-        t_kernel_entrada_salida *entrada_salida = entrada_salida_buscar_interfaz(args, proceso_recibido->interfaz);
+        t_kernel_entrada_salida *entrada_salida = kernel_entrada_salida_buscar_interfaz(args, proceso_recibido->interfaz);
 
         // Si la interfaz de entrada salida no esta conectada
         if (entrada_salida == NULL)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "Aviso a CPU que no se pudo enviar el paquete a la interfaz <%s> porque no esta conectada", proceso_recibido->interfaz);
-
-            t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDIN_READ);
-            t_kernel_cpu_io_stdin_read *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdin_read));
-
-            proceso_enviar->pid = proceso_recibido->pid;
-            proceso_enviar->resultado = 0;
-            proceso_enviar->motivo = strdup("La interfaz solicitada no se encuentra conectada a Kernel");
-            proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
-
-            serializar_t_kernel_cpu_io_stdin_read(&paquete, proceso_enviar);
-            enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
-            eliminar_paquete(paquete);
-
+            kernel_cpu_entradasalida_no_conectada(args, CPU_IO_STDIN_READ, proceso_recibido->interfaz, proceso_recibido->pid);
             kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
 
-            free(proceso_enviar->motivo);
-            free(proceso_enviar);
             free(proceso_recibido->interfaz);
             free(proceso_recibido);
 
@@ -170,24 +113,10 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         // Si la interfaz de entrada salida pedida no es del tipo STDIN
         if (entrada_salida->tipo != ENTRADA_SALIDA_STDIN)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque no es del tipo IO_STDIN.", proceso_recibido->interfaz);
-
-            t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDIN_READ);
-            t_kernel_cpu_io_stdin_read *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdin_read));
-
-            proceso_enviar->pid = proceso_recibido->pid;
-            proceso_enviar->resultado = 0;
-            proceso_enviar->motivo = strdup("La interfaz solicitada no puede ejecutar la instruccion IO_STDIN_READ porque no es del tipo IO_STDIN");
-            proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
-
-            serializar_t_kernel_cpu_io_stdin_read(&paquete, proceso_enviar);
-            enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
-            eliminar_paquete(paquete);
+            kernel_cpu_entradasalida_distinto_tipo(args, CPU_IO_STDIN_READ, proceso_recibido->interfaz, proceso_recibido->pid);
 
             kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
 
-            free(proceso_enviar->motivo);
-            free(proceso_enviar);
             free(proceso_recibido->interfaz);
             free(proceso_recibido);
 
@@ -197,24 +126,10 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         // Si la interfaz de entrada salida esta ocupada
         if (entrada_salida->ocupado)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar el paquete a la interfaz %s porque esta ocupada con el proceso %d.", proceso_recibido->interfaz, entrada_salida->pid);
-
-            t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDIN_READ);
-            t_kernel_cpu_io_stdin_read *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdin_read));
-
-            proceso_enviar->pid = proceso_recibido->pid;
-            proceso_enviar->resultado = 0;
-            proceso_enviar->motivo = strdup("La interfaz solicitada no puede ejecutar la instruccion IO_STDIN_READ porque se encuentra ocupada con otro proceso");
-            proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
-
-            serializar_t_kernel_cpu_io_stdin_read(&paquete, proceso_enviar);
-            enviar_paquete(paquete, args->kernel->sockets.cpu_dispatch);
-            eliminar_paquete(paquete);
+            kernel_cpu_entradasalida_ocupada(args, CPU_IO_STDIN_READ, proceso_recibido->interfaz, proceso_recibido->pid);
 
             kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
 
-            free(proceso_enviar->motivo);
-            free(proceso_enviar);
             free(proceso_recibido->interfaz);
             free(proceso_recibido);
 
@@ -331,7 +246,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         t_pcb *pcb = proceso_buscar_exec(args->estados, proceso->pid);
 
-        if (proceso->ejecutado == 1)
+        if (proceso->ejecutado == PROCESO_EJECUTANDO)
         {
             // Checkeo que ese proceso se encuentre en exec antes de finalizarlo
             if (pcb != NULL)
@@ -340,7 +255,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
                 kernel_finalizar_proceso(args, proceso->pid, SUCCESS);
             }
         }
-        else if (proceso->ejecutado == 2) // El proceso se ejecuto parcialmente por interrupcion
+        else if (proceso->ejecutado == PROCESO_PARCIAL_INTERRUPCION) // El proceso se ejecuto parcialmente por interrupcion
         {
             if (pcb == NULL)
             {
@@ -351,13 +266,12 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             proceso_actualizar_registros(pcb, proceso->registros);
             kernel_manejar_ready(args, pcb->pid, EXEC_READY);
         }
-        else if (proceso->ejecutado == 0) // La ejecucion del proceso fallo
+        else if (proceso->ejecutado == PROCESO_ERROR) // La ejecucion del proceso fallo
         {
             kernel_log_generic(args, LOG_LEVEL_ERROR, "Proceso PID:<%d> ejecutado fallido. Transicionar a exit", proceso->pid);
 
             kernel_finalizar_proceso(args, proceso->pid, SUCCESS);
-
-            sem_post(&args->kernel->planificador_iniciar);
+            avisar_planificador(args);
         }
 
         avisar_planificador(args);
@@ -373,7 +287,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         t_pcb *proceso_en_exec = proceso_buscar_exec(args->estados, solicitud_recurso->pid);
 
         proceso_actualizar_registros(proceso_en_exec, *solicitud_recurso->registros);
-        recurso_ocupar_instancia(args, args->recursos, solicitud_recurso->pid, solicitud_recurso->nombre_recurso);
+        kernel_wait(args, solicitud_recurso->pid, solicitud_recurso->nombre_recurso);
 
         avisar_planificador(args);
 
@@ -389,7 +303,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         t_pcb *proceso_en_exec = proceso_buscar_exec(args->estados, solicitud_recurso->pid);
         proceso_actualizar_registros(proceso_en_exec, *solicitud_recurso->registros);
-        recurso_liberar_instancia(args, args->recursos, solicitud_recurso->pid, solicitud_recurso->nombre_recurso, SIGNAL_RECURSO);
+        kernel_signal(args, solicitud_recurso->pid, solicitud_recurso->nombre_recurso, SIGNAL_RECURSO);
         avisar_planificador(args);
         free(solicitud_recurso->nombre_recurso);
         free(solicitud_recurso);
@@ -399,7 +313,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
     {
         t_copy_string *proceso_completo = deserializar_t_copy_string(buffer);
 
-        t_pcb *pcb = buscar_proceso(args->estados, proceso_completo->pid);
+        t_pcb *pcb = proceso_buscar(args->estados, proceso_completo->pid);
 
         if (pcb != NULL)
         {

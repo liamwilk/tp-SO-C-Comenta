@@ -3,8 +3,9 @@
 #include <commons/log.h>
 #include <utils/serial.h>
 #include <utils/template.h>
-#include <utils/kernel.h>
-#include "consola.h"
+#include <utils/kernel/main.h>
+#include <utils/kernel/consola.h>
+#include "planificacion.h"
 
 /**
  * @brief Función que realiza un switch case para ejecutar diferentes operaciones de memoria.

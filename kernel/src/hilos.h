@@ -1,6 +1,6 @@
 #ifndef HILOS_H_
 #define HILOS_H_
-#include <consola.h>
+#include <utils/kernel/consola.h>
 #include <commons/log.h>
 #include <pthread.h>
 #include <utils/serial.h>
@@ -22,7 +22,7 @@
 #include "modulos/cpu_dispatch.h"
 #include "modulos/cpu_interrupt.h"
 #include "modulos/memoria.h"
-#include <utils/kernel.h>
+#include <utils/kernel/main.h>
 
 /*----ATENDER----*/
 

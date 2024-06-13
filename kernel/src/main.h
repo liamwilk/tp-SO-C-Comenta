@@ -7,8 +7,8 @@
 #include <commons/config.h>
 #include <utils/modulos.h>
 #include <utils/configs.h>
-#include <utils/kernel.h>
-#include "consola.h"
+#include <utils/kernel/main.h>
+#include <utils/kernel/consola.h>
 #include "hilos.h"
 #include "pthread.h"
 #include <semaphore.h>

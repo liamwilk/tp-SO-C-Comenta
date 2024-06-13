@@ -7,7 +7,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
     {
         t_cpu_kernel_io_gen_sleep *sleep = deserializar_t_cpu_kernel_io_gen_sleep(buffer);
 
-        t_kernel_entrada_salida *entrada_salida = entrada_salida_buscar_interfaz(args, sleep->interfaz);
+        t_kernel_entrada_salida *entrada_salida = kernel_entrada_salida_buscar_interfaz(args, sleep->interfaz);
 
         t_pcb *pcb = proceso_buscar_exec(args->estados, sleep->pid);
 
@@ -63,7 +63,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         serializar_t_kernel_entrada_salida_unidad_de_trabajo(&paquete, unidad);
 
         enviar_paquete(paquete, entrada_salida->socket);
-        sem_post(&args->kernel->planificador_iniciar);
+        avisar_planificador(args);
         eliminar_paquete(paquete);
 
         free(unidad);

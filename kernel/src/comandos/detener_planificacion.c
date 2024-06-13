@@ -1,4 +1,4 @@
-#include <utils/kernel.h>
+#include <utils/kernel/main.h>
 
 void detener_planificacion(char **separar_linea, hilos_args *hiloArgs)
 {
