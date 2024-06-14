@@ -225,7 +225,7 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 			proceso_completo->desplazamiento = proceso_recibido->desplazamiento;
 			proceso_completo->size_interfaz = proceso_recibido->size_interfaz;
 			proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
-			proceso_completo->registros = proceso_recibido->registros;
+			proceso_completo->registros = args->proceso.registros;
 
 			serializar_t_io_stdout_write(&paquete, proceso_completo);
 			enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);

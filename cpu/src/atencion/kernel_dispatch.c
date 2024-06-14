@@ -35,14 +35,11 @@ void switch_case_kernel_dispatch(t_cpu *args, t_op_code codigo_operacion, t_buff
 			log_debug(args->logger, "Se completo la instruccion IO_STDOUT_WRITE asociada al proceso PID <%d>.", proceso_recibido->pid);
 			log_debug(args->logger, "Mensaje recuperado de Kernel: %s", proceso_recibido->motivo);
 
-			// Reanudo el ciclo de ejecucion por finalizacion de la instruccion atomica MOV_IN
 			if (args->flag_interrupt)
 			{
 				instruccion_interrupt(args);
 				break;
 			}
-
-			instruccion_solicitar(args);
 			
 		} else {
 			
