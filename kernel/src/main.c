@@ -1,18 +1,23 @@
 /* Módulo Kernel */
 #include "main.h"
 
-int main()
+int main(int argc, char *argv[])
 {
 	logger = iniciar_logger("kernel", LOG_LEVEL_DEBUG);
-	config = iniciar_config(logger);
+	inicializar_config(&config, logger, argc, argv);
 	kernel = kernel_inicializar(config);
 	estados = kernel_inicializar_estados(&estados);
+	temporizador.args = &args;
+	recursos = dictionary_create();
 
 	inicializar_args();
 	inicializar_semaforos();
+	kernel_inicializar_temporizador(&args, &temporizador);
 	pthread_mutex_init(&kernel.lock, NULL);
 
 	kernel_log(&args);
+
+	recurso_init(recursos, kernel.instanciasRecursos, kernel.recursos);
 
 	// Inicializo las estructuras que almacenan e identifican los sockets de entrada/salida
 	kernel.sockets.dictionary_entrada_salida = dictionary_create();
@@ -47,13 +52,12 @@ void inicializar_args()
 	args.kernel->sockets.entrada_salida_dialfs = 0;
 	args.kernel->sockets.entrada_salida = 0;
 	args.kernel->sockets.id_entrada_salida = 1;
+	args.recursos = recursos;
 }
 
 void inicializar_semaforos()
 {
 	sem_init(&kernel.planificador_iniciar, 0, 0);
-	sem_init(&kernel.memoria_consola_nuevo_proceso, 0, 0);
 	sem_init(&kernel.sistema_finalizar, 0, 4);
 	sem_init(&kernel.log_lock, 0, 1);
-	sem_init(&kernel.planificador_hilo, 0, 0);
 }

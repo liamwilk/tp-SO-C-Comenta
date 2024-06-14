@@ -1,12 +1,11 @@
 #include "configs.h"
 
-t_config *iniciar_config(t_log *logger)
+t_config *crear_config(t_log *logger)
 {
 	char *current_dir = getcwd(NULL, 0);
 
 	char ruta_completa[PATH_MAX];
 	sprintf(ruta_completa, "%s/module.config", current_dir);
-
 	t_config *nuevo_config = config_create(ruta_completa);
 
 	if (nuevo_config == NULL)
@@ -19,7 +18,7 @@ t_config *iniciar_config(t_log *logger)
 	return nuevo_config;
 }
 
-t_config *iniciar_config_entrada_salida(t_log *logger, char *path)
+t_config *crear_config_parametro(t_log *logger, char *path)
 {
 	char *current_dir = getcwd(NULL, 0);
 
@@ -34,6 +33,19 @@ t_config *iniciar_config_entrada_salida(t_log *logger, char *path)
 	}
 
 	return nuevo_config;
+}
+
+void inicializar_config(t_config **config, t_log *logger, int argc, char *argv[])
+{
+	if (argc != 2)
+	{
+		log_debug(logger, "No se introdujo config personalizada. Se utiliza default 'module.config'");
+		*config = crear_config(logger);
+	}
+	else
+	{
+		*config = crear_config_parametro(logger, argv[1]);
+	}
 }
 
 t_log *iniciar_logger(char *nombreDelModulo, t_log_level nivel)

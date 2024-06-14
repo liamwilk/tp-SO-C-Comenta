@@ -1,7 +1,9 @@
-#include "main.h"
+#include <utils/memoria.h>
 
-int main()
-{
-	modulo_memoria(&args);
+t_args args;
+
+int main(int argc, char *argv[])
+{	
+	inicializar(&args,LOG_LEVEL_DEBUG,argc,argv);
 	return EXIT_SUCCESS;
 }

@@ -26,7 +26,7 @@ void hilo_ejecutar(t_log *logger, int socket, char *modulo, t_funcion_ptr switch
 
 void conexion_crear(t_log *logger, char *ip, int puerto, int *socket_modulo, char *modulo, t_handshake codigo_esperado)
 {
-    *socket_modulo = crear_conexion(ip, puerto);
+    *socket_modulo = crear_conexion(logger, ip, puerto);
 
     if (*socket_modulo == -1)
     {

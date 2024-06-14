@@ -6,6 +6,7 @@
 #include <utils/serial.h>
 #include <commons/collections/queue.h>
 #include <commons/string.h>
+#include <commons/temporal.h>
 
 typedef struct t_diagrama_estados
 {
@@ -14,17 +15,29 @@ typedef struct t_diagrama_estados
     t_list *exec;
     t_list *block;
     t_list *exit;
+    t_list *ready_mayor_prioridad; // Para VRR
     t_dictionary *procesos;
-    t_dictionary *buffer_procesos;
 
     //********** MUTEX **********//
     pthread_mutex_t mutex_ready_exec;
     pthread_mutex_t mutex_exec_ready;
     pthread_mutex_t mutex_exec_exit;
     pthread_mutex_t mutex_block_ready;
+    pthread_mutex_t mutex_block_exit;
     pthread_mutex_t mutex_exec_block;
-    pthread_mutex_t mutext_new_ready;
+    pthread_mutex_t mutex_new_ready;
+    pthread_mutex_t mutex_new;
+    pthread_mutex_t mutex_exec_ready_mayor_prioridad;
+    pthread_mutex_t mutex_ready_exec_mayor_prioridad;
+    pthread_mutex_t mutex_block_ready_mayor_prioridad;
 } t_diagrama_estados;
+
+typedef enum
+{
+    FIFO,
+    RR,
+    VRR
+} t_algoritmo;
 
 typedef struct pcb
 {
@@ -32,22 +45,9 @@ typedef struct pcb
     uint32_t quantum;
     t_registros_cpu *registros_cpu;
     bool memoria_aceptado;
+    t_temporal *tiempo_fin;    // Esto es utilizado en los algoritmos de planificación con QUANTUM Es el tiempo del quantum - el tiempo fin = quantum que sobro
+    pthread_t sleeping_thread; // Esto es para que el hilo de sleep pueda ser cancelado
 } t_pcb;
-
-typedef enum t_buffer_transicion
-{
-    NEW_READY,
-    NEW_EXIT,
-    READY_EXEC,
-    READY_EXIT,
-    EXEC_EXIT,
-    EXEC_BLOCK,
-    EXEC_READY,
-    BLOCK_READY,
-    BLOCK_EXIT,
-    EXIT_CPU,
-    EXIT_MEMORIA
-} t_buffer_transicion;
 
 extern uint32_t pid;
 
@@ -117,6 +117,21 @@ void proceso_push_block(t_diagrama_estados *estados, t_pcb *pcb);
  * @param pcb El PCB a agregar.
  */
 void proceso_push_exit(t_diagrama_estados *estados, t_pcb *pcb);
+
+/**
+ * Agrega un PCB a la cola prioritaria de un diagrama de estados.
+ *
+ * @param estados El diagrama de estados donde se agregará el PCB.
+ * @param pcb El PCB que se agregará a la cola prioritaria.
+ */
+void proceso_push_cola_prioritaria(t_diagrama_estados *estados, t_pcb *pcb);
+
+/**
+ * Remueve el proceso de mayor prioridad de la cola prioritaria.
+ *
+ * @param estados Un puntero al diagrama de estados.
+ */
+t_pcb *proceso_pop_cola_prioritaria(t_diagrama_estados *estados);
 
 /**
  * Busca un proceso con el PID dado en la cola "new".
@@ -237,12 +252,46 @@ char *proceso_estado(t_diagrama_estados *estados, int pid);
  *
  * @param estados Un puntero a una estructura `t_diagrama_estados` que contiene los estados de los procesos.
  * @param pid El PID del proceso a matar.
- * @return Devuelve 0 en caso de éxito, o -1 si ocurrió un error.
  */
-bool proceso_matar(t_diagrama_estados *estados, char *pid);
+void proceso_matar(t_diagrama_estados *estados, char *pid);
 
+/**
+ * Inicializa el buffer de transiciones.
+ *
+ * @param buffer El diccionario utilizado como buffer de transiciones.
+ */
 void procesos_inicializar_buffer_transiciones(t_dictionary *buffer);
 
+/**
+ * Obtiene una transición del tipo enum como una cadena de caracteres.
+ *
+ * @return La cadena de caracteres que representa la transición.
+ */
 char *obtener_transicion_enum();
+
+t_list *proceso_obtener_estado(t_diagrama_estados *estados, char *estado);
+
+/** VRR/ROUND_ROBIN FUNCIONALIDADES**/
+
+void proceso_actualizar_registros(t_pcb *pcb, t_registros_cpu registros_cpu);
+
+/**
+ * @brief Función que determina el algoritmo a utilizar.
+ *
+ * @param args Argumentos necesarios para la determinación del algoritmo.
+ * @return t_algoritmo Algoritmo seleccionado.
+ */
+t_algoritmo determinar_algoritmo(char *algoritmoPlanificador);
+
+/**
+ * Determina si un proceso tiene prioridad según el algoritmo de planificación especificado.
+ *
+ * @param algoritmoPlanificador El algoritmo de planificación a utilizar.
+ * @param pcb El bloque de control de procesos del proceso a verificar.
+ * @return true si el proceso tiene prioridad, false en caso contrario.
+ */
+bool proceso_tiene_prioridad(char *algoritmoPlanificador, int quantum_restante);
+
+t_pcb *proceso_buscar(t_diagrama_estados *estados, uint32_t pid);
 
 #endif

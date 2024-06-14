@@ -7,54 +7,39 @@ void *hilos_atender_consola(void *args)
     hilos_args *hiloArgs = (hilos_args *)args;
     imprimir_header(hiloArgs);
 
-    const char *username = getenv("USER");
-    if (username == NULL)
-    {
-        struct passwd *pw = getpwuid(getuid());
-        username = pw->pw_name;
-    }
+    char *comandos_archivo_historial = "comandos.log";
+    int comandos_archivo_limite = 20;
 
-    char hostname[HOST_NAME_MAX];
-    gethostname(hostname, sizeof(hostname));
+    // Configurar la función de autocompletado
+    rl_attempted_completion_function = autocompletado;
 
-    char cwd[PATH_MAX];
-    if (getcwd(cwd, sizeof(cwd)) == NULL)
-    {
-        perror("getcwd() error");
-    }
+    // Limitar el tamaño del historial a HISTORY_LIMIT
+    stifle_history(comandos_archivo_limite);
 
-    const char *home_dir = getenv("HOME");
-    if (home_dir != NULL && strstr(cwd, home_dir) == cwd)
-    {
-        size_t home_len = strlen(home_dir);
-        memmove(cwd + 1, cwd + home_len, strlen(cwd) - home_len + 1);
-        cwd[0] = '~';
-    }
+    // Leer el historial desde el archivo
+    read_history(comandos_archivo_historial);
 
-    char prompt[PATH_MAX + HOST_NAME_MAX + 50];
-    const char *green_bold = "\001\x1b[1;32m\002";
-    const char *blue_bold = "\001\x1b[1;34m\002";
-    const char *reset = "\001\x1b[0m\002";
-
-    snprintf(prompt, sizeof(prompt), "%s%s@%s%s:%s%s%s$ ", green_bold, username, hostname, reset, blue_bold, cwd, reset);
+    // Registrar el manejador de señales para SIGWINCH
+    registrar_manejador_senales();
 
     char *linea = NULL;
 
     while (hiloArgs->kernel_orden_apagado)
     {
-        sem_wait(&hiloArgs->kernel->log_lock);
-        pthread_mutex_lock(&hiloArgs->kernel->lock);
-        rl_set_prompt("");
-        rl_replace_line("", 0);
-        pthread_mutex_unlock(&hiloArgs->kernel->lock);
-        rl_redisplay();
-        sem_post(&hiloArgs->kernel->log_lock);
+        reiniciar_prompt(hiloArgs);
 
-        linea = readline(prompt);
+        linea = readline(generar_prompt());
         if (linea && *linea)
         {
             add_history(linea);
         }
+
+        if (linea == NULL || *linea == '\0')
+        {
+            free(linea);
+            continue;
+        }
+
         char **separar_linea = string_split(linea, " ");
         switch (obtener_operacion(separar_linea[0]))
         {
@@ -63,9 +48,8 @@ void *hilos_atender_consola(void *args)
             if (!separar_linea[1] == 0)
             {
                 kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-
-                // char *pathInstrucciones = separar_linea[1];
-                //  ejecutar_sript(pathInstrucciones, hiloArgs->kernel, hiloArgs->estados, hiloArgs->logger);
+                char *pathInstrucciones = separar_linea[1];
+                ejecutar_script(pathInstrucciones, hiloArgs);
                 break;
             }
             else
@@ -76,129 +60,51 @@ void *hilos_atender_consola(void *args)
         }
         case INICIAR_PROCESO:
         {
-            if (separar_linea[1] == 0)
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un path. Vuelva a intentar");
-                break;
-            }
-            else
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-                char *pathInstrucciones = separar_linea[1];
-                kernel_nuevo_proceso(hiloArgs, hiloArgs->estados, hiloArgs->logger, pathInstrucciones);
-                sem_wait(&hiloArgs->kernel->memoria_consola_nuevo_proceso);
-                break;
-            }
+            iniciar_proceso(separar_linea, hiloArgs);
+            break;
         }
         case FINALIZAR_PROCESO:
         {
-            if (separar_linea[1] == 0)
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "Falta proporcionar un numero de PID para eliminar. Vuelva a intentar.");
-                break;
-            }
-            else
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-                int pidReceived = atoi(separar_linea[1]);
-                bool existe = kernel_finalizar_proceso(hiloArgs, pidReceived, INTERRUPTED_BY_USER);
-
-                if (!existe)
-                {
-                    kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "El PID <%d> no existe", pidReceived);
-                    break;
-                }
-
-                t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
-                t_kernel_memoria_finalizar_proceso *proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
-                proceso->pid = pidReceived;
-                serializar_t_kernel_memoria_finalizar_proceso(&paquete, proceso);
-                enviar_paquete(paquete, hiloArgs->kernel->sockets.memoria);
-
-                kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se elimino el proceso <%d>", pidReceived);
-                eliminar_paquete(paquete);
-                free(proceso);
-                break;
-            }
+            finalizar_proceso(separar_linea, hiloArgs);
+            break;
         }
         case DETENER_PLANIFICACION:
         {
-            int iniciar_algoritmo_valor;
-            sem_getvalue(&hiloArgs->kernel->planificador_hilo, &iniciar_algoritmo_valor);
-            if (iniciar_algoritmo_valor == -1)
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se puede detener la planificacion si no está iniciada");
-                break;
-            }
-            hilo_planificador_detener(hiloArgs);
-            hilo_planificador_estado(hiloArgs, false);
-            kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
+            detener_planificacion(separar_linea, hiloArgs);
             break;
         }
         case INICIAR_PLANIFICACION:
         {
-            kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
-            hilo_planificador_iniciar(hiloArgs);
-            hilo_planificador_estado(hiloArgs, true);
-            sem_post(&hiloArgs->kernel->planificador_iniciar);
-            sem_post(&hiloArgs->kernel->planificador_hilo);
+            iniciar_planificacion(separar_linea, hiloArgs);
             break;
         }
         case MULTIPROGRAMACION:
         {
-            if (separar_linea[1] == 0)
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "No se proporciono un numero para el grado de multiprogramacion. Vuelva a intentar");
-                break;
-            }
-            else
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s con argumento %s", separar_linea[0], separar_linea[1]);
-                int grado_multiprogramacion = atoi(separar_linea[1]);
-                hiloArgs->kernel->gradoMultiprogramacion = grado_multiprogramacion;
-                kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se cambio el grado de multiprogramacion a %d", grado_multiprogramacion);
-                break;
-            }
+            multiprogramacion(separar_linea, hiloArgs);
+            break;
         }
         case PROCESO_ESTADO:
         {
-            t_list *keys = dictionary_keys(hiloArgs->estados->procesos);
-            if (list_size(keys) == 0)
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "No hay procesos en el sistema");
-                break;
-            }
-            for (int i = 0; i < list_size(keys); i++)
-            {
-                char *key = list_get(keys, i);
-                char *estado = proceso_estado(hiloArgs->estados, atoi(key));
-                kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "PID: %s - Estado: %s", key, estado);
-            }
+            procesos_estados(hiloArgs);
             break;
         }
         case FINALIZAR_CONSOLA:
         {
-            kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "Se ejecuto script %s", separar_linea[0]);
-
-            pthread_mutex_lock(&hiloArgs->kernel->lock);
-            hiloArgs->kernel_orden_apagado = 0;
-            pthread_mutex_unlock(&hiloArgs->kernel->lock);
-
-            // Detengo el hilo planificador
-            hilo_planificador_detener(hiloArgs);
-
-            kernel_finalizar(hiloArgs);
-
+            finalizar_consola(separar_linea, hiloArgs);
             break;
         }
         default:
         {
+            kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "Comando no reconocido: %s", separar_linea[0]);
             break;
         }
         }
         free(separar_linea);
         free(linea);
     }
+
+    write_history(comandos_archivo_historial);
+
     pthread_exit(0);
 }
 
@@ -219,87 +125,31 @@ void hilos_planificador_inicializar(hilos_args *args, pthread_t thread_planifica
 void *hilo_planificador(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-    while (1)
-    {
-        sem_wait(&hiloArgs->kernel->planificador_hilo);
 
+    while (obtener_key_finalizacion_hilo(hiloArgs))
+    {
+        sem_wait(&hiloArgs->kernel->planificador_iniciar);
         if (!obtener_key_finalizacion_hilo(hiloArgs))
         {
             break;
         }
 
-        kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Algoritmo de planificacion: %s", hiloArgs->kernel->algoritmoPlanificador);
-
-        while (obtener_key_finalizacion_hilo(hiloArgs))
+        // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
+        if (obtener_key_detencion_algoritmo(hiloArgs))
         {
-            sem_wait(&hiloArgs->kernel->planificador_iniciar);
-
-            if (!obtener_key_finalizacion_hilo(hiloArgs))
-            {
-                break;
-            }
-
-            // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
-            if (obtener_key_detencion_algoritmo(hiloArgs))
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion %s pausada.", hiloArgs->kernel->algoritmoPlanificador);
-                continue;
-            }
-
-            if (list_size(hiloArgs->estados->new) > 0)
-            {
-                planificacion_largo_plazo(hiloArgs);
-            }
-
-            switch (determinar_algoritmo(hiloArgs))
-            {
-            case FIFO:
-            {
-                fifo(hiloArgs);
-                break;
-            }
-            case RR:
-            {
-                round_robin(hiloArgs);
-                break;
-            }
-            case VRR:
-            {
-                // TODO: algoritmo
-                break;
-            }
-            default:
-            {
-                kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "Algoritmo de planificacion no reconocido.");
-                break;
-            }
-            }
+            log_debug(hiloArgs->logger, "Planificacion %s pausada.", hiloArgs->kernel->algoritmoPlanificador);
+            continue;
         }
-        sem_post(&hiloArgs->kernel->sistema_finalizar);
-        pthread_exit(0);
+
+        if (list_size(hiloArgs->estados->new) > 0)
+        {
+            planificacion_largo_plazo(hiloArgs);
+        }
+
+        planificacion_corto_plazo(hiloArgs);
     }
-    return NULL;
-}
-
-void hilo_planificador_detener(hilos_args *args)
-{
-    pthread_mutex_lock(&args->kernel->lock);
-    args->kernel->detener_planificador = true;
-    pthread_mutex_unlock(&args->kernel->lock);
-}
-
-void hilo_planificador_iniciar(hilos_args *args)
-{
-    pthread_mutex_lock(&args->kernel->lock);
-    args->kernel->detener_planificador = false;
-    pthread_mutex_unlock(&args->kernel->lock);
-}
-
-void hilo_planificador_estado(hilos_args *args, bool estado)
-{
-    pthread_mutex_lock(&args->kernel->lock);
-    args->kernel->estado_planificador = estado;
-    pthread_mutex_unlock(&args->kernel->lock);
+    sem_post(&hiloArgs->kernel->sistema_finalizar);
+    pthread_exit(0);
 }
 
 int obtener_key_finalizacion_hilo(hilos_args *args)
@@ -320,23 +170,6 @@ int obtener_key_detencion_algoritmo(hilos_args *args)
     return i;
 }
 
-t_algoritmo determinar_algoritmo(hilos_args *args)
-{
-    if (strcmp(args->kernel->algoritmoPlanificador, "FIFO") == 0)
-    {
-        return FIFO;
-    }
-    else if (strcmp(args->kernel->algoritmoPlanificador, "RR") == 0)
-    {
-        return RR;
-    }
-    else if (strcmp(args->kernel->algoritmoPlanificador, "VRR") == 0)
-    {
-        return VRR;
-    }
-    return -1;
-}
-
 /*----MEMORIA----*/
 
 void hilos_memoria_inicializar(hilos_args *args, pthread_t thread_conectar_memoria, pthread_t thread_atender_memoria)
@@ -350,7 +183,7 @@ void hilos_memoria_inicializar(hilos_args *args, pthread_t thread_conectar_memor
 void *hilos_conectar_memoria(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-    int socket = crear_conexion(hiloArgs->kernel->ipMemoria, hiloArgs->kernel->puertoMemoria);
+    int socket = crear_conexion(hiloArgs->logger, hiloArgs->kernel->ipMemoria, hiloArgs->kernel->puertoMemoria);
 
     if (socket == -1)
     {
@@ -366,8 +199,7 @@ void *hilos_conectar_memoria(void *args)
         liberar_conexion(&socket);
         pthread_exit(0);
     }
-
-    log_debug(hiloArgs->logger, "Conectado a Memoria en socket %d", socket);
+    kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Conectado a Memoria en socket %d", socket);
     pthread_exit(0);
 }
 
@@ -396,7 +228,7 @@ void hilos_cpu_inicializar(hilos_args *args, pthread_t thread_conectar_cpu_dispa
 void *hilos_conectar_cpu_dispatch(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-    int socket = crear_conexion(hiloArgs->kernel->ipCpu, hiloArgs->kernel->puertoCpuDispatch);
+    int socket = crear_conexion(hiloArgs->logger, hiloArgs->kernel->ipCpu, hiloArgs->kernel->puertoCpuDispatch);
 
     if (socket == -1)
     {
@@ -412,15 +244,14 @@ void *hilos_conectar_cpu_dispatch(void *args)
         liberar_conexion(&socket);
         pthread_exit(0);
     }
-
-    log_debug(hiloArgs->logger, "Conectado a CPU por Dispatch en socket %d", socket);
+    kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Conectado a CPU por Dispatch en socket %d", socket);
     pthread_exit(0);
 };
 
 void *hilos_conectar_cpu_interrupt(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-    int socket = crear_conexion(hiloArgs->kernel->ipCpu, hiloArgs->kernel->puertoCpuInterrupt);
+    int socket = crear_conexion(hiloArgs->logger, hiloArgs->kernel->ipCpu, hiloArgs->kernel->puertoCpuInterrupt);
 
     if (socket == -1)
     {
@@ -436,8 +267,7 @@ void *hilos_conectar_cpu_interrupt(void *args)
         liberar_conexion(&socket);
         pthread_exit(0);
     }
-
-    log_debug(hiloArgs->logger, "Conectado a CPU por Interrupt en socket %d", socket);
+    kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Conectado a CPU por Interrupt en socket %d", socket);
     pthread_exit(0);
 };
 
@@ -451,15 +281,6 @@ void *hilos_atender_cpu_dispatch(void *args)
 void *hilos_atender_cpu_interrupt(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-
-    // // Esto se usa para testear interrupt
-    // sleep(20);
-    // t_kernel_cpu_interrupcion *interrupcion = malloc(sizeof(t_kernel_cpu_interrupcion));
-    // interrupcion->pid = 1;
-    // t_paquete *paquete = crear_paquete(KERNEL_CPU_INTERRUPCION);
-    // serializar_t_kernel_cpu_interrupcion(&paquete, interrupcion);
-    // enviar_paquete(paquete, hiloArgs->kernel->sockets.cpu_interrupt);
-    // free(interrupcion);
 
     hilo_ejecutar_kernel(hiloArgs->kernel->sockets.cpu_interrupt, hiloArgs, "CPU Interrupt", switch_case_cpu_interrupt);
     pthread_exit(0);
@@ -502,38 +323,33 @@ void *hilos_esperar_entrada_salida(void *args)
         hilos_io_args *io_args = malloc(sizeof(hilos_io_args));
         io_args->args = hiloArgs;
         io_args->entrada_salida = NULL;
-        char *interfaz = NULL;
 
         switch (modulo)
         {
         case KERNEL_ENTRADA_SALIDA_GENERIC:
             kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida generico con socket %d", socket_cliente);
-            interfaz = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_GENERIC, socket_cliente);
-            io_args->entrada_salida = entrada_salida_buscar_interfaz(hiloArgs, interfaz);
+            io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_GENERIC, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_generic, io_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
         case KERNEL_ENTRADA_SALIDA_STDIN:
             kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida STDIN con socket %d", socket_cliente);
-            interfaz = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_STDIN, socket_cliente);
-            io_args->entrada_salida = entrada_salida_buscar_interfaz(hiloArgs, interfaz);
+            io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_STDIN, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_stdin, io_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
         case KERNEL_ENTRADA_SALIDA_STDOUT:
             kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida STDOUT con socket %d", socket_cliente);
-            interfaz = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_STDOUT, socket_cliente);
-            io_args->entrada_salida = entrada_salida_buscar_interfaz(hiloArgs, interfaz);
+            io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_STDOUT, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_stdout, io_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
         case KERNEL_ENTRADA_SALIDA_DIALFS:
-            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida DialFS con socket %d", socket_cliente);
-            interfaz = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_DIALFS, socket_cliente);
-            io_args->entrada_salida = entrada_salida_buscar_interfaz(hiloArgs, interfaz);
+            log_debug(hiloArgs->logger, "Se conecto un modulo de entrada/salida DialFS con socket %d", socket_cliente);
+            io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_DIALFS, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_dialfs, io_args);
             pthread_detach(thread_atender_entrada_salida);
@@ -547,205 +363,3 @@ void *hilos_esperar_entrada_salida(void *args)
     sem_post(&hiloArgs->kernel->sistema_finalizar);
     pthread_exit(0);
 };
-
-void *hilos_atender_entrada_salida_generic(void *args)
-{
-    hilos_io_args *io_args = (hilos_io_args *)args;
-
-    char *modulo = "I/O Generic";
-    char *interfaz = io_args->entrada_salida->interfaz;
-    int orden = io_args->entrada_salida->orden;
-    int *socket = &io_args->entrada_salida->socket;
-
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, *socket);
-
-    while (1)
-    {
-        kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, *socket);
-        t_paquete *paquete = recibir_paquete(io_args->args->logger, socket);
-
-        if (paquete == NULL)
-        {
-            kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, interfaz, orden);
-            break;
-        }
-
-        kernel_revisar_paquete(paquete, io_args->args, modulo);
-
-        switch (paquete->codigo_operacion)
-        {
-        case ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP:
-        {
-            t_entrada_salida_kernel_unidad_de_trabajo *unidad = deserializar_t_entrada_salida_kernel_unidad_de_trabajo(paquete->buffer);
-
-            if (unidad->terminado)
-            {
-                io_args->entrada_salida->ocupado = 0;
-                kernel_transicion_block_ready(io_args, modulo, unidad);
-                sem_post(&io_args->args->kernel->planificador_iniciar);
-            }
-
-            free(unidad);
-            break;
-        }
-        default:
-        {
-            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, interfaz, orden);
-            liberar_conexion(socket);
-            break;
-        }
-        }
-        eliminar_paquete(paquete);
-    }
-
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, interfaz, orden);
-
-    entrada_salida_remover_interfaz(io_args->args, interfaz);
-
-    free(io_args);
-    pthread_exit(0);
-}
-
-void *hilos_atender_entrada_salida_stdin(void *args)
-{
-    hilos_io_args *io_args = (hilos_io_args *)args;
-
-    char *modulo = "I/O STDIN";
-    char *interfaz = io_args->entrada_salida->interfaz;
-    int orden = io_args->entrada_salida->orden;
-    int *socket = &io_args->entrada_salida->socket;
-
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, *socket);
-
-    while (1)
-    {
-        kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, *socket);
-        t_paquete *paquete = recibir_paquete(io_args->args->logger, socket);
-
-        if (paquete == NULL)
-        {
-            kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, interfaz, orden);
-            break;
-        }
-        revisar_paquete(paquete, io_args->args->logger, modulo);
-
-        switch (paquete->codigo_operacion)
-        {
-        case PLACEHOLDER:
-        {
-            // Placeholder
-            break;
-        }
-        default:
-        {
-            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, interfaz, orden);
-            liberar_conexion(socket);
-            break;
-        }
-        }
-        eliminar_paquete(paquete);
-    }
-
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, interfaz, orden);
-
-    entrada_salida_remover_interfaz(io_args->args, interfaz);
-
-    free(io_args);
-    pthread_exit(0);
-}
-
-void *hilos_atender_entrada_salida_stdout(void *args)
-{
-    hilos_io_args *io_args = (hilos_io_args *)args;
-
-    char *modulo = "I/O STDOUT";
-    char *interfaz = io_args->entrada_salida->interfaz;
-    int orden = io_args->entrada_salida->orden;
-    int *socket = &io_args->entrada_salida->socket;
-
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, *socket);
-
-    while (1)
-    {
-        kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, *socket);
-        t_paquete *paquete = recibir_paquete(io_args->args->logger, socket);
-
-        if (paquete == NULL)
-        {
-            kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, interfaz, orden);
-            break;
-        }
-        revisar_paquete(paquete, io_args->args->logger, modulo);
-
-        switch (paquete->codigo_operacion)
-        {
-        case PLACEHOLDER:
-        {
-            // Placeholder
-            break;
-        }
-        default:
-        {
-            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, interfaz, orden);
-            liberar_conexion(socket);
-            break;
-        }
-        }
-        eliminar_paquete(paquete);
-    }
-
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, interfaz, orden);
-
-    entrada_salida_remover_interfaz(io_args->args, interfaz);
-
-    free(io_args);
-    pthread_exit(0);
-}
-
-void *hilos_atender_entrada_salida_dialfs(void *args)
-{
-    hilos_io_args *io_args = (hilos_io_args *)args;
-
-    char *modulo = "I/O DialFS";
-    char *interfaz = io_args->entrada_salida->interfaz;
-    int orden = io_args->entrada_salida->orden;
-    int *socket = &io_args->entrada_salida->socket;
-
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Conectado en socket %d", modulo, interfaz, orden, *socket);
-
-    while (1)
-    {
-        kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Esperando paquete en socket %d", modulo, interfaz, orden, *socket);
-        t_paquete *paquete = recibir_paquete(io_args->args->logger, socket);
-
-        if (paquete == NULL)
-        {
-            kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/Interfaz %s/Orden %d] Desconectado.", modulo, interfaz, orden);
-            break;
-        }
-        revisar_paquete(paquete, io_args->args->logger, modulo);
-
-        switch (paquete->codigo_operacion)
-        {
-        case PLACEHOLDER:
-        {
-            // Placeholder
-            break;
-        }
-        default:
-        {
-            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/Interfaz %s/Orden %d] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo, interfaz, orden);
-            liberar_conexion(socket);
-            break;
-        }
-        }
-        eliminar_paquete(paquete);
-    }
-
-    kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/Interfaz %s/Orden %d] Cerrando hilo", modulo, interfaz, orden);
-
-    entrada_salida_remover_interfaz(io_args->args, interfaz);
-
-    free(io_args);
-    pthread_exit(0);
-}

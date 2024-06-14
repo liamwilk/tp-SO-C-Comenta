@@ -3,7 +3,8 @@
 #include <commons/log.h>
 #include <utils/serial.h>
 #include <utils/template.h>
-#include "../consola.h"
+#include <utils/kernel/consola.h>
+#include "../planificacion.h"
 
 /**
  * @brief Maneja la interrupción de la CPU realizando diferentes acciones según el código de operación.

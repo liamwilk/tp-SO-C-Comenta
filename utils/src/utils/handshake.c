@@ -9,7 +9,7 @@ t_handshake crear_handshake(t_log *logger, int socket_servidor, t_handshake codi
 
 	if (respuesta == CORRECTO)
 	{
-		log_info(logger, "[%s] Conexion por handshake realizada y establecida.", modulo);
+		log_debug(logger, "[%s] Conexion por handshake realizada y establecida.", modulo);
 	}
 	else
 	{
@@ -30,7 +30,7 @@ t_handshake conexion_handshake_recibir(t_log *logger, int socket_cliente, t_hand
 	if (respuesta == codigo_esperado)
 	{
 		send(socket_cliente, &ok, sizeof(t_handshake), 0);
-		log_info(logger, "[%s] Conexion por handshake recibida y establecida.", modulo);
+		log_debug(logger, "[%s] Conexion por handshake recibida y establecida.", modulo);
 		respuesta = ok;
 	}
 	else
