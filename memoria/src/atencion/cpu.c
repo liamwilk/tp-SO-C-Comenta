@@ -12,18 +12,19 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 
 		t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_MOV_OUT_2);
 		t_mov_out *paquete_enviar = malloc(sizeof(t_mov_out));
+		t_proceso *proceso = buscar_proceso(argumentos, paquete_recibido->pid);
 
 		// Escribo el dato en el espacio de usuario
 		if (paquete_recibido->tamanio_registro_datos > 0 && paquete_recibido->tamanio_registro_datos <= 4)
 		{
 			if (paquete_recibido->tamanio_registro_datos == 4) // Debo escribir 4 bytes desde DF
 			{
-				espacio_usuario_escribir_uint32_t(argumentos, paquete_recibido->direccion_fisica, paquete_recibido->dato_32);
+				espacio_usuario_escribir_uint32_t(argumentos, proceso, paquete_recibido->direccion_fisica, paquete_recibido->dato_32);
 				log_debug(argumentos->logger, "Se escribio en espacio de usuario desde a la direccion fisica <%d> el siguiente numero de 4 bytes: %d", paquete_recibido->direccion_fisica, paquete_recibido->dato_32);
 			}
 			else if (paquete_recibido->tamanio_registro_datos == 1) // Debo escribir 1 byte desde DF
 			{
-				espacio_usuario_escribir_uint8_t(argumentos, paquete_recibido->direccion_fisica, paquete_recibido->dato_8);
+				espacio_usuario_escribir_uint8_t(argumentos, proceso, paquete_recibido->direccion_fisica, paquete_recibido->dato_8);
 				log_debug(argumentos->logger, "Se escribio en espacio de usuario desde a la direccion fisica <%d> el siguiente numero de 1 byte: %d", paquete_recibido->direccion_fisica, paquete_recibido->dato_8);
 			}
 		}
@@ -173,6 +174,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 
 		t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_MOV_IN_2);
 		t_mov_in *paquete_enviar = malloc(sizeof(t_mov_in));
+		t_proceso *proceso = buscar_proceso(argumentos, paquete_recibido->pid);
 
 		// Cargo el dato a enviar
 		if (paquete_recibido->tamanio_registro_datos > 0 && paquete_recibido->tamanio_registro_datos <= 4)
@@ -180,13 +182,13 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			if (paquete_recibido->tamanio_registro_datos == 4)
 			{
 				paquete_enviar->dato_8 = 0;
-				paquete_enviar->dato_32 = espacio_usuario_leer_uint32(argumentos, paquete_recibido->direccion_fisica);
+				paquete_enviar->dato_32 = espacio_usuario_leer_uint32(argumentos, proceso, paquete_recibido->direccion_fisica);
 				log_debug(argumentos->logger, "Se leyo del espacio de usuario asociado a la direccion fisica <%d> el siguiente numero: %d", paquete_recibido->direccion_fisica, paquete_recibido->dato_32);
 			}
 			else if (paquete_recibido->tamanio_registro_datos == 1)
 			{
 				paquete_enviar->dato_32 = 0;
-				paquete_enviar->dato_8 = espacio_usuario_leer_uint8(argumentos, paquete_recibido->direccion_fisica);
+				paquete_enviar->dato_8 = espacio_usuario_leer_uint8(argumentos, proceso, paquete_recibido->direccion_fisica);
 				log_debug(argumentos->logger, "Se leyo del espacio de usuario asociado a la direccion fisica <%d> el siguiente numero: %d", paquete_recibido->direccion_fisica, paquete_recibido->dato_8);
 			}
 		}
@@ -424,7 +426,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			free(proceso_recibido);
 			break;
 		}
-
+		
 		// Verifico si los bytes a leer del marco asociado a la pagina pertenecen al proceso
 		if (proceso_recibido->registro_tamanio > proceso->bytes_usados)
 		{
@@ -876,7 +878,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 	case CPU_MEMORIA_COPY_STRING:
 	{
 		t_copy_string *proceso_recibido = deserializar_t_copy_string(buffer);
-		
+
 		log_debug(argumentos->logger, "Se recibio una peticion de busqueda de marco en la pagina <%d> y <%d> del proceso PID <%d> asociado a la instruccion <COPY_STRING>", proceso_recibido->num_pagina_si, proceso_recibido->num_pagina_di, proceso_recibido->pid);
 
 		t_paquete *paquete = crear_paquete(MEMORIA_CPU_COPY_STRING);
@@ -913,7 +915,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			break;
 		}
 
-		log_warning(argumentos->logger,"Me llega la pagina <%d> para SI y la pagina <%d> para DI", proceso_recibido->num_pagina_si, proceso_recibido->num_pagina_di);
+		log_warning(argumentos->logger, "Me llega la pagina <%d> para SI y la pagina <%d> para DI", proceso_recibido->num_pagina_si, proceso_recibido->num_pagina_di);
 
 		// Si el proceso existe, verifico si la pagina solicitada existe
 		proceso_enviar->marco_si = tabla_paginas_acceder_pagina(argumentos, proceso, proceso_recibido->num_pagina_si);
@@ -949,7 +951,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			break;
 		}
 
-		log_debug(argumentos->logger, "Se encontro el marco <%d> de SI y el marco <%d> de DI para el proceso con PID <%d> asociado a la instruccion <COPY_STRING>", proceso_enviar->marco_si,proceso_enviar->marco_di, proceso_recibido->pid);
+		log_debug(argumentos->logger, "Se encontro el marco <%d> de SI y el marco <%d> de DI para el proceso con PID <%d> asociado a la instruccion <COPY_STRING>", proceso_enviar->marco_si, proceso_enviar->marco_di, proceso_recibido->pid);
 
 		// Verifico si los bytes a leer del marco asociado a la pagina pertenecen al proceso
 		if (proceso_recibido->cant_bytes > proceso->bytes_usados)
@@ -1008,7 +1010,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 
 		t_paquete *paquete = crear_paquete(MEMORIA_CPU_COPY_STRING_2);
 		t_copy_string *proceso_enviar = malloc(sizeof(t_copy_string));
-		
+
 		// Busco el proceso en la lista de procesos globales
 		t_proceso *proceso = buscar_proceso(argumentos, proceso_recibido->pid);
 
@@ -1043,7 +1045,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		}
 
 		// Si la pagina existe y los bytes a leer pertenecen al proceso, envio el marco recuperado de la tabla de paginas a CPU
-		proceso_enviar->frase = espacio_usuario_leer_char(argumentos, proceso_recibido->direccion_si, proceso_recibido->cant_bytes);
+		proceso_enviar->frase = espacio_usuario_leer_char(argumentos, proceso, proceso_recibido->direccion_si, proceso_recibido->cant_bytes);
 
 		// Si el dato no existe, envio un mensaje a CPU
 		if (proceso_enviar->frase == NULL)
@@ -1073,16 +1075,16 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			break;
 		}
 
-		log_debug(argumentos->logger, "Se encontro el dato <%s> en la direccion fisica <%d> del registro SI perteneciente al proceso PID <%d>",proceso_enviar->frase, proceso_recibido->direccion_si, proceso_recibido->pid);
-		
+		log_debug(argumentos->logger, "Se encontro el dato <%s> en la direccion fisica <%d> del registro SI perteneciente al proceso PID <%d>", proceso_enviar->frase, proceso_recibido->direccion_si, proceso_recibido->pid);
+
 		// Escribo en la dirección física perteneciente al registro DI del proceso PID
-		int resultado = espacio_usuario_escribir_char(argumentos, proceso_recibido->direccion_di, proceso_enviar->frase);
+		int resultado = espacio_usuario_escribir_char(argumentos, proceso, proceso_recibido->direccion_di, proceso_enviar->frase);
 
 		// Si no se pudo escribir la frase a partir de la direccion fisica del registro DI, envio un mensaje a CPU
 		if (resultado == -1)
 		{
 			log_error(argumentos->logger, "No se pudo escribir la frase en la direccion fisica <%d> del registro DI perteneciente al proceso PID <%d>", proceso_recibido->direccion_di, proceso_recibido->pid);
-			
+
 			proceso_enviar->pid = proceso_recibido->pid;
 			proceso_enviar->resultado = 0;
 			proceso_enviar->marco_si = proceso_recibido->marco_si;
@@ -1129,7 +1131,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		free(proceso_recibido);
 		free(proceso_enviar->frase);
 		free(proceso_enviar);
-		
+
 		break;
 	}
 	default:

@@ -25,6 +25,8 @@ void tabla_paginas_inicializar(t_args *args, t_proceso *proceso)
         pagina->validez = 0;
         pagina->bytes = 0;
         pagina->offset = 0;
+        pagina->offset_inicio = 0;
+        pagina->offset_fin = 0;
 
         list_add(proceso->tabla_paginas, pagina);
     }
@@ -62,8 +64,7 @@ t_pagina *tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, u
 
     if (pagina == NULL)
     {
-        log_error(argumentos->logger, "Error al asignar memoria para página %d del proceso %d", list_size(proceso->tabla_paginas) + 1, proceso->pid);
-        tabla_paginas_liberar(argumentos, proceso);
+        log_error(argumentos->logger, "La pagina solicitada a asignar no existe en el proceso PID <%d>", proceso->pid);
         return NULL;
     }
 
@@ -77,6 +78,8 @@ t_pagina *tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, u
     pagina->validez = 1;
     pagina->bytes = 0;
     pagina->offset = 0;
+    pagina->offset_inicio = frame * argumentos->memoria.tamPagina;
+    pagina->offset_fin = pagina->offset_inicio + argumentos->memoria.tamPagina;
 
     argumentos->memoria.bitmap_array[pagina->marco] = 1;
 
@@ -188,7 +191,7 @@ int tabla_paginas_resize(t_args *args, t_proceso *proceso, uint32_t bytes_nuevos
 
     if (tabla_paginas_bytes_ocupados(args, proceso) == args->memoria.tamMemoria)
     {
-        log_warning(args->logger, "El proceso <%d> monopolizo la memoria.", proceso->pid);
+        log_warning(args->logger, "El proceso PID <%d> monopolizo la memoria.", proceso->pid);
     }
     return 1;
 }

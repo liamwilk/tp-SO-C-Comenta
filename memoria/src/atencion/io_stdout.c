@@ -12,8 +12,9 @@ void switch_case_memoria_entrada_salida_stdout(t_args_hilo *argumentos, char *mo
 
 		t_paquete *paquete = crear_paquete(MEMORIA_ENTRADA_SALIDA_IO_STDOUT_WRITE);
 		t_memoria_io_stdout *paquete_enviar = malloc(sizeof(t_memoria_io_stdout));
+		t_proceso *proceso = buscar_proceso(argumentos->argumentos, paquete_recibido->pid);
 
-		char *lectura = espacio_usuario_leer_char(argumentos->argumentos, paquete_recibido->direccion_fisica, paquete_recibido->tamanio);
+		char *lectura = espacio_usuario_leer_char(argumentos->argumentos, proceso, paquete_recibido->direccion_fisica, paquete_recibido->tamanio);
 
 		if (lectura == NULL)
 		{
@@ -36,7 +37,7 @@ void switch_case_memoria_entrada_salida_stdout(t_args_hilo *argumentos, char *mo
 			paquete_enviar->dato = strdup(lectura);
 			paquete_enviar->size_dato = strlen(paquete_enviar->dato) + 1;
 			paquete_enviar->direccion_fisica = paquete_recibido->direccion_fisica;
-			
+
 			free(lectura);
 		}
 

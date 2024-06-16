@@ -268,9 +268,9 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         }
         else if (proceso->ejecutado == PROCESO_ERROR) // La ejecucion del proceso fallo
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "Proceso PID:<%d> ejecutado fallido. Transicionar a exit", proceso->pid);
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "Proceso PID <%d> ejecutado fallido. Transicionar a exit", proceso->pid);
 
-            kernel_finalizar_proceso(args, proceso->pid, SUCCESS);
+            kernel_finalizar_proceso(args, proceso->pid, EXECUTION_ERROR);
             avisar_planificador(args);
         }
 
@@ -326,7 +326,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             else
             {
                 kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo copiar el string del proceso <%d>", proceso_completo->pid);
-                kernel_finalizar_proceso(args, pcb->pid, INVALID_RESOURCE);
+                kernel_finalizar_proceso(args, pcb->pid, SEGMENTATION_FAULT);
             }
         }
         else

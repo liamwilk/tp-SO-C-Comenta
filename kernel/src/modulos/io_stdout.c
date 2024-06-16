@@ -14,6 +14,9 @@ void switch_case_kernel_entrada_salida_stdout(hilos_io_args *io_args, char *modu
             break;
         }
 
+        t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDOUT_WRITE);
+        t_kernel_cpu_io_stdout_write *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdout_write));
+
         if (proceso_recibido->resultado)
         {
             interrumpir_temporizador(io_args->args);
@@ -22,10 +25,6 @@ void switch_case_kernel_entrada_salida_stdout(hilos_io_args *io_args, char *modu
             io_args->entrada_salida->ocupado = 0;
             kernel_manejar_ready(io_args->args, proceso_recibido->pid, BLOCK_READY);
 
-            // Aviso a CPU que termino la ejecucion del proceso opcode KERNEL_CPU_IO_STDOUT_WRITE
-            t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDOUT_WRITE);
-            t_kernel_cpu_io_stdout_write *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdout_write));
-
             proceso_enviar->pid = proceso_recibido->pid;
             proceso_enviar->resultado = 1;
             proceso_enviar->motivo = strdup("Se completó la operación de IO_STDOUT_WRITE");
@@ -33,7 +32,6 @@ void switch_case_kernel_entrada_salida_stdout(hilos_io_args *io_args, char *modu
 
             serializar_t_kernel_cpu_io_stdout_write(&paquete, proceso_enviar);
             enviar_paquete(paquete, io_args->args->kernel->sockets.cpu_dispatch);
-            eliminar_paquete(paquete);
 
             free(proceso_enviar->motivo);
             free(proceso_enviar);
@@ -45,9 +43,6 @@ void switch_case_kernel_entrada_salida_stdout(hilos_io_args *io_args, char *modu
             interrumpir_temporizador(io_args->args);
 
             kernel_log_generic(io_args->args, LOG_LEVEL_ERROR, "[%s/%d] Ocurrió un error en la operación de escritura en consola para el proceso PID %d", modulo, io_args->entrada_salida->orden, proceso_recibido->pid);
-            // Aviso a CPU que termino la ejecucion del proceso opcode KERNEL_CPU_IO_STDOUT_WRITE
-            t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDOUT_WRITE);
-            t_kernel_cpu_io_stdout_write *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdout_write));
 
             proceso_enviar->pid = proceso_recibido->pid;
             proceso_enviar->resultado = 0;
@@ -56,17 +51,16 @@ void switch_case_kernel_entrada_salida_stdout(hilos_io_args *io_args, char *modu
 
             serializar_t_kernel_cpu_io_stdout_write(&paquete, proceso_enviar);
             enviar_paquete(paquete, io_args->args->kernel->sockets.cpu_dispatch);
-            eliminar_paquete(paquete);
 
-            kernel_finalizar_proceso(io_args->args, proceso_recibido->pid, INVALID_INTERFACE);
+            kernel_finalizar_proceso(io_args->args, proceso_recibido->pid, SEGMENTATION_FAULT);
 
             avisar_planificador(io_args->args);
-
-            free(proceso_enviar->motivo);
-            free(proceso_enviar);
         }
 
+        free(proceso_enviar->motivo);
+        free(proceso_enviar);
         free(proceso_recibido);
+        eliminar_paquete(paquete);
         break;
     }
     case ENTRADA_SALIDA_KERNEL_IDENTIFICACION:
