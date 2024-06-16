@@ -304,6 +304,7 @@ void kernel_signal(hilos_args *args, uint32_t pid, char *recurso, t_recurso_moti
 bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNEL_MOTIVO_FINALIZACION MOTIVO)
 {
     char *estado = proceso_estado(kernel_hilos_args->estados, pid);
+
     if (estado == NULL)
     {
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "El PID <%d> no existe", pid);
@@ -387,6 +388,21 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INVALID_RESOURCE>", pid);
         proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
     }
+    case SEGMENTATION_FAULT:
+    {
+        t_pcb *pcb_en_block = kernel_transicion_block_exit(kernel_hilos_args, pid);
+
+        if (pcb_en_block == NULL)
+        {
+            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "El proceso <%d> no se encuentra en BLOCK", pid);
+            return false;
+        }
+
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <SEGMENTATION_FAULT>", pcb_en_block->pid);
+        kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
+        proceso_matar(kernel_hilos_args->estados, string_itoa(pcb_en_block->pid));
+        return true;
+    }
     case OUT_OF_MEMORY:
     {
         if (strcmp(estado, "EXEC") == 0)
@@ -398,9 +414,22 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
         proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
         return true;
     }
-    default:
+    case EXECUTION_ERROR:
+    {
+        if (strcmp(estado, "EXEC") == 0)
+        {
+            kernel_transicion_exec_exit(kernel_hilos_args);
+        }
 
+        kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <EXECUTION_ERROR>", pid);
+        proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+        return true;
+    }
+    default:
+    {
         return false;
+    }
     }
 }
 

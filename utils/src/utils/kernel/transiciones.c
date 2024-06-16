@@ -116,7 +116,7 @@ t_pcb *kernel_transicion_exec_exit(hilos_args *kernel_hilo_args)
     return proceso;
 };
 
-void kernel_transicion_block_exit(hilos_args *kernel_hilos_args, uint32_t pid)
+t_pcb *kernel_transicion_block_exit(hilos_args *kernel_hilos_args, uint32_t pid)
 {
     pthread_mutex_lock(&kernel_hilos_args->estados->mutex_block_exit);
 
@@ -125,7 +125,7 @@ void kernel_transicion_block_exit(hilos_args *kernel_hilos_args, uint32_t pid)
     {
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "[ESTADOS/TRANSICION] Transicion de BLOCK a EXIT fallida. PID <%d> no encontrado en la cola de block", pid);
         pthread_mutex_unlock(&kernel_hilos_args->estados->mutex_block_exit);
-        return;
+        return NULL;
     }
 
     proceso_push_exit(kernel_hilos_args->estados, proceso);
@@ -133,6 +133,8 @@ void kernel_transicion_block_exit(hilos_args *kernel_hilos_args, uint32_t pid)
 
     // log oficial de la catedra
     kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Estado Anterior: <BLOCK> - Estado Actual: <EXIT>", proceso->pid);
+
+    return proceso;
 }
 
 t_pcb *kernel_transicion_new_ready(hilos_args *kernel_hilo_args)
