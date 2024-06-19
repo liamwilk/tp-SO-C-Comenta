@@ -135,10 +135,10 @@ void interfaz_dialfs_inicializar_config(t_io *io)
     io->puertoKernel = config_get_int_value(io->config, "PUERTO_KERNEL");
     io->ipMemoria = config_get_string_value(io->config, "IP_MEMORIA");
     io->puertoMemoria = config_get_int_value(io->config, "PUERTO_MEMORIA");
-    io->pathBaseDialFs = config_get_string_value(io->config, "PATH_BASE_DIALFS");
-    io->blockCount = config_get_int_value(io->config, "BLOCK_COUNT");
-    io->blockSize = config_get_int_value(io->config, "BLOCK_SIZE");
-    io->retrasoCompactacion = config_get_int_value(io->config, "RETRASO_COMPACTACION");
+    io->dial_fs.pathBaseDialFs = config_get_string_value(io->config, "PATH_BASE_DIALFS");
+    io->dial_fs.blockCount = config_get_int_value(io->config, "BLOCK_COUNT");
+    io->dial_fs.blockSize = config_get_int_value(io->config, "BLOCK_SIZE");
+    io->dial_fs.retrasoCompactacion = config_get_int_value(io->config, "RETRASO_COMPACTACION");
 }
 
 void interfaz_generic_imprimir_log(t_io *io)
@@ -176,10 +176,10 @@ void interfaz_dialfs_imprimir_log(t_io *io)
     log_info(io->logger, "PUERTO_KERNEL: %d", io->puertoKernel);
     log_info(io->logger, "IP_MEMORIA: %s", io->ipMemoria);
     log_info(io->logger, "PUERTO_MEMORIA: %d", io->puertoMemoria);
-    log_info(io->logger, "PATH_BASE_DIALFS: %s", io->pathBaseDialFs);
-    log_info(io->logger, "BLOCK_SIZE: %d", io->blockSize);
-    log_info(io->logger, "BLOCK_COUNT: %d", io->blockCount);
-    log_info(io->logger, "RETRASO_COMPACTACION: %d", io->retrasoCompactacion);
+    log_info(io->logger, "PATH_BASE_DIALFS: %s", io->dial_fs.pathBaseDialFs);
+    log_info(io->logger, "BLOCK_SIZE: %d", io->dial_fs.blockSize);
+    log_info(io->logger, "BLOCK_COUNT: %d", io->dial_fs.blockCount);
+    log_info(io->logger, "RETRASO_COMPACTACION: %d", io->dial_fs.retrasoCompactacion);
 }
 
 void interfaz_stdin(t_io *args)
@@ -222,6 +222,9 @@ void interfaz_dialfs(t_io *args)
 {
     interfaz_dialfs_inicializar_config(args);
     interfaz_dialfs_imprimir_log(args);
+
+    bloques_inicializar(args);
+    bitmap_inicializar(args);
 
     pthread_create(&args->threads.thread_conectar_memoria_dialfs, NULL, conectar_memoria_dialfs, args);
     pthread_join(args->threads.thread_conectar_memoria_dialfs, NULL);
@@ -316,6 +319,8 @@ void *conectar_kernel_dialfs(void *args_void)
 
 void finalizar_interfaz(t_io *args)
 {
+    bloques_desmapear(args);
+    bitmap_desmapear(args);
     log_destroy(args->logger);
     config_destroy(args->config);
 }
@@ -324,7 +329,7 @@ int inicializar_modulo_interfaz(t_io *args, int argc, char *argv[], timer_args_i
 {
     if (verificar_argumentos(argc))
     {
-        return -1;
+        return 1;
     }
     temporizador->args = args;
     inicializar_argumentos(args, argv);
