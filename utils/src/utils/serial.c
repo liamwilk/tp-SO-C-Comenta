@@ -1123,26 +1123,32 @@ uint32_t *deserializar_t_memoria_cpu_tam_pagina(t_buffer *buffer)
 	return tam_pagina;
 }
 
-void serializar_t_memoria_cpu_numero_marco(t_paquete **paquete, uint32_t numero_marco)
+void serializar_t_cpu_memoria_numero_marco(t_paquete **paquete, t_cpu_memoria_numero_marco *enviar)
 {
-	actualizar_buffer(*paquete, sizeof(uint32_t));
-	serializar_uint32_t(numero_marco, *paquete);
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 2);
+	serializar_uint32_t(enviar->pid, *paquete);
+	serializar_uint32_t(enviar->numero_pagina, *paquete);
 }
 
-uint32_t *deserializar_t_memoria_cpu_numero_marco(t_buffer *buffer)
+void serializar_t_memoria_cpu_numero_marco(t_paquete **paquete, t_memoria_cpu_numero_marco *enviar)
 {
-	uint32_t *numero_marco = malloc(sizeof(uint32_t));
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 4);
+	serializar_uint32_t(enviar->pid, *paquete);
+	serializar_uint32_t(enviar->numero_pagina, *paquete);
+	serializar_uint32_t(enviar->numero_marco, *paquete);
+	serializar_uint32_t(enviar->resultado, *paquete);
+}
+
+t_memoria_cpu_numero_marco *deserializar_t_memoria_cpu_numero_marco(t_buffer *buffer)
+{
+	t_memoria_cpu_numero_marco *recibido = malloc(sizeof(t_memoria_cpu_numero_marco));
 	void *stream = buffer->stream;
-	deserializar_uint32_t(&stream, numero_marco);
+	deserializar_uint32_t(&stream, &(recibido->pid));
+	deserializar_uint32_t(&stream, &(recibido->numero_pagina));
+	deserializar_uint32_t(&stream, &(recibido->numero_marco));
+	deserializar_uint32_t(&stream, &(recibido->resultado));
 
-	return numero_marco;
-}
-
-void serializar_t_cpu_memoria_numero_marco(t_paquete **paquete, uint32_t pid, int numero_pagina)
-{
-	actualizar_buffer(*paquete, sizeof(uint32_t) + sizeof(int));
-	serializar_uint32_t(pid, *paquete);
-	serializar_uint32_t(numero_pagina, *paquete);
+	return recibido;
 }
 
 t_cpu_memoria_numero_frame *deserializar_t_cpu_memoria_numero_frame(t_buffer *buffer)

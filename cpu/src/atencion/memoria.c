@@ -4,7 +4,33 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 {
 	switch (codigo_operacion)
 	{
-	case MEMORIA_CPU_IO_MOV_OUT_2:
+	case MEMORIA_CPU_NUMERO_FRAME:
+	{
+		t_memoria_cpu_numero_marco *recibido = deserializar_t_memoria_cpu_numero_marco(buffer);
+
+		if (recibido->resultado)
+		{
+			log_debug(args->logger, "Numero de frame recibido de Memoria: %d", recibido->numero_marco);
+			agregar_en_tlb(recibido->pid, recibido->numero_pagina, recibido->numero_marco, args);
+
+			args->resultado = 1;
+		}
+		else
+		{
+			log_error(args->logger, "No se pudo obtener el numero de frame de la pagina <%d> solicitado por el proceso PID <%d>", recibido->numero_pagina, recibido->pid);
+
+			args->resultado = 0;
+			args->proceso.ejecutado = 0;
+
+			instruccion_finalizar(args);
+		}
+
+		sem_post(&args->mmu_ejecucion);
+
+		free(recibido);
+		break;
+	}
+	case MEMORIA_CPU_IO_MOV_OUT:
 	{
 		t_mov_out *proceso_recibido = deserializar_t_mov_out(buffer);
 
@@ -45,58 +71,7 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 		}
 		break;
 	}
-	case MEMORIA_CPU_IO_MOV_OUT:
-	{
-		t_mov_out *proceso_recibido = deserializar_t_mov_out(buffer);
-
-		log_debug(args->logger, "Se recibio una respuesta de Memoria acerca de la solicitud de marco asociada a la instruccion <MOV_IN> para el proceso PID <%d>", proceso_recibido->pid);
-
-		// Si se obtuvo el marco
-		if (proceso_recibido->resultado)
-		{
-			log_debug(args->logger, "Se obtuvo el marco <%d> de la pagina <%d> asociado a la instruccion <MOV_IN> del proceso PID <%d>", proceso_recibido->numero_marco, proceso_recibido->numero_pagina, proceso_recibido->pid);
-
-			// Genero la direccion fisica con la MMU
-			uint32_t direccion_fisica = mmu(args, proceso_recibido->registro_direccion, proceso_recibido->numero_marco);
-
-			// Inicio la peticion contra Memoria para que escriba
-			t_paquete *paquete = crear_paquete(CPU_MEMORIA_MOV_OUT_2);
-			t_mov_out *proceso_completo = malloc(sizeof(t_mov_out));
-
-			proceso_completo->pid = proceso_recibido->pid;
-			proceso_completo->resultado = 1;
-			proceso_completo->registro_direccion = proceso_recibido->registro_direccion;
-			proceso_completo->registro_datos = proceso_recibido->registro_datos;
-			proceso_completo->tamanio_registro_datos = proceso_recibido->tamanio_registro_datos;
-			proceso_completo->numero_marco = proceso_recibido->numero_marco;
-			proceso_completo->numero_pagina = proceso_recibido->numero_pagina;
-			proceso_completo->direccion_fisica = direccion_fisica;
-			proceso_completo->dato_32 = proceso_recibido->dato_32;
-			proceso_completo->dato_8 = proceso_recibido->dato_8;
-
-			serializar_t_mov_out(&paquete, proceso_completo);
-			enviar_paquete(paquete, args->config_leida.socket_memoria);
-			eliminar_paquete(paquete);
-
-			log_debug(args->logger, "Se envio la solicitud de la instruccion <MOV_IN> del proceso PID <%d> a Kernel", proceso_recibido->pid);
-
-			free(proceso_completo);
-		}
-		else // Si no se obtuvo el marco
-		{
-			log_error(args->logger, "No se pudo obtener el marco de la pagina <%d> asociado a la instruccion <MOV_OUT> del proceso PID <%d>", proceso_recibido->numero_pagina, proceso_recibido->pid);
-
-			args->proceso.ejecutado = 0;
-			instruccion_finalizar(args);
-		}
-
-		free(proceso_recibido);
-
-		break;
-
-		break;
-	}
-	case MEMORIA_CPU_IO_MOV_IN_2:
+	case MEMORIA_CPU_IO_MOV_IN:
 	{
 		t_mov_in *proceso_recibido = deserializar_t_mov_in(buffer);
 
@@ -146,55 +121,6 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 			args->proceso.ejecutado = 0;
 			instruccion_finalizar(args);
 		}
-		break;
-	}
-	case MEMORIA_CPU_IO_MOV_IN:
-	{
-		t_mov_in *proceso_recibido = deserializar_t_mov_in(buffer);
-
-		log_debug(args->logger, "Se recibio una respuesta de Memoria acerca de la solicitud de marco asociada a la instruccion <MOV_IN> para el proceso PID <%d>", proceso_recibido->pid);
-
-		// Si se obtuvo el marco
-		if (proceso_recibido->resultado)
-		{
-			log_debug(args->logger, "Se obtuvo el marco <%d> de la pagina <%d> asociado a la instruccion <MOV_IN> del proceso PID <%d>", proceso_recibido->numero_marco, proceso_recibido->numero_pagina, proceso_recibido->pid);
-
-			// Genero la direccion fisica con la MMU
-			uint32_t direccion_fisica = mmu(args, proceso_recibido->registro_direccion, proceso_recibido->numero_marco);
-
-			// Inicio la peticion contra Memoria para que lea
-			t_paquete *paquete = crear_paquete(CPU_MEMORIA_MOV_IN_2);
-			t_mov_in *proceso_completo = malloc(sizeof(t_mov_in));
-
-			proceso_completo->pid = proceso_recibido->pid;
-			proceso_completo->resultado = 1;
-			proceso_completo->registro_direccion = proceso_recibido->registro_direccion;
-			proceso_completo->registro_datos = proceso_recibido->registro_datos;
-			proceso_completo->tamanio_registro_datos = proceso_recibido->tamanio_registro_datos;
-			proceso_completo->numero_marco = proceso_recibido->numero_marco;
-			proceso_completo->numero_pagina = proceso_recibido->numero_pagina;
-			proceso_completo->direccion_fisica = direccion_fisica;
-			proceso_completo->dato_32 = proceso_recibido->dato_32;
-			proceso_completo->dato_8 = proceso_recibido->dato_8;
-
-			serializar_t_mov_in(&paquete, proceso_completo);
-			enviar_paquete(paquete, args->config_leida.socket_memoria);
-			eliminar_paquete(paquete);
-
-			log_debug(args->logger, "Se envio la solicitud de la instruccion <MOV_IN> del proceso PID <%d> a Kernel", proceso_recibido->pid);
-
-			free(proceso_completo);
-		}
-		else // Si no se obtuvo el marco
-		{
-			log_error(args->logger, "No se pudo obtener el marco de la pagina <%d> asociado a la instruccion <MOV_IN> del proceso PID <%d>", proceso_recibido->numero_pagina, proceso_recibido->pid);
-
-			args->proceso.ejecutado = 0;
-			instruccion_finalizar(args);
-		}
-
-		free(proceso_recibido);
-
 		break;
 	}
 	case MEMORIA_CPU_IO_STDOUT_WRITE:
@@ -390,7 +316,7 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 		// Si se copio el string
 		if (proceso_recibido->resultado)
 		{
-			log_debug(args->logger, "Se recibio el marco <%d> para SI y <%d> para DI asociado a la instruccion <COPY_STRING> del proceso PID <%d>", proceso_recibido->marco_si,proceso_recibido->marco_di, proceso_recibido->pid);
+			log_debug(args->logger, "Se recibio el marco <%d> para SI y <%d> para DI asociado a la instruccion <COPY_STRING> del proceso PID <%d>", proceso_recibido->marco_si, proceso_recibido->marco_di, proceso_recibido->pid);
 
 			t_paquete *paquete = crear_paquete(CPU_MEMORIA_COPY_STRING_2);
 
@@ -453,7 +379,7 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 		if (proceso_recibido->resultado)
 		{
 			log_debug(args->logger, "Se escribio la frase <%s> en la direccion logica apuntada por el registro DI asociado a la instruccion <COPY_STRING> del proceso PID <%d>", proceso_recibido->frase, proceso_recibido->pid);
-			
+
 			serializar_t_copy_string(&paquete, proceso_recibido);
 			enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);
 			eliminar_paquete(paquete);

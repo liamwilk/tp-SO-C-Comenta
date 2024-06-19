@@ -2,7 +2,7 @@
 
 int instruccion_ejecutar(t_cpu *args)
 {
-    log_instruccion(args);
+    instruccion_log(args);
 
     switch (args->tipo_instruccion)
     {
@@ -526,7 +526,7 @@ int instruccion_ejecutar(t_cpu *args)
         // 3. Registro datos (8) y registro direccion (32). Leo 1 byte
         // 4. Registro datos (8) y registro direccion (8). Leo 1 byte
 
-        t_paquete *paquete = crear_paquete(CPU_MEMORIA_MOV_IN);
+        // t_paquete *paquete = crear_paquete(CPU_MEMORIA_MOV_IN);
         t_mov_in *proceso = malloc(sizeof(t_mov_in));
 
         // Inicializo
@@ -534,6 +534,8 @@ int instruccion_ejecutar(t_cpu *args)
         proceso->numero_marco = 0;
         proceso->resultado = 0;
         proceso->direccion_fisica = 0;
+        proceso->dato_32 = 0;
+        proceso->dato_8 = 0;
 
         // Paso el valor de los registros a la estructura que le voy a mandar a memoria
         if (registro_datos_tipo == REGISTRO_32) // El registro datos es de 32 bits
@@ -590,33 +592,28 @@ int instruccion_ejecutar(t_cpu *args)
             }
         }
 
-        // Serializo la estructura y la envio a memoria
-        serializar_t_mov_in(&paquete, proceso);
-        enviar_paquete(paquete, args->config_leida.socket_memoria);
-        eliminar_paquete(paquete);
+        mmu_iniciar(args, MOV_IN, proceso->registro_direccion, (void *)proceso);
 
-        free(proceso);
         free(registro_datos);
         free(registro_direccion);
-
         return 1;
     }
     case MOV_OUT:
     {
         /*
-        
+
         MOV_OUT         EDX                ECX
         MOV_OUT (Registro Dirección, Registro Datos)
-        
+
         Lee el valor del Registro Datos y lo escribe en la dirección física de memoria obtenida a partir de la Dirección Lógica almacenada en el Registro Dirección.
-        
+
         */
 
         // Dirección logica + desplazamiento del tamaño del registro
-        char* registro_direccion = strdup(args->instruccion.array[1]);
-        
+        char *registro_direccion = strdup(args->instruccion.array[1]);
+
         // Datos a leer
-        char* registro_datos = strdup(args->instruccion.array[2]);
+        char *registro_datos = strdup(args->instruccion.array[2]);
 
         // Determino que tipo de registros debo operar
         t_registro registro_datos_tipo = obtener_tipo_registro(registro_datos);
@@ -635,14 +632,15 @@ int instruccion_ejecutar(t_cpu *args)
         // 3. Registro datos (8) y registro direccion (32). Escribo 1 byte
         // 4. Registro datos (8) y registro direccion (8). Escribo 1 byte
 
-        t_paquete *paquete = crear_paquete(CPU_MEMORIA_MOV_OUT);
-        t_mov_out *proceso = malloc(sizeof(t_mov_in));
+        t_mov_out *proceso = malloc(sizeof(t_mov_out));
 
         // Inicializo
         proceso->pid = args->proceso.pid;
         proceso->numero_marco = 0;
         proceso->resultado = 0;
         proceso->direccion_fisica = 0;
+        proceso->dato_8 = 0;
+        proceso->dato_32 = 0;
 
         // Paso el valor de los registros a la estructura que le voy a mandar a memoria
         if (registro_datos_tipo == REGISTRO_32) // El registro datos es de 32 bits
@@ -660,13 +658,13 @@ int instruccion_ejecutar(t_cpu *args)
             }
             else // && El registro direccion es de 8 bits
             {
-                uint32_t *registro_datos_tipo = determinar_tipo_registro_uint32_t(registro_datos, &args->proceso);
+                uint32_t *registro_datos_ptr = determinar_tipo_registro_uint32_t(registro_datos, &args->proceso);
                 uint8_t *registro_direccion_ptr = determinar_tipo_registro_uint8_t(registro_direccion, &args->proceso);
 
                 uint32_t registro_direccion_casteado = casteo_uint32_t(*registro_direccion_ptr);
 
                 proceso->registro_direccion = registro_direccion_casteado;
-                proceso->registro_datos = *registro_datos_tipo;
+                proceso->registro_datos = *registro_datos_ptr;
                 proceso->numero_pagina = calcular_numero_pagina(args, *registro_direccion_ptr);
             }
         }
@@ -698,16 +696,16 @@ int instruccion_ejecutar(t_cpu *args)
                 proceso->numero_pagina = calcular_numero_pagina(args, registro_direccion_casteado);
             }
         }
+        
+        mmu_iniciar(args, MOV_OUT, proceso->registro_direccion, (void *)proceso);
 
         // Serializo la estructura y la envio a memoria
-        serializar_t_mov_out(&paquete, proceso);
-        enviar_paquete(paquete, args->config_leida.socket_memoria);
-        eliminar_paquete(paquete);
+        // serializar_t_mov_out(&paquete, proceso);
+        // enviar_paquete(paquete, args->config_leida.socket_memoria);
+        // eliminar_paquete(paquete);
 
-        free(proceso);
         free(registro_datos);
         free(registro_direccion);
-
         return 1;
     }
     case RESIZE:
@@ -732,12 +730,12 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case COPY_STRING:
     {
-        /* 
+        /*
         COPY_STRING    38
         COPY_STRING (Tamaño)
-        
+
         Toma el string apuntado por la direccion logica del registro SI y copia la cantidad de bytes indicadas en el parámetro tamaño a la direccion logica apuntada por el registro DI.
-        
+
         Pasos:
 
         1- Obtengo los marcos correspondientes a los numeros de paginas asociados a las direcciones logicas
@@ -751,7 +749,7 @@ int instruccion_ejecutar(t_cpu *args)
 
         // Cargo las cosas
         proceso->pid = args->proceso.pid;
-        proceso->resultado = 0;  
+        proceso->resultado = 0;
         proceso->cant_bytes = atoi(strdup(args->instruccion.array[1]));
         proceso->direccion_si = args->proceso.registros.si;
         proceso->direccion_di = args->proceso.registros.di;
@@ -761,8 +759,8 @@ int instruccion_ejecutar(t_cpu *args)
 
         log_warning(args->logger, "Se calculan las paginas <%d> para SI y <%d> para DI", proceso->num_pagina_si, proceso->num_pagina_di);
 
-        proceso->direccion_fisica_si = 0; 
-        proceso->direccion_fisica_di = 0; 
+        proceso->direccion_fisica_si = 0;
+        proceso->direccion_fisica_di = 0;
         proceso->marco_si = 0;
         proceso->marco_di = 0;
         proceso->frase = strdup("");
@@ -783,7 +781,7 @@ int instruccion_ejecutar(t_cpu *args)
         IO_STDIN_READ    Int2           BX                 EAX
         IO_STDIN_READ (Interfaz, Registro Dirección, Registro Tamaño)
 
-        Esta instrucción solicita al Kernel que mediante la interfaz ingresada se lea desde el STDIN (Teclado) un valor cuyo tamaño está delimitado por el valor del Registro Tamaño 
+        Esta instrucción solicita al Kernel que mediante la interfaz ingresada se lea desde el STDIN (Teclado) un valor cuyo tamaño está delimitado por el valor del Registro Tamaño
 
         y el mismo se guarde a partir de la Dirección Lógica almacenada en el Registro Dirección. */
 
@@ -810,13 +808,13 @@ int instruccion_ejecutar(t_cpu *args)
 
         // Cargo el PID
         proceso->pid = args->proceso.pid;
-        
+
         // Cargo la Interfaz
         proceso->interfaz = strdup(interfaz);
-        
+
         // El tamaño del identificador de la interfaz
         proceso->size_interfaz = strlen(interfaz) + 1;
-        
+
         // Estos son los datos que me va a devolver memoria
         proceso->marco_inicial = 0;
         proceso->marco_final = 0;
@@ -877,7 +875,7 @@ int instruccion_ejecutar(t_cpu *args)
 
         // Calculo desplazamiento
         proceso->desplazamiento = proceso->registro_direccion - proceso->numero_pagina * args->tam_pagina;
-        
+
         // Me guardo el contexto del proceso
         proceso->registros = args->proceso.registros;
 

@@ -25,13 +25,28 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 		// Inicializo la tabla de paginas asociada al proceso
 		tabla_paginas_inicializar(argumentos, proceso);
 
+		/* Caso prueba 4 bytes:
+		{
+			uint32_t numero = 12345;
+			tabla_paginas_asignar_pagina(argumentos, proceso, 0, 0);
+			espacio_usuario_escribir_uint32_t(argumentos, proceso, 0, numero);
+		}
+		*/
+
+		// /* Caso prueba 1 byte:
+		{
+			uint8_t numero = 123;
+			tabla_paginas_asignar_pagina(argumentos, proceso, 0, 0);
+			espacio_usuario_escribir_uint8_t(argumentos, proceso, 0, numero);
+		}
+		// */
+
 		// Leo las instrucciones del archivo y las guardo en la lista de instrucciones del proceso
 		proceso->instrucciones = leer_instrucciones(argumentos, path_completo, proceso->pid);
 
 		// Le aviso a Kernel que no pude leer las instrucciones para ese PID
 		if (proceso->instrucciones == NULL)
 		{
-
 			t_paquete *respuesta_paquete = crear_paquete(MEMORIA_KERNEL_NUEVO_PROCESO);
 
 			t_memoria_kernel_proceso *respuesta_proceso = malloc(sizeof(t_memoria_kernel_proceso));

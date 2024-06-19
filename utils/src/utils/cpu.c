@@ -35,9 +35,118 @@ void instruccion_ciclo(t_cpu *args, t_buffer *buffer)
 void inicializar_modulo_cpu(t_cpu *argumentos, t_log_level nivel, int argc, char *argv[])
 {
     inicializar_argumentos_cpu(argumentos, nivel, argc, argv);
+    inicializar_tlb(argumentos);
     inicializar_servidores_cpu(argumentos);
     inicializar_hilos_cpu(argumentos);
     liberar_recursos_cpu(argumentos);
+}
+
+t_algoritmo_tlb determinar_codigo_algoritmo(char *algoritmo_tlb)
+{
+
+    if (strcmp(algoritmo_tlb, "FIFO") == 0)
+    {
+        return FIFO_TLB;
+    }
+    if (strcmp(algoritmo_tlb, "LRU") == 0)
+    {
+        return LRU;
+    }
+    return -1;
+};
+
+void inicializar_tlb(t_cpu *args)
+{
+    sem_init(&args->mmu_ejecucion, 0, 0);
+
+    args->proximo_indice_reemplazo = 0;
+    args->tlb = malloc(args->config_leida.cantidadEntradasTlb * sizeof(t_tlb));
+
+    for (int i = 0; i < args->config_leida.cantidadEntradasTlb; i++)
+    {
+        args->tlb[i].pid = 0;
+        args->tlb[i].pagina = 0;
+        args->tlb[i].marco = -1;
+        args->tlb[i].contador_accesos = 0;
+    }
+}
+
+int buscar_en_tlb(uint32_t pid, uint32_t pagina, uint32_t cantidad_entradas_tlb, t_tlb *tlb)
+{
+    for (int i = 0; i < cantidad_entradas_tlb; i++)
+    {
+        if (tlb[i].pid == pid && tlb[i].pagina == pagina)
+        {
+            tlb[i].contador_accesos++; // Incrementar el contador de accesos para LRU
+            return tlb[i].marco;
+        }
+    }
+    return -1; // TLB miss
+}
+
+int buscar_entrada_vacia_tlb(uint32_t cantidad_entradas_tlb, t_tlb *tlb)
+{
+    for (int i = 0; i < cantidad_entradas_tlb; i++)
+    {
+        if (tlb[i].pid == 0)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+void agregar_en_tlb(uint32_t pid, uint32_t pagina, uint32_t frame, t_cpu *args)
+{
+    int index = buscar_entrada_vacia_tlb(args->config_leida.cantidadEntradasTlb, args->tlb);
+
+    if (index == -1)
+    { // TLB llena, reemplazar una entrada
+        index = reemplazar_en_tlb(args->config_leida.algoritmoTlb, args->config_leida.cantidadEntradasTlb, args);
+    }
+
+    args->tlb[index].pid = pid;
+    args->tlb[index].pagina = pagina;
+    args->tlb[index].marco = frame;
+    args->tlb[index].contador_accesos = 0; // Reinicia el contador de accesos
+}
+
+int reemplazar_en_tlb(char *algoritmo_reemplazo, uint32_t cantidad_entradas_tlb, t_cpu *args)
+{
+    t_algoritmo_tlb algoritmo = determinar_codigo_algoritmo(algoritmo_reemplazo);
+    int index = 0;
+
+    switch (algoritmo)
+    {
+    case FIFO_TLB:
+    {
+        index = args->proximo_indice_reemplazo;
+
+        // Se incrementa el próximo indice y después se calcula el resto, para asegurarme que esté en los limites del array
+        args->proximo_indice_reemplazo = (args->proximo_indice_reemplazo + 1) % cantidad_entradas_tlb;
+        return index;
+    }
+    case LRU:
+        // TODO: Implementar LRU
+        return index;
+    default:
+        log_error(args->logger, "Algoritmo de reemplazo de TLB invalido.");
+        return -1;
+    }
+}
+
+void mmu_iniciar(t_cpu *cpu, t_instruccion codigo, uint32_t direccion_logica, void *paquete)
+{
+    cpu->pid = 0;
+    cpu->pagina = 0;
+    cpu->marco = -1;
+    cpu->resultado = 0;
+    cpu->direccion_fisica = 0;
+    cpu->codigo = codigo;
+    cpu->direccion_logica = direccion_logica;
+    cpu->paquete = paquete;
+
+    sem_post(&cpu->mmu_ejecucion);
 }
 
 void liberar_recursos_cpu(t_cpu *argumentos)
@@ -105,6 +214,9 @@ void *atender_kernel_interrupt(void *args_void)
 
 void inicializar_hilos_cpu(t_cpu *args)
 {
+    pthread_create(&args->threads.thread_mmu, NULL, hilo_mmu, args);
+    pthread_detach(args->threads.thread_mmu);
+
     pthread_create(&args->threads.thread_conectar_memoria, NULL, conectar_memoria, args);
     pthread_join(args->threads.thread_conectar_memoria, NULL);
 
@@ -168,7 +280,7 @@ void cpu_imprimir_log(t_cpu *args)
     log_info(args->logger, "ALGORITMO_TLB: %s", args->config_leida.algoritmoTlb);
 };
 
-void log_instruccion(t_cpu *args)
+void instruccion_log(t_cpu *args)
 {
     char log_message[256] = {0};
     int offset = snprintf(log_message, sizeof(log_message), "PID: <%d> - Ejecutando:", args->proceso.pid);
