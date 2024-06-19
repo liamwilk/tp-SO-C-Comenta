@@ -24,6 +24,11 @@
 #include <signal.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <string.h>
+#include <errno.h>
 
 typedef struct
 {
@@ -62,7 +67,22 @@ typedef enum
     DIALFS
 } t_interfaz;
 
-typedef struct t_io
+typedef struct
+{
+    int blockSize;
+    int blockCount;
+    int retrasoCompactacion;
+    char *pathBaseDialFs;
+    char *path_bloques;
+    char *path_bitmap;
+    void *archivo_bloques;
+    void *archivo_bitmap;
+    FILE *archivo_metadata;
+    int tamanio_archivo;
+    int tamanio_bitmap;
+} t_dial_fs;
+
+typedef struct
 {
     t_timer timer;
     t_log *logger;
@@ -75,14 +95,11 @@ typedef struct t_io
     int puertoKernel;
     char *tipoInterfaz;
     int tiempoUnidadDeTrabajo;
-    char *pathBaseDialFs;
-    int blockSize;
-    int blockCount;
-    int retrasoCompactacion;
     char *identificador;
     int pid;
     int duracion;
     int unidades;
+    t_dial_fs dial_fs;
 } t_io;
 
 typedef void (*t_io_funcion_hilo_ptr)(t_io *, t_op_code, t_buffer *);
@@ -152,5 +169,11 @@ void interfaz_manejador_temporizador(union sigval arg);
 void interfaz_interrumpir_temporizador(t_io *args);
 
 char *leer_input_usuario(uint32_t size_input);
+
+void bloques_inicializar(t_io *args);
+void bloques_desmapear(t_io *args);
+
+void bitmap_inicializar(t_io *args);
+void bitmap_desmapear(t_io *args);
 
 #endif // ENTRADASALIDA_H

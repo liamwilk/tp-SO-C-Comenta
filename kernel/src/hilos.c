@@ -327,39 +327,50 @@ void *hilos_esperar_entrada_salida(void *args)
         switch (modulo)
         {
         case KERNEL_ENTRADA_SALIDA_GENERIC:
+        {
             kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida generico con socket %d", socket_cliente);
             io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_GENERIC, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_generic, io_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
+        }
         case KERNEL_ENTRADA_SALIDA_STDIN:
+        {
             kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida STDIN con socket %d", socket_cliente);
             io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_STDIN, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_stdin, io_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
+        }
         case KERNEL_ENTRADA_SALIDA_STDOUT:
+        {
             kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida STDOUT con socket %d", socket_cliente);
             io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_STDOUT, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_stdout, io_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
+        }
         case KERNEL_ENTRADA_SALIDA_DIALFS:
-            log_debug(hiloArgs->logger, "Se conecto un modulo de entrada/salida DialFS con socket %d", socket_cliente);
+        {
+            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Se conecto un modulo de entrada/salida DialFS con socket %d", socket_cliente);
             io_args->entrada_salida = kernel_sockets_agregar_entrada_salida(hiloArgs, ENTRADA_SALIDA_DIALFS, socket_cliente);
 
             pthread_create(&thread_atender_entrada_salida, NULL, hilos_atender_entrada_salida_dialfs, io_args);
             pthread_detach(thread_atender_entrada_salida);
             break;
+        }
         default:
+        {
             kernel_log_generic(hiloArgs, LOG_LEVEL_ERROR, "Se conecto un modulo de entrada/salida desconocido. Cerrando...");
             liberar_conexion(&socket_cliente);
             break;
         }
+        }
     }
+
     sem_post(&hiloArgs->kernel->sistema_finalizar);
     pthread_exit(0);
 };
