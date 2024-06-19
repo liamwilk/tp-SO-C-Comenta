@@ -24,11 +24,9 @@ typedef enum
 	CPU_MEMORIA_RESIZE,
 	CPU_KERNEL_RESIZE,
 	CPU_MEMORIA_MOV_OUT,
-	CPU_MEMORIA_MOV_OUT_2,
 	CPU_MEMORIA_MOV_IN,
-	CPU_MEMORIA_MOV_IN_2,
 	MEMORIA_CPU_IO_MOV_OUT,
-	MEMORIA_CPU_IO_MOV_OUT_2,
+	MEMORIA_CPU_NUMERO_FRAME,
 	MEMORIA_CPU_IO_MOV_IN,
 	MEMORIA_CPU_IO_MOV_IN_2,
 	MEMORIA_CPU_IO_STDOUT_WRITE,
@@ -410,6 +408,28 @@ typedef struct
 	uint32_t resultado;
 	char *frase;
 } t_copy_string;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t numero_pagina;
+} t_cpu_memoria_numero_marco;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t numero_pagina;
+	uint32_t numero_marco;
+	uint32_t resultado;
+} t_memoria_cpu_numero_marco;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t marco;
+	uint32_t pagina;
+	uint32_t contador_accesos;
+} t_tlb;
 
 /**
  * @fn    *crear_paquete
@@ -914,35 +934,7 @@ void serializar_t_memoria_cpu_tam_pagina(t_paquete **paquete, uint32_t tam_pagin
  */
 uint32_t *deserializar_t_memoria_cpu_tam_pagina(t_buffer *buffer);
 
-/**
- * Serializa un número de marco de memoria CPU en un paquete.
- *
- * Esta función serializa el número de marco de memoria CPU dado en un paquete `paquete`.
- *
- * @param paquete Un puntero doble al paquete que se va a serializar.
- * @param numero_marco El número de marco de memoria CPU que se va a serializar.
- */
-void serializar_t_memoria_cpu_numero_marco(t_paquete **paquete, uint32_t numero_marco);
-
-/**
- * Deserializa una estructura t_memoria_cpu_numero_marco a partir de un búfer.
- *
- * @param buffer El búfer que contiene los datos serializados.
- * @return Un puntero a la estructura t_memoria_cpu_numero_marco deserializada.
- */
-uint32_t *deserializar_t_memoria_cpu_numero_marco(t_buffer *buffer);
-
-/**
- * @brief Serializa un número de página junto con el PID de un proceso en un paquete.
- *
- * Esta función toma un puntero a un paquete y los valores del PID y número de página de un proceso.
- * Luego, serializa estos valores en el paquete para su posterior envío.
- *
- * @param paquete Puntero al puntero del paquete donde se almacenarán los datos serializados.
- * @param pid El ID del proceso.
- * @param numero_pagina El número de página del proceso.
- */
-void serializar_t_cpu_memoria_numero_marco(t_paquete **paquete, uint32_t pid, int numero_pagina);
+void serializar_t_cpu_memoria_numero_marco(t_paquete **paquete, t_cpu_memoria_numero_marco *enviar);
 
 /**
  * @brief Deserializa un buffer y devuelve una estructura t_cpu_memoria_numero_frame.
@@ -1240,6 +1232,11 @@ void serializar_t_memoria_entrada_salida_io_stdin_read(t_paquete **paquete, t_me
  * @return Puntero a la estructura t_memoria_entrada_salida_io_stdin_read deserializada.
  */
 t_memoria_entrada_salida_io_stdin_read *deserializar_t_memoria_entrada_salida_io_stdin_read(t_buffer *buffer);
+
+void serializar_t_memoria_cpu_numero_marco(t_paquete **paquete, t_memoria_cpu_numero_marco *enviar);
+
+t_memoria_cpu_numero_marco *deserializar_t_memoria_cpu_numero_marco(t_buffer *buffer);
+
 void serializar_t_mov_in(t_paquete **paquete, t_mov_in *mov);
 
 t_mov_in *deserializar_t_mov_in(t_buffer *buffer);

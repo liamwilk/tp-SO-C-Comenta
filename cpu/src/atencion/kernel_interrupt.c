@@ -11,6 +11,7 @@ void switch_case_kernel_interrupt(t_cpu *args, t_op_code codigo_operacion, t_buf
 	}
 	case FINALIZAR_SISTEMA:
 	{
+		pthread_cancel(args->threads.thread_mmu);
 		pthread_cancel(args->threads.thread_atender_memoria);
 		pthread_cancel(args->threads.thread_atender_kernel_dispatch);
 		pthread_cancel(args->threads.thread_atender_kernel_interrupt);
