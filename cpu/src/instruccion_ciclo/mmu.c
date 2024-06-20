@@ -107,7 +107,6 @@ void *hilo_mmu(void *args_void)
                 t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_STDOUT_WRITE);
                 t_io_stdout_write *proceso_completo = (t_io_stdout_write *)args->paquete;
 
-
                 proceso_completo->direccion_fisica = args->direccion_fisica;
                 proceso_completo->marco = args->marco;
 
@@ -118,6 +117,31 @@ void *hilo_mmu(void *args_void)
                 log_debug(args->logger, "Se envio la solicitud de la instruccion IO_STDOUT_WRITE del proceso PID <%d> a Kernel", proceso_completo->pid);
 
                 free(proceso_completo->interfaz);
+                free(proceso_completo);
+                break;
+            }
+            case COPY_STRING:
+            {
+                // Ahora, pediría el marco de DI
+                t_copy_string *proceso_completo = (t_copy_string *)args->paquete;
+
+                proceso_completo->direccion_fisica_si = args->direccion_fisica;
+                proceso_completo->marco_si = args->marco;
+                mmu_iniciar(args, COPY_STRING_2, proceso_completo->direccion_di, (void *)proceso_completo);
+                break;
+            }
+            case COPY_STRING_2:
+            {
+                t_paquete *paquete = crear_paquete(CPU_MEMORIA_COPY_STRING_2);
+                t_copy_string *proceso_completo = (t_copy_string *)args->paquete;
+
+                proceso_completo->direccion_fisica_di = args->direccion_fisica;
+                proceso_completo->marco_di = args->marco;
+
+                serializar_t_copy_string(&paquete, proceso_completo);
+                enviar_paquete(paquete, args->config_leida.socket_memoria);
+                eliminar_paquete(paquete);
+
                 free(proceso_completo);
                 break;
             }

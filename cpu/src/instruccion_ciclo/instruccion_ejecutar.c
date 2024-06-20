@@ -744,7 +744,7 @@ int instruccion_ejecutar(t_cpu *args)
         4- Notifico a todos los procesos que esten esperando por el resultado de la operacion
         */
 
-        t_paquete *paquete = crear_paquete(CPU_MEMORIA_COPY_STRING);
+        //t_paquete *paquete = crear_paquete(CPU_MEMORIA_COPY_STRING);
         t_copy_string *proceso = malloc(sizeof(t_copy_string));
 
         // Cargo las cosas
@@ -754,8 +754,9 @@ int instruccion_ejecutar(t_cpu *args)
         proceso->direccion_si = args->proceso.registros.si;
         proceso->direccion_di = args->proceso.registros.di;
 
-        proceso->num_pagina_si = calcular_numero_pagina(args, args->proceso.registros.si);
-        proceso->num_pagina_di = calcular_numero_pagina(args, args->proceso.registros.di);
+        proceso->num_pagina_si = 0;
+
+        proceso->num_pagina_di = 0;
 
         log_warning(args->logger, "Se calculan las paginas <%d> para SI y <%d> para DI", proceso->num_pagina_si, proceso->num_pagina_di);
 
@@ -766,12 +767,7 @@ int instruccion_ejecutar(t_cpu *args)
         proceso->frase = strdup("");
         proceso->size_frase = strlen(proceso->frase) + 1;
 
-        serializar_t_copy_string(&paquete, proceso);
-        enviar_paquete(paquete, args->config_leida.socket_memoria);
-        eliminar_paquete(paquete);
-
-        free(proceso->frase);
-        free(proceso);
+        mmu_iniciar(args, COPY_STRING, proceso->direccion_si, (void *)proceso);
 
         return 1;
     }
