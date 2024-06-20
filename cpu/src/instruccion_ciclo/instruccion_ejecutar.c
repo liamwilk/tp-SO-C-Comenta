@@ -696,7 +696,7 @@ int instruccion_ejecutar(t_cpu *args)
                 proceso->numero_pagina = calcular_numero_pagina(args, registro_direccion_casteado);
             }
         }
-        
+
         mmu_iniciar(args, MOV_OUT, proceso->registro_direccion, (void *)proceso);
 
         // Serializo la estructura y la envio a memoria
@@ -744,7 +744,7 @@ int instruccion_ejecutar(t_cpu *args)
         4- Notifico a todos los procesos que esten esperando por el resultado de la operacion
         */
 
-        t_paquete *paquete = crear_paquete(CPU_MEMORIA_COPY_STRING);
+        //t_paquete *paquete = crear_paquete(CPU_MEMORIA_COPY_STRING);
         t_copy_string *proceso = malloc(sizeof(t_copy_string));
 
         // Cargo las cosas
@@ -754,8 +754,9 @@ int instruccion_ejecutar(t_cpu *args)
         proceso->direccion_si = args->proceso.registros.si;
         proceso->direccion_di = args->proceso.registros.di;
 
-        proceso->num_pagina_si = calcular_numero_pagina(args, args->proceso.registros.si);
-        proceso->num_pagina_di = calcular_numero_pagina(args, args->proceso.registros.di);
+        proceso->num_pagina_si = 0;
+
+        proceso->num_pagina_di = 0;
 
         log_warning(args->logger, "Se calculan las paginas <%d> para SI y <%d> para DI", proceso->num_pagina_si, proceso->num_pagina_di);
 
@@ -766,12 +767,7 @@ int instruccion_ejecutar(t_cpu *args)
         proceso->frase = strdup("");
         proceso->size_frase = strlen(proceso->frase) + 1;
 
-        serializar_t_copy_string(&paquete, proceso);
-        enviar_paquete(paquete, args->config_leida.socket_memoria);
-        eliminar_paquete(paquete);
-
-        free(proceso->frase);
-        free(proceso);
+        mmu_iniciar(args, COPY_STRING, proceso->direccion_si, (void *)proceso);
 
         return 1;
     }
@@ -925,7 +921,6 @@ int instruccion_ejecutar(t_cpu *args)
         // 3. Registro tamaño de 8 bits y registro direccion de 32 bits: Casteo a 32 bits
         // 4. Registro tamaño de 8 bits y registro direccion de 8 bits: Casteo a 32 bits
 
-        t_paquete *paquete = crear_paquete(CPU_MEMORIA_IO_STDOUT_WRITE);
         t_io_stdout_write *proceso = malloc(sizeof(t_io_stdout_write));
 
         // Cargo el PID
@@ -937,10 +932,7 @@ int instruccion_ejecutar(t_cpu *args)
         // El tamaño del identificador de la interfaz
         proceso->size_interfaz = strlen(interfaz) + 1;
 
-        // Este es el dato que me va a devolver memoria
         proceso->marco = 0;
-
-        // Esto tambien me lo devuelve memoria
         proceso->resultado = 0;
 
         // Paso el valor de los registros a la estructura que le voy a mandar a memoria
@@ -1000,13 +992,12 @@ int instruccion_ejecutar(t_cpu *args)
         // Por ultimo, me guardo el contexto del proceso
         proceso->registros = args->proceso.registros;
 
-        // Serializo la estructura y la envio a memoria
-        serializar_t_io_stdout_write(&paquete, proceso);
-        enviar_paquete(paquete, args->config_leida.socket_memoria);
-        eliminar_paquete(paquete);
+        mmu_iniciar(args, IO_STDOUT_WRITE, proceso->registro_direccion, (void *)proceso);
 
-        free(proceso->interfaz);
-        free(proceso);
+        // Serializo la estructura y la envio a memoria
+        // serializar_t_io_stdout_write(&paquete, proceso);
+        // enviar_paquete(paquete, args->config_leida.socket_memoria);
+        // eliminar_paquete(paquete);
 
         free(interfaz);
         free(registro_direccion);

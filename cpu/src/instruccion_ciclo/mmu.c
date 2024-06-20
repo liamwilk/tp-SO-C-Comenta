@@ -77,7 +77,7 @@ void *hilo_mmu(void *args_void)
 
                 serializar_t_mov_in(&paquete, proceso_enviar);
                 enviar_paquete(paquete, args->config_leida.socket_memoria);
-                
+
                 log_debug(args->logger, "Se envio la solicitud de la instruccion <MOV_IN> del proceso PID <%d> a Memoria", proceso_enviar->pid);
 
                 eliminar_paquete(paquete);
@@ -94,11 +94,88 @@ void *hilo_mmu(void *args_void)
 
                 serializar_t_mov_out(&paquete, proceso_enviar);
                 enviar_paquete(paquete, args->config_leida.socket_memoria);
-                
+
                 log_debug(args->logger, "Se envio la solicitud de la instruccion <MOV_OUT> del proceso PID <%d> a Memoria", proceso_enviar->pid);
 
                 eliminar_paquete(paquete);
                 free(proceso_enviar);
+                break;
+            }
+            case IO_STDOUT_WRITE:
+            {
+                // Inicio la peticion contra Kernel para que retransmita a la interfaz
+                t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_STDOUT_WRITE);
+                t_io_stdout_write *proceso_completo = (t_io_stdout_write *)args->paquete;
+
+                proceso_completo->direccion_fisica = args->direccion_fisica;
+                proceso_completo->marco = args->marco;
+
+                serializar_t_io_stdout_write(&paquete, proceso_completo);
+                enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);
+                eliminar_paquete(paquete);
+
+                log_debug(args->logger, "Se envio la solicitud de la instruccion IO_STDOUT_WRITE del proceso PID <%d> a Kernel", proceso_completo->pid);
+
+                free(proceso_completo->interfaz);
+                free(proceso_completo);
+                break;
+            }
+            case COPY_STRING:
+            {
+                // Ahora, pediría el marco de DI
+                t_copy_string *proceso_completo = (t_copy_string *)args->paquete;
+
+                proceso_completo->direccion_fisica_si = args->direccion_fisica;
+                proceso_completo->marco_si = args->marco;
+                mmu_iniciar(args, COPY_STRING_2, proceso_completo->direccion_di, (void *)proceso_completo);
+                break;
+            }
+            case COPY_STRING_2:
+            {
+                t_paquete *paquete = crear_paquete(CPU_MEMORIA_COPY_STRING_2);
+                t_copy_string *proceso_completo = (t_copy_string *)args->paquete;
+
+                proceso_completo->direccion_fisica_di = args->direccion_fisica;
+                proceso_completo->marco_di = args->marco;
+
+                serializar_t_copy_string(&paquete, proceso_completo);
+                enviar_paquete(paquete, args->config_leida.socket_memoria);
+                eliminar_paquete(paquete);
+
+                free(proceso_completo);
+                break;
+            }
+            case IO_STDIN_READ:
+            {
+                t_io_stdin_read *proceso_recibido = (t_io_stdin_read *)args->paquete;
+
+                log_debug(args->logger, "Se obtuvo el marco inicial <%d> de la pagina <%d> asociado a la instruccion IO_STDIN_READ del proceso PID <%d>", proceso_recibido->marco_inicial, proceso_recibido->numero_pagina, proceso_recibido->pid);
+
+
+                // Inicio la peticion contra Kernel para que retransmita a la interfaz
+                t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_STDIN_READ);
+                t_io_stdin_read *proceso_completo = malloc(sizeof(t_io_stdin_read));
+
+                proceso_completo->pid = proceso_recibido->pid;
+                proceso_completo->resultado = proceso_recibido->resultado;
+                proceso_completo->registro_direccion = proceso_recibido->registro_direccion;
+                proceso_completo->registro_tamanio = proceso_recibido->registro_tamanio;
+                proceso_completo->marco_inicial = proceso_recibido->marco_inicial;
+                proceso_completo->marco_final = proceso_recibido->marco_final;
+                proceso_completo->numero_pagina = proceso_recibido->numero_pagina;
+                proceso_completo->direccion_fisica = args->direccion_fisica;
+                proceso_completo->desplazamiento = proceso_recibido->desplazamiento;
+                proceso_completo->size_interfaz = proceso_recibido->size_interfaz;
+                proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
+                proceso_completo->registros = proceso_recibido->registros;
+
+                serializar_t_io_stdin_read(&paquete, proceso_completo);
+                enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);
+                eliminar_paquete(paquete);
+
+                log_debug(args->logger, "Se envio la solicitud de la instruccion IO_STDIN_READ del proceso PID <%d> a Kernel", proceso_recibido->pid);
+                free(proceso_completo);
+                free(proceso_recibido);
                 break;
             }
 
