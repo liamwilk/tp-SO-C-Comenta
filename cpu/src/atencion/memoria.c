@@ -125,7 +125,7 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 	}
 	case MEMORIA_CPU_IO_STDOUT_WRITE:
 	{
-		t_io_stdout_write *proceso_recibido = deserializar_t_io_stdout_write(buffer);
+		/* t_io_stdout_write *proceso_recibido = deserializar_t_io_stdout_write(buffer);
 
 		log_debug(args->logger, "Se recibio una respuesta de Memoria acerca de la solicitud de marco asociada a la instruccion <IO_STDOUT_WRITE> para el proceso PID <%d>", proceso_recibido->pid);
 
@@ -172,7 +172,7 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 
 		free(proceso_recibido->interfaz);
 		free(proceso_recibido);
-
+		*/
 		break;
 	}
 	case MEMORIA_CPU_IO_STDIN_READ:
