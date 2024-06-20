@@ -184,47 +184,24 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 		// Si se obtuvo el marco correctamente
 		if (proceso_recibido->resultado)
 		{
-			log_debug(args->logger, "Se obtuvo el marco inicial <%d> de la pagina <%d> asociado a la instruccion IO_STDIN_READ del proceso PID <%d>", proceso_recibido->marco_inicial, proceso_recibido->numero_pagina, proceso_recibido->pid);
-
-			// Genero la direccion fisica con la MMU
-			uint32_t direccion_fisica = mmu(args, proceso_recibido->registro_direccion, proceso_recibido->marco_inicial);
-
-			// Inicio la peticion contra Kernel para que retransmita a la interfaz
-			t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_STDIN_READ);
-			t_io_stdin_read *proceso_completo = malloc(sizeof(t_io_stdin_read));
-
-			proceso_completo->pid = proceso_recibido->pid;
-			proceso_completo->resultado = proceso_recibido->resultado;
-			proceso_completo->registro_direccion = proceso_recibido->registro_direccion;
-			proceso_completo->registro_tamanio = proceso_recibido->registro_tamanio;
-			proceso_completo->marco_inicial = proceso_recibido->marco_inicial;
-			proceso_completo->marco_final = proceso_recibido->marco_final;
-			proceso_completo->numero_pagina = proceso_recibido->numero_pagina;
-			proceso_completo->direccion_fisica = direccion_fisica;
-			proceso_completo->desplazamiento = proceso_recibido->desplazamiento;
-			proceso_completo->size_interfaz = proceso_recibido->size_interfaz;
-			proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
-			proceso_completo->registros = proceso_recibido->registros;
-
-			serializar_t_io_stdin_read(&paquete, proceso_completo);
-			enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);
-			eliminar_paquete(paquete);
+			log_debug(args->logger, "Se asigno el marco inicial <%d> de la pagina <%d> asociado a la instruccion IO_STDIN_READ del proceso PID <%d>", proceso_recibido->marco_inicial, proceso_recibido->numero_pagina, proceso_recibido->pid);
 
 			log_debug(args->logger, "Se envio la solicitud de la instruccion IO_STDIN_READ del proceso PID <%d> a Kernel", proceso_recibido->pid);
+			// Genero la direccion fisica con la MMU
 
-			free(proceso_completo->interfaz);
-			free(proceso_completo);
+			agregar_en_tlb(proceso_recibido->pid, proceso_recibido->numero_pagina, proceso_recibido->marco_inicial, args);
+			mmu_iniciar(args, IO_STDIN_READ, proceso_recibido->registro_direccion, (void *)proceso_recibido);
 		}
 		else // Si no se obtuvo el marco
 		{
-			log_error(args->logger, "No se pudo obtener el marco de la pagina <%d> asociado a la instruccion IO_STDIN_READ del proceso PID <%d>", proceso_recibido->pid, proceso_recibido->numero_pagina);
+			log_error(args->logger, "No se pudo asignar el marco de la pagina <%d> asociado a la instruccion IO_STDIN_READ del proceso PID <%d>", proceso_recibido->pid, proceso_recibido->numero_pagina);
 
 			args->proceso.ejecutado = 0;
 			instruccion_finalizar(args);
-		}
 
-		free(proceso_recibido->interfaz);
-		free(proceso_recibido);
+			free(proceso_recibido->interfaz);
+			free(proceso_recibido);
+		}
 
 		break;
 	}

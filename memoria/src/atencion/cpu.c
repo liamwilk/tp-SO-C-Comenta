@@ -158,7 +158,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 
 			// Le devuelvo lo que recibi, pero con resultado 0 indicando que fallo
 			proceso_enviar->pid = proceso_recibido->pid;
-			proceso_enviar->resultado = 1;
+			proceso_enviar->resultado = 0;
 			proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
 			proceso_enviar->registro_tamanio = proceso_recibido->registro_tamanio;
 			proceso_enviar->marco_inicial = proceso_recibido->marco_inicial;

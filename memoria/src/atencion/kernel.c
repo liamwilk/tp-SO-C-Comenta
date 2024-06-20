@@ -30,9 +30,9 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 			uint32_t numero = 12345;
 			tabla_paginas_asignar_pagina(argumentos, proceso, 0, 0);
 			espacio_usuario_escribir_uint32_t(argumentos, proceso, 0, numero);
-		} */
+		}
 
-		// /* Se deben asignar las paginas al proceso antes de escribirlas
+		// Se deben asignar las paginas al proceso antes de escribirlas
 		tabla_paginas_asignar_pagina(argumentos, proceso, 0, 0);
 		tabla_paginas_asignar_pagina(argumentos, proceso, 1, 1);
 		tabla_paginas_asignar_pagina(argumentos, proceso, 2, 2);
@@ -40,20 +40,16 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 		char *cadena = "CURSADA DE SISTEMAS OPERATIVOS 1c 2024";
 
 		espacio_usuario_escribir_char(argumentos, proceso, 0, cadena);
-		
-		// /*
 
-		/*
 		// Caso prueba 1 byte:
 		{
 			uint8_t numero = 123;
 			tabla_paginas_asignar_pagina(argumentos, proceso, 0, 0);
 			espacio_usuario_escribir_uint8_t(argumentos, proceso, 0, numero);
-		}
-		*/
+		} */
 
-			// Leo las instrucciones del archivo y las guardo en la lista de instrucciones del proceso
-			proceso->instrucciones = leer_instrucciones(argumentos, path_completo, proceso->pid);
+		// Leo las instrucciones del archivo y las guardo en la lista de instrucciones del proceso
+		proceso->instrucciones = leer_instrucciones(argumentos, path_completo, proceso->pid);
 
 		// Le aviso a Kernel que no pude leer las instrucciones para ese PID
 		if (proceso->instrucciones == NULL)
