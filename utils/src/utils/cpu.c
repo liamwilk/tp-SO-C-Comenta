@@ -67,7 +67,7 @@ void inicializar_tlb(t_cpu *args)
         args->tlb[i].pid = 0;
         args->tlb[i].pagina = 0;
         args->tlb[i].marco = -1;
-        args->tlb[i].contador_accesos = 0;
+        args->tlb[i].ultimo_acceso = 0;
     }
 }
 
@@ -77,7 +77,8 @@ int buscar_en_tlb(uint32_t pid, uint32_t pagina, uint32_t cantidad_entradas_tlb,
     {
         if (tlb[i].pid == pid && tlb[i].pagina == pagina)
         {
-            tlb[i].contador_accesos++; // Incrementar el contador de accesos para LRU
+            // Se accedio a la entrada de la TLB, se actualiza el timestamp
+            tlb[i].ultimo_acceso = (int)time(NULL);
             return tlb[i].marco;
         }
     }
@@ -108,7 +109,7 @@ void agregar_en_tlb(uint32_t pid, uint32_t pagina, uint32_t frame, t_cpu *args)
     args->tlb[index].pid = pid;
     args->tlb[index].pagina = pagina;
     args->tlb[index].marco = frame;
-    args->tlb[index].contador_accesos = 0; // Reinicia el contador de accesos
+    args->tlb[index].ultimo_acceso = (int)time(NULL);
 }
 
 int reemplazar_en_tlb(char *algoritmo_reemplazo, uint32_t cantidad_entradas_tlb, t_cpu *args)
@@ -121,13 +122,38 @@ int reemplazar_en_tlb(char *algoritmo_reemplazo, uint32_t cantidad_entradas_tlb,
     case FIFO_TLB:
     {
         index = args->proximo_indice_reemplazo;
-
+        log_warning(args->logger, "[TLB/FIFO] Reemplazando en pos <%d> entrada en la TLB", index);
         // Se incrementa el próximo indice y después se calcula el resto, para asegurarme que esté en los limites del array
         args->proximo_indice_reemplazo = (args->proximo_indice_reemplazo + 1) % cantidad_entradas_tlb;
         return index;
     }
     case LRU:
-        // TODO: Implementar LRU
+        int min_timestamp = args->tlb[0].ultimo_acceso;
+        if (min_timestamp == 0)
+        {
+            // Hay un hueco vacio en la TLB y es el primero
+            log_debug(args->logger, "[TLB/LRU] Hueco vacio en la TLB");
+            return index;
+        }
+        index = 0;
+        // Se busca la entrada con el timestamp mas antiguo, esto es, el timestamp mas bajo
+        // Se utiliza UNIX timestamp para comparar
+        for (int i = 1; i < cantidad_entradas_tlb; i++)
+        {
+            if (args->tlb[i].ultimo_acceso < min_timestamp)
+            {
+                log_warning(args->logger, "[TLB/LRU] Reemplazando entrada en la TLB");
+                log_warning(args->logger, "Nuevo timestamp mas bajo: %d", args->tlb[i].ultimo_acceso);
+                min_timestamp = args->tlb[i].ultimo_acceso;
+                index = i;
+            }
+            if (min_timestamp == 0)
+            {
+                // Hay un hueco vacio en la TLB
+                log_debug(args->logger, "[TLB/LRU] Hueco vacio en la TLB");
+                return i;
+            }
+        }
         return index;
     default:
         log_error(args->logger, "Algoritmo de reemplazo de TLB invalido.");

@@ -239,6 +239,26 @@ void hilos_ejecutar_entrada_salida(hilos_io_args *io_args, char *modulo, t_funci
     }
 
     kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/%s/%d] Cerrando hilo", modulo, io_args->entrada_salida->interfaz, orden);
+    // Verificamos que un proceso en block no tenga a esta interfaz asignada
+    if (io_args->entrada_salida->pid != 0)
+    {
+        // Lo eliminamos
+
+        proceso_matar(io_args->args->estados, string_itoa(io_args->entrada_salida->pid));
+
+        // Log oficial
+
+        kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <INVALID_INTERFACE>", pid);
+
+        //  Avisamos a memoria
+        t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_FINALIZAR_PROCESO);
+        t_kernel_memoria_finalizar_proceso *proceso = malloc(sizeof(t_kernel_memoria_finalizar_proceso));
+        proceso->pid = pid;
+        serializar_t_kernel_memoria_finalizar_proceso(&paquete, proceso);
+        enviar_paquete(paquete, io_args->args->kernel->sockets.memoria);
+        eliminar_paquete(paquete);
+        free(proceso);
+    }
 
     entrada_salida_remover_interfaz(io_args->args, io_args->entrada_salida->interfaz);
 

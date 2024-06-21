@@ -427,7 +427,7 @@ typedef struct
 	uint32_t pid;
 	uint32_t marco;
 	uint32_t pagina;
-	uint32_t contador_accesos;
+	int ultimo_acceso;
 } t_tlb;
 
 /**
