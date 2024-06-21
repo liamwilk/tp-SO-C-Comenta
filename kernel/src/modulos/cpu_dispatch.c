@@ -72,7 +72,12 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         t_pcb *pcb = proceso_buscar_exec(args->estados, proceso_recibido->pid);
 
-        // Actualizo los registros del proceso en Kernel
+        if (pcb == NULL)
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
+            break;
+        }
+
         proceso_actualizar_registros(pcb, proceso_recibido->registros);
 
         serializar_t_io_stdout_write(&paquete, proceso_completo);
@@ -85,7 +90,10 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio la instruccion de IO_STDOUT_WRITE a la interfaz %s", entrada_salida->interfaz);
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se transiciona el PID <%d> a BLOCK por ejecucion de IO_STDOUT_WRITE.", proceso_recibido->pid);
+
         kernel_transicion_exec_block(args);
+
+        avisar_planificador(args);
 
         free(proceso_recibido->interfaz);
         free(proceso_recibido);
@@ -154,24 +162,35 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         proceso_completo->numero_pagina = proceso_recibido->numero_pagina;
         proceso_completo->direccion_fisica = proceso_recibido->direccion_fisica;
         proceso_completo->desplazamiento = proceso_recibido->desplazamiento;
-        proceso_completo->size_interfaz = proceso_recibido->size_interfaz;
         proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
+        proceso_completo->size_interfaz = strlen(proceso_completo->interfaz) + 1;
         proceso_completo->registros = proceso_recibido->registros;
 
-        proceso_actualizar_registros(proceso_buscar_exec(args->estados, proceso_recibido->pid), proceso_recibido->registros);
+        t_pcb *pcb = proceso_buscar_exec(args->estados, proceso_recibido->pid);
+
+        if (pcb == NULL)
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
+            break;
+        }
+
+        proceso_actualizar_registros(pcb, proceso_recibido->registros);
 
         serializar_t_kernel_io_stdin_read(&paquete, proceso_completo);
         enviar_paquete(paquete, entrada_salida->socket);
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio la instruccion de IO_STDIN_READ a la interfaz %s", entrada_salida->interfaz);
+
+        kernel_transicion_exec_block(args);
+
+        avisar_planificador(args);
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se transiciona el PID <%d> a BLOCK por ejecucion de IO_STDIN_READ.", proceso_recibido->pid);
+
         eliminar_paquete(paquete);
 
         free(proceso_completo->interfaz);
         free(proceso_completo);
-
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio la instruccion de IO_STDIN_READ a la interfaz %s", entrada_salida->interfaz);
-
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se transiciona el PID <%d> a BLOCK por ejecucion de IO_STDIN_READ.", proceso_recibido->pid);
-
-        kernel_transicion_exec_block(args);
 
         free(proceso_recibido->interfaz);
         free(proceso_recibido);

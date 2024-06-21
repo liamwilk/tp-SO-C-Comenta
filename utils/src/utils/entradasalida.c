@@ -520,10 +520,14 @@ char *leer_input_usuario(uint32_t size_input)
 
         if (strlen(input) <= size_input)
         {
-            for (int i = strlen(input); i < size_input; i++)
+            input = realloc(input, size_input + 1);
+            if (input == NULL)
             {
-                input[i] = ' ';
+                fprintf(stderr, "Error al reasignar memoria\n");
+                return NULL;
             }
+            memset(input + strlen(input), ' ', size_input - strlen(input));
+            input[size_input] = '\0';
             break;
         }
 
