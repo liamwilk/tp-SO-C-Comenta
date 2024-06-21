@@ -151,7 +151,6 @@ void *hilo_mmu(void *args_void)
 
                 log_debug(args->logger, "Se obtuvo el marco inicial <%d> de la pagina <%d> asociado a la instruccion IO_STDIN_READ del proceso PID <%d>", proceso_recibido->marco_inicial, proceso_recibido->numero_pagina, proceso_recibido->pid);
 
-
                 // Inicio la peticion contra Kernel para que retransmita a la interfaz
                 t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_STDIN_READ);
                 t_io_stdin_read *proceso_completo = malloc(sizeof(t_io_stdin_read));
@@ -165,8 +164,8 @@ void *hilo_mmu(void *args_void)
                 proceso_completo->numero_pagina = proceso_recibido->numero_pagina;
                 proceso_completo->direccion_fisica = args->direccion_fisica;
                 proceso_completo->desplazamiento = proceso_recibido->desplazamiento;
-                proceso_completo->size_interfaz = proceso_recibido->size_interfaz;
                 proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
+                proceso_completo->size_interfaz = strlen(proceso_completo->interfaz) + 1;
                 proceso_completo->registros = proceso_recibido->registros;
 
                 serializar_t_io_stdin_read(&paquete, proceso_completo);

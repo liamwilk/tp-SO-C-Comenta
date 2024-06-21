@@ -29,6 +29,7 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/types.h>
 
 typedef struct
 {

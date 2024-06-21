@@ -25,13 +25,14 @@ void switch_case_kernel_stdin(t_io *args, t_op_code codigo_operacion, t_buffer *
 
         serializar_t_io_memoria_stdin(&paquete, paquete_enviar);
         enviar_paquete(paquete, args->sockets.socket_memoria_stdin);
+
         eliminar_paquete(paquete);
 
+        free(paquete_enviar->input);
         free(paquete_enviar);
 
         free(proceso_recibido->interfaz);
         free(proceso_recibido);
-        free(input);
         break;
     }
     case KERNEL_ENTRADA_SALIDA_IDENTIFICACION_RECHAZO:

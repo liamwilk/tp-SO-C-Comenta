@@ -13,7 +13,7 @@ void bloques_desmapear(t_io *args)
             log_debug(args->logger, "Archivo de 'bloques.dat' desmapeado correctamente de la memoria");
         }
 
-        args->dial_fs.archivo_bloques = NULL; 
+        args->dial_fs.archivo_bloques = NULL;
     }
     else
     {
@@ -23,9 +23,21 @@ void bloques_desmapear(t_io *args)
 
 void bloques_inicializar(t_io *args)
 {
+    struct stat st_bloques = {0};
+
     // Construyo el path de los bloques añadiendo bloques.dat al final
     args->dial_fs.path_bloques = string_new();
     string_append(&args->dial_fs.path_bloques, args->dial_fs.pathBaseDialFs);
+    string_append(&args->dial_fs.path_bloques, "/");
+    string_append(&args->dial_fs.path_bloques, args->identificador);
+    
+
+    if (stat(args->dial_fs.path_bloques, &st_bloques) == -1)
+    {
+        log_warning(args->logger, "No existe el directorio de bloques, se creará: %s", args->dial_fs.path_bloques);
+        mkdir(args->dial_fs.path_bloques, 0777);
+    }
+
     string_append(&args->dial_fs.path_bloques, "/bloques.dat");
 
     log_debug(args->logger, "Path de 'bloques.dat': %s", args->dial_fs.path_bloques);
