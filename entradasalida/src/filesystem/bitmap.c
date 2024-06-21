@@ -22,10 +22,21 @@ void bitmap_desmapear(t_io *args)
 }
 
 void bitmap_inicializar(t_io *args)
-{
+{   
+    struct stat st_bitmap = {0};
+
     // Construyo el path del bitmap añadiendo bitmap.dat al final
     args->dial_fs.path_bitmap = string_new();
     string_append(&args->dial_fs.path_bitmap, args->dial_fs.pathBaseDialFs);
+    string_append(&args->dial_fs.path_bitmap, "/");
+    string_append(&args->dial_fs.path_bitmap, args->identificador);
+    
+    if (stat(args->dial_fs.path_bloques, &st_bitmap) == -1)
+    {
+        log_warning(args->logger, "No existe el directorio de bloques, se creará: %s", args->dial_fs.path_bitmap);
+        mkdir(args->dial_fs.path_bitmap, 0777);
+    }
+
     string_append(&args->dial_fs.path_bitmap, "/bitmap.dat");
 
     log_debug(args->logger, "Path de 'bitmap.dat': %s", args->dial_fs.path_bitmap);
