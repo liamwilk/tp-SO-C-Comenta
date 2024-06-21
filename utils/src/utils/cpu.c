@@ -122,12 +122,12 @@ int reemplazar_en_tlb(char *algoritmo_reemplazo, uint32_t cantidad_entradas_tlb,
     case FIFO_TLB:
     {
         index = args->proximo_indice_reemplazo;
+        log_warning(args->logger, "[TLB/FIFO] Reemplazando en pos <%d> entrada en la TLB", index);
         // Se incrementa el próximo indice y después se calcula el resto, para asegurarme que esté en los limites del array
         args->proximo_indice_reemplazo = (args->proximo_indice_reemplazo + 1) % cantidad_entradas_tlb;
         return index;
     }
     case LRU:
-        log_warning(args->logger, "[TLB/LRU] Reemplazando entrada en la TLB");
         int min_timestamp = args->tlb[0].ultimo_acceso;
         if (min_timestamp == 0)
         {
