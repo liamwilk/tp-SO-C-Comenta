@@ -7,6 +7,7 @@
 #include "structs.h"
 #include "consola.h"
 #include "../conexiones.h"
+#include "../recursos.h"
 
 /**
  * Procesa una operación de entrada/salida rechazada.

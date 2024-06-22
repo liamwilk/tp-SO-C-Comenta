@@ -382,15 +382,30 @@ void kernel_cpu_entradasalida_ocupada(hilos_args *args, t_kernel_cpu_entradasali
 void kernel_proximo_io_generic(hilos_args *args, t_kernel_entrada_salida *io)
 {
     int proceso_en_block = list_size(args->estados->block);
+    kernel_log_generic(args, LOG_LEVEL_DEBUG, "Procesos en block: %d", proceso_en_block);
     if (proceso_en_block > 0)
     {
         for (int i = 0; i < proceso_en_block; i++)
         {
             t_pcb *pcb = list_get(args->estados->block, i);
+
+            if (pcb == NULL)
+            {
+                continue;
+            }
+            // Verificamos que este bloqueado por I/O y no por RECURSO
+            char *recurso_bloqueado = recurso_buscar_pid(args->recursos, pcb->pid);
+            if (recurso_bloqueado != NULL)
+            {
+                continue;
+            }
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso <%d> no bloqueado por recurso <%s>", pcb->pid, recurso_bloqueado);
             if (pcb->proxima_io == NULL)
             {
                 continue;
             }
+
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso <%d> bloqueado por I/O en interfaz <%s>", pcb->pid, pcb->proxima_io->identificador);
             if (strcmp(pcb->proxima_io->identificador, io->interfaz) == 0 && pcb->proxima_io->tipo == ENTRADA_SALIDA_GENERIC)
             {
                 io->ocupado = 1;

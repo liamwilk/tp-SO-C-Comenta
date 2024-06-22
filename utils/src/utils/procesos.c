@@ -13,7 +13,8 @@ t_pcb *pcb_crear(t_log *logger, int quantum)
     *registros_cpu = (t_registros_cpu){.pc = 0, .eax = 0, .ebx = 0, .ecx = 0, .edx = 0, .si = 0, .di = 0, .ax = 0, .bx = 0, .cx = 0, .dx = 0};
     t_pcb *nuevo_pcb = malloc(sizeof(t_pcb));
     t_proceso_proxima_io *proxima_io = malloc(sizeof(t_proceso_proxima_io));
-    *nuevo_pcb = (t_pcb){.pid = new_pid(), .quantum = quantum, .registros_cpu = registros_cpu, .memoria_aceptado = false, .sleeping_thread = PTHREAD_CREATE_JOINABLE, .proxima_io = proxima_io};
+    t_dictionary *diccionario_recursos_tomados = dictionary_create();
+    *nuevo_pcb = (t_pcb){.pid = new_pid(), .quantum = quantum, .registros_cpu = registros_cpu, .memoria_aceptado = false, .sleeping_thread = PTHREAD_CREATE_JOINABLE, .proxima_io = proxima_io, .recursos_tomados = diccionario_recursos_tomados};
     return nuevo_pcb;
 };
 
