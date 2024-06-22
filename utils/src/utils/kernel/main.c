@@ -334,6 +334,8 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
         {
             kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "El proceso <%d> se encuentra bloqueado, se procede a desbloquearlo", pid);
             kernel_transicion_block_exit(kernel_hilos_args, pid);
+            proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+
             //  Verificamos que el proceso este blockeado por recurso y no por I/O
             char *recurso_bloqueado = recurso_buscar_pid(kernel_hilos_args->recursos, pid);
             if (recurso_bloqueado != NULL)
@@ -363,6 +365,7 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
                 }
             }
             kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
+            proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
             return false;
         }
 
