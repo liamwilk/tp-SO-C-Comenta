@@ -343,7 +343,24 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
             }
             else
             {
-                kernel_interrumpir_io(kernel_hilos_args, pid, "FINALIZAR_PROCESO");
+                // Interrumpo la io si y solo si ese pid esta con esa interfaz ocupada
+                t_kernel_entrada_salida *io = kernel_entrada_salida_buscar_interfaz_pid(kernel_hilos_args, pid);
+                if (io == NULL)
+                {
+                    // Mataste un proceso que no estaba en una io
+                    kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "El proceso <%d> se encontraba encolado para una I/O", pid);
+                }
+                else
+                {
+                    kernel_interrumpir_io(kernel_hilos_args, pid, "FINALIZAR_PROCESO");
+                    if (io->tipo == ENTRADA_SALIDA_GENERIC)
+                    {
+                        kernel_proximo_io_generic(kernel_hilos_args, io);
+                    }
+                    // TODO: Agregar case para STDIN
+                    // TODO: Agregar case para STDOUT
+                    // TODO: Agregar case para DIALFS
+                }
             }
             kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
             return false;

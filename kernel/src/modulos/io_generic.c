@@ -32,12 +32,18 @@ void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *mod
         // Verifico si este proceso no ha ya sido marcado como eliminado  en kernel
         if (kernel_verificar_proceso_en_exit(io_args->args, unidad->pid))
         {
+            // Verifico que no haya otros procesos ya encolados para esa interfaz
+            t_kernel_entrada_salida *io = kernel_entrada_salida_buscar_interfaz_pid(io_args->args, unidad->pid);
+            kernel_proximo_io_generic(io_args->args, io);
             break;
         }
 
         if (unidad->terminado)
         {
+            t_kernel_entrada_salida *io = kernel_entrada_salida_buscar_interfaz_pid(io_args->args, unidad->pid);
             kernel_manejar_ready(io_args->args, unidad->pid, BLOCK_READY);
+            // Envio el proximo proceso a esa IO
+            kernel_proximo_io_generic(io_args->args, io);
         }
         else
         {

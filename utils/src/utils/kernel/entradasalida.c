@@ -378,3 +378,32 @@ void kernel_cpu_entradasalida_ocupada(hilos_args *args, t_kernel_cpu_entradasali
         free(proceso_enviar);
     }
 };
+
+void kernel_proximo_io_generic(hilos_args *args, t_kernel_entrada_salida *io)
+{
+    int proceso_en_block = list_size(args->estados->block);
+    if (proceso_en_block > 0)
+    {
+        for (int i = 0; i < proceso_en_block; i++)
+        {
+            t_pcb *pcb = list_get(args->estados->block, i);
+            if (pcb->proxima_io == NULL)
+            {
+                continue;
+            }
+            if (strcmp(pcb->proxima_io->identificador, io->interfaz) == 0 && pcb->proxima_io->tipo == ENTRADA_SALIDA_GENERIC)
+            {
+                io->ocupado = 1;
+                io->pid = pcb->pid;
+                t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP);
+                t_kernel_entrada_salida_unidad_de_trabajo *unidad = malloc(sizeof(t_kernel_entrada_salida_unidad_de_trabajo));
+                unidad->pid = pcb->pid;
+                char *unidad_trabajo = list_get(pcb->proxima_io->args, 0);
+                unidad->unidad_de_trabajo = atoi(unidad_trabajo);
+                serializar_t_kernel_entrada_salida_unidad_de_trabajo(&paquete, unidad);
+                enviar_paquete(paquete, io->socket);
+                eliminar_paquete(paquete);
+            }
+        }
+    }
+}

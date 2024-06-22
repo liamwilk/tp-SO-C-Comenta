@@ -415,6 +415,7 @@ void interfaz_iniciar_temporizador(t_io *args, int duracion)
     {
         // Convierto el tiempo de milisegundos a segundos
         args->duracion = (duracion * args->tiempoUnidadDeTrabajo) / 1000;
+        printf("Duracion: %d\n", args->duracion);
         break;
     }
     case STDIN:
