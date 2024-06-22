@@ -98,7 +98,7 @@ typedef struct
     int tiempoUnidadDeTrabajo;
     char *identificador;
     int pid;
-    int duracion;
+    double duracion;
     int unidades;
     t_dial_fs dial_fs;
 } t_io;
@@ -164,7 +164,7 @@ void switch_case_memoria_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer
 
 void hilo_ejecutar_interfaz(t_io *args, int *socket, char *modulo, t_io_funcion_hilo_ptr switch_case_atencion);
 
-void interfaz_iniciar_temporizador(t_io *args, int duracion);
+void interfaz_iniciar_temporizador(t_io *args, double duracion);
 void interfaz_inicializar_temporizador(t_io *args, timer_args_io_t *temporizador);
 void interfaz_manejador_temporizador(union sigval arg);
 void interfaz_interrumpir_temporizador(t_io *args);
