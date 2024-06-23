@@ -334,7 +334,9 @@ void proceso_recibir(t_cpu *args, t_buffer *buffer)
     args->proceso.registros.dx = proceso_cpu->registros.dx,
     args->proceso.registros.si = proceso_cpu->registros.si,
     args->proceso.registros.di = proceso_cpu->registros.di,
-
+    args->flag_interrupt = 0;
+    args->proceso.ejecutado = 0;
+    args->resultado = 0;
     imprimir_registros(args);
 }
 

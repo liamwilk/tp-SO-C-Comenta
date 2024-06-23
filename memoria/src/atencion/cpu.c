@@ -16,14 +16,16 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 
 		// Escribo el dato en el espacio de usuario
 		if (paquete_recibido->tamanio_registro_datos > 0 && paquete_recibido->tamanio_registro_datos <= 4)
-		{	
+		{
 			if (paquete_recibido->tamanio_registro_datos == 4) // Debo escribir 4 bytes desde DF
 			{
+				log_warning(argumentos->logger, "Paquete recibido paquetes datos %d", paquete_recibido->registro_datos);
 				espacio_usuario_escribir_uint32_t(argumentos, proceso, paquete_recibido->direccion_fisica, paquete_recibido->registro_datos);
 				log_debug(argumentos->logger, "Se escribio en espacio de usuario desde a la direccion fisica <%d> el siguiente numero de 4 bytes: %d", paquete_recibido->direccion_fisica, paquete_recibido->registro_datos);
 			}
 			else if (paquete_recibido->tamanio_registro_datos == 1) // Debo escribir 1 byte desde DF
 			{
+				log_warning(argumentos->logger, "Paquete recibido paquetes datos %d", paquete_recibido->registro_datos);
 				espacio_usuario_escribir_uint8_t(argumentos, proceso, paquete_recibido->direccion_fisica, paquete_recibido->registro_datos);
 				log_debug(argumentos->logger, "Se escribio en espacio de usuario desde a la direccion fisica <%d> el siguiente numero de 1 byte: %d", paquete_recibido->direccion_fisica, paquete_recibido->registro_datos);
 			}
