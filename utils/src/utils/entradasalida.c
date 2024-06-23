@@ -80,7 +80,7 @@ void *conectar_kernel_generic(void *args_void)
 t_interfaz determinar_interfaz(t_config *config)
 {
     char *tipoInterfaz = config_get_string_value(config, "TIPO_INTERFAZ");
-    if (!strcmp(tipoInterfaz, "GEN"))
+    if (!strcmp(tipoInterfaz, "GENERICA"))
     {
         return GEN;
     }
