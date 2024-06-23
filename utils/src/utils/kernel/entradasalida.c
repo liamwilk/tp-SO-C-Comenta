@@ -382,7 +382,6 @@ void kernel_cpu_entradasalida_ocupada(hilos_args *args, t_kernel_cpu_entradasali
 void kernel_proximo_io_generic(hilos_args *args, t_kernel_entrada_salida *io)
 {
     int proceso_en_block = list_size(args->estados->block);
-    kernel_log_generic(args, LOG_LEVEL_DEBUG, "Procesos en block: %d", proceso_en_block);
     if (proceso_en_block > 0)
     {
         for (int i = 0; i < proceso_en_block; i++)

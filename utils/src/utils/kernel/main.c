@@ -333,9 +333,11 @@ void kernel_signal(hilos_args *args, uint32_t pid, char *recurso, t_recurso_moti
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se desbloquea el proceso <%d> por liberacion de recurso <%s>", pcb->pid, recurso);
         if (MOTIVO == SIGNAL_RECURSO)
         {
-            // Mando a ready el que esta bloqueado pues se libero un recurso
-            // TODO: Fixear esto en algunos casos se esta enviando de block a ready un proceso que no esta en block
-            kernel_manejar_ready(args, pcb->pid, BLOCK_READY);
+            char *estado = proceso_estado(args->estados, pcb->pid);
+            if (strcmp(estado, "BLOCK") == 0)
+            {
+                kernel_manejar_ready(args, pcb->pid, BLOCK_READY);
+            }
         }
         else
         {

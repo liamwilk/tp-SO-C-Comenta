@@ -13,7 +13,6 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
 
         if (pcb == NULL)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "[KERNEL/IO_GEN_SLEEP] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", sleep->pid);
             free(sleep);
             break;
         }
