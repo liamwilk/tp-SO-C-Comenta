@@ -3,7 +3,7 @@
 
 int main(int argc, char *argv[])
 {
-	logger = iniciar_logger("kernel", LOG_LEVEL_INFO);
+	logger = iniciar_logger("kernel", LOG_LEVEL_DEBUG);
 	inicializar_config(&config, logger, argc, argv);
 	kernel = kernel_inicializar(config);
 	estados = kernel_inicializar_estados(&estados);

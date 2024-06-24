@@ -164,4 +164,8 @@ void kernel_cpu_entradasalida_ocupada(hilos_args *args, t_kernel_cpu_entradasali
 // Se busca el proximo proceso en block esperando utilizar esa io especificamente IO_GENERIC
 void kernel_proximo_io_generic(hilos_args *args, t_kernel_entrada_salida *io);
 
+void kernel_proximo_io_stdout(hilos_args *args, t_kernel_entrada_salida *io);
+
+void kernel_proximo_io_stdin(hilos_args *args, t_kernel_entrada_salida *io);
+
 #endif /* KERNEL_ENTRADASALIDA_H_ */

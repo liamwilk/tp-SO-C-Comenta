@@ -10,9 +10,21 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         t_kernel_entrada_salida *entrada_salida = kernel_entrada_salida_buscar_interfaz(args, proceso_recibido->interfaz);
 
+        t_pcb *pcb = proceso_buscar_exec(args->estados, proceso_recibido->pid);
+
+        if (pcb == NULL)
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
+            free(proceso_recibido);
+            break;
+        }
+
         // Si la interfaz de entrada salida no esta conectada
         if (entrada_salida == NULL)
         {
+            pcb->quantum = interrumpir_temporizador(args);
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar la instrucción <IO_STDOUT_WRITE> del PID <%d> a la interfaz <%s> porque no está conectada.", proceso_recibido->pid, proceso_recibido->interfaz);
+
             // Aviso a cpu
             kernel_cpu_entradasalida_no_conectada(args, CPU_IO_STDOUT_WRITE, proceso_recibido->interfaz, proceso_recibido->pid);
 
@@ -27,6 +39,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         // Si la interfaz de entrada salida pedida no es del tipo stdout
         if (entrada_salida->tipo != ENTRADA_SALIDA_STDOUT)
         {
+            pcb->quantum = interrumpir_temporizador(args);
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar la instrucción <IO_STDOUT_WRITE> del PID <%d> a la interfaz <%s> porque no es IO_STDOUT.", proceso_recibido->pid, proceso_recibido->interfaz);
             kernel_cpu_entradasalida_distinto_tipo(args, CPU_IO_STDOUT_WRITE, proceso_recibido->interfaz, proceso_recibido->pid);
 
             kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
@@ -40,14 +54,53 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         // Si la interfaz de entrada salida esta ocupada
         if (entrada_salida->ocupado)
         {
-            kernel_cpu_entradasalida_ocupada(args, CPU_IO_STDOUT_WRITE, proceso_recibido->interfaz, proceso_recibido->pid);
-            kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
+            // kernel_cpu_entradasalida_ocupada(args, CPU_IO_STDOUT_WRITE, proceso_recibido->interfaz, proceso_recibido->pid);
+
+            pcb->quantum = interrumpir_temporizador(args);
+
+            kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_STDOUT_WRITE> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
+
+            proceso_actualizar_registros(pcb, proceso_recibido->registros);
+            kernel_transicion_exec_block(args);
+
+            // Actualizar campo proxima_io
+            pcb->proxima_io->identificador = strdup(proceso_recibido->interfaz);
+            pcb->proxima_io->tipo = ENTRADA_SALIDA_STDOUT;
+            pcb->proxima_io->args = list_create();
+
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->pid));
+
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->pid));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->resultado));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registro_direccion));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registro_tamanio));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->marco));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->numero_pagina));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->direccion_fisica));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->desplazamiento));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->size_interfaz));
+            list_add(pcb->proxima_io->args, strdup(proceso_recibido->interfaz));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.ax));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.bx));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.cx));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.dx));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.eax));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.ebx));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.ecx));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.edx));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.si));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.di));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.pc));
+
+            avisar_planificador(args);
 
             free(proceso_recibido->interfaz);
             free(proceso_recibido);
 
             break;
         }
+
+        pcb->quantum = interrumpir_temporizador(args);
 
         // Actualizo la interfaz de entrada salida
         entrada_salida->ocupado = 1;
@@ -69,14 +122,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         proceso_completo->size_interfaz = proceso_recibido->size_interfaz;
         proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
         proceso_completo->registros = proceso_recibido->registros;
-
-        t_pcb *pcb = proceso_buscar_exec(args->estados, proceso_recibido->pid);
-
-        if (pcb == NULL)
-        {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
-            break;
-        }
 
         proceso_actualizar_registros(pcb, proceso_recibido->registros);
 
@@ -106,9 +151,19 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         t_kernel_entrada_salida *entrada_salida = kernel_entrada_salida_buscar_interfaz(args, proceso_recibido->interfaz);
 
+        t_pcb *pcb = proceso_buscar_exec(args->estados, proceso_recibido->pid);
+
+        if (pcb == NULL)
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
+            break;
+        }
+
         // Si la interfaz de entrada salida no esta conectada
         if (entrada_salida == NULL)
         {
+            pcb->quantum = interrumpir_temporizador(args);
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar la instrucción <IO_STDIN_READ> del PID <%d> a la interfaz <%s> porque no está conectada.", proceso_recibido->pid, proceso_recibido->interfaz);
             kernel_cpu_entradasalida_no_conectada(args, CPU_IO_STDIN_READ, proceso_recibido->interfaz, proceso_recibido->pid);
             kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
 
@@ -121,6 +176,9 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         // Si la interfaz de entrada salida pedida no es del tipo STDIN
         if (entrada_salida->tipo != ENTRADA_SALIDA_STDIN)
         {
+            pcb->quantum = interrumpir_temporizador(args);
+
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar la instrucción <IO_STDIN_READ> del PID <%d> a la interfaz <%s> porque no es IO_STDIN.", proceso_recibido->pid, proceso_recibido->interfaz);
             kernel_cpu_entradasalida_distinto_tipo(args, CPU_IO_STDIN_READ, proceso_recibido->interfaz, proceso_recibido->pid);
 
             kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
@@ -134,15 +192,49 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         // Si la interfaz de entrada salida esta ocupada
         if (entrada_salida->ocupado)
         {
-            kernel_cpu_entradasalida_ocupada(args, CPU_IO_STDIN_READ, proceso_recibido->interfaz, proceso_recibido->pid);
+            pcb->quantum = interrumpir_temporizador(args);
 
-            kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
+            kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_STDIN_READ> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
 
+            proceso_actualizar_registros(pcb, proceso_recibido->registros);
+            kernel_transicion_exec_block(args);
+
+            // Actualizar campo proxima_io
+            pcb->proxima_io->identificador = strdup(proceso_recibido->interfaz);
+            pcb->proxima_io->tipo = ENTRADA_SALIDA_STDIN;
+            pcb->proxima_io->args = list_create();
+
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->pid));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->resultado));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registro_direccion));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registro_tamanio));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->marco_inicial));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->marco_final));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->numero_pagina));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->direccion_fisica));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->desplazamiento));
+            list_add(pcb->proxima_io->args, strdup(proceso_recibido->interfaz));
+            list_add(pcb->proxima_io->args, string_itoa((strlen(proceso_recibido->interfaz) + 1)));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.ax));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.bx));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.cx));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.dx));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.eax));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.ebx));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.ecx));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.edx));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.si));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.di));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.pc));
+
+            avisar_planificador(args);
             free(proceso_recibido->interfaz);
             free(proceso_recibido);
 
             break;
         }
+
+        pcb->quantum = interrumpir_temporizador(args);
 
         // Actualizo la interfaz de entrada salida
         entrada_salida->ocupado = 1;
@@ -166,22 +258,13 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         proceso_completo->size_interfaz = strlen(proceso_completo->interfaz) + 1;
         proceso_completo->registros = proceso_recibido->registros;
 
-        t_pcb *pcb = proceso_buscar_exec(args->estados, proceso_recibido->pid);
-
-        if (pcb == NULL)
-        {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
-            break;
-        }
-
         proceso_actualizar_registros(pcb, proceso_recibido->registros);
 
+        kernel_transicion_exec_block(args);
         serializar_t_kernel_io_stdin_read(&paquete, proceso_completo);
         enviar_paquete(paquete, entrada_salida->socket);
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio la instruccion de IO_STDIN_READ a la interfaz %s", entrada_salida->interfaz);
-
-        kernel_transicion_exec_block(args);
 
         avisar_planificador(args);
 

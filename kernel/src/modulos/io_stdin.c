@@ -32,6 +32,7 @@ void switch_case_kernel_entrada_salida_stdin(hilos_io_args *io_args, char *modul
             serializar_t_kernel_cpu_io_stdin_read(&paquete, proceso_enviar);
             enviar_paquete(paquete, io_args->args->kernel->sockets.cpu_dispatch);
 
+            kernel_proximo_io_stdin(io_args->args, io_args->entrada_salida);
             avisar_planificador(io_args->args);
         }
         else
