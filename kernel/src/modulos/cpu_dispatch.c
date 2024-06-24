@@ -69,8 +69,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             pcb->proxima_io->args = list_create();
 
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->pid));
-
-            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->pid));
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->resultado));
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registro_direccion));
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registro_tamanio));
