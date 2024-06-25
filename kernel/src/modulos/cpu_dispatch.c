@@ -64,6 +64,10 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             kernel_transicion_exec_block(args);
 
             // Actualizar campo proxima_io
+            if (pcb->proxima_io == NULL)
+            {
+                pcb->proxima_io = malloc(sizeof(t_proceso_proxima_io));
+            }
             pcb->proxima_io->identificador = strdup(proceso_recibido->interfaz);
             pcb->proxima_io->tipo = ENTRADA_SALIDA_STDOUT;
             pcb->proxima_io->args = list_create();
@@ -198,6 +202,10 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             kernel_transicion_exec_block(args);
 
             // Actualizar campo proxima_io
+            if (pcb->proxima_io == NULL)
+            {
+                pcb->proxima_io = malloc(sizeof(t_proceso_proxima_io));
+            }
             pcb->proxima_io->identificador = strdup(proceso_recibido->interfaz);
             pcb->proxima_io->tipo = ENTRADA_SALIDA_STDIN;
             pcb->proxima_io->args = list_create();

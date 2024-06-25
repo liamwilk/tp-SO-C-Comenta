@@ -467,7 +467,6 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
         {
             kernel_transicion_exec_exit(kernel_hilos_args);
         }
-
         kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <SUCCESS>", pid);
         proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
@@ -488,17 +487,9 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
     }
     case SEGMENTATION_FAULT:
     {
-        t_pcb *pcb_en_block = kernel_transicion_block_exit(kernel_hilos_args, pid);
-
-        if (pcb_en_block == NULL)
-        {
-            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "El proceso <%d> no se encuentra en BLOCK", pid);
-            return false;
-        }
-
-        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <SEGMENTATION_FAULT>", pcb_en_block->pid);
+        kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <SEGMENTATION_FAULT>", pid);
         kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
-        proceso_matar(kernel_hilos_args->estados, string_itoa(pcb_en_block->pid));
+        proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
         return true;
     }
     case OUT_OF_MEMORY:

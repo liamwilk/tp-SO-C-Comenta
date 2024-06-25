@@ -398,13 +398,11 @@ void kernel_proximo_io_generic(hilos_args *args, t_kernel_entrada_salida *io)
             {
                 continue;
             }
-            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso <%d> no bloqueado por recurso", pcb->pid);
             if (pcb->proxima_io == NULL)
             {
                 continue;
             }
 
-            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso <%d> bloqueado por I/O en interfaz <%s>", pcb->pid, pcb->proxima_io->identificador);
             if (strcmp(pcb->proxima_io->identificador, io->interfaz) == 0 && pcb->proxima_io->tipo == ENTRADA_SALIDA_GENERIC)
             {
                 io->ocupado = 1;
@@ -419,6 +417,8 @@ void kernel_proximo_io_generic(hilos_args *args, t_kernel_entrada_salida *io)
 
                 eliminar_paquete(paquete);
                 free(unidad);
+                free(pcb->proxima_io->args);
+                pcb->proxima_io = NULL;
             }
         }
     }
@@ -443,7 +443,6 @@ void kernel_proximo_io_stdout(hilos_args *args, t_kernel_entrada_salida *io)
             {
                 continue;
             }
-            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso <%d> no bloqueado por recurso", pcb->pid);
             if (pcb->proxima_io == NULL)
             {
                 continue;
@@ -527,6 +526,7 @@ void kernel_proximo_io_stdout(hilos_args *args, t_kernel_entrada_salida *io)
                 free(pc);
                 eliminar_paquete(paquete);
                 free(proceso);
+                pcb->proxima_io = NULL;
             }
         }
     }
@@ -535,7 +535,6 @@ void kernel_proximo_io_stdout(hilos_args *args, t_kernel_entrada_salida *io)
 void kernel_proximo_io_stdin(hilos_args *args, t_kernel_entrada_salida *io)
 {
     int proceso_en_block = list_size(args->estados->block);
-    kernel_log_generic(args, LOG_LEVEL_DEBUG, "Procesos en block: <%d>", proceso_en_block);
     if (proceso_en_block > 0)
     {
         for (int i = 0; i < proceso_en_block; i++)
@@ -552,7 +551,6 @@ void kernel_proximo_io_stdin(hilos_args *args, t_kernel_entrada_salida *io)
             {
                 continue;
             }
-            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso <%d> no bloqueado por recurso", pcb->pid);
             if (pcb->proxima_io == NULL)
             {
                 continue;
@@ -644,6 +642,8 @@ void kernel_proximo_io_stdin(hilos_args *args, t_kernel_entrada_salida *io)
                 free(di);
                 free(pc);
                 free(proceso);
+                free(pcb->proxima_io->args);
+                pcb->proxima_io = NULL;
             }
         }
     }
