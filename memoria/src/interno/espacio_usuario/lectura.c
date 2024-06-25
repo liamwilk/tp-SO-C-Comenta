@@ -42,16 +42,6 @@ int espacio_usuario_leer_dato(t_args *args, t_proceso *proceso, uint32_t direcci
         }
     }
 
-    // Reviso que la dirección física tenga datos
-    for (size_t i = 0; i < tamano; i++)
-    {
-        if (origen[i] == '\n')
-        {
-            log_error(args->logger, "Se intento leer la dirección física %lu, pero está vacía.", direccion_fisica + i);
-            return -1;
-        }
-    }
-
     // Alerto si es que la lectura abarca más de un frame
     if (frame_inicio != frame_fin)
     {

@@ -19,7 +19,6 @@ void switch_case_kernel_entrada_salida_stdout(hilos_io_args *io_args, char *modu
 
         if (proceso_recibido->resultado)
         {
-            interrumpir_temporizador(io_args->args);
             kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/%s/%d] Se completó la operación de IO_STDOUT_WRITE para el proceso PID <%d>", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden, proceso_recibido->pid);
 
             io_args->entrada_salida->ocupado = 0;
@@ -33,6 +32,7 @@ void switch_case_kernel_entrada_salida_stdout(hilos_io_args *io_args, char *modu
             serializar_t_kernel_cpu_io_stdout_write(&paquete, proceso_enviar);
             enviar_paquete(paquete, io_args->args->kernel->sockets.cpu_dispatch);
 
+            kernel_proximo_io_stdout(io_args->args, io_args->entrada_salida);
             avisar_planificador(io_args->args);
         }
         else

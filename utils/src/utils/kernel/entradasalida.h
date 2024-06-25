@@ -7,6 +7,7 @@
 #include "structs.h"
 #include "consola.h"
 #include "../conexiones.h"
+#include "../recursos.h"
 
 /**
  * Procesa una operación de entrada/salida rechazada.
@@ -159,5 +160,12 @@ void kernel_cpu_entradasalida_distinto_tipo(hilos_args *args, t_kernel_cpu_entra
  * @param pid El ID del proceso asociado con la operación de entrada/salida.
  */
 void kernel_cpu_entradasalida_ocupada(hilos_args *args, t_kernel_cpu_entradasalida_error TIPO, char *interfaz, uint32_t pid);
+
+// Se busca el proximo proceso en block esperando utilizar esa io especificamente IO_GENERIC
+void kernel_proximo_io_generic(hilos_args *args, t_kernel_entrada_salida *io);
+
+void kernel_proximo_io_stdout(hilos_args *args, t_kernel_entrada_salida *io);
+
+void kernel_proximo_io_stdin(hilos_args *args, t_kernel_entrada_salida *io);
 
 #endif /* KERNEL_ENTRADASALIDA_H_ */

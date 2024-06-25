@@ -80,7 +80,7 @@ void *conectar_kernel_generic(void *args_void)
 t_interfaz determinar_interfaz(t_config *config)
 {
     char *tipoInterfaz = config_get_string_value(config, "TIPO_INTERFAZ");
-    if (!strcmp(tipoInterfaz, "GEN"))
+    if (!strcmp(tipoInterfaz, "GENERICA"))
     {
         return GEN;
     }
@@ -320,8 +320,11 @@ void *conectar_kernel_dialfs(void *args_void)
 
 void finalizar_interfaz(t_io *args)
 {
-    bloques_desmapear(args);
-    bitmap_desmapear(args);
+    if (determinar_interfaz(args->config) == DIALFS)
+    {
+        bloques_desmapear(args);
+        bitmap_desmapear(args);
+    }
     log_destroy(args->logger);
     config_destroy(args->config);
 }
@@ -405,49 +408,37 @@ void interfaz_interrumpir_temporizador(t_io *args)
     }
 }
 
-void interfaz_iniciar_temporizador(t_io *args, int duracion)
+void interfaz_iniciar_temporizador(t_io *args, double duracion)
 {
-    // Crea el temporizador
+    // Creo el temporizador
     timer_create(CLOCK_REALTIME, &args->timer.sev, &args->timer.timer);
 
-    switch (determinar_interfaz(args->config))
-    {
-    case GEN:
-    {
-        // Convierto el tiempo de milisegundos a segundos
-        args->duracion = (duracion * args->tiempoUnidadDeTrabajo) / 1000;
-        break;
-    }
-    case STDIN:
-    {
-        // Placehodler
-        break;
-    }
-    case STDOUT:
-    {
-        // Placeholder
-        break;
-    }
-    case DIALFS:
-    {
-        // Placeholder
-        break;
-    }
-    }
+    // Convierto la duración de milisegundos a segundos
+    double tiempo_total = duracion * args->tiempoUnidadDeTrabajo / 1000.0;
+
+    // Separo el tiempo total en segundos y nanosegundos
+    time_t segundos = (time_t)tiempo_total;                              // Parte entera en segundos
+    long nanosegundos = (long)((tiempo_total - segundos) * 1000000000L); // Parte decimal convertida a nanosegundos
 
     // Configura el tiempo de inicio y el intervalo del temporizador
-    args->timer.its.it_value.tv_sec = args->duracion;
-    args->timer.its.it_value.tv_nsec = 0;
+    args->timer.its.it_value.tv_sec = segundos;
+    args->timer.its.it_value.tv_nsec = nanosegundos;
     args->timer.its.it_interval.tv_sec = 0;
     args->timer.its.it_interval.tv_nsec = 0;
 
-    // Inicia el temporizador
-    timer_settime(args->timer.timer, 0, &args->timer.its, NULL);
+    // Inicio el temporizador
+    if (timer_settime(args->timer.timer, 0, &args->timer.its, NULL) == -1)
+    {
+        log_debug(args->logger, "Error al iniciar el temporizador");
+    }
+
+    // Logueo el tiempo del temporizador
+    log_debug(args->logger, "Temporizador iniciado: %ld segundos y %ld nanosegundos", segundos, nanosegundos);
 }
 
 void interfaz_inicializar_temporizador(t_io *args, timer_args_io_t *temporizador)
 {
-    // Configura la estructura sigevent
+    // Configuro la estructura sigevent
     args->timer.sev.sigev_notify = SIGEV_THREAD;
     args->timer.sev.sigev_value.sival_ptr = temporizador;
     args->timer.sev.sigev_notify_function = interfaz_manejador_temporizador;
@@ -458,43 +449,20 @@ void interfaz_manejador_temporizador(union sigval arg)
 {
     timer_args_io_t *timerArgs = (timer_args_io_t *)arg.sival_ptr;
 
-    switch (determinar_interfaz(timerArgs->args->config))
-    {
-    case GEN:
-    {
-        // Convierto el tiempo de milisegundos a segundos
-        t_paquete *aviso_sleep = crear_paquete(ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP);
-        t_entrada_salida_kernel_unidad_de_trabajo *unidad = malloc(sizeof(t_entrada_salida_kernel_unidad_de_trabajo));
+    t_paquete *aviso_sleep = crear_paquete(ENTRADA_SALIDA_KERNEL_IO_GEN_SLEEP);
+    t_entrada_salida_kernel_unidad_de_trabajo *unidad = malloc(sizeof(t_entrada_salida_kernel_unidad_de_trabajo));
 
-        unidad->terminado = true;
-        unidad->pid = timerArgs->args->pid;
+    unidad->terminado = true;
+    unidad->pid = timerArgs->args->pid;
 
-        serializar_t_entrada_salida_kernel_unidad_de_trabajo(&aviso_sleep, unidad);
+    serializar_t_entrada_salida_kernel_unidad_de_trabajo(&aviso_sleep, unidad);
 
-        enviar_paquete(aviso_sleep, timerArgs->args->sockets.socket_kernel_generic);
+    enviar_paquete(aviso_sleep, timerArgs->args->sockets.socket_kernel_generic);
 
-        log_info(timerArgs->args->logger, "Se notifica finalizacion de instruccion <IO_GEN_SLEEP> <%s> <%d> del PID <%d>", timerArgs->args->identificador, timerArgs->args->unidades, timerArgs->args->pid);
+    log_info(timerArgs->args->logger, "Se notifica finalizacion de instruccion <IO_GEN_SLEEP> <%s> <%d> del PID <%d>", timerArgs->args->identificador, timerArgs->args->unidades, timerArgs->args->pid);
 
-        eliminar_paquete(aviso_sleep);
-        free(unidad);
-        break;
-    }
-    case STDIN:
-    {
-        // Placehodler
-        break;
-    }
-    case STDOUT:
-    {
-        // Placeholder
-        break;
-    }
-    case DIALFS:
-    {
-        // Placeholder
-        break;
-    }
-    }
+    eliminar_paquete(aviso_sleep);
+    free(unidad);
 }
 
 char *leer_input_usuario(uint32_t size_input)
