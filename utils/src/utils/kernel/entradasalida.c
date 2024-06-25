@@ -398,11 +398,10 @@ void kernel_proximo_io_generic(hilos_args *args, t_kernel_entrada_salida *io)
             {
                 continue;
             }
-            if (pcb->proxima_io == NULL)
+            if (pcb->proxima_io->tiene_proxima_io == false)
             {
                 continue;
             }
-
             if (strcmp(pcb->proxima_io->identificador, io->interfaz) == 0 && pcb->proxima_io->tipo == ENTRADA_SALIDA_GENERIC)
             {
                 io->ocupado = 1;
@@ -418,8 +417,7 @@ void kernel_proximo_io_generic(hilos_args *args, t_kernel_entrada_salida *io)
                 eliminar_paquete(paquete);
                 free(unidad);
                 free(pcb->proxima_io->args);
-                // TODO: Se debe hacer un FREE, el problema es que en kernel_proxima_io_generic, kernel_proxima_io_stdin y kernel_proxima_io_stdout cuando se quiere comprobar si pcb->proxima_io ==NULL tira false aunque se haya hecho el free
-                pcb->proxima_io = NULL;
+                pcb->proxima_io->tiene_proxima_io = false;
             }
         }
     }
@@ -444,7 +442,7 @@ void kernel_proximo_io_stdout(hilos_args *args, t_kernel_entrada_salida *io)
             {
                 continue;
             }
-            if (pcb->proxima_io == NULL)
+            if (pcb->proxima_io->tiene_proxima_io == false)
             {
                 continue;
             }
@@ -527,7 +525,7 @@ void kernel_proximo_io_stdout(hilos_args *args, t_kernel_entrada_salida *io)
                 free(pc);
                 eliminar_paquete(paquete);
                 free(proceso);
-                pcb->proxima_io = NULL;
+                pcb->proxima_io->tiene_proxima_io = false;
             }
         }
     }
@@ -552,7 +550,7 @@ void kernel_proximo_io_stdin(hilos_args *args, t_kernel_entrada_salida *io)
             {
                 continue;
             }
-            if (pcb->proxima_io == NULL)
+            if (pcb->proxima_io->tiene_proxima_io == false)
             {
                 continue;
             }
@@ -644,9 +642,7 @@ void kernel_proximo_io_stdin(hilos_args *args, t_kernel_entrada_salida *io)
                 free(pc);
                 free(proceso);
                 free(pcb->proxima_io->args);
-
-                // TODO: Se debe hacer un FREE, el problema es que en kernel_proxima_io_generic, kernel_proxima_io_stdin y kernel_proxima_io_stdout cuando se quiere comprobar si pcb->proxima_io ==NULL tira false aunque se haya hecho el free
-                pcb->proxima_io = NULL;
+                pcb->proxima_io->tiene_proxima_io = false;
             }
         }
     }

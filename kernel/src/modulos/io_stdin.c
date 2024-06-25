@@ -20,20 +20,29 @@ void switch_case_kernel_entrada_salida_stdin(hilos_io_args *io_args, char *modul
         if (proceso_recibido->resultado)
         {
             kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/%s/%d] Se completó la operación de IO_STDIN_READ para el proceso PID <%d>", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden, proceso_recibido->pid);
+            t_kernel_entrada_salida *io = kernel_entrada_salida_buscar_interfaz_pid(io_args->args, proceso_recibido->pid);
+            if (io == NULL)
+            {
+                kernel_log_generic(io_args->args, LOG_LEVEL_ERROR, "No se encontro el tipo IOSTDIN para el proceso PID <%d>", proceso_recibido->pid);
+            }
+            else
+            {
+                io_args->entrada_salida->ocupado = 0;
+                io_args->entrada_salida->pid = 0;
+                kernel_manejar_ready(io_args->args, proceso_recibido->pid, BLOCK_READY);
 
-            io_args->entrada_salida->ocupado = 0;
-            kernel_manejar_ready(io_args->args, proceso_recibido->pid, BLOCK_READY);
+                proceso_enviar->pid = proceso_recibido->pid;
+                proceso_enviar->resultado = 1;
+                proceso_enviar->motivo = strdup("Se completó la operación de IO_STDIN_READ");
 
-            proceso_enviar->pid = proceso_recibido->pid;
-            proceso_enviar->resultado = 1;
-            proceso_enviar->motivo = strdup("Se completó la operación de IO_STDIN_READ");
-            proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
+                proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
 
-            serializar_t_kernel_cpu_io_stdin_read(&paquete, proceso_enviar);
-            enviar_paquete(paquete, io_args->args->kernel->sockets.cpu_dispatch);
+                serializar_t_kernel_cpu_io_stdin_read(&paquete, proceso_enviar);
+                enviar_paquete(paquete, io_args->args->kernel->sockets.cpu_dispatch);
 
-            kernel_proximo_io_stdin(io_args->args, io_args->entrada_salida);
-            avisar_planificador(io_args->args);
+                kernel_proximo_io_stdin(io_args->args, io);
+                avisar_planificador(io_args->args);
+            }
         }
         else
         {

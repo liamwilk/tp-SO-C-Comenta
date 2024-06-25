@@ -46,9 +46,10 @@ void tabla_paginas_liberar(t_args *argumentos, t_proceso *proceso)
     for (int i = 0; i < list_size(proceso->tabla_paginas); i++)
     {
         t_pagina *pagina = list_get(proceso->tabla_paginas, i);
-        if (pagina != NULL)
+        if (pagina != NULL && pagina->validez == 1)
         {
             argumentos->memoria.bitmap_array[pagina->marco] = 0;
+            tabla_paginas_liberar_pagina(argumentos, proceso, i);
         }
     }
 
@@ -111,10 +112,13 @@ int tabla_paginas_liberar_pagina(t_args *argumentos, t_proceso *proceso, uint32_
 
     espacio_usuario_liberar_dato(argumentos, direccion_fisica, argumentos->memoria.tamPagina);
 
+    argumentos->memoria.bytes_usados[pagina->marco] = 0;
+
     pagina->marco = 0;
     pagina->validez = 0;
     pagina->bytes = 0;
     pagina->offset = 0;
+    
 
     return 0;
 }

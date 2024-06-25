@@ -44,12 +44,12 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
             proceso_actualizar_registros(pcb, sleep->registros);
             kernel_transicion_exec_block(args);
 
-            // Actualizar campo proxima_io
-            if (pcb->proxima_io == NULL)
+            // Actualizar campo tiene_proxima_io
+            if (pcb->proxima_io->tiene_proxima_io == false)
             {
-                pcb->proxima_io = malloc(sizeof(t_proceso_proxima_io));
+                pcb->proxima_io->tiene_proxima_io = true;
             }
-            pcb->proxima_io->identificador = strdup(sleep->interfaz);
+            pcb->proxima_io->identificador = strdup(entrada_salida->interfaz);
             pcb->proxima_io->tipo = ENTRADA_SALIDA_GENERIC;
             pcb->proxima_io->args = list_create();
 
