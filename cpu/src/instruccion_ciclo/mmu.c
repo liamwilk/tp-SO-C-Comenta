@@ -52,8 +52,12 @@ void *hilo_mmu(void *args_void)
             if (args->resultado)
             {
                 // En este punto, ya tengo el numero de frame cargado en TLB, asi que lo busco y lo guardo en la estructura
-                args->marco = buscar_en_tlb(args->proceso.pid, args->pagina, args->config_leida.cantidadEntradasTlb, args->tlb);
 
+                if (config_get_int_value(args->config, "CANTIDAD_ENTRADAS_TLB") > 0)
+                {
+                    args->marco = buscar_en_tlb(args->proceso.pid, args->pagina, args->config_leida.cantidadEntradasTlb, args->tlb);
+                }
+                
                 // Calculo la direccion fisica
                 args->direccion_fisica = (args->marco * args->tam_pagina) + desplazamiento;
             }
@@ -125,6 +129,9 @@ void *hilo_mmu(void *args_void)
                 // Ahora, pediría el marco de DI
                 t_copy_string *proceso_completo = (t_copy_string *)args->paquete;
 
+                log_warning(args->logger, "Marco SI: <%d>", args->marco);
+                log_warning(args->logger, "Direccion fisica SI: <%d>", args->direccion_fisica);
+
                 proceso_completo->direccion_fisica_si = args->direccion_fisica;
                 proceso_completo->marco_si = args->marco;
                 mmu_iniciar(args, COPY_STRING_2, proceso_completo->direccion_di, (void *)proceso_completo);
@@ -134,6 +141,9 @@ void *hilo_mmu(void *args_void)
             {
                 t_paquete *paquete = crear_paquete(CPU_MEMORIA_COPY_STRING_2);
                 t_copy_string *proceso_completo = (t_copy_string *)args->paquete;
+
+                log_warning(args->logger, "Marco DI: <%d>", args->marco);
+                log_warning(args->logger, "Direccion fisica SI: <%d>", args->direccion_fisica);
 
                 proceso_completo->direccion_fisica_di = args->direccion_fisica;
                 proceso_completo->marco_di = args->marco;
