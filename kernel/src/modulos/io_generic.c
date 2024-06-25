@@ -26,9 +26,6 @@ void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *mod
     {
         t_entrada_salida_kernel_unidad_de_trabajo *unidad = deserializar_t_entrada_salida_kernel_unidad_de_trabajo(buffer);
 
-        io_args->entrada_salida->ocupado = 0;
-        io_args->entrada_salida->pid = 0;
-
         // Verifico si este proceso no ha ya sido marcado como eliminado  en kernel
         if (kernel_verificar_proceso_en_exit(io_args->args, unidad->pid))
         {
@@ -38,9 +35,19 @@ void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *mod
         if (unidad->terminado)
         {
             t_kernel_entrada_salida *io = kernel_entrada_salida_buscar_interfaz_pid(io_args->args, unidad->pid);
-            kernel_manejar_ready(io_args->args, unidad->pid, BLOCK_READY);
-            // Envio el proximo proceso a esa IO
-            kernel_proximo_io_generic(io_args->args, io);
+            if (io == NULL)
+            {
+                kernel_log_generic(io_args->args, LOG_LEVEL_ERROR, "No se encontro el tipo GENERIC para el proceso PID <%d>", unidad->pid);
+            }
+            else
+            {
+                kernel_manejar_ready(io_args->args, unidad->pid, BLOCK_READY);
+                // Aviso a la IO que esta desocupada
+                io_args->entrada_salida->ocupado = 0;
+                io_args->entrada_salida->pid = 0;
+                // Envio el proximo proceso a esa IO
+                kernel_proximo_io_generic(io_args->args, io);
+            }
         }
         else
         {

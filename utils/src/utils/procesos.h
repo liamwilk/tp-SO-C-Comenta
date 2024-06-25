@@ -44,6 +44,7 @@ typedef struct t_proceso_proxima_io
     char *identificador;
     int tipo; // Enum KERNEL_SOCKETS
     t_list *args;
+    bool tiene_proxima_io; // Flag a verificar si tiene una io pendiente
 } t_proceso_proxima_io;
 
 typedef struct pcb
