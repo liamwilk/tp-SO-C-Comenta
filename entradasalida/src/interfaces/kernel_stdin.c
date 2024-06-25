@@ -63,4 +63,3 @@ void switch_case_kernel_stdin(t_io *args, t_op_code codigo_operacion, t_buffer *
     }
     }
 }
-

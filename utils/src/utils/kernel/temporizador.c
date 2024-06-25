@@ -23,23 +23,28 @@ int interrumpir_temporizador(hilos_args *args)
     }
     else
     {
-        if (quantum_restante.it_value.tv_sec > 0)
+        if (quantum_restante.it_value.tv_sec > 0 || quantum_restante.it_value.tv_nsec > 0)
         {
-            kernel_log_generic(args, LOG_LEVEL_WARNING, "[QUANTUM] Al proceso en ejecución se lo ha interrumpido y le sobra QUANTUM: <%ld> milisegundos", quantum_restante.it_value.tv_sec * 1000);
+            long tiempo_milisegundos = quantum_restante.it_value.tv_nsec / 1000000.0; // milisegundos
+            kernel_log_generic(args, LOG_LEVEL_WARNING, "[QUANTUM] Al proceso en ejecución se lo ha interrumpido y le sobra QUANTUM: <%ld> milisegundos", tiempo_milisegundos);
+            // kernel_log_generic(args, LOG_LEVEL_WARNING, "[QUANTUM] Al proceso en ejecución se lo ha interrumpido y le sobra QUANTUM: <%ld> milisegundos", segundos * 1000);
         }
     }
-    return quantum_restante.it_value.tv_sec * 1000;
+    long tiempo_milisegundos = quantum_restante.it_value.tv_nsec / 1000000.0; // milisegundos
+    return tiempo_milisegundos;
 }
 
-void iniciar_temporizador(hilos_args *args, int milisegundos)
+void iniciar_temporizador(hilos_args *args, double milisegundos)
 {
     // Crea el temporizador
     timer_create(CLOCK_REALTIME, &args->sev, &args->timer);
 
     // Configura el tiempo de inicio y el intervalo del temporizador
-    int segundos = milisegundos / 1000;
+    double tiempo_total = milisegundos / 1000.0;
+    time_t segundos = (time_t)tiempo_total;
+    long nanosegundos = (long)((tiempo_total - segundos) * 1000000000L);
     args->its.it_value.tv_sec = segundos;
-    args->its.it_value.tv_nsec = 0;
+    args->its.it_value.tv_nsec = nanosegundos;
     args->its.it_interval.tv_sec = 0;
     args->its.it_interval.tv_nsec = 0;
 

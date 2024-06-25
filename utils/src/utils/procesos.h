@@ -39,6 +39,13 @@ typedef enum
     VRR
 } t_algoritmo;
 
+typedef struct t_proceso_proxima_io
+{
+    char *identificador;
+    int tipo; // Enum KERNEL_SOCKETS
+    t_list *args;
+} t_proceso_proxima_io;
+
 typedef struct pcb
 {
     uint32_t pid;
@@ -47,6 +54,8 @@ typedef struct pcb
     bool memoria_aceptado;
     t_temporal *tiempo_fin;    // Esto es utilizado en los algoritmos de planificación con QUANTUM Es el tiempo del quantum - el tiempo fin = quantum que sobro
     pthread_t sleeping_thread; // Esto es para que el hilo de sleep pueda ser cancelado
+    t_proceso_proxima_io *proxima_io;
+    t_dictionary *recursos_tomados; // Diccionario mapeando el nombre del recurso y la cantidad de instancias tomadas por este proceso
 } t_pcb;
 
 extern uint32_t pid;

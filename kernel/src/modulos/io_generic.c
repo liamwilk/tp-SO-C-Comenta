@@ -37,7 +37,10 @@ void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *mod
 
         if (unidad->terminado)
         {
+            t_kernel_entrada_salida *io = kernel_entrada_salida_buscar_interfaz_pid(io_args->args, unidad->pid);
             kernel_manejar_ready(io_args->args, unidad->pid, BLOCK_READY);
+            // Envio el proximo proceso a esa IO
+            kernel_proximo_io_generic(io_args->args, io);
         }
         else
         {

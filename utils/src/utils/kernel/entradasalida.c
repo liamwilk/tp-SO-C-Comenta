@@ -378,3 +378,276 @@ void kernel_cpu_entradasalida_ocupada(hilos_args *args, t_kernel_cpu_entradasali
         free(proceso_enviar);
     }
 };
+
+void kernel_proximo_io_generic(hilos_args *args, t_kernel_entrada_salida *io)
+{
+    int proceso_en_block = list_size(args->estados->block);
+    if (proceso_en_block > 0)
+    {
+        for (int i = 0; i < proceso_en_block; i++)
+        {
+            t_pcb *pcb = list_get(args->estados->block, i);
+
+            if (pcb == NULL)
+            {
+                continue;
+            }
+            // Verificamos que este bloqueado por I/O y no por RECURSO
+            char *recurso_bloqueado = recurso_buscar_pid(args->recursos, pcb->pid);
+            if (recurso_bloqueado != NULL)
+            {
+                continue;
+            }
+            if (pcb->proxima_io == NULL)
+            {
+                continue;
+            }
+
+            if (strcmp(pcb->proxima_io->identificador, io->interfaz) == 0 && pcb->proxima_io->tipo == ENTRADA_SALIDA_GENERIC)
+            {
+                io->ocupado = 1;
+                io->pid = pcb->pid;
+                t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_GEN_SLEEP);
+                t_kernel_entrada_salida_unidad_de_trabajo *unidad = malloc(sizeof(t_kernel_entrada_salida_unidad_de_trabajo));
+                unidad->pid = pcb->pid;
+                char *unidad_trabajo = list_get(pcb->proxima_io->args, 0);
+                unidad->unidad_de_trabajo = atoi(unidad_trabajo);
+                serializar_t_kernel_entrada_salida_unidad_de_trabajo(&paquete, unidad);
+                enviar_paquete(paquete, io->socket);
+
+                eliminar_paquete(paquete);
+                free(unidad);
+                free(pcb->proxima_io->args);
+                // TODO: Se debe hacer un FREE, el problema es que en kernel_proxima_io_generic, kernel_proxima_io_stdin y kernel_proxima_io_stdout cuando se quiere comprobar si pcb->proxima_io ==NULL tira false aunque se haya hecho el free
+                pcb->proxima_io = NULL;
+            }
+        }
+    }
+}
+
+void kernel_proximo_io_stdout(hilos_args *args, t_kernel_entrada_salida *io)
+{
+    int proceso_en_block = list_size(args->estados->block);
+    if (proceso_en_block > 0)
+    {
+        for (int i = 0; i < proceso_en_block; i++)
+        {
+            t_pcb *pcb = list_get(args->estados->block, i);
+
+            if (pcb == NULL)
+            {
+                continue;
+            }
+            // Verificamos que este bloqueado por I/O y no por RECURSO
+            char *recurso_bloqueado = recurso_buscar_pid(args->recursos, pcb->pid);
+            if (recurso_bloqueado != NULL)
+            {
+                continue;
+            }
+            if (pcb->proxima_io == NULL)
+            {
+                continue;
+            }
+
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso <%d> bloqueado por I/O en interfaz <%s>", pcb->pid, pcb->proxima_io->identificador);
+            if (strcmp(pcb->proxima_io->identificador, io->interfaz) == 0 && pcb->proxima_io->tipo == ENTRADA_SALIDA_STDOUT)
+            {
+                io->ocupado = 1;
+                io->pid = pcb->pid;
+
+                t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_STDOUT_WRITE);
+                t_io_stdout_write *proceso = malloc(sizeof(t_io_stdout_write));
+
+                char *pid = list_get(pcb->proxima_io->args, 0);
+                proceso->pid = atoi(pid);
+                char *resultado = list_get(pcb->proxima_io->args, 1);
+                proceso->resultado = atoi(resultado);
+                char *registro_direccion = list_get(pcb->proxima_io->args, 2);
+                proceso->registro_direccion = atoi(registro_direccion);
+                char *registro_tamanio = list_get(pcb->proxima_io->args, 3);
+                proceso->registro_tamanio = atoi(registro_tamanio);
+                char *marco = list_get(pcb->proxima_io->args, 4);
+                proceso->marco = atoi(marco);
+                char *numero_pagina = list_get(pcb->proxima_io->args, 5);
+                proceso->numero_pagina = atoi(numero_pagina);
+                char *direccion_fisica = list_get(pcb->proxima_io->args, 6);
+                proceso->direccion_fisica = atoi(direccion_fisica);
+                char *desplazamiento = list_get(pcb->proxima_io->args, 7);
+                proceso->desplazamiento = atoi(desplazamiento);
+                char *size_interfaz = list_get(pcb->proxima_io->args, 8);
+                proceso->size_interfaz = atoi(size_interfaz);
+                char *interfaz = list_get(pcb->proxima_io->args, 9);
+                proceso->interfaz = strdup(interfaz);
+                char *ax = list_get(pcb->proxima_io->args, 10);
+                proceso->registros.ax = atoi(ax);
+                char *bx = list_get(pcb->proxima_io->args, 11);
+                proceso->registros.bx = atoi(bx);
+                char *cx = list_get(pcb->proxima_io->args, 12);
+                proceso->registros.cx = atoi(cx);
+                char *dx = list_get(pcb->proxima_io->args, 13);
+                proceso->registros.dx = atoi(dx);
+                char *eax = list_get(pcb->proxima_io->args, 14);
+                proceso->registros.eax = atoi(eax);
+                char *ebx = list_get(pcb->proxima_io->args, 15);
+                proceso->registros.ebx = atoi(ebx);
+                char *ecx = list_get(pcb->proxima_io->args, 16);
+                proceso->registros.ecx = atoi(ecx);
+                char *edx = list_get(pcb->proxima_io->args, 17);
+                proceso->registros.edx = atoi(edx);
+                char *si = list_get(pcb->proxima_io->args, 18);
+                proceso->registros.si = atoi(si);
+                char *di = list_get(pcb->proxima_io->args, 19);
+                proceso->registros.di = atoi(di);
+                char *pc = list_get(pcb->proxima_io->args, 20);
+                proceso->registros.pc = atoi(pc);
+
+                serializar_t_io_stdout_write(&paquete, proceso);
+                enviar_paquete(paquete, io->socket);
+
+                free(pid);
+                free(resultado);
+                free(registro_direccion);
+                free(registro_tamanio);
+                free(marco);
+                free(numero_pagina);
+                free(direccion_fisica);
+                free(desplazamiento);
+                free(interfaz);
+                free(size_interfaz);
+                free(ax);
+                free(bx);
+                free(cx);
+                free(dx);
+                free(eax);
+                free(ebx);
+                free(ecx);
+                free(edx);
+                free(si);
+                free(di);
+                free(pc);
+                eliminar_paquete(paquete);
+                free(proceso);
+                pcb->proxima_io = NULL;
+            }
+        }
+    }
+}
+
+void kernel_proximo_io_stdin(hilos_args *args, t_kernel_entrada_salida *io)
+{
+    int proceso_en_block = list_size(args->estados->block);
+    if (proceso_en_block > 0)
+    {
+        for (int i = 0; i < proceso_en_block; i++)
+        {
+            t_pcb *pcb = list_get(args->estados->block, i);
+
+            if (pcb == NULL)
+            {
+                continue;
+            }
+            // Verificamos que este bloqueado por I/O y no por RECURSO
+            char *recurso_bloqueado = recurso_buscar_pid(args->recursos, pcb->pid);
+            if (recurso_bloqueado != NULL)
+            {
+                continue;
+            }
+            if (pcb->proxima_io == NULL)
+            {
+                continue;
+            }
+
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso <%d> bloqueado por I/O en interfaz <%s>", pcb->pid, pcb->proxima_io->identificador);
+            if (strcmp(pcb->proxima_io->identificador, io->interfaz) == 0 && pcb->proxima_io->tipo == ENTRADA_SALIDA_STDIN)
+            {
+                io->ocupado = 1;
+                io->pid = pcb->pid;
+
+                t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_STDIN_READ);
+                t_io_stdin_read *proceso = malloc(sizeof(t_io_stdin_read));
+
+                char *pid = list_get(pcb->proxima_io->args, 0);
+                proceso->pid = atoi(pid);
+                char *resultado = list_get(pcb->proxima_io->args, 1);
+                proceso->resultado = atoi(resultado);
+                char *registro_direccion = list_get(pcb->proxima_io->args, 2);
+                proceso->registro_direccion = atoi(registro_direccion);
+                char *registro_tamanio = list_get(pcb->proxima_io->args, 3);
+                proceso->registro_tamanio = atoi(registro_tamanio);
+                char *marco_inicial = list_get(pcb->proxima_io->args, 4);
+                proceso->marco_inicial = atoi(marco_inicial);
+                char *marco_final = list_get(pcb->proxima_io->args, 5);
+                proceso->marco_final = atoi(marco_final);
+                char *numero_pagina = list_get(pcb->proxima_io->args, 6);
+                proceso->numero_pagina = atoi(numero_pagina);
+                char *direccion_fisica = list_get(pcb->proxima_io->args, 7);
+                proceso->direccion_fisica = atoi(direccion_fisica);
+                char *desplazamiento = list_get(pcb->proxima_io->args, 8);
+                proceso->desplazamiento = atoi(desplazamiento);
+                char *interfaz = list_get(pcb->proxima_io->args, 9);
+                proceso->interfaz = strdup(interfaz);
+                char *size_interfaz = list_get(pcb->proxima_io->args, 10);
+                proceso->size_interfaz = atoi(size_interfaz);
+                char *ax = list_get(pcb->proxima_io->args, 11);
+                proceso->registros.ax = atoi(ax);
+                char *bx = list_get(pcb->proxima_io->args, 12);
+                proceso->registros.bx = atoi(bx);
+                char *cx = list_get(pcb->proxima_io->args, 13);
+                proceso->registros.cx = atoi(cx);
+                char *dx = list_get(pcb->proxima_io->args, 14);
+                proceso->registros.dx = atoi(dx);
+                char *eax = list_get(pcb->proxima_io->args, 15);
+                proceso->registros.eax = atoi(eax);
+                char *ebx = list_get(pcb->proxima_io->args, 16);
+                proceso->registros.ebx = atoi(ebx);
+                char *ecx = list_get(pcb->proxima_io->args, 17);
+                proceso->registros.ecx = atoi(ecx);
+                char *edx = list_get(pcb->proxima_io->args, 18);
+                proceso->registros.edx = atoi(edx);
+                char *si = list_get(pcb->proxima_io->args, 19);
+                proceso->registros.si = atoi(si);
+                char *di = list_get(pcb->proxima_io->args, 20);
+                proceso->registros.di = atoi(di);
+                char *pc = list_get(pcb->proxima_io->args, 21);
+                proceso->registros.pc = atoi(pc);
+
+                kernel_log_generic(args, LOG_LEVEL_WARNING, "Direccion fisica: <%d>     Tamanio: <%d>", proceso->direccion_fisica, proceso->registro_tamanio);
+
+                serializar_t_io_stdin_read(&paquete, proceso);
+                enviar_paquete(paquete, io->socket);
+
+                kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio el paquete a la interfaz <%s> para el proceso <%d>", io->interfaz, pcb->pid);
+
+                eliminar_paquete(paquete);
+
+                free(pid);
+                free(resultado);
+                free(registro_direccion);
+                free(registro_tamanio);
+                free(marco_inicial);
+                free(marco_final);
+                free(numero_pagina);
+                free(direccion_fisica);
+                free(desplazamiento);
+                free(interfaz);
+                free(size_interfaz);
+                free(ax);
+                free(bx);
+                free(cx);
+                free(dx);
+                free(eax);
+                free(ebx);
+                free(ecx);
+                free(edx);
+                free(si);
+                free(di);
+                free(pc);
+                free(proceso);
+                free(pcb->proxima_io->args);
+
+                // TODO: Se debe hacer un FREE, el problema es que en kernel_proxima_io_generic, kernel_proxima_io_stdin y kernel_proxima_io_stdout cuando se quiere comprobar si pcb->proxima_io ==NULL tira false aunque se haya hecho el free
+                pcb->proxima_io = NULL;
+            }
+        }
+    }
+}

@@ -2,4 +2,4 @@
 #include "consola.h"
 
 int interrumpir_temporizador(hilos_args *args);
-void iniciar_temporizador(hilos_args *args, int duracion);
+void iniciar_temporizador(hilos_args *args, double duracion);
