@@ -176,5 +176,6 @@ void bloques_desmapear(t_io *args);
 
 void bitmap_inicializar(t_io *args);
 void bitmap_desmapear(t_io *args);
+void metadata_inicializar(t_io *args, t_dictionary *archivos);
 
 #endif // ENTRADASALIDA_H

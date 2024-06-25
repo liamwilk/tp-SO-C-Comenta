@@ -225,7 +225,8 @@ void interfaz_dialfs(t_io *args)
 
     bloques_inicializar(args);
     bitmap_inicializar(args);
-
+    t_dictionary *archivos = dictionary_create();
+    metadata_inicializar(args, archivos);
     pthread_create(&args->threads.thread_conectar_memoria_dialfs, NULL, conectar_memoria_dialfs, args);
     pthread_join(args->threads.thread_conectar_memoria_dialfs, NULL);
 
