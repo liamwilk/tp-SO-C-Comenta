@@ -1461,3 +1461,19 @@ t_copy_string *deserializar_t_copy_string(t_buffer *buffer)
 	deserializar_char(&stream, &(copy->frase), copy->size_frase);
 	return copy;
 }
+
+void serializar_t_kernel_entrada_salida_fs_create(t_paquete **paquete, t_kernel_entrada_salida_fs_create *create)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) + create->size_nombre);
+	serializar_uint32_t(create->pid, *paquete);
+	serializar_char(create->nombre, *paquete);
+}
+
+t_kernel_entrada_salida_fs_create *deserializar_t_kernel_entrada_salida_fs_create(t_buffer *buffer)
+{
+	t_kernel_entrada_salida_fs_create *create = malloc(sizeof(t_kernel_entrada_salida_fs_create));
+	void *stream = buffer->stream;
+	deserializar_uint32_t(&stream, &(create->pid));
+	deserializar_char(&stream, &(create->nombre), create->size_nombre);
+	return create;
+}
