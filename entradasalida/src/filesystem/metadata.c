@@ -55,17 +55,17 @@ void metadata_inicializar(t_io *args)
                     t_fcb *fcb = dictionary_get(args->dial_fs.archivos, key);
                     if (strcmp(entry->d_name, key) != 0)
                     {
-                        if (bloque_inicial > fcb->inicio && bloque_inicial < fcb->fin_bloque)
+                        if ((nuevo_fcb->inicio < fcb->inicio && nuevo_fcb->fin_bloque < fcb->inicio) || (nuevo_fcb->inicio > fcb->inicio && nuevo_fcb->inicio > fcb->fin_bloque))
+                        {
+                            continue;
+                        }
+                        else
                         {
                             log_error(args->logger, "El archivo %s se encuentra entre los bloques de %s", entry->d_name, key);
                             log_error(args->logger, "[DIALFS] Error en el filesystem se estan sobreescribiendo bloques de distintos archivos");
                             free(file_path);
                             free(nuevo_fcb);
                             exit(1);
-                        }
-                        else
-                        {
-                            continue;
                         }
                     }
                 }
