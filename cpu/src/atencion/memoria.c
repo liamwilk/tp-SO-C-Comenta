@@ -11,7 +11,16 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 		if (recibido->resultado)
 		{
 			log_debug(args->logger, "Numero de frame recibido de Memoria: %d", recibido->numero_marco);
-			agregar_en_tlb(recibido->pid, recibido->numero_pagina, recibido->numero_marco, args);
+		
+			if (config_get_int_value(args->config, "CANTIDAD_ENTRADAS_TLB") == 0)
+			{
+				args->marco = recibido->numero_marco;
+			}
+			else
+			{
+
+				agregar_en_tlb(recibido->pid, recibido->numero_pagina, recibido->numero_marco, args);
+			}
 
 			args->resultado = 1;
 		}

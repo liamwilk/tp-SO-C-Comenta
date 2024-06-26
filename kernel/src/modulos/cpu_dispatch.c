@@ -63,12 +63,13 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             proceso_actualizar_registros(pcb, proceso_recibido->registros);
             kernel_transicion_exec_block(args);
 
-            // Actualizar campo proxima_io
-            if (pcb->proxima_io == NULL)
+            // Actualizar campo tiene_proxima_io
+            if (pcb->proxima_io->tiene_proxima_io == false)
             {
-                pcb->proxima_io = malloc(sizeof(t_proceso_proxima_io));
+                kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se actualiza el campo tiene_proxima_io del proceso <%d> a true", pcb->pid);
+                pcb->proxima_io->tiene_proxima_io = true;
             }
-            pcb->proxima_io->identificador = strdup(proceso_recibido->interfaz);
+            pcb->proxima_io->identificador = strdup(entrada_salida->interfaz);
             pcb->proxima_io->tipo = ENTRADA_SALIDA_STDOUT;
             pcb->proxima_io->args = list_create();
 
@@ -201,12 +202,13 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             proceso_actualizar_registros(pcb, proceso_recibido->registros);
             kernel_transicion_exec_block(args);
 
-            // Actualizar campo proxima_io
-            if (pcb->proxima_io == NULL)
+            // Actualizar campo tiene_proxima_io
+            if (pcb->proxima_io->tiene_proxima_io == false)
             {
-                pcb->proxima_io = malloc(sizeof(t_proceso_proxima_io));
+                kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se actualiza el campo tiene_proxima_io del proceso <%d> a true", pcb->pid);
+                pcb->proxima_io->tiene_proxima_io = true;
             }
-            pcb->proxima_io->identificador = strdup(proceso_recibido->interfaz);
+            pcb->proxima_io->identificador = strdup(entrada_salida->interfaz);
             pcb->proxima_io->tipo = ENTRADA_SALIDA_STDIN;
             pcb->proxima_io->args = list_create();
 
