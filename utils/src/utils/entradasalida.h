@@ -81,6 +81,7 @@ typedef struct
     FILE *archivo_metadata;
     int tamanio_archivo;
     int tamanio_bitmap;
+    t_dictionary *archivos;
 } t_dial_fs;
 
 typedef struct
@@ -176,6 +177,6 @@ void bloques_desmapear(t_io *args);
 
 void bitmap_inicializar(t_io *args);
 void bitmap_desmapear(t_io *args);
-void metadata_inicializar(t_io *args, t_dictionary *archivos);
+void metadata_inicializar(t_io *args);
 
 #endif // ENTRADASALIDA_H
