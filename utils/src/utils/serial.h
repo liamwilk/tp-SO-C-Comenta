@@ -59,6 +59,7 @@ typedef enum
 	ENTRADA_SALIDA_KERNEL_IDENTIFICACION,
 	KERNEL_IO_INTERRUPCION,
 	KERNEL_ENTRADA_SALIDA_IDENTIFICACION_RECHAZO,
+	KERNEL_ENTRADA_SALIDA_IO_DIALFS_CREATE,
 	MEMORIA_CPU_COPY_STRING,
 	CPU_MEMORIA_COPY_STRING_2,
 	MEMORIA_CPU_COPY_STRING_2,
@@ -429,6 +430,12 @@ typedef struct
 	uint32_t pagina;
 	int ultimo_acceso;
 } t_tlb;
+typedef struct
+{
+	uint32_t pid;
+	char *nombre;
+	uint32_t size_nombre;
+} t_kernel_entrada_salida_fs_create;
 
 /**
  * @fn    *crear_paquete
@@ -1248,4 +1255,7 @@ void serializar_t_copy_string(t_paquete **paquete, t_copy_string *copy);
 
 t_copy_string *deserializar_t_copy_string(t_buffer *buffer);
 
+void serializar_t_kernel_entrada_salida_fs_create(t_paquete **paquete, t_kernel_entrada_salida_fs_create *create);
+
+t_kernel_entrada_salida_fs_create *deserializar_t_kernel_entrada_salida_fs_create(t_buffer *buffer);
 #endif

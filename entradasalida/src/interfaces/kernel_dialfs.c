@@ -12,10 +12,16 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
     }
     case KERNEL_IO_INTERRUPCION:
     {
-        t_paquete *paquete = recibir_paquete(args->logger, &args->sockets.socket_kernel_generic);
-        t_kernel_io_interrupcion *interrupcion = deserializar_t_kernel_io_interrupcion(paquete->buffer);
+        t_kernel_io_interrupcion *interrupcion = deserializar_t_kernel_io_interrupcion(buffer);
         log_warning(args->logger, "[KERNEL/INTERRUPCION/DIALFS] Se recibio una interrupcion con motivo: %s para el PID %d", interrupcion->motivo, interrupcion->pid);
         break;
+    }
+    case KERNEL_ENTRADA_SALIDA_IO_DIALFS_CREATE:
+    {
+        t_kernel_entrada_salida_fs_create *create = deserializar_t_kernel_entrada_salida_fs_create(buffer);
+        log_info(args->logger, "PID: <%d> - Crear Archivo: <%s>", create->pid, create->nombre);
+        free(create);
+        // Peticion de crear un archivo
     }
     case FINALIZAR_SISTEMA:
     {
