@@ -30,6 +30,7 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <commons/bitarray.h>
 
 typedef struct
 {
@@ -178,5 +179,7 @@ void bloques_desmapear(t_io *args);
 void bitmap_inicializar(t_io *args);
 void bitmap_desmapear(t_io *args);
 void metadata_inicializar(t_io *args);
+int encontrar_primer_bit_libre(uint8_t byte);
+int buscar_posicion_libre(void *bitmap, size_t tamanio_bitmap);
 
 #endif // ENTRADASALIDA_H

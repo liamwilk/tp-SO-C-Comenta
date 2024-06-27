@@ -505,3 +505,8 @@ char *leer_input_usuario(uint32_t size_input)
 
     return input;
 }
+
+void crear_archivo(uint32_t bloque_inicio, char *nombre_archivo, t_io *args)
+{
+    // TODO: Crear archivo en disco
+}

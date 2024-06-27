@@ -1007,7 +1007,30 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case IO_FS_CREATE:
     {
-        log_debug(args->logger, "reconoci un IO_FS_CREATE");
+        /* 
+        IO_FS_CREATE Int3 notas.txt
+        IO_FS_CREATE (Interfaz, Nombre Archivo): Esta instrucción solicita al Kernel que mediante la interfaz seleccionada, se cree un archivo en el FS montado en dicha interfaz.*/
+
+        char *interfaz = strdup(args->instruccion.array[1]);
+        char *nombre_archivo = strdup(args->instruccion.array[2]);
+
+        t_entrada_salida_fs_create *proceso = malloc(sizeof(t_entrada_salida_fs_create));
+
+        proceso->pid = args->proceso.pid;
+        proceso->interfaz = strdup(interfaz);
+        proceso->size_interfaz = strlen(interfaz) + 1;
+        proceso->nombre_archivo = strdup(nombre_archivo);
+        proceso->size_nombre_archivo = strlen(nombre_archivo) + 1;     
+        proceso->resultado = 0; // Después lo modifica FS   
+
+        t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_FS_CREATE);
+        serializar_t_entrada_salida_fs_create(&paquete, proceso);
+
+        enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);
+        
+        eliminar_paquete(paquete);
+        free(interfaz);
+        free(nombre_archivo);
         return 1;
     }
     case IO_FS_DELETE:

@@ -13,7 +13,7 @@ void bitmap_desmapear(t_io *args)
             log_debug(args->logger, "Archivo de 'bitmap.dat' desmapeado correctamente de la memoria");
         }
 
-        args->dial_fs.archivo_bitmap = NULL; 
+        args->dial_fs.archivo_bitmap = NULL;
     }
     else
     {
@@ -22,7 +22,7 @@ void bitmap_desmapear(t_io *args)
 }
 
 void bitmap_inicializar(t_io *args)
-{   
+{
     struct stat st_bitmap = {0};
 
     // Construyo el path del bitmap añadiendo bitmap.dat al final
@@ -30,7 +30,7 @@ void bitmap_inicializar(t_io *args)
     string_append(&args->dial_fs.path_bitmap, args->dial_fs.pathBaseDialFs);
     string_append(&args->dial_fs.path_bitmap, "/");
     string_append(&args->dial_fs.path_bitmap, args->identificador);
-    
+
     if (stat(args->dial_fs.path_bloques, &st_bitmap) == -1)
     {
         log_warning(args->logger, "No existe el directorio de bloques, se creará: %s", args->dial_fs.path_bitmap);
@@ -109,4 +109,33 @@ void bitmap_inicializar(t_io *args)
     close(fd);
 
     log_debug(args->logger, "Archivo de 'bitmap.dat' mapeado correctamente a memoria");
+}
+
+int encontrar_primer_bit_libre(uint8_t byte)
+{
+    for (int i = 0; i < 8; i++)
+    {
+        if ((byte & (1 << i)) == 0) // Lo que hace es recorrer el byte con un 1 que se va corriendo de lugar
+        {
+            return i;
+        }
+    }
+    return -1; // Todos los bits están ocupados
+}
+
+int buscar_posicion_libre(void *bitmap, size_t tamanio_bitmap)
+{
+    uint8_t *bytes = (uint8_t *)bitmap;
+    for (size_t i = 0; i < tamanio_bitmap; i++)
+    {
+        if (bytes[i] != 0xFF) // 255 en hexa, se valida que no esté completamente ocupado
+        {
+            int bit_libre = encontrar_primer_bit_libre(bytes[i]);
+            if (bit_libre != -1)
+            {
+                return i * 8 + bit_libre;
+            }
+        }
+    }
+    return -1; // No se encontró posición libre
 }

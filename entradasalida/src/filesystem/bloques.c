@@ -30,7 +30,6 @@ void bloques_inicializar(t_io *args)
     string_append(&args->dial_fs.path_bloques, args->dial_fs.pathBaseDialFs);
     string_append(&args->dial_fs.path_bloques, "/");
     string_append(&args->dial_fs.path_bloques, args->identificador);
-    
 
     if (stat(args->dial_fs.path_bloques, &st_bloques) == -1)
     {
