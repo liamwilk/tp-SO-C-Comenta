@@ -142,8 +142,9 @@ int buscar_posicion_libre(void *bitmap, size_t tamanio_bitmap)
 
 int bitmap_inicializar(t_io *args)
 {
-    /*
+    /* TODO:
     Leer el primer bit del bitmap, si está en 0 -> no está creado el bitmap
     Si está en 1 -> está creado el bitmap -> Leer a partir del próximo bit (n+1)
     */
+   return 0;
 }
