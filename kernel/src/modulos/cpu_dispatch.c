@@ -566,9 +566,11 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         free(proceso_recibido->nombre_archivo);
         free(proceso_recibido->interfaz);
         free(proceso_recibido);
+        break;
     }
     default:
     {
+        kernel_log_generic(args, LOG_LEVEL_WARNING, "Codigo operacion: <%d>", codigo_operacion);
         kernel_log_generic(args, LOG_LEVEL_WARNING, "[CPU Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
         liberar_conexion(&args->kernel->sockets.cpu_dispatch);
         break;

@@ -1488,6 +1488,8 @@ void serializar_t_entrada_salida_fs_create(t_paquete **paquete, t_entrada_salida
 	actualizar_buffer(*paquete, sizeof(uint32_t) * 2 + create->size_interfaz + create->size_nombre_archivo);
 	serializar_uint32_t(create->pid, *paquete);
 	serializar_uint32_t(create->resultado, *paquete);
+	serializar_uint32_t(create->size_interfaz, *paquete);
+	serializar_uint32_t(create->size_nombre_archivo, *paquete);
 	serializar_char(create->interfaz, *paquete);
 	serializar_char(create->nombre_archivo, *paquete);
 }
@@ -1498,6 +1500,8 @@ t_entrada_salida_fs_create *deserializar_t_entrada_salida_fs_create(t_buffer *bu
 	void *stream = buffer->stream;
 	deserializar_uint32_t(&stream, &(create->pid));
 	deserializar_uint32_t(&stream, &(create->resultado));
+	deserializar_uint32_t(&stream, &(create->size_interfaz));
+	deserializar_uint32_t(&stream, &(create->size_nombre_archivo));
 	deserializar_char(&stream, &(create->interfaz), create->size_interfaz);
 	deserializar_char(&stream, &(create->nombre_archivo), create->size_nombre_archivo);
 	return create;

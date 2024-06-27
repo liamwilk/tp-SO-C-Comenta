@@ -79,6 +79,7 @@ typedef struct
     char *path_bitmap;
     void *archivo_bloques;
     void *archivo_bitmap;
+
     FILE *archivo_metadata;
     int tamanio_archivo;
     int tamanio_bitmap;
@@ -173,10 +174,10 @@ void interfaz_interrumpir_temporizador(t_io *args);
 
 char *leer_input_usuario(uint32_t size_input);
 
-void bloques_inicializar(t_io *args);
+void bloques_mapear(t_io *args);
 void bloques_desmapear(t_io *args);
 
-void bitmap_inicializar(t_io *args);
+void bitmap_mapear(t_io *args);
 void bitmap_desmapear(t_io *args);
 void metadata_inicializar(t_io *args);
 int encontrar_primer_bit_libre(uint8_t byte);

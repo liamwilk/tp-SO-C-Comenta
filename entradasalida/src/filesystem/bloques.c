@@ -21,7 +21,7 @@ void bloques_desmapear(t_io *args)
     }
 }
 
-void bloques_inicializar(t_io *args)
+void bloques_mapear(t_io *args)
 {
     struct stat st_bloques = {0};
 

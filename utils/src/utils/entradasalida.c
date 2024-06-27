@@ -223,8 +223,8 @@ void interfaz_dialfs(t_io *args)
     interfaz_dialfs_inicializar_config(args);
     interfaz_dialfs_imprimir_log(args);
 
-    bloques_inicializar(args);
-    bitmap_inicializar(args);
+    bloques_mapear(args);
+    bitmap_mapear(args);
     metadata_inicializar(args);
     pthread_create(&args->threads.thread_conectar_memoria_dialfs, NULL, conectar_memoria_dialfs, args);
     pthread_join(args->threads.thread_conectar_memoria_dialfs, NULL);

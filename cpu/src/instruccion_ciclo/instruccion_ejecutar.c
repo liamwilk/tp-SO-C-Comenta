@@ -1031,6 +1031,9 @@ int instruccion_ejecutar(t_cpu *args)
         eliminar_paquete(paquete);
         free(interfaz);
         free(nombre_archivo);
+        free(proceso->interfaz);
+        free(proceso->nombre_archivo);
+        free(proceso);
         return 1;
     }
     case IO_FS_DELETE:

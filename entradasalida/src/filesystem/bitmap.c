@@ -21,7 +21,7 @@ void bitmap_desmapear(t_io *args)
     }
 }
 
-void bitmap_inicializar(t_io *args)
+void bitmap_mapear(t_io *args)
 {
     struct stat st_bitmap = {0};
 
@@ -138,4 +138,12 @@ int buscar_posicion_libre(void *bitmap, size_t tamanio_bitmap)
         }
     }
     return -1; // No se encontró posición libre
+}
+
+int bitmap_inicializar(t_io *args)
+{
+    /*
+    Leer el primer bit del bitmap, si está en 0 -> no está creado el bitmap
+    Si está en 1 -> está creado el bitmap -> Leer a partir del próximo bit (n+1)
+    */
 }
