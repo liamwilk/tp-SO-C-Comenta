@@ -41,7 +41,7 @@ void switch_case_kernel_entrada_salida_dialfs(hilos_io_args *io_args, char *modu
             t_kernel_entrada_salida *io = kernel_entrada_salida_buscar_interfaz_pid(io_args->args, create->pid);
             if (io == NULL)
             {
-                kernel_log_generic(io_args->args, LOG_LEVEL_ERROR, "No se encontro el tipo IOSTDIN para el proceso PID <%d>", create->pid);
+                kernel_log_generic(io_args->args, LOG_LEVEL_ERROR, "No se encontro el tipo DIALFS para el proceso PID <%d>", create->pid);
             }
             else
             {
