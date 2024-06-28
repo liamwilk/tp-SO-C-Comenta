@@ -744,7 +744,7 @@ int instruccion_ejecutar(t_cpu *args)
         4- Notifico a todos los procesos que esten esperando por el resultado de la operacion
         */
 
-        //t_paquete *paquete = crear_paquete(CPU_MEMORIA_COPY_STRING);
+        // t_paquete *paquete = crear_paquete(CPU_MEMORIA_COPY_STRING);
         t_copy_string *proceso = malloc(sizeof(t_copy_string));
 
         // Cargo las cosas
@@ -1007,7 +1007,7 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case IO_FS_CREATE:
     {
-        /* 
+        /*
         IO_FS_CREATE Int3 notas.txt
         IO_FS_CREATE (Interfaz, Nombre Archivo): Esta instrucción solicita al Kernel que mediante la interfaz seleccionada, se cree un archivo en el FS montado en dicha interfaz.*/
 
@@ -1015,19 +1015,19 @@ int instruccion_ejecutar(t_cpu *args)
         char *nombre_archivo = strdup(args->instruccion.array[2]);
 
         t_entrada_salida_fs_create *proceso = malloc(sizeof(t_entrada_salida_fs_create));
-
         proceso->pid = args->proceso.pid;
         proceso->interfaz = strdup(interfaz);
         proceso->size_interfaz = strlen(interfaz) + 1;
         proceso->nombre_archivo = strdup(nombre_archivo);
-        proceso->size_nombre_archivo = strlen(nombre_archivo) + 1;     
-        proceso->resultado = 0; // Después lo modifica FS   
+        proceso->size_nombre_archivo = strlen(nombre_archivo) + 1;
+        proceso->resultado = 0; // Después lo modifica FS
 
         t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_FS_CREATE);
+        log_warning(args->logger, "Se envia paquete a kernel");
         serializar_t_entrada_salida_fs_create(&paquete, proceso);
 
         enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);
-        
+
         eliminar_paquete(paquete);
         free(interfaz);
         free(nombre_archivo);

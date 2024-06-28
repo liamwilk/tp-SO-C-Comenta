@@ -25,7 +25,7 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
 
         // Verifico que haya un bloque libre
 
-        int posicion = buscar_posicion_libre(args->dial_fs.archivo_bitmap, args->dial_fs.tamanio_bitmap);  // Revisar, quizás cambiar
+        int posicion = fs_buscar_bloque_libre(args);
 
         if (posicion == -1)
         {
@@ -55,11 +55,39 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
             free(create);
             break;
         }
+        // Verificamos que el archivo no exista
+        t_fcb *archivo = dictionary_get(args->dial_fs.archivos, create->nombre_archivo);
 
-        // Creo el archivo
+        if (archivo != NULL)
+        {
+            log_error(args->logger, "El archivo ya existe");
+            proceso->pid = create->pid;
+            proceso->resultado = 0;
+            proceso->nombre_archivo = strdup(create->nombre_archivo);
+            proceso->interfaz = strdup(create->interfaz);
+            proceso->size_interfaz = strlen(create->interfaz) + 1;
+            proceso->size_nombre_archivo = strlen(create->nombre_archivo) + 1;
 
-        // TODO: crear_archivo(args->dial_fs.archivo_bitmap, args->dial_fs.tamanio_bitmap, create->nombre_archivo, posicion);
+            // Envio la respuesta al Kernel
+            t_paquete *paquete = crear_paquete(ENTRADA_SALIDA_KERNEL_IO_FS_CREATE);
+            serializar_t_entrada_salida_fs_create(&paquete, proceso);
 
+            enviar_paquete(paquete, args->sockets.socket_kernel_dialfs);
+
+            eliminar_paquete(paquete);
+
+            free(proceso->nombre_archivo);
+            free(proceso->interfaz);
+            free(proceso);
+
+            free(create->nombre_archivo);
+            free(create->interfaz);
+            free(create);
+            break;
+        }
+
+        //  Creo el archivo
+        fs_archivo_crear(args, create->nombre_archivo, posicion);
 
         // Envio la respuesta al Kernel
 

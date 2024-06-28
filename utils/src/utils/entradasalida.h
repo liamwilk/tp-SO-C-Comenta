@@ -78,12 +78,12 @@ typedef struct
     char *path_bloques;
     char *path_bitmap;
     void *archivo_bloques;
-    void *archivo_bitmap;
-
+    char *archivo_bitmap;
     FILE *archivo_metadata;
     int tamanio_archivo;
     int tamanio_bitmap;
     t_dictionary *archivos;
+    t_bitarray *bitarray;
 } t_dial_fs;
 
 typedef struct
@@ -112,6 +112,14 @@ typedef struct
 {
     t_io *args;
 } timer_args_io_t;
+
+typedef struct t_fcb
+{
+    uint32_t total_size;
+    uint32_t inicio;
+    uint32_t fin_bloque;
+    t_config *metadata; // Esto es para ir guardando los cambios en el archivo de metadata
+} t_fcb;
 
 void *conectar_kernel_stdin(void *args);
 void *conectar_memoria_stdin(void *args);
@@ -180,7 +188,21 @@ void bloques_desmapear(t_io *args);
 void bitmap_mapear(t_io *args);
 void bitmap_desmapear(t_io *args);
 void metadata_inicializar(t_io *args);
-int encontrar_primer_bit_libre(uint8_t byte);
-int buscar_posicion_libre(void *bitmap, size_t tamanio_bitmap);
+
+/**
+ * Devuelve el índice de un bloque libre en el sistema de archivos.
+ *
+ * @param args La estructura de entrada/salida que contiene la información necesaria.
+ * @return El índice de un bloque libre, o -1 si no hay bloques libres disponibles.
+ */
+int fs_buscar_bloque_libre(t_io *args);
+
+/**
+ * Crea un archivo en el sistema de archivos.
+ *
+ * @param args Los argumentos de E/S.
+ * @param nombre El nombre del archivo a crear.
+ */
+void fs_archivo_crear(t_io *args, char *nombre, int indice_bloque_libre);
 
 #endif // ENTRADASALIDA_H

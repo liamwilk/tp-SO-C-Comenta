@@ -1485,7 +1485,7 @@ t_copy_string *deserializar_t_copy_string(t_buffer *buffer)
 
 void serializar_t_entrada_salida_fs_create(t_paquete **paquete, t_entrada_salida_fs_create *create)
 {
-	actualizar_buffer(*paquete, sizeof(uint32_t) * 2 + create->size_interfaz + create->size_nombre_archivo);
+	actualizar_buffer(*paquete, sizeof(uint32_t) + sizeof(uint32_t) + create->size_interfaz + create->size_nombre_archivo);
 	serializar_uint32_t(create->pid, *paquete);
 	serializar_uint32_t(create->resultado, *paquete);
 	serializar_uint32_t(create->size_interfaz, *paquete);

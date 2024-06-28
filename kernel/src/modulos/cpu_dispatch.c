@@ -482,7 +482,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         {
             pcb->quantum = interrumpir_temporizador(args);
 
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar la instrucción <IO_FS_READ> del PID <%d> a la interfaz <%s> porque no es DIALFS.", proceso_recibido->pid, proceso_recibido->interfaz);
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar la instrucción <IO_FS_CREATE> del PID <%d> a la interfaz <%s> porque no es DIALFS.", proceso_recibido->pid, proceso_recibido->interfaz);
             kernel_cpu_entradasalida_distinto_tipo(args, CPU_IO_FS_CREATE, proceso_recibido->interfaz, proceso_recibido->pid);
 
             kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
@@ -499,7 +499,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         {
             pcb->quantum = interrumpir_temporizador(args);
 
-            kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_FS_READ> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
+            kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_FS_CREATE> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
 
             kernel_transicion_exec_block(args);
 
@@ -510,7 +510,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
                 pcb->proxima_io->tiene_proxima_io = true;
             }
             pcb->proxima_io->identificador = strdup(entrada_salida->interfaz);
-            pcb->proxima_io->tipo = ENTRADA_SALIDA_DIALFS;
+            pcb->proxima_io->tipo = ENTRADA_SALIDA_DIALFS_CREATE;
             pcb->proxima_io->args = list_create();
 
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->pid));
@@ -533,7 +533,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         entrada_salida->ocupado = 1;
         entrada_salida->pid = proceso_recibido->pid;
 
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envia el paquete a la interfaz <%s> asociado a la instruccion IO_FS_READ del proceso PID <%d>", proceso_recibido->interfaz, proceso_recibido->pid);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envia el paquete a la interfaz <%s> asociado a la instruccion IO_FS_CREATE del proceso PID <%d>", proceso_recibido->interfaz, proceso_recibido->pid);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Nombre archivo: %s", proceso_recibido->nombre_archivo);
 
         t_entrada_salida_fs_create *proceso_completo = malloc(sizeof(t_entrada_salida_fs_create));
 
@@ -549,9 +550,9 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         serializar_t_entrada_salida_fs_create(&paquete, proceso_completo);
 
         kernel_transicion_exec_block(args);
-        enviar_paquete(paquete, args->kernel->sockets.entrada_salida_dialfs);
+        enviar_paquete(paquete, entrada_salida->socket);
 
-        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envió la instruccion de IO_FS_CREATE a la interfaz %s", entrada_salida->interfaz);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envió la instruccion de IO_FS_CREATE a la interfaz %s en socket %d", entrada_salida->interfaz, args->kernel->sockets.entrada_salida_dialfs);
 
         avisar_planificador(args);
 

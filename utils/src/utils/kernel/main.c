@@ -437,8 +437,14 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
                     {
                         kernel_proximo_io_generic(kernel_hilos_args, io);
                     }
-                    // TODO: Agregar case para STDIN
-                    // TODO: Agregar case para STDOUT
+                    if (io->tipo == ENTRADA_SALIDA_STDIN)
+                    {
+                        kernel_proximo_io_stdin(kernel_hilos_args, io);
+                    }
+                    if (io->tipo == ENTRADA_SALIDA_STDOUT)
+                    {
+                        kernel_proximo_io_stdout(kernel_hilos_args, io);
+                    }
                     // TODO: Agregar case para DIALFS
                 }
             }

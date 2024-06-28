@@ -169,4 +169,6 @@ void kernel_proximo_io_stdout(hilos_args *args, t_kernel_entrada_salida *io);
 
 void kernel_proximo_io_stdin(hilos_args *args, t_kernel_entrada_salida *io);
 
+void kernel_proximo_io_fs(hilos_args *args, t_kernel_entrada_salida *io);
+
 #endif /* KERNEL_ENTRADASALIDA_H_ */

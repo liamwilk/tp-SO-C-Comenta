@@ -58,7 +58,7 @@ void switch_case_kernel_entrada_salida_dialfs(hilos_io_args *io_args, char *modu
                 serializar_t_kernel_cpu_io_fs_create(&paquete, proceso_enviar);
                 enviar_paquete(paquete, io_args->args->kernel->sockets.cpu_dispatch);
 
-                kernel_proximo_io_stdin(io_args->args, io);
+                kernel_proximo_io_fs(io_args->args, io);
                 avisar_planificador(io_args->args);
             }
         }

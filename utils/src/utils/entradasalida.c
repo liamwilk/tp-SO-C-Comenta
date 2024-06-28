@@ -506,7 +506,42 @@ char *leer_input_usuario(uint32_t size_input)
     return input;
 }
 
-void crear_archivo(uint32_t bloque_inicio, char *nombre_archivo, t_io *args)
+int fs_buscar_bloque_libre(t_io *args)
 {
-    // TODO: Crear archivo en disco
+    for (int i = 0; i < args->dial_fs.blockCount; i++)
+    {
+        if (bitarray_test_bit(args->dial_fs.bitarray, i) == 0)
+        {
+            return i;
+        }
+    }
+    return -1;
+};
+void fs_archivo_crear(t_io *args, char *nombre, int indice_bloque_libre)
+{
+    //**Creamos la fcb**/
+    t_fcb *nuevo_fcb = malloc(sizeof(t_fcb));
+    nuevo_fcb->total_size = 0;
+    nuevo_fcb->inicio = indice_bloque_libre;
+    nuevo_fcb->fin_bloque = indice_bloque_libre;
+    char *full_path = string_new();
+    string_append(&full_path, args->dial_fs.pathBaseDialFs);
+    string_append(&full_path, "/");
+    string_append(&full_path, args->identificador);
+    string_append(&full_path, "/");
+    string_append(&full_path, nombre);
+    //**Guardamos el archivo**/
+    t_config *metadata = config_create(full_path);
+    if (metadata == NULL)
+    {
+        log_error(args->logger, "Error al crear el archivo de metadata");
+        return;
+    }
+    config_set_value(metadata, "TAMANIO_ARCHIVO", "0");
+    config_set_value(metadata, "BLOQUE_INICIAL", string_itoa(indice_bloque_libre));
+    config_save(metadata);
+    nuevo_fcb->metadata = config_create(nombre);
+    //**Mapeamos el nuevo archivo al diccionario**/
+    dictionary_put(args->dial_fs.archivos, nombre, nuevo_fcb);
+    log_debug(args->logger, "Archivo: %s, Tamaño: %d, Bloque inicial: %d Bloque final: %d", nombre, nuevo_fcb->total_size, nuevo_fcb->inicio, nuevo_fcb->fin_bloque);
 }

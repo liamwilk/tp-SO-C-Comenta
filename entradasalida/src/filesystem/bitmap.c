@@ -74,7 +74,6 @@ void bitmap_mapear(t_io *args)
 
         // Inicializo el bitmap con 0s (todos los bloques libres)
         void *temp_map = mmap(0, args->dial_fs.tamanio_bitmap, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-
         if (temp_map == MAP_FAILED)
         {
             log_error(args->logger, "Error al mapear el archivo de 'bitmap.dat' para inicialización: %s", strerror(errno));
@@ -96,8 +95,8 @@ void bitmap_mapear(t_io *args)
     }
 
     // Mapeo el archivo en memoria
-    args->dial_fs.archivo_bitmap = mmap(0, args->dial_fs.tamanio_bitmap, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-
+    args->dial_fs.archivo_bitmap = (char *)mmap(0, args->dial_fs.tamanio_bitmap, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    args->dial_fs.bitarray = bitarray_create_with_mode(args->dial_fs.archivo_bitmap, args->dial_fs.tamanio_bitmap, LSB_FIRST);
     if (args->dial_fs.archivo_bitmap == MAP_FAILED)
     {
         log_error(args->logger, "Error al mapear el archivo de 'bitmap.dat': %s", strerror(errno));
@@ -111,40 +110,11 @@ void bitmap_mapear(t_io *args)
     log_debug(args->logger, "Archivo de 'bitmap.dat' mapeado correctamente a memoria");
 }
 
-int encontrar_primer_bit_libre(uint8_t byte)
-{
-    for (int i = 0; i < 8; i++)
-    {
-        if ((byte & (1 << i)) == 0) // Lo que hace es recorrer el byte con un 1 que se va corriendo de lugar
-        {
-            return i;
-        }
-    }
-    return -1; // Todos los bits están ocupados
-}
-
-int buscar_posicion_libre(void *bitmap, size_t tamanio_bitmap)
-{
-    uint8_t *bytes = (uint8_t *)bitmap;
-    for (size_t i = 0; i < tamanio_bitmap; i++)
-    {
-        if (bytes[i] != 0xFF) // 255 en hexa, se valida que no esté completamente ocupado
-        {
-            int bit_libre = encontrar_primer_bit_libre(bytes[i]);
-            if (bit_libre != -1)
-            {
-                return i * 8 + bit_libre;
-            }
-        }
-    }
-    return -1; // No se encontró posición libre
-}
-
 int bitmap_inicializar(t_io *args)
 {
     /* TODO:
     Leer el primer bit del bitmap, si está en 0 -> no está creado el bitmap
     Si está en 1 -> está creado el bitmap -> Leer a partir del próximo bit (n+1)
     */
-   return 0;
+    return 0;
 }
