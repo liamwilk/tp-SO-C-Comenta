@@ -452,6 +452,9 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
     {
         t_entrada_salida_fs_create *proceso_recibido = deserializar_t_entrada_salida_fs_create(buffer);
 
+        log_warning(logger, "Nombre archivo: %s", proceso_recibido->nombre_archivo);
+        log_warning(logger, "Interfaz: %s", proceso_recibido->interfaz);
+
         t_kernel_entrada_salida *entrada_salida = kernel_entrada_salida_buscar_interfaz(args, proceso_recibido->interfaz);
 
         t_pcb *pcb = proceso_buscar_exec(args->estados, proceso_recibido->pid);
