@@ -530,7 +530,18 @@ void fs_archivo_crear(t_io *args, char *nombre, int indice_bloque_libre)
     string_append(&full_path, args->identificador);
     string_append(&full_path, "/");
     string_append(&full_path, nombre);
+
     //**Guardamos el archivo**/
+    log_debug(args->logger, "Creando archivo en %s", full_path);
+    int fd = open(full_path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+    if (fd == -1)
+    {
+        log_error(args->logger, "Error al crear el archivo");
+        return;
+    }
+    close(fd);
+
+    // Crear archivo en path
     t_config *metadata = config_create(full_path);
     if (metadata == NULL)
     {
@@ -539,8 +550,8 @@ void fs_archivo_crear(t_io *args, char *nombre, int indice_bloque_libre)
     }
     config_set_value(metadata, "TAMANIO_ARCHIVO", "0");
     config_set_value(metadata, "BLOQUE_INICIAL", string_itoa(indice_bloque_libre));
-    config_save(metadata);
-    nuevo_fcb->metadata = config_create(nombre);
+    config_save_in_file(metadata, full_path);
+
     //**Mapeamos el nuevo archivo al diccionario**/
     dictionary_put(args->dial_fs.archivos, nombre, nuevo_fcb);
     log_debug(args->logger, "Archivo: %s, Tamaño: %d, Bloque inicial: %d Bloque final: %d", nombre, nuevo_fcb->total_size, nuevo_fcb->inicio, nuevo_fcb->fin_bloque);

@@ -1021,9 +1021,9 @@ int instruccion_ejecutar(t_cpu *args)
         proceso->nombre_archivo = strdup(nombre_archivo);
         proceso->size_nombre_archivo = strlen(nombre_archivo) + 1;
         proceso->resultado = 0; // Después lo modifica FS
+        proceso->registros = args->proceso.registros;
 
         t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_FS_CREATE);
-        log_warning(args->logger, "Se envia paquete a kernel");
         serializar_t_entrada_salida_fs_create(&paquete, proceso);
 
         enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);

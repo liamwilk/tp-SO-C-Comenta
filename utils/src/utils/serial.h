@@ -449,6 +449,7 @@ typedef struct
 	uint32_t size_interfaz;
 	uint32_t size_nombre_archivo;
 	uint32_t resultado;
+	t_registros_cpu registros;
 } t_entrada_salida_fs_create;
 
 /**

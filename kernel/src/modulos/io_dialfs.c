@@ -37,7 +37,7 @@ void switch_case_kernel_entrada_salida_dialfs(hilos_io_args *io_args, char *modu
 
         if (create->resultado == 1)
         {
-            kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/%s/%d] Se completó la operación de IO_FS_READ para el proceso PID <%d>", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden, create->pid);
+            kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/%s/%d] Se completó la operación de IO_FS_CREATE para el proceso PID <%d>", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden, create->pid);
             t_kernel_entrada_salida *io = kernel_entrada_salida_buscar_interfaz_pid(io_args->args, create->pid);
             if (io == NULL)
             {
@@ -51,7 +51,7 @@ void switch_case_kernel_entrada_salida_dialfs(hilos_io_args *io_args, char *modu
 
                 proceso_enviar->pid = create->pid;
                 proceso_enviar->resultado = 1;
-                proceso_enviar->motivo = strdup("Se completó la operación de IO_FS_READ");
+                proceso_enviar->motivo = strdup("Se completó la operación de IO_FS_CREATE");
 
                 proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
 
@@ -62,13 +62,15 @@ void switch_case_kernel_entrada_salida_dialfs(hilos_io_args *io_args, char *modu
                 avisar_planificador(io_args->args);
             }
         }
-
         else
         {
             proceso_enviar->pid = pid;
             proceso_enviar->resultado = 0;
-            proceso_enviar->motivo = strdup("Ocurrio un error a la hora de crear el archivo. No hay bloques libres.");
+            proceso_enviar->motivo = strdup("Ocurrio un error a la hora de crear el archivo.");
             proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
+
+            io_args->entrada_salida->ocupado = 0;
+            io_args->entrada_salida->pid = 0;
 
             serializar_t_kernel_cpu_io_fs_create(&paquete, proceso_enviar);
             enviar_paquete(paquete, io_args->args->kernel->sockets.cpu_dispatch);
@@ -76,6 +78,7 @@ void switch_case_kernel_entrada_salida_dialfs(hilos_io_args *io_args, char *modu
             free(proceso_enviar->motivo);
             free(proceso_enviar);
         }
+        break;
     }
     default:
     {

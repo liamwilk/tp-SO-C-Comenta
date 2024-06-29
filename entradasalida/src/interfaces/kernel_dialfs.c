@@ -61,6 +61,7 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
         if (archivo != NULL)
         {
             log_error(args->logger, "El archivo ya existe");
+
             proceso->pid = create->pid;
             proceso->resultado = 0;
             proceso->nombre_archivo = strdup(create->nombre_archivo);
@@ -88,8 +89,9 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
 
         //  Creo el archivo
         fs_archivo_crear(args, create->nombre_archivo, posicion);
-
-        // Envio la respuesta al Kernel
+        // Se marca el bitmap en ocupado
+        bitarray_set_bit(args->dial_fs.bitarray, posicion);
+        //  Envio la respuesta al Kernel
 
         proceso->pid = create->pid;
         proceso->resultado = 1; // Se actualiza el resultado
@@ -101,9 +103,9 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
         // Envio la respuesta al Kernel
         t_paquete *paquete = crear_paquete(ENTRADA_SALIDA_KERNEL_IO_FS_CREATE);
         serializar_t_entrada_salida_fs_create(&paquete, proceso);
-
         enviar_paquete(paquete, args->sockets.socket_kernel_dialfs);
 
+        log_debug(args->logger, "Se envio la respuesta al Kernel en el socket %d", args->sockets.socket_kernel_dialfs);
         eliminar_paquete(paquete);
 
         free(proceso->nombre_archivo);
