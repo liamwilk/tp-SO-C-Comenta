@@ -53,11 +53,13 @@ void *hilo_mmu(void *args_void)
             {
                 // En este punto, ya tengo el numero de frame cargado en TLB, asi que lo busco y lo guardo en la estructura
 
-                if (args->config_leida.cantidadEntradasTlb > 0)
+                if (config_get_int_value(args->config, "CANTIDAD_ENTRADAS_TLB") > 0)
                 {
                     args->marco = buscar_en_tlb(args->proceso.pid, args->pagina, args->config_leida.cantidadEntradasTlb, args->tlb);
                 }
                 
+
+                log_warning(args->logger, "Valor frame: <%d", args->marco);
                 // Calculo la direccion fisica
                 args->direccion_fisica = (args->marco * args->tam_pagina) + desplazamiento;
             }

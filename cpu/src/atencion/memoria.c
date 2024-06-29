@@ -11,14 +11,13 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 		if (recibido->resultado)
 		{
 			log_debug(args->logger, "Numero de frame recibido de Memoria: %d", recibido->numero_marco);
-		
-			if (args->config_leida.cantidadEntradasTlb == 0)
+
+			if (config_get_int_value(args->config, "CANTIDAD_ENTRADAS_TLB") == 0)
 			{
 				args->marco = recibido->numero_marco;
 			}
 			else
 			{
-
 				agregar_en_tlb(recibido->pid, recibido->numero_pagina, recibido->numero_marco, args);
 			}
 
@@ -198,7 +197,10 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 			log_debug(args->logger, "Se envio la solicitud de la instruccion IO_STDIN_READ del proceso PID <%d> a Kernel", proceso_recibido->pid);
 			// Genero la direccion fisica con la MMU
 
-			agregar_en_tlb(proceso_recibido->pid, proceso_recibido->numero_pagina, proceso_recibido->marco_inicial, args);
+			if (config_get_int_value(args->config, "CANTIDAD_ENTRADAS_TLB") > 0)
+			{
+				agregar_en_tlb(proceso_recibido->pid, proceso_recibido->numero_pagina, proceso_recibido->marco_inicial, args);
+			}
 			mmu_iniciar(args, IO_STDIN_READ, proceso_recibido->registro_direccion, (void *)proceso_recibido);
 		}
 		else // Si no se obtuvo el marco
