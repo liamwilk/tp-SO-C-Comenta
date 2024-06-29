@@ -626,12 +626,12 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		log_debug(argumentos->logger, "Se encontro el dato <%s> en la direccion fisica <%d> del registro SI perteneciente al proceso PID <%d>", proceso_enviar->frase, proceso_recibido->direccion_si, proceso_recibido->pid);
 
 		// Escribo en la dirección física perteneciente al registro DI del proceso PID
-		int resultado = espacio_usuario_escribir_char(argumentos, proceso, proceso_recibido->direccion_di, proceso_enviar->frase);
+		int resultado = espacio_usuario_escribir_char(argumentos, proceso, proceso_recibido->direccion_fisica_di, proceso_enviar->frase);
 
 		// Si no se pudo escribir la frase a partir de la direccion fisica del registro DI, envio un mensaje a CPU
 		if (resultado == -1)
 		{
-			log_error(argumentos->logger, "No se pudo escribir la frase en la direccion fisica <%d> del registro DI perteneciente al proceso PID <%d>", proceso_recibido->direccion_di, proceso_recibido->pid);
+			log_error(argumentos->logger, "No se pudo escribir la frase en la direccion fisica <%d> del registro DI perteneciente al proceso PID <%d>", proceso_recibido->direccion_fisica_di, proceso_recibido->pid);
 
 			proceso_enviar->pid = proceso_recibido->pid;
 			proceso_enviar->resultado = 0;

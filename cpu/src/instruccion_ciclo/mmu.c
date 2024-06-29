@@ -58,6 +58,8 @@ void *hilo_mmu(void *args_void)
                     args->marco = buscar_en_tlb(args->proceso.pid, args->pagina, args->config_leida.cantidadEntradasTlb, args->tlb);
                 }
                 
+
+                log_warning(args->logger, "Valor frame: <%d", args->marco);
                 // Calculo la direccion fisica
                 args->direccion_fisica = (args->marco * args->tam_pagina) + desplazamiento;
             }
