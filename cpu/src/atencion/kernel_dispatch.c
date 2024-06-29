@@ -40,9 +40,10 @@ void switch_case_kernel_dispatch(t_cpu *args, t_op_code codigo_operacion, t_buff
 				instruccion_interrupt(args);
 				break;
 			}
-			
-		} else {
-			
+		}
+		else
+		{
+
 			log_error(args->logger, "Se produjo un error al ejecutar la instruccion IO_STDOUT_WRITE asociada al proceso PID <%d> en la conexion entre Kernel y la interfaz.", proceso_recibido->pid);
 
 			log_debug(args->logger, "Mensaje recuperado de Kernel: %s", proceso_recibido->motivo);
@@ -56,6 +57,28 @@ void switch_case_kernel_dispatch(t_cpu *args, t_op_code codigo_operacion, t_buff
 	{
 		proceso_recibir(args, buffer);
 		instruccion_solicitar(args);
+		break;
+	}
+	case KERNEL_CPU_IO_FS_CREATE:
+	{
+		t_kernel_cpu_io_fs_create *proceso_recibido = deserializar_t_kernel_cpu_io_fs_create(buffer);
+
+		if (proceso_recibido->resultado)
+		{
+
+			log_debug(args->logger, "Se completo la instruccion IO_FS_CREATE asociada al proceso PID <%d>.", proceso_recibido->pid);
+		}
+		else
+		{
+
+			log_error(args->logger, "Se produjo un error al ejecutar la instruccion IO_FS_CREATE asociada al proceso PID <%d> en la conexion entre Kernel y la interfaz.", proceso_recibido->pid);
+			log_error(args->logger, "Motivo: %s", proceso_recibido->motivo);
+
+			args->proceso.ejecutado = 0;
+			instruccion_finalizar(args);
+		}
+
+		free(proceso_recibido);
 		break;
 	}
 	default:

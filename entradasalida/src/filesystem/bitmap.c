@@ -13,7 +13,7 @@ void bitmap_desmapear(t_io *args)
             log_debug(args->logger, "Archivo de 'bitmap.dat' desmapeado correctamente de la memoria");
         }
 
-        args->dial_fs.archivo_bitmap = NULL; 
+        args->dial_fs.archivo_bitmap = NULL;
     }
     else
     {
@@ -21,8 +21,8 @@ void bitmap_desmapear(t_io *args)
     }
 }
 
-void bitmap_inicializar(t_io *args)
-{   
+void bitmap_mapear(t_io *args)
+{
     struct stat st_bitmap = {0};
 
     // Construyo el path del bitmap añadiendo bitmap.dat al final
@@ -30,7 +30,7 @@ void bitmap_inicializar(t_io *args)
     string_append(&args->dial_fs.path_bitmap, args->dial_fs.pathBaseDialFs);
     string_append(&args->dial_fs.path_bitmap, "/");
     string_append(&args->dial_fs.path_bitmap, args->identificador);
-    
+
     if (stat(args->dial_fs.path_bloques, &st_bitmap) == -1)
     {
         log_warning(args->logger, "No existe el directorio de bloques, se creará: %s", args->dial_fs.path_bitmap);
@@ -74,7 +74,6 @@ void bitmap_inicializar(t_io *args)
 
         // Inicializo el bitmap con 0s (todos los bloques libres)
         void *temp_map = mmap(0, args->dial_fs.tamanio_bitmap, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-
         if (temp_map == MAP_FAILED)
         {
             log_error(args->logger, "Error al mapear el archivo de 'bitmap.dat' para inicialización: %s", strerror(errno));
@@ -96,8 +95,8 @@ void bitmap_inicializar(t_io *args)
     }
 
     // Mapeo el archivo en memoria
-    args->dial_fs.archivo_bitmap = mmap(0, args->dial_fs.tamanio_bitmap, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-
+    args->dial_fs.archivo_bitmap = (char *)mmap(0, args->dial_fs.tamanio_bitmap, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    args->dial_fs.bitarray = bitarray_create_with_mode(args->dial_fs.archivo_bitmap, args->dial_fs.tamanio_bitmap, LSB_FIRST);
     if (args->dial_fs.archivo_bitmap == MAP_FAILED)
     {
         log_error(args->logger, "Error al mapear el archivo de 'bitmap.dat': %s", strerror(errno));
@@ -109,4 +108,13 @@ void bitmap_inicializar(t_io *args)
     close(fd);
 
     log_debug(args->logger, "Archivo de 'bitmap.dat' mapeado correctamente a memoria");
+}
+
+int bitmap_inicializar(t_io *args)
+{
+    /* TODO:
+    Leer el primer bit del bitmap, si está en 0 -> no está creado el bitmap
+    Si está en 1 -> está creado el bitmap -> Leer a partir del próximo bit (n+1)
+    */
+    return 0;
 }

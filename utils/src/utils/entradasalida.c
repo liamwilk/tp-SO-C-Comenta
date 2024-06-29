@@ -223,8 +223,8 @@ void interfaz_dialfs(t_io *args)
     interfaz_dialfs_inicializar_config(args);
     interfaz_dialfs_imprimir_log(args);
 
-    bloques_inicializar(args);
-    bitmap_inicializar(args);
+    bloques_mapear(args);
+    bitmap_mapear(args);
     metadata_inicializar(args);
     pthread_create(&args->threads.thread_conectar_memoria_dialfs, NULL, conectar_memoria_dialfs, args);
     pthread_join(args->threads.thread_conectar_memoria_dialfs, NULL);
@@ -504,4 +504,55 @@ char *leer_input_usuario(uint32_t size_input)
     }
 
     return input;
+}
+
+int fs_buscar_bloque_libre(t_io *args)
+{
+    for (int i = 0; i < args->dial_fs.blockCount; i++)
+    {
+        if (bitarray_test_bit(args->dial_fs.bitarray, i) == 0)
+        {
+            return i;
+        }
+    }
+    return -1;
+};
+void fs_archivo_crear(t_io *args, char *nombre, int indice_bloque_libre)
+{
+    //**Creamos la fcb**/
+    t_fcb *nuevo_fcb = malloc(sizeof(t_fcb));
+    nuevo_fcb->total_size = 0;
+    nuevo_fcb->inicio = indice_bloque_libre;
+    nuevo_fcb->fin_bloque = indice_bloque_libre;
+    char *full_path = string_new();
+    string_append(&full_path, args->dial_fs.pathBaseDialFs);
+    string_append(&full_path, "/");
+    string_append(&full_path, args->identificador);
+    string_append(&full_path, "/");
+    string_append(&full_path, nombre);
+
+    //**Guardamos el archivo**/
+    log_debug(args->logger, "Creando archivo en %s", full_path);
+    int fd = open(full_path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+    if (fd == -1)
+    {
+        log_error(args->logger, "Error al crear el archivo");
+        return;
+    }
+    close(fd);
+
+    // Crear archivo en path
+    t_config *metadata = config_create(full_path);
+    if (metadata == NULL)
+    {
+        log_error(args->logger, "Error al crear el archivo de metadata");
+        return;
+    }
+    config_set_value(metadata, "TAMANIO_ARCHIVO", "0");
+    config_set_value(metadata, "BLOQUE_INICIAL", string_itoa(indice_bloque_libre));
+    config_save_in_file(metadata, full_path);
+
+    //**Mapeamos el nuevo archivo al diccionario**/
+    dictionary_put(args->dial_fs.archivos, nombre, nuevo_fcb);
+    log_debug(args->logger, "Archivo: %s, Tamaño: %d, Bloque inicial: %d Bloque final: %d", nombre, nuevo_fcb->total_size, nuevo_fcb->inicio, nuevo_fcb->fin_bloque);
 }

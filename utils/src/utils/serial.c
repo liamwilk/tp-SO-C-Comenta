@@ -1304,6 +1304,27 @@ t_kernel_cpu_io_stdin_read *deserializar_t_kernel_cpu_io_stdin_read(t_buffer *bu
 	return read;
 }
 
+void serializar_t_kernel_cpu_io_fs_create(t_paquete **paquete, t_kernel_cpu_io_fs_create *read)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 4 + read->size_motivo);
+	serializar_uint32_t(read->pid, *paquete);
+	serializar_uint32_t(read->resultado, *paquete);
+	serializar_uint32_t(read->size_motivo, *paquete);
+	serializar_char(read->motivo, *paquete);
+}
+
+t_kernel_cpu_io_fs_create *deserializar_t_kernel_cpu_io_fs_create(t_buffer *buffer)
+{
+	t_kernel_cpu_io_fs_create *read = malloc(sizeof(t_kernel_cpu_io_fs_create));
+	void *stream = buffer->stream;
+
+	deserializar_uint32_t(&stream, &(read->pid));
+	deserializar_uint32_t(&stream, &(read->resultado));
+	deserializar_uint32_t(&stream, &(read->size_motivo));
+	deserializar_char(&stream, &(read->motivo), read->size_motivo);
+	return read;
+}
+
 void serializar_t_kernel_io_stdin_read(t_paquete **paquete, t_kernel_io_stdin_read *read)
 {
 	actualizar_buffer(*paquete, sizeof(uint32_t) * 17 + sizeof(uint8_t) * 4 + read->size_interfaz);
@@ -1462,18 +1483,53 @@ t_copy_string *deserializar_t_copy_string(t_buffer *buffer)
 	return copy;
 }
 
-void serializar_t_kernel_entrada_salida_fs_create(t_paquete **paquete, t_kernel_entrada_salida_fs_create *create)
+void serializar_t_entrada_salida_fs_create(t_paquete **paquete, t_entrada_salida_fs_create *create)
 {
-	actualizar_buffer(*paquete, sizeof(uint32_t) + create->size_nombre);
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 15 + create->size_interfaz + create->size_nombre_archivo);
 	serializar_uint32_t(create->pid, *paquete);
-	serializar_char(create->nombre, *paquete);
+	serializar_uint32_t(create->resultado, *paquete);
+	serializar_uint32_t(create->size_interfaz, *paquete);
+	serializar_uint32_t(create->size_nombre_archivo, *paquete);
+	serializar_char(create->interfaz, *paquete);
+	serializar_char(create->nombre_archivo, *paquete);
+
+	// Registros de CPU
+
+	serializar_uint32_t(create->registros.pc, *paquete);
+	serializar_uint32_t(create->registros.eax, *paquete);
+	serializar_uint32_t(create->registros.ebx, *paquete);
+	serializar_uint32_t(create->registros.ecx, *paquete);
+	serializar_uint32_t(create->registros.edx, *paquete);
+	serializar_uint32_t(create->registros.si, *paquete);
+	serializar_uint32_t(create->registros.di, *paquete);
+	serializar_uint8_t(create->registros.ax, *paquete);
+	serializar_uint8_t(create->registros.bx, *paquete);
+	serializar_uint8_t(create->registros.cx, *paquete);
+	serializar_uint8_t(create->registros.dx, *paquete);
 }
 
-t_kernel_entrada_salida_fs_create *deserializar_t_kernel_entrada_salida_fs_create(t_buffer *buffer)
+t_entrada_salida_fs_create *deserializar_t_entrada_salida_fs_create(t_buffer *buffer)
 {
-	t_kernel_entrada_salida_fs_create *create = malloc(sizeof(t_kernel_entrada_salida_fs_create));
+	t_entrada_salida_fs_create *create = malloc(sizeof(t_entrada_salida_fs_create));
 	void *stream = buffer->stream;
 	deserializar_uint32_t(&stream, &(create->pid));
-	deserializar_char(&stream, &(create->nombre), create->size_nombre);
+	deserializar_uint32_t(&stream, &(create->resultado));
+	deserializar_uint32_t(&stream, &(create->size_interfaz));
+	deserializar_uint32_t(&stream, &(create->size_nombre_archivo));
+	deserializar_char(&stream, &(create->interfaz), create->size_interfaz);
+	deserializar_char(&stream, &(create->nombre_archivo), create->size_nombre_archivo);
+
+	deserializar_uint32_t(&stream, &(create->registros.pc));
+	deserializar_uint32_t(&stream, &(create->registros.eax));
+	deserializar_uint32_t(&stream, &(create->registros.ebx));
+	deserializar_uint32_t(&stream, &(create->registros.ecx));
+	deserializar_uint32_t(&stream, &(create->registros.edx));
+	deserializar_uint32_t(&stream, &(create->registros.si));
+	deserializar_uint32_t(&stream, &(create->registros.di));
+	deserializar_uint8_t(&stream, &(create->registros.ax));
+	deserializar_uint8_t(&stream, &(create->registros.bx));
+	deserializar_uint8_t(&stream, &(create->registros.cx));
+	deserializar_uint8_t(&stream, &(create->registros.dx));
+
 	return create;
 }

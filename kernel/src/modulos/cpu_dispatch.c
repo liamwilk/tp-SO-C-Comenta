@@ -7,7 +7,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
     case CPU_KERNEL_IO_STDOUT_WRITE:
     {
         t_io_stdout_write *proceso_recibido = deserializar_t_io_stdout_write(buffer);
-
         t_kernel_entrada_salida *entrada_salida = kernel_entrada_salida_buscar_interfaz(args, proceso_recibido->interfaz);
 
         t_pcb *pcb = proceso_buscar_exec(args->estados, proceso_recibido->pid);
@@ -448,8 +447,133 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         free(proceso_completo);
         break;
     }
+    case CPU_KERNEL_IO_FS_CREATE:
+    {
+        t_entrada_salida_fs_create *proceso_recibido = deserializar_t_entrada_salida_fs_create(buffer);
+
+        t_kernel_entrada_salida *entrada_salida = kernel_entrada_salida_buscar_interfaz(args, proceso_recibido->interfaz);
+
+        t_pcb *pcb = proceso_buscar_exec(args->estados, proceso_recibido->pid);
+
+        if (pcb == NULL)
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
+            break;
+        }
+
+        // Si la interfaz de entrada salida no esta conectada
+        if (entrada_salida == NULL)
+        {
+            pcb->quantum = interrumpir_temporizador(args);
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar la instrucción <IO_FS_CREATE> del PID <%d> a la interfaz <%s> porque no está conectada.", proceso_recibido->pid, proceso_recibido->interfaz);
+            kernel_cpu_entradasalida_no_conectada(args, CPU_IO_FS_CREATE, proceso_recibido->interfaz, proceso_recibido->pid);
+            kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
+            proceso_actualizar_registros(pcb, proceso_recibido->registros);
+
+            free(proceso_recibido->nombre_archivo);
+            free(proceso_recibido->interfaz);
+            free(proceso_recibido);
+
+            break;
+        }
+
+        // Si la interfaz de entrada salida pedida no es del tipo DIALFS
+        if (entrada_salida->tipo != ENTRADA_SALIDA_DIALFS)
+        {
+            pcb->quantum = interrumpir_temporizador(args);
+
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar la instrucción <IO_FS_CREATE> del PID <%d> a la interfaz <%s> porque no es DIALFS.", proceso_recibido->pid, proceso_recibido->interfaz);
+            kernel_cpu_entradasalida_distinto_tipo(args, CPU_IO_FS_CREATE, proceso_recibido->interfaz, proceso_recibido->pid);
+            proceso_actualizar_registros(pcb, proceso_recibido->registros);
+
+            kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
+
+            free(proceso_recibido->interfaz);
+            free(proceso_recibido->nombre_archivo);
+            free(proceso_recibido);
+
+            break;
+        }
+
+        // Si la interfaz de entrada salida esta ocupada
+        if (entrada_salida->ocupado)
+        {
+            pcb->quantum = interrumpir_temporizador(args);
+
+            kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_FS_CREATE> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
+            proceso_actualizar_registros(pcb, proceso_recibido->registros);
+
+            kernel_transicion_exec_block(args);
+
+            // Actualizar campo tiene_proxima_io
+            if (pcb->proxima_io->tiene_proxima_io == false)
+            {
+                kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se actualiza el campo tiene_proxima_io del proceso <%d> a true", pcb->pid);
+                pcb->proxima_io->tiene_proxima_io = true;
+            }
+            pcb->proxima_io->identificador = strdup(entrada_salida->interfaz);
+            pcb->proxima_io->tipo = ENTRADA_SALIDA_DIALFS_CREATE;
+            pcb->proxima_io->args = list_create();
+
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->pid));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->resultado));
+            list_add(pcb->proxima_io->args, proceso_recibido->interfaz);
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->size_interfaz));
+            list_add(pcb->proxima_io->args, proceso_recibido->nombre_archivo);
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->size_nombre_archivo));
+
+            avisar_planificador(args);
+            free(proceso_recibido->interfaz);
+            free(proceso_recibido->nombre_archivo);
+            free(proceso_recibido);
+
+            break;
+        }
+        pcb->quantum = interrumpir_temporizador(args);
+
+        // Actualizo la interfaz de entrada salida
+        entrada_salida->ocupado = 1;
+        entrada_salida->pid = proceso_recibido->pid;
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envia el paquete a la interfaz <%s> asociado a la instruccion IO_FS_CREATE del proceso PID <%d>", proceso_recibido->interfaz, proceso_recibido->pid);
+        proceso_actualizar_registros(pcb, proceso_recibido->registros);
+
+        t_entrada_salida_fs_create *proceso_completo = malloc(sizeof(t_entrada_salida_fs_create));
+
+        proceso_completo->pid = proceso_recibido->pid;
+        proceso_completo->resultado = proceso_recibido->resultado;
+        proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
+        proceso_completo->nombre_archivo = strdup(proceso_recibido->nombre_archivo);
+        proceso_completo->size_interfaz = strlen(proceso_recibido->interfaz) + 1;
+        proceso_completo->size_nombre_archivo = strlen(proceso_recibido->nombre_archivo) + 1;
+
+        t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_FS_CREATE);
+
+        serializar_t_entrada_salida_fs_create(&paquete, proceso_completo);
+
+        kernel_transicion_exec_block(args);
+        enviar_paquete(paquete, entrada_salida->socket);
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envió la instruccion de IO_FS_CREATE a la interfaz %s en socket %d", entrada_salida->interfaz, args->kernel->sockets.entrada_salida_dialfs);
+
+        avisar_planificador(args);
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se transiciona el PID <%d> a BLOCK por ejecucion de IO_FS_CREATE.", proceso_recibido->pid);
+
+        eliminar_paquete(paquete);
+
+        free(proceso_completo->interfaz);
+        free(proceso_completo->nombre_archivo);
+        free(proceso_completo);
+
+        free(proceso_recibido->nombre_archivo);
+        free(proceso_recibido->interfaz);
+        free(proceso_recibido);
+        break;
+    }
     default:
     {
+        kernel_log_generic(args, LOG_LEVEL_WARNING, "Codigo operacion: <%d>", codigo_operacion);
         kernel_log_generic(args, LOG_LEVEL_WARNING, "[CPU Dispatch] Se recibio un codigo de operacion desconocido. Cierro hilo");
         liberar_conexion(&args->kernel->sockets.cpu_dispatch);
         break;

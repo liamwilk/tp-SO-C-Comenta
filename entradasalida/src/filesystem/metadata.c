@@ -1,14 +1,6 @@
 #include <utils/entradasalida.h>
 #include <dirent.h>
 
-typedef struct t_fcb
-{
-    uint32_t total_size;
-    uint32_t inicio;
-    uint32_t fin_bloque;
-    t_config *metadata; // Esto es para ir guardando los cambios en el archivo de metadata
-} t_fcb;
-
 void metadata_inicializar(t_io *args)
 {
     log_info(args->logger, "Inicializando metadata");
