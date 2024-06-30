@@ -1044,6 +1044,50 @@ int instruccion_ejecutar(t_cpu *args)
     case IO_FS_TRUNCATE:
     {
         log_debug(args->logger, "reconoci un IO_FS_TRUNCATE");
+        char *interfaz = strdup(args->instruccion.array[1]);
+        char *nombre_archivo = strdup(args->instruccion.array[2]);
+        char *registro_destino = strdup(args->instruccion.array[3]);
+        t_registro registro_tipo = obtener_tipo_registro(registro_destino);
+        if (registro_tipo == INVALIDO)
+        {
+            log_error(args->logger, "Registro invalido");
+            return -1;
+        }
+        uint32_t *registro_tamanio_truncar;
+        if (registro_tipo == REGISTRO_32)
+        {
+            registro_tamanio_truncar = determinar_tipo_registro_uint32_t(registro_destino, &args->proceso);
+        }
+        if (registro_tipo == REGISTRO_8)
+        {
+            uint8_t *registro_tamanio_ptr = determinar_tipo_registro_uint8_t(registro_destino, &args->proceso);
+            uint32_t registro_tamanio_casteado = casteo_uint32_t(*registro_tamanio_ptr);
+            registro_tamanio_truncar = &registro_tamanio_casteado;
+        }
+        t_cpu_kernel_fs_truncate *proceso = malloc(sizeof(t_cpu_kernel_fs_truncate));
+
+        proceso->pid = args->proceso.pid;
+        proceso->interfaz = strdup(interfaz);
+        proceso->size_interfaz = strlen(interfaz) + 1;
+        proceso->nombre_archivo = strdup(nombre_archivo);
+        proceso->size_nombre_archivo = strlen(nombre_archivo) + 1;
+        proceso->tamanio_a_truncar = *registro_tamanio_truncar;
+        proceso->registros = args->proceso.registros;
+        proceso->resultado = 0;
+
+        log_debug(args->logger, "Se solicita un truncate de <%d> bytes para el archivo <%s> en la interfaz <%s>", proceso->tamanio_a_truncar, proceso->nombre_archivo, proceso->interfaz);
+
+        t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_FS_TRUNCATE);
+        serializar_t_cpu_kernel_fs_truncate(&paquete, proceso);
+
+        enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);
+
+        eliminar_paquete(paquete);
+        free(interfaz);
+        free(nombre_archivo);
+        free(proceso->interfaz);
+        free(proceso->nombre_archivo);
+        free(proceso);
         return 1;
     }
     case IO_FS_WRITE:

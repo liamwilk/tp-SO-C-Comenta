@@ -317,6 +317,10 @@ void kernel_cpu_entradasalida_no_conectada(hilos_args *args, t_kernel_cpu_entrad
         free(proceso_enviar->motivo);
         free(proceso_enviar);
     }
+    if (TIPO == CPU_IO_FS_TRUNCATE)
+    {
+        // TODO: Implementar
+    }
 };
 
 void kernel_cpu_entradasalida_distinto_tipo(hilos_args *args, t_kernel_cpu_entradasalida_error TIPO, char *interfaz, uint32_t pid)

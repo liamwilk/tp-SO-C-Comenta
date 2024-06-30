@@ -72,20 +72,3 @@ void metadata_inicializar(t_io *args)
     // memset(args->dial_fs.archivo_bloques, 'A', args->dial_fs.tamanio_archivo);
     free(full_path);
 }
-
-void metadata_modificar_bloque_inicial(t_io *args, char *archivo, int nuevo_bloque_inicial)
-{
-    t_fcb *fcb = dictionary_get(args->dial_fs.archivos, archivo);
-    config_set_value(fcb->metadata, "BLOQUE_INICIAL", string_itoa(nuevo_bloque_inicial));
-    config_save(fcb->metadata); // Guardar los cambios en el archivo de metadata
-    fcb->inicio = nuevo_bloque_inicial;
-}
-
-void metadata_modificar_tamanio_archivo(t_io *args, char *archivo, int nuevo_tamanio)
-{
-    t_fcb *fcb = dictionary_get(args->dial_fs.archivos, archivo);
-    config_set_value(fcb->metadata, "TAMANIO_ARCHIVO", string_itoa(nuevo_tamanio));
-    config_save(fcb->metadata); // Guardar los cambios en el archivo de metadata
-    fcb->total_size = nuevo_tamanio;
-    fcb->fin_bloque = fcb->inicio + (nuevo_tamanio / args->dial_fs.blockSize);
-}

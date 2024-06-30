@@ -117,6 +117,132 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
         free(create);
         break;
     }
+    case KERNEL_ENTRADA_SALIDA_IO_FS_TRUNCATE:
+    {
+        t_kernel_entrada_salida_fs_truncate *truncate = deserializar_t_kernel_entrada_salida_fs_truncate(buffer);
+
+        t_kernel_entrada_salida_fs_truncate *proceso = malloc(sizeof(t_kernel_entrada_salida_fs_truncate));
+
+        log_info(args->logger, "PID : <%d> - Truncar Archivo : <%s> - Tamaño : <%d>", truncate->pid, truncate->nombre_archivo, truncate->tamanio_a_truncar);
+        // Obtenemos el archivo a truncar del diccionario
+        t_fcb *archivo = dictionary_get(args->dial_fs.archivos, truncate->nombre_archivo);
+        if (archivo == NULL)
+        {
+            log_error(args->logger, "El archivo no existe");
+            proceso->pid = truncate->pid;
+            proceso->resultado = 0;
+            proceso->nombre_archivo = strdup(truncate->nombre_archivo);
+            proceso->tamanio_a_truncar = truncate->tamanio_a_truncar;
+            proceso->size_nombre_archivo = strlen(truncate->nombre_archivo) + 1;
+            proceso->interfaz = strdup(truncate->interfaz);
+            proceso->size_interfaz = strlen(truncate->interfaz) + 1;
+            t_paquete *paquete = crear_paquete(ENTRADA_SALIDA_KERNEL_IO_FS_TRUNCATE);
+            serializar_t_kernel_entrada_salida_fs_truncate(&paquete, proceso);
+            enviar_paquete(paquete, args->sockets.socket_kernel_dialfs);
+            eliminar_paquete(paquete);
+            free(proceso->nombre_archivo);
+            free(proceso->interfaz);
+            free(proceso);
+            free(truncate->nombre_archivo);
+            free(truncate->interfaz);
+            free(truncate);
+            break;
+        }
+        int cantidad_bloques = (int)(truncate->tamanio_a_truncar / args->dial_fs.blockSize);
+        log_debug(args->logger, "Cantidad de bloques a truncar: %d", cantidad_bloques);
+        // Contar cantidad de bloques ocupados con bitarray
+        int bloques_ocupados = 0;
+        for (int i = 0; i < args->dial_fs.bitarray->size; i++)
+        {
+            if (bitarray_test_bit(args->dial_fs.bitarray, i) == 1)
+            {
+                bloques_ocupados++;
+            }
+        }
+        int total = cantidad_bloques + bloques_ocupados;
+
+        log_debug(args->logger, "Cantidad de bloques ocupados: %d", bloques_ocupados);
+        log_debug(args->logger, "Cantidad de bloques ocupados luego de truncar: %d", total);
+
+        if (total > args->dial_fs.blockCount)
+        {
+            log_error(args->logger, "No hay suficientes bloques para truncar el archivo");
+            proceso->pid = truncate->pid;
+            proceso->resultado = 0;
+            proceso->nombre_archivo = strdup(truncate->nombre_archivo);
+            proceso->tamanio_a_truncar = truncate->tamanio_a_truncar;
+            proceso->size_nombre_archivo = strlen(truncate->nombre_archivo) + 1;
+            proceso->interfaz = strdup(truncate->interfaz);
+            proceso->size_interfaz = strlen(truncate->interfaz) + 1;
+            t_paquete *paquete = crear_paquete(ENTRADA_SALIDA_KERNEL_IO_FS_TRUNCATE);
+            serializar_t_kernel_entrada_salida_fs_truncate(&paquete, proceso);
+            enviar_paquete(paquete, args->sockets.socket_kernel_dialfs);
+            eliminar_paquete(paquete);
+            free(proceso->nombre_archivo);
+            free(proceso->interfaz);
+            free(proceso);
+            free(truncate->nombre_archivo);
+            free(truncate->interfaz);
+            free(truncate);
+            break;
+        }
+        //  Verificamos que no solape con otro archivo al truncar
+        int fin_bloque = archivo->inicio + cantidad_bloques;
+
+        // Recorremos el diccionario para verificar que no solape con otro archivo
+        bool solapa = false;
+        t_list *keys = dictionary_keys(args->dial_fs.archivos);
+        for (int i = 0; i < list_size(keys); i++)
+        {
+            char *key = list_get(keys, i);
+            t_fcb *comparator = dictionary_get(args->dial_fs.archivos, key);
+            if (strcmp(key, truncate->nombre_archivo) != 0 && fin_bloque > comparator->inicio)
+            {
+                solapa = true;
+                break;
+            }
+        }
+        if (solapa)
+        {
+            log_info(args->logger, "DialFS - Inicio Compactación: “PID: <%d> - Inicio Compactación.", truncate->pid);
+            // TODO: Hay que compactar
+        }
+
+        // Se procede a truncarlo
+        // Recorremos el bitmap desde fin_bloque anterior
+        for (int i = archivo->fin_bloque + 1; i <= archivo->fin_bloque + cantidad_bloques; i++)
+        {
+            log_debug(args->logger, "Se setea el bit %d en 1", i);
+            bitarray_set_bit(args->dial_fs.bitarray, i);
+        }
+        // Actualizamos total_size y fin_bloque del archivo
+        archivo->total_size = archivo->total_size + truncate->tamanio_a_truncar;
+        log_debug(args->logger, "Tamaño total del archivo: %d", archivo->total_size);
+        archivo->fin_bloque = fin_bloque;
+        log_debug(args->logger, "Fin bloque del archivo: %d", archivo->fin_bloque);
+        // Actualizar el config y guardar en archivo
+        config_set_value(archivo->metadata, "TAMANIO_ARCHIVO", string_itoa(archivo->total_size));
+        config_save(archivo->metadata);
+
+        proceso->pid = truncate->pid;
+        proceso->resultado = 1;
+        proceso->nombre_archivo = strdup(truncate->nombre_archivo);
+        proceso->tamanio_a_truncar = truncate->tamanio_a_truncar;
+        proceso->size_nombre_archivo = strlen(truncate->nombre_archivo) + 1;
+        proceso->interfaz = strdup(truncate->interfaz);
+        proceso->size_interfaz = strlen(truncate->interfaz) + 1;
+        t_paquete *paquete = crear_paquete(ENTRADA_SALIDA_KERNEL_IO_FS_TRUNCATE);
+        serializar_t_kernel_entrada_salida_fs_truncate(&paquete, proceso);
+        enviar_paquete(paquete, args->sockets.socket_kernel_dialfs);
+        eliminar_paquete(paquete);
+        free(proceso->nombre_archivo);
+        free(proceso->interfaz);
+        free(proceso);
+        free(truncate->nombre_archivo);
+        free(truncate->interfaz);
+        free(truncate);
+        break;
+    }
     case FINALIZAR_SISTEMA:
     {
         log_info(args->logger, "Se recibio la señal de desconexión de Kernel. Cierro hilo");
@@ -126,7 +252,6 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
     }
     default:
     {
-        log_warning(args->logger, "Se recibio un codigo de operacion desconocido. Cierro hilo");
         liberar_conexion(&args->sockets.socket_kernel_dialfs);
         break;
     }

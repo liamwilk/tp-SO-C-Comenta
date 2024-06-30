@@ -551,6 +551,7 @@ void fs_archivo_crear(t_io *args, char *nombre, int indice_bloque_libre)
     config_set_value(metadata, "TAMANIO_ARCHIVO", "0");
     config_set_value(metadata, "BLOQUE_INICIAL", string_itoa(indice_bloque_libre));
     config_save_in_file(metadata, full_path);
+    nuevo_fcb->metadata = metadata;
 
     //**Mapeamos el nuevo archivo al diccionario**/
     dictionary_put(args->dial_fs.archivos, nombre, nuevo_fcb);

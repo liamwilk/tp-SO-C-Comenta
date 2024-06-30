@@ -64,6 +64,7 @@ void switch_case_kernel_entrada_salida_dialfs(hilos_io_args *io_args, char *modu
         }
         else
         {
+            kernel_manejar_ready(io_args->args, create->pid, BLOCK_READY);
             proceso_enviar->pid = pid;
             proceso_enviar->resultado = 0;
             proceso_enviar->motivo = strdup("Ocurrio un error a la hora de crear el archivo.");
@@ -77,6 +78,66 @@ void switch_case_kernel_entrada_salida_dialfs(hilos_io_args *io_args, char *modu
             eliminar_paquete(paquete);
             free(proceso_enviar->motivo);
             free(proceso_enviar);
+        }
+        break;
+    }
+    case ENTRADA_SALIDA_KERNEL_IO_FS_TRUNCATE:
+    {
+        t_kernel_entrada_salida_fs_truncate *truncate = deserializar_t_kernel_entrada_salida_fs_truncate(buffer);
+        // TODO: Crear el paquete de envio a CPU
+
+        // t_kernel_cpu_io_fs_create *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_fs_create));
+
+        // Verifico si este proceso no ha ya sido marcado como eliminado  en kernel
+        if (kernel_verificar_proceso_en_exit(io_args->args, truncate->pid))
+        {
+            break;
+        };
+        //  t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_FS_CREATE);
+
+        if (truncate->resultado == 1)
+        {
+            kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/%s/%d] Se completó la operación de IO_FS_TRUNCATE para el proceso PID <%d>", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden, truncate->pid);
+            t_kernel_entrada_salida *io = kernel_entrada_salida_buscar_interfaz_pid(io_args->args, truncate->pid);
+            if (io == NULL)
+            {
+                kernel_log_generic(io_args->args, LOG_LEVEL_ERROR, "No se encontro el tipo DIALFS para el proceso PID <%d>", truncate->pid);
+            }
+            else
+            {
+                io_args->entrada_salida->ocupado = 0;
+                io_args->entrada_salida->pid = 0;
+                kernel_manejar_ready(io_args->args, truncate->pid, BLOCK_READY);
+
+                // proceso_enviar->pid = create->pid;
+                // proceso_enviar->resultado = 1;
+                // proceso_enviar->motivo = strdup("Se completó la operación de IO_FS_CREATE");
+
+                // proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
+
+                // serializar_t_kernel_cpu_io_fs_create(&paquete, proceso_enviar);
+                // enviar_paquete(paquete, io_args->args->kernel->sockets.cpu_dispatch);
+
+                kernel_proximo_io_fs(io_args->args, io);
+                avisar_planificador(io_args->args);
+            }
+        }
+        else
+        {
+            kernel_manejar_ready(io_args->args, truncate->pid, BLOCK_READY);
+            // proceso_enviar->pid = pid;
+            // proceso_enviar->resultado = 0;
+            // proceso_enviar->motivo = strdup("Ocurrio un error a la hora de crear el archivo.");
+            // proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
+
+            // io_args->entrada_salida->ocupado = 0;
+            // io_args->entrada_salida->pid = 0;
+
+            // serializar_t_kernel_cpu_io_fs_create(&paquete, proceso_enviar);
+            // enviar_paquete(paquete, io_args->args->kernel->sockets.cpu_dispatch);
+            // eliminar_paquete(paquete);
+            // free(proceso_enviar->motivo);
+            // free(proceso_enviar);
         }
         break;
     }

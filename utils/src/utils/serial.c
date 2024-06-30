@@ -1533,3 +1533,80 @@ t_entrada_salida_fs_create *deserializar_t_entrada_salida_fs_create(t_buffer *bu
 
 	return create;
 }
+
+void serializar_t_cpu_kernel_fs_truncate(t_paquete **paquete, t_cpu_kernel_fs_truncate *truncate)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 15);
+	serializar_uint32_t(truncate->pid, *paquete);
+	serializar_uint32_t(truncate->size_interfaz, *paquete);
+	serializar_uint32_t(truncate->size_nombre_archivo, *paquete);
+	serializar_uint32_t(truncate->tamanio_a_truncar, *paquete);
+	serializar_uint32_t(truncate->resultado, *paquete);
+	serializar_char(truncate->interfaz, *paquete);
+	serializar_char(truncate->nombre_archivo, *paquete);
+
+	// Registros de CPU
+	serializar_uint32_t(truncate->registros.pc, *paquete);
+	serializar_uint32_t(truncate->registros.eax, *paquete);
+	serializar_uint32_t(truncate->registros.ebx, *paquete);
+	serializar_uint32_t(truncate->registros.ecx, *paquete);
+	serializar_uint32_t(truncate->registros.edx, *paquete);
+	serializar_uint32_t(truncate->registros.si, *paquete);
+	serializar_uint32_t(truncate->registros.di, *paquete);
+	serializar_uint8_t(truncate->registros.ax, *paquete);
+	serializar_uint8_t(truncate->registros.bx, *paquete);
+	serializar_uint8_t(truncate->registros.cx, *paquete);
+	serializar_uint8_t(truncate->registros.dx, *paquete);
+}
+
+t_cpu_kernel_fs_truncate *deserializar_t_cpu_kernel_fs_truncate(t_buffer *buffer)
+{
+	t_cpu_kernel_fs_truncate *truncate = malloc(sizeof(t_cpu_kernel_fs_truncate));
+	void *stream = buffer->stream;
+	deserializar_uint32_t(&stream, &(truncate->pid));
+	deserializar_uint32_t(&stream, &(truncate->size_interfaz));
+	deserializar_uint32_t(&stream, &(truncate->size_nombre_archivo));
+	deserializar_uint32_t(&stream, &(truncate->tamanio_a_truncar));
+	deserializar_uint32_t(&stream, &(truncate->resultado));
+	deserializar_char(&stream, &(truncate->interfaz), truncate->size_interfaz);
+	deserializar_char(&stream, &(truncate->nombre_archivo), truncate->size_nombre_archivo);
+
+	deserializar_uint32_t(&stream, &(truncate->registros.pc));
+	deserializar_uint32_t(&stream, &(truncate->registros.eax));
+	deserializar_uint32_t(&stream, &(truncate->registros.ebx));
+	deserializar_uint32_t(&stream, &(truncate->registros.ecx));
+	deserializar_uint32_t(&stream, &(truncate->registros.edx));
+	deserializar_uint32_t(&stream, &(truncate->registros.si));
+	deserializar_uint32_t(&stream, &(truncate->registros.di));
+	deserializar_uint8_t(&stream, &(truncate->registros.ax));
+	deserializar_uint8_t(&stream, &(truncate->registros.bx));
+	deserializar_uint8_t(&stream, &(truncate->registros.cx));
+	deserializar_uint8_t(&stream, &(truncate->registros.dx));
+	return truncate;
+}
+
+void serializar_t_kernel_entrada_salida_fs_truncate(t_paquete **paquete, t_kernel_entrada_salida_fs_truncate *truncate)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 5 + truncate->size_interfaz + truncate->size_nombre_archivo);
+	serializar_uint32_t(truncate->pid, *paquete);
+	serializar_uint32_t(truncate->size_interfaz, *paquete);
+	serializar_uint32_t(truncate->size_nombre_archivo, *paquete);
+	serializar_uint32_t(truncate->tamanio_a_truncar, *paquete);
+	serializar_uint32_t(truncate->resultado, *paquete);
+	serializar_char(truncate->interfaz, *paquete);
+	serializar_char(truncate->nombre_archivo, *paquete);
+}
+
+t_kernel_entrada_salida_fs_truncate *deserializar_t_kernel_entrada_salida_fs_truncate(t_buffer *buffer)
+{
+	t_kernel_entrada_salida_fs_truncate *truncate = malloc(sizeof(t_kernel_entrada_salida_fs_truncate));
+	void *stream = buffer->stream;
+	deserializar_uint32_t(&stream, &(truncate->pid));
+	deserializar_uint32_t(&stream, &(truncate->size_interfaz));
+	deserializar_uint32_t(&stream, &(truncate->size_nombre_archivo));
+	deserializar_uint32_t(&stream, &(truncate->tamanio_a_truncar));
+	deserializar_uint32_t(&stream, &(truncate->resultado));
+	deserializar_char(&stream, &(truncate->interfaz), truncate->size_interfaz);
+	deserializar_char(&stream, &(truncate->nombre_archivo), truncate->size_nombre_archivo);
+	return truncate;
+}
