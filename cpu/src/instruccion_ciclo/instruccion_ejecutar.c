@@ -1043,7 +1043,6 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case IO_FS_TRUNCATE:
     {
-        log_debug(args->logger, "reconoci un IO_FS_TRUNCATE");
         char *interfaz = strdup(args->instruccion.array[1]);
         char *nombre_archivo = strdup(args->instruccion.array[2]);
         char *registro_destino = strdup(args->instruccion.array[3]);

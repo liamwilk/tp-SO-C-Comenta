@@ -693,13 +693,13 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         eliminar_paquete(paquete);
 
-        // free(proceso_completo->interfaz);
-        // free(proceso_completo->nombre_archivo);
-        // free(proceso_completo);
+        free(proceso_completo->interfaz);
+        free(proceso_completo->nombre_archivo);
+        free(proceso_completo);
 
-        // free(proceso_recibido->nombre_archivo);
-        // free(proceso_recibido->interfaz);
-        // free(proceso_recibido);
+        free(proceso_recibido->nombre_archivo);
+        free(proceso_recibido->interfaz);
+        free(proceso_recibido);
         break;
     }
     default:
