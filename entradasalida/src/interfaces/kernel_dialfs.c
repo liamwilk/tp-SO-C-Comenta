@@ -250,6 +250,58 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
         liberar_conexion(&args->sockets.socket_kernel_dialfs);
         break;
     }
+    case KERNEL_ENTRADA_SALIDA_IO_FS_DELETE:
+    {
+        // Uso las funciones de serializacion de create para no repetir la misma logica
+        t_entrada_salida_fs_create *delete = deserializar_t_entrada_salida_fs_create(buffer);
+        log_info(args->logger, "PID: <%d> - Eliminar Archivo: <%s>", delete->pid, delete->nombre_archivo);
+
+        t_fcb *archivo = dictionary_get(args->dial_fs.archivos, delete->nombre_archivo);
+
+        if (archivo == NULL)
+        {
+            log_error(args->logger, "El archivo no existe");
+            break;
+        }
+        // Liberamos el bitmap desde bloque inicio hasta bloque fin
+        for (int i = archivo->inicio; i <= archivo->fin_bloque; i++)
+        {
+            log_debug(args->logger, "Se setea el bit %d en 0", i);
+            bitarray_clean_bit(args->dial_fs.bitarray, i);
+        }
+
+        // Eliminar el archivo del fs
+        remove(archivo->metadata->path);
+        t_fcb *fcb_eliminada = dictionary_remove(args->dial_fs.archivos, delete->nombre_archivo);
+        free(fcb_eliminada->metadata);
+        free(fcb_eliminada);
+
+        //  Envio la respuesta al Kernel
+        t_entrada_salida_fs_create *proceso = malloc(sizeof(t_entrada_salida_fs_create));
+        proceso->pid = delete->pid;
+        proceso->resultado = 1; // Se actualiza el resultado
+        proceso->nombre_archivo = strdup(delete->nombre_archivo);
+        proceso->interfaz = strdup(delete->interfaz);
+        proceso->size_interfaz = strlen(delete->interfaz) + 1;
+        proceso->size_nombre_archivo = strlen(delete->nombre_archivo) + 1;
+
+        // Envio la respuesta al Kernel
+        t_paquete *paquete = crear_paquete(ENTRADA_SALIDA_KERNEL_IO_FS_DELETE);
+        serializar_t_entrada_salida_fs_create(&paquete, proceso);
+        enviar_paquete(paquete, args->sockets.socket_kernel_dialfs);
+
+        log_debug(args->logger, "Se envio la respuesta al Kernel en el socket %d", args->sockets.socket_kernel_dialfs);
+        eliminar_paquete(paquete);
+
+        free(proceso->nombre_archivo);
+        free(proceso->interfaz);
+        free(proceso);
+
+        free(delete->nombre_archivo);
+        free(delete->interfaz);
+        free(delete);
+        break;
+    }
     default:
     {
         liberar_conexion(&args->sockets.socket_kernel_dialfs);

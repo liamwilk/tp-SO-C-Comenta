@@ -1038,7 +1038,30 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case IO_FS_DELETE:
     {
-        log_debug(args->logger, "reconoci un IO_FS_DELETE");
+        char *interfaz = strdup(args->instruccion.array[1]);
+        char *nombre_archivo = strdup(args->instruccion.array[2]);
+
+        // Se utiliza la serializacion de la estructura t_entrada_salida_fs_delete para no repetir logica
+        t_entrada_salida_fs_create *proceso = malloc(sizeof(t_entrada_salida_fs_create));
+        proceso->pid = args->proceso.pid;
+        proceso->interfaz = strdup(interfaz);
+        proceso->size_interfaz = strlen(interfaz) + 1;
+        proceso->nombre_archivo = strdup(nombre_archivo);
+        proceso->size_nombre_archivo = strlen(nombre_archivo) + 1;
+        proceso->resultado = 0; // Después lo modifica FS
+        proceso->registros = args->proceso.registros;
+
+        t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_FS_DELETE);
+        serializar_t_entrada_salida_fs_create(&paquete, proceso);
+
+        enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);
+
+        eliminar_paquete(paquete);
+        free(interfaz);
+        free(nombre_archivo);
+        free(proceso->interfaz);
+        free(proceso->nombre_archivo);
+        free(proceso);
         return 1;
     }
     case IO_FS_TRUNCATE:
