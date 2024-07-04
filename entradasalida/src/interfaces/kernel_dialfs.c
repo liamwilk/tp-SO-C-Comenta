@@ -302,6 +302,70 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
         free(delete);
         break;
     }
+    case KERNEL_ENTRADA_SALIDA_IO_FS_WRITE:
+    {
+        t_kernel_entrada_salida_fs_write *write = deserializar_t_kernel_entrada_salida_fs_write(buffer);
+
+        log_info(args->logger, "PID: <%d> - Escribir Archivo: <%s> - Tamaño a Escribir: <%ld> - Puntero Archivo: <%d>", write->pid, write->nombre_archivo, strlen(write->escribir) + 1, write->puntero_archivo);
+        log_debug(args->logger, "Contenido a escribir: %s", write->escribir);
+
+        // Calculamos cuantos bloques ocupara el archivo
+        int cantidad_bloques = (int)((strlen(write->escribir) + 1) / args->dial_fs.blockSize);
+        log_debug(args->logger, "Cantidad de bloques a escribir: %d", cantidad_bloques);
+
+        // Obtenemos el archivo a escribir del diccionario
+        t_fcb *archivo = dictionary_get(args->dial_fs.archivos, write->nombre_archivo);
+        if (archivo == NULL)
+        {
+            log_error(args->logger, "El archivo no existe");
+            write->resultado = 1; // 1 es para archivo que no existe
+            break;
+        }
+
+        // Comprobamos que al escribir no se pase del tamaño del archivo
+        if (write->puntero_archivo + cantidad_bloques > archivo->fin_bloque)
+        {
+            log_error(args->logger, "Se intenta escribir fuera del maximum size del archivo");
+            write->resultado = 2; // 2 es para archivo  fuera del maximum size del archivo
+            break;
+        }
+
+        // Comprobamos que el puntero archivo este entre el inicio y el fin del archivo
+        if (write->puntero_archivo < archivo->inicio || write->puntero_archivo > archivo->fin_bloque)
+        {
+            log_error(args->logger, "Se intenta escribir fuera del archivo");
+            write->resultado = 3; // 3 es para archivo que no tiene espacio suficiente
+            break;
+        }
+
+        // Escribimos en el archivo, para ello usamos la variable mapeada en memoria el valor de write->escribir
+        memcpy(args->dial_fs.archivo_bloques + write->puntero_archivo, write->escribir, strlen(write->escribir) + 1);
+        write->resultado = 0; // 0 es para archivo que se escribio correctamente
+        t_paquete *paquete = crear_paquete(ENTRADA_SALIDA_KERNEL_IO_FS_WRITE);
+        serializar_t_kernel_entrada_salida_fs_write(&paquete, write);
+        enviar_paquete(paquete, args->sockets.socket_kernel_dialfs);
+        eliminar_paquete(paquete);
+
+        // TODO: Esto no se debe hacer en un entorno productivo, es solo para verificar que se escribio correctamente
+        //  Chequeamos que se haya escrito bien, para eso vuelvo a obtener el valor de la memoria mapeada y lo comparo con write->escribir
+        char *contenido = malloc(strlen(write->escribir) + 1);
+        memcpy(contenido, args->dial_fs.archivo_bloques + write->puntero_archivo, strlen(write->escribir) + 1);
+        log_debug(args->logger, "Contenido escrito: %s", contenido);
+        if (strcmp(contenido, write->escribir) != 0)
+        {
+            log_error(args->logger, "Error al escribir en el archivo");
+            break;
+        }
+        else
+        {
+            log_debug(args->logger, "Se escribio correctamente en el archivo");
+        }
+        free(contenido);
+        free(write->nombre_archivo);
+        free(write->escribir);
+        free(write);
+        break;
+    }
     default:
     {
         liberar_conexion(&args->sockets.socket_kernel_dialfs);

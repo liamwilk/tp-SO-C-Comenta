@@ -711,7 +711,7 @@ void kernel_proximo_io_fs(hilos_args *args, t_kernel_entrada_salida *io)
         }
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso <%d> bloqueado por I/O en interfaz <%s>", pcb->pid, pcb->proxima_io->identificador);
-        // TODO: Agregar cada case para CREATE, WRITE, DELETE, TRUNCATE
+        // TODO: Agregar cada case para  WRITE, DELETE, TRUNCATE, READ
         if (strcmp(pcb->proxima_io->identificador, io->interfaz) == 0 && pcb->proxima_io->tipo == ENTRADA_SALIDA_DIALFS_CREATE)
         {
             io->ocupado = 1;

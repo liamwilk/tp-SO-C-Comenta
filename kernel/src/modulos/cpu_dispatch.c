@@ -590,7 +590,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         {
             pcb->quantum = interrumpir_temporizador(args);
             kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar la instrucción <IO_FS_TRUNCATE> del PID <%d> a la interfaz <%s> porque no está conectada.", proceso_recibido->pid, proceso_recibido->interfaz);
-            // kernel_cpu_entradasalida_no_conectada(args, CPU_IO_FS_TRUNCATE, proceso_recibido->interfaz, proceso_recibido->pid);
             proceso_actualizar_registros(pcb, proceso_recibido->registros);
             kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
 
@@ -607,7 +606,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             pcb->quantum = interrumpir_temporizador(args);
 
             kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar la instrucción <IO_FS_TRUNCATE> del PID <%d> a la interfaz <%s> porque no es DIALFS.", proceso_recibido->pid, proceso_recibido->interfaz);
-            kernel_cpu_entradasalida_distinto_tipo(args, CPU_IO_FS_CREATE, proceso_recibido->interfaz, proceso_recibido->pid);
             proceso_actualizar_registros(pcb, proceso_recibido->registros);
 
             kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
@@ -690,6 +688,133 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         avisar_planificador(args);
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se transiciona el PID <%d> a BLOCK por ejecucion de IO_FS_TRUNCATE.", proceso_recibido->pid);
+
+        eliminar_paquete(paquete);
+
+        free(proceso_completo->interfaz);
+        free(proceso_completo->nombre_archivo);
+        free(proceso_completo);
+
+        free(proceso_recibido->nombre_archivo);
+        free(proceso_recibido->interfaz);
+        free(proceso_recibido);
+        break;
+    }
+    case CPU_KERNEL_IO_FS_WRITE:
+    {
+        t_cpu_kernel_fs_write *proceso_recibido = deserializar_t_cpu_kernel_fs_write(buffer);
+
+        // Log del proceso recibido
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se recibio la instruccion <IO_FS_WRITE> del PID <%d> para la interfaz <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
+
+        t_kernel_entrada_salida *entrada_salida = kernel_entrada_salida_buscar_interfaz(args, proceso_recibido->interfaz);
+
+        t_pcb *pcb = proceso_buscar_exec(args->estados, proceso_recibido->pid);
+
+        if (pcb == NULL)
+        {
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
+            break;
+        }
+
+        // Si la interfaz de entrada salida no esta conectada
+        if (entrada_salida == NULL)
+        {
+            pcb->quantum = interrumpir_temporizador(args);
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar la instrucción <IO_FS_WRITE> del PID <%d> a la interfaz <%s> porque no está conectada.", proceso_recibido->pid, proceso_recibido->interfaz);
+            proceso_actualizar_registros(pcb, proceso_recibido->registros);
+            kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
+            free(proceso_recibido->nombre_archivo);
+            free(proceso_recibido->interfaz);
+            free(proceso_recibido);
+            break;
+        }
+
+        // Si la interfaz de entrada salida pedida no es del tipo DIALFS
+        if (entrada_salida->tipo != ENTRADA_SALIDA_DIALFS)
+        {
+            pcb->quantum = interrumpir_temporizador(args);
+            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar la instrucción <IO_FS_WRITE> del PID <%d> a la interfaz <%s> porque no es DIALFS.", proceso_recibido->pid, proceso_recibido->interfaz);
+            proceso_actualizar_registros(pcb, proceso_recibido->registros);
+            kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
+            free(proceso_recibido->interfaz);
+            free(proceso_recibido->nombre_archivo);
+            free(proceso_recibido);
+            break;
+        }
+
+        if (entrada_salida->ocupado)
+        {
+            pcb->quantum = interrumpir_temporizador(args);
+
+            kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_FS_WRITE> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
+
+            proceso_actualizar_registros(pcb, proceso_recibido->registros);
+
+            kernel_transicion_exec_block(args);
+
+            // Actualizar campo tiene_proxima_io
+            if (pcb->proxima_io->tiene_proxima_io == false)
+            {
+                kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se actualiza el campo tiene_proxima_io del proceso <%d> a true", pcb->pid);
+                pcb->proxima_io->tiene_proxima_io = true;
+            }
+            pcb->proxima_io->identificador = strdup(entrada_salida->interfaz);
+            pcb->proxima_io->tipo = ENTRADA_SALIDA_DIALFS_WRITE;
+            pcb->proxima_io->args = list_create();
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->pid));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->resultado));
+            list_add(pcb->proxima_io->args, proceso_recibido->interfaz);
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->size_interfaz));
+            list_add(pcb->proxima_io->args, proceso_recibido->nombre_archivo);
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->size_nombre_archivo));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->puntero_archivo));
+            list_add(pcb->proxima_io->args, proceso_recibido->escribir);
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->size_escribir));
+            avisar_planificador(args);
+            free(proceso_recibido->interfaz);
+            free(proceso_recibido->nombre_archivo);
+            free(proceso_recibido);
+            break;
+        }
+
+        pcb->quantum = interrumpir_temporizador(args);
+
+        // Actualizo la interfaz de entrada salida
+        entrada_salida->ocupado = 1;
+        entrada_salida->pid = proceso_recibido->pid;
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envia el paquete a la interfaz <%s> asociado a la instruccion IO_FS_WRITE del proceso PID <%d>", proceso_recibido->interfaz, proceso_recibido->pid);
+        proceso_actualizar_registros(pcb, proceso_recibido->registros);
+        kernel_transicion_exec_block(args);
+        t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_FS_WRITE);
+        t_kernel_entrada_salida_fs_write *proceso_completo = malloc(sizeof(t_kernel_entrada_salida_fs_write));
+        proceso_completo->pid = proceso_recibido->pid;
+        proceso_completo->resultado = proceso_recibido->resultado;
+        proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
+        proceso_completo->nombre_archivo = strdup(proceso_recibido->nombre_archivo);
+        proceso_completo->size_interfaz = strlen(proceso_recibido->interfaz) + 1;
+        proceso_completo->size_nombre_archivo = strlen(proceso_recibido->nombre_archivo) + 1;
+        proceso_completo->puntero_archivo = proceso_recibido->puntero_archivo;
+        proceso_completo->escribir = proceso_recibido->escribir;
+        proceso_completo->size_escribir = proceso_recibido->size_escribir;
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Interfaz: %s", proceso_completo->interfaz);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Size interfaz: %d", proceso_completo->size_interfaz);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Nombre archivo: %s", proceso_completo->nombre_archivo);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Size nombre archivo: %d", proceso_completo->size_nombre_archivo);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Puntero archivo: %d", proceso_completo->puntero_archivo);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Escribir: %s", proceso_completo->escribir);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Size escribir: %d", proceso_completo->size_escribir);
+
+        serializar_t_kernel_entrada_salida_fs_write(&paquete, proceso_completo);
+
+        enviar_paquete(paquete, entrada_salida->socket);
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envió la instruccion de IO_FS_WRITE a la interfaz %s en socket %d", entrada_salida->interfaz, entrada_salida->socket);
+
+        avisar_planificador(args);
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se transiciona el PID <%d> a BLOCK por ejecucion de IO_FS_WRITE.", proceso_recibido->pid);
 
         eliminar_paquete(paquete);
 

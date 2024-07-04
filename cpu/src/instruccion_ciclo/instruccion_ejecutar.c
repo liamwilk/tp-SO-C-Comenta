@@ -1114,7 +1114,58 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case IO_FS_WRITE:
     {
-        log_debug(args->logger, "reconoci un IO_FS_WRITE");
+        char *interfaz = strdup(args->instruccion.array[1]);
+        char *nombre_archivo = strdup(args->instruccion.array[2]);
+        char *registro_direccion = strdup(args->instruccion.array[3]);
+        char *registro_tamanio = strdup(args->instruccion.array[4]);
+        char *registro_puntero_archivo = strdup(args->instruccion.array[3]);
+        // TODO: Logica de obtencion de datos desde espacio usuario memoria
+        // Basicamente hay que pedirle a memoria que lea desde registro_direccion la cantidad de bytes indicados por registro_tamanio
+        // Memoria va a devolver un char* con los datos leidos, estos se enviaran al FS junto con registro_puntero_archivo
+
+        // Hardcodeo un char* devuelto por memoria
+        char *datos = "Desarrollar un sistema operativo en C es un desafío emocionante que requiere paciencia y conocimiento profundo de programación.";
+        t_registro registro_tipo_puntero_archivo = obtener_tipo_registro(registro_puntero_archivo);
+        if (registro_tipo_puntero_archivo == INVALIDO)
+        {
+            log_error(args->logger, "Registro invalido");
+            return -1;
+        }
+        uint32_t *registro_puntero_archivo_a_escribir;
+        if (registro_tipo_puntero_archivo == REGISTRO_32)
+        {
+            registro_puntero_archivo_a_escribir = determinar_tipo_registro_uint32_t(registro_puntero_archivo, &args->proceso);
+        }
+        if (registro_tipo_puntero_archivo == REGISTRO_8)
+        {
+            uint8_t *registro_tamanio_ptr = determinar_tipo_registro_uint8_t(registro_puntero_archivo, &args->proceso);
+            uint32_t registro_tamanio_casteado = casteo_uint32_t(*registro_tamanio_ptr);
+            registro_puntero_archivo_a_escribir = &registro_tamanio_casteado;
+        }
+
+        t_cpu_kernel_fs_write *proceso = malloc(sizeof(t_cpu_kernel_fs_write));
+        proceso->pid = args->proceso.pid;
+        proceso->interfaz = strdup(interfaz);
+        proceso->size_interfaz = strlen(interfaz) + 1;
+        proceso->nombre_archivo = strdup(nombre_archivo);
+        proceso->size_nombre_archivo = strlen(nombre_archivo) + 1;
+        proceso->escribir = datos;
+        proceso->size_escribir = strlen(datos) + 1;
+        proceso->puntero_archivo = *registro_puntero_archivo_a_escribir;
+        proceso->registros = args->proceso.registros;
+        proceso->resultado = 0;
+
+        log_debug(args->logger, "Se solicita un write de <%s> para el archivo <%s> en la interfaz <%s> desde el byte <%d>", proceso->escribir, proceso->nombre_archivo, proceso->interfaz, proceso->puntero_archivo);
+        t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_FS_WRITE);
+        serializar_t_cpu_kernel_fs_write(&paquete, proceso);
+        enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);
+
+        eliminar_paquete(paquete);
+        free(interfaz);
+        free(nombre_archivo);
+        free(proceso->interfaz);
+        free(proceso->nombre_archivo);
+        free(proceso);
         return 1;
     }
     case IO_FS_READ:
