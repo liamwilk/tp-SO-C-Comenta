@@ -195,8 +195,7 @@ void *hilo_mmu(void *args_void)
                 t_cpu_memoria_fs_write *proceso_completo = malloc(sizeof(t_cpu_memoria_fs_write));
                 t_paquete *paquete = crear_paquete(CPU_MEMORIA_IO_FS_WRITE);
 
-
-                log_debug(args->logger, "Se obtuvo el marco inicial <%d> de la pagina <%d> asociado a la instruccion IO_FS_WRITE del proceso PID <%d>", args->marco, proceso_recibido->numero_pagina, proceso_recibido->pid);
+                log_debug(args->logger, "Se obtuvo el marco inicial <%d> de la pagina <%d> asociado a la instruccion IO_FS_WRITE del proceso PID <%d> con puntero archivo <%d>", args->marco, proceso_recibido->numero_pagina, proceso_recibido->pid, proceso_recibido->puntero_archivo);
 
                 proceso_completo->pid = proceso_recibido->pid;
                 proceso_completo->resultado = proceso_recibido->resultado;
@@ -211,6 +210,7 @@ void *hilo_mmu(void *args_void)
                 proceso_completo->marco = args->marco;
                 proceso_completo->direccion_fisica = args->direccion_fisica;
                 proceso_completo->desplazamiento = proceso_recibido->desplazamiento;
+                proceso_completo->puntero_archivo = proceso_recibido->puntero_archivo;
 
                 serializar_t_cpu_memoria_fs_write(&paquete, proceso_completo);
                 enviar_paquete(paquete, args->config_leida.socket_memoria);

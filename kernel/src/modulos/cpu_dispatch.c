@@ -785,6 +785,11 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         entrada_salida->pid = proceso_recibido->pid;
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envia el paquete a la interfaz <%s> asociado a la instruccion IO_FS_WRITE del proceso PID <%d>", proceso_recibido->interfaz, proceso_recibido->pid);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Registros de CPU del proceso <%d>:", proceso_recibido->pid);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "PC: %d", proceso_recibido->registros.pc);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "AX: %d", proceso_recibido->registros.ax);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "BX: %d", proceso_recibido->registros.bx);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "CX: %d", proceso_recibido->registros.cx);
         proceso_actualizar_registros(pcb, proceso_recibido->registros);
         kernel_transicion_exec_block(args);
         t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_FS_WRITE);

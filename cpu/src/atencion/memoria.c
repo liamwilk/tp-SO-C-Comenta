@@ -366,9 +366,8 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 			proceso_enviar->size_escribir = proceso_recibido->size_dato;
 			proceso_enviar->interfaz = strdup(proceso_recibido->interfaz);
 			proceso_enviar->size_interfaz = proceso_recibido->size_interfaz;
-			proceso_enviar->registros = args->registros;
-
-
+			proceso_enviar->registros = proceso_recibido->registros;
+			proceso_enviar->puntero_archivo = proceso_recibido->puntero_archivo;
 			t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_FS_WRITE);
 			serializar_t_cpu_kernel_fs_write(&paquete, proceso_enviar);
 			enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);

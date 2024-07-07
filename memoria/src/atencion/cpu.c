@@ -686,7 +686,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 	{
 		t_cpu_memoria_fs_write *proceso_recibido = deserializar_t_cpu_memoria_fs_write(buffer);
 
-		log_debug(argumentos->logger, "Se recibio una peticion de lectura de <%d> bytes para el proceso PID <%d>", proceso_recibido->registro_tamanio, proceso_recibido->pid);
+		log_debug(argumentos->logger, "Se recibio una peticion de lectura de <%d> bytes para el proceso PID <%d> con puntero archivo <%d>", proceso_recibido->registro_tamanio, proceso_recibido->pid, proceso_recibido->puntero_archivo);
 
 		// Busco el proceso en la lista de procesos globales
 		t_proceso *proceso = buscar_proceso(argumentos, proceso_recibido->pid);
@@ -716,6 +716,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			proceso_enviar->desplazamiento = proceso_recibido->desplazamiento;
 			proceso_enviar->dato = strdup("No se encontro el proceso con PID solicitado");
 			proceso_enviar->size_dato = strlen(proceso_enviar->dato) + 1;
+			proceso_enviar->puntero_archivo = proceso_recibido->puntero_archivo;
 
 			serializar_t_memoria_cpu_fs_write(&paquete, proceso_enviar);
 			enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
@@ -755,6 +756,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			proceso_enviar->desplazamiento = proceso_recibido->desplazamiento;
 			proceso_enviar->dato = strdup("No se encontro la pagina solicitada");
 			proceso_enviar->size_dato = strlen(proceso_enviar->dato) + 1;
+			proceso_enviar->puntero_archivo = proceso_recibido->puntero_archivo;
 
 			serializar_t_memoria_cpu_fs_write(&paquete, proceso_enviar);
 			enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
@@ -788,7 +790,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		proceso_enviar->desplazamiento = proceso_recibido->desplazamiento;
 		proceso_enviar->dato = strdup(dato);
 		proceso_enviar->size_dato = strlen(dato) + 1;
-
+		proceso_enviar->puntero_archivo = proceso_recibido->puntero_archivo;
 		serializar_t_memoria_cpu_fs_write(&paquete, proceso_enviar);
 		enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
 		eliminar_paquete(paquete);
@@ -803,7 +805,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		free(proceso_recibido->nombre_archivo);
 		free(proceso_recibido);
 		break;
-		}
+	}
 	default:
 	{
 		log_warning(argumentos->logger, "[CPU] Se recibio un codigo de operacion desconocido. Cierro hilo");
