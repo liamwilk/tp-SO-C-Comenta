@@ -317,6 +317,10 @@ void kernel_cpu_entradasalida_no_conectada(hilos_args *args, t_kernel_cpu_entrad
         free(proceso_enviar->motivo);
         free(proceso_enviar);
     }
+    if (TIPO == CPU_IO_FS_TRUNCATE)
+    {
+        // TODO: Implementar
+    }
 };
 
 void kernel_cpu_entradasalida_distinto_tipo(hilos_args *args, t_kernel_cpu_entradasalida_error TIPO, char *interfaz, uint32_t pid)
@@ -707,7 +711,7 @@ void kernel_proximo_io_fs(hilos_args *args, t_kernel_entrada_salida *io)
         }
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso <%d> bloqueado por I/O en interfaz <%s>", pcb->pid, pcb->proxima_io->identificador);
-        // TODO: Agregar cada case para CREATE, WRITE, DELETE, TRUNCATE
+        // TODO: Agregar cada case para  WRITE, DELETE, TRUNCATE, READ
         if (strcmp(pcb->proxima_io->identificador, io->interfaz) == 0 && pcb->proxima_io->tipo == ENTRADA_SALIDA_DIALFS_CREATE)
         {
             io->ocupado = 1;

@@ -131,7 +131,8 @@ typedef enum
 {
     CPU_IO_STDOUT_WRITE,
     CPU_IO_STDIN_READ,
-    CPU_IO_FS_CREATE
+    CPU_IO_FS_CREATE,
+    CPU_IO_FS_TRUNCATE
 } t_kernel_cpu_entradasalida_error;
 
 void kernel_cpu_entradasalida_no_conectada(hilos_args *args, t_kernel_cpu_entradasalida_error TIPO, char *interfaz, uint32_t pid);

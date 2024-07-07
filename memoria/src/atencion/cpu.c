@@ -682,6 +682,130 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 
 		break;
 	}
+	case CPU_MEMORIA_IO_FS_WRITE:
+	{
+		t_cpu_memoria_fs_write *proceso_recibido = deserializar_t_cpu_memoria_fs_write(buffer);
+
+		log_debug(argumentos->logger, "Se recibio una peticion de lectura de <%d> bytes para el proceso PID <%d> con puntero archivo <%d>", proceso_recibido->registro_tamanio, proceso_recibido->pid, proceso_recibido->puntero_archivo);
+
+		// Busco el proceso en la lista de procesos globales
+		t_proceso *proceso = buscar_proceso(argumentos, proceso_recibido->pid);
+
+		// Si el proceso no existe, envio una señal a CPU
+		if (proceso == NULL)
+		{
+			log_error(argumentos->logger, "No se encontro el proceso con PID <%d> en Memoria", proceso_recibido->pid);
+
+			t_memoria_cpu_fs_write *proceso_enviar = malloc(sizeof(t_memoria_cpu_fs_write));
+			t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_FS_WRITE);
+
+			// Le devuelvo lo que recibi, pero con resultado 0 indicando que fallo
+
+			proceso_enviar->pid = proceso_recibido->pid;
+			proceso_enviar->resultado = 0;
+			proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
+			proceso_enviar->interfaz = strdup(proceso_recibido->interfaz);
+			proceso_enviar->size_interfaz = strlen(proceso_recibido->interfaz) + 1;
+			proceso_enviar->nombre_archivo = strdup(proceso_recibido->nombre_archivo);
+			proceso_enviar->size_nombre_archivo = strlen(proceso_recibido->nombre_archivo) + 1;
+			proceso_enviar->registros = proceso_recibido->registros;
+			proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
+			proceso_enviar->registro_tamanio = proceso_recibido->registro_tamanio;
+			proceso_enviar->marco = proceso_recibido->marco;
+			proceso_enviar->direccion_fisica = proceso_recibido->direccion_fisica;
+			proceso_enviar->desplazamiento = proceso_recibido->desplazamiento;
+			proceso_enviar->dato = strdup("No se encontro el proceso con PID solicitado");
+			proceso_enviar->size_dato = strlen(proceso_enviar->dato) + 1;
+			proceso_enviar->puntero_archivo = proceso_recibido->puntero_archivo;
+
+			serializar_t_memoria_cpu_fs_write(&paquete, proceso_enviar);
+			enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+			eliminar_paquete(paquete);
+
+			free(proceso_enviar->interfaz);
+			free(proceso_enviar);
+
+			free(proceso_recibido->interfaz);
+			free(proceso_recibido);
+			break;
+		}
+
+		// Verifico si la página solicitada existe
+		t_pagina *pagina = list_get(proceso->tabla_paginas, proceso_recibido->numero_pagina);
+
+		if (pagina == NULL)
+		{
+			log_error(argumentos->logger, "No se encontro la pagina %d para el proceso con PID <%d> asociado a IO_FS_WRITE", proceso_recibido->numero_pagina, proceso_recibido->pid);
+
+			t_memoria_cpu_fs_write *proceso_enviar = malloc(sizeof(t_memoria_cpu_fs_write));
+			t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_FS_WRITE);
+
+			// Le devuelvo lo que recibi, pero con resultado 0 indicando que fallo
+			proceso_enviar->pid = proceso_recibido->pid;
+			proceso_enviar->resultado = 0;
+			proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
+			proceso_enviar->interfaz = strdup(proceso_recibido->interfaz);
+			proceso_enviar->size_interfaz = strlen(proceso_recibido->interfaz) + 1;
+			proceso_enviar->nombre_archivo = strdup(proceso_recibido->nombre_archivo);
+			proceso_enviar->size_nombre_archivo = strlen(proceso_recibido->nombre_archivo) + 1;
+			proceso_enviar->registros = proceso_recibido->registros;
+			proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
+			proceso_enviar->registro_tamanio = proceso_recibido->registro_tamanio;
+			proceso_enviar->marco = proceso_recibido->marco;
+			proceso_enviar->direccion_fisica = proceso_recibido->direccion_fisica;
+			proceso_enviar->desplazamiento = proceso_recibido->desplazamiento;
+			proceso_enviar->dato = strdup("No se encontro la pagina solicitada");
+			proceso_enviar->size_dato = strlen(proceso_enviar->dato) + 1;
+			proceso_enviar->puntero_archivo = proceso_recibido->puntero_archivo;
+
+			serializar_t_memoria_cpu_fs_write(&paquete, proceso_enviar);
+			enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+			eliminar_paquete(paquete);
+
+			free(proceso_enviar->interfaz);
+			free(proceso_enviar);
+
+			free(proceso_recibido->interfaz);
+			free(proceso_recibido);
+			break;
+		}
+
+		t_memoria_cpu_fs_write *proceso_enviar = malloc(sizeof(t_memoria_cpu_fs_write));
+		t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_FS_WRITE);
+
+		// Llegado a este punto, al no haber errores, se procede a leer el dato que se encuentra en espacio usuario
+		char *dato = espacio_usuario_leer_char(argumentos, proceso, proceso_recibido->direccion_fisica, proceso_recibido->registro_tamanio);
+		proceso_enviar->pid = proceso_recibido->pid;
+		proceso_enviar->resultado = 1;
+		proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
+		proceso_enviar->interfaz = strdup(proceso_recibido->interfaz);
+		proceso_enviar->size_interfaz = strlen(proceso_recibido->interfaz) + 1;
+		proceso_enviar->nombre_archivo = strdup(proceso_recibido->nombre_archivo);
+		proceso_enviar->size_nombre_archivo = strlen(proceso_recibido->nombre_archivo) + 1;
+		proceso_enviar->registros = proceso_recibido->registros;
+		proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
+		proceso_enviar->registro_tamanio = proceso_recibido->registro_tamanio;
+		proceso_enviar->marco = proceso_recibido->marco;
+		proceso_enviar->direccion_fisica = proceso_recibido->direccion_fisica;
+		proceso_enviar->desplazamiento = proceso_recibido->desplazamiento;
+		proceso_enviar->dato = strdup(dato);
+		proceso_enviar->size_dato = strlen(dato) + 1;
+		proceso_enviar->puntero_archivo = proceso_recibido->puntero_archivo;
+		serializar_t_memoria_cpu_fs_write(&paquete, proceso_enviar);
+		enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+		eliminar_paquete(paquete);
+
+		free(dato);
+		free(proceso_enviar->interfaz);
+		free(proceso_enviar->nombre_archivo);
+		free(proceso_enviar->dato);
+		free(proceso_enviar);
+
+		free(proceso_recibido->interfaz);
+		free(proceso_recibido->nombre_archivo);
+		free(proceso_recibido);
+		break;
+	}
 	default:
 	{
 		log_warning(argumentos->logger, "[CPU] Se recibio un codigo de operacion desconocido. Cierro hilo");

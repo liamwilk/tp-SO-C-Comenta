@@ -109,12 +109,3 @@ void bitmap_mapear(t_io *args)
 
     log_debug(args->logger, "Archivo de 'bitmap.dat' mapeado correctamente a memoria");
 }
-
-int bitmap_inicializar(t_io *args)
-{
-    /* TODO:
-    Leer el primer bit del bitmap, si está en 0 -> no está creado el bitmap
-    Si está en 1 -> está creado el bitmap -> Leer a partir del próximo bit (n+1)
-    */
-    return 0;
-}

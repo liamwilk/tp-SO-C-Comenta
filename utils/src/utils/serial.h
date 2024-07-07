@@ -60,14 +60,26 @@ typedef enum
 	KERNEL_IO_INTERRUPCION,
 	KERNEL_ENTRADA_SALIDA_IDENTIFICACION_RECHAZO,
 	CPU_KERNEL_IO_FS_CREATE,
+	CPU_KERNEL_IO_FS_TRUNCATE,
+	CPU_KERNEL_IO_FS_WRITE,
+	CPU_KERNEL_IO_FS_DELETE,
 	KERNEL_ENTRADA_SALIDA_IO_FS_CREATE,
+	KERNEL_ENTRADA_SALIDA_IO_FS_TRUNCATE,
+	KERNEL_ENTRADA_SALIDA_IO_FS_WRITE,
+	KERNEL_ENTRADA_SALIDA_IO_FS_DELETE,
 	KERNEL_CPU_IO_FS_CREATE,
 	ENTRADA_SALIDA_KERNEL_IO_FS_CREATE,
+	ENTRADA_SALIDA_KERNEL_IO_FS_TRUNCATE,
+	ENTRADA_SALIDA_KERNEL_IO_FS_DELETE,
+	ENTRADA_SALIDA_KERNEL_IO_FS_WRITE,
 	MEMORIA_CPU_COPY_STRING,
 	CPU_MEMORIA_COPY_STRING_2,
 	MEMORIA_CPU_COPY_STRING_2,
+	MEMORIA_CPU_IO_FS_WRITE,
+	CPU_MEMORIA_IO_FS_WRITE,
 	CPU_KERNEL_COPY_STRING,
-	PLACEHOLDER
+	PLACEHOLDER,
+	KERNEL_CPU_IO_FS_DELETE
 } t_op_code;
 
 typedef enum
@@ -451,6 +463,94 @@ typedef struct
 	uint32_t resultado;
 	t_registros_cpu registros;
 } t_entrada_salida_fs_create;
+
+typedef struct
+{
+	uint32_t pid;
+	char *interfaz;
+	char *nombre_archivo;
+	uint32_t size_interfaz;
+	uint32_t size_nombre_archivo;
+	uint32_t tamanio_a_truncar;
+	uint32_t resultado;
+} t_kernel_entrada_salida_fs_truncate;
+
+typedef struct
+{
+	char *interfaz;
+	char *nombre_archivo;
+	char *escribir;
+	uint32_t pid;
+	uint32_t size_escribir;
+	uint32_t size_interfaz;
+	uint32_t size_nombre_archivo;
+	uint32_t puntero_archivo;
+	uint32_t resultado;
+} t_kernel_entrada_salida_fs_write;
+
+typedef struct
+{
+	uint32_t pid;
+	char *interfaz;
+	char *nombre_archivo;
+	uint32_t size_interfaz;
+	uint32_t size_nombre_archivo;
+	uint32_t tamanio_a_truncar;
+	t_registros_cpu registros;
+	uint32_t resultado;
+} t_cpu_kernel_fs_truncate;
+
+typedef struct
+{
+	char *interfaz;
+	char *nombre_archivo;
+	char *escribir;
+	uint32_t pid;
+	uint32_t size_escribir;
+	uint32_t size_interfaz;
+	uint32_t size_nombre_archivo;
+	uint32_t puntero_archivo;
+	uint32_t resultado;
+	t_registros_cpu registros;
+} t_cpu_kernel_fs_write;
+
+typedef struct
+{
+	char *interfaz;
+	char *nombre_archivo;
+	uint32_t pid;
+	uint32_t size_nombre_archivo;
+	uint32_t size_interfaz;
+	uint32_t puntero_archivo;
+	uint32_t registro_direccion;
+	uint32_t registro_tamanio;
+	uint32_t resultado;
+	uint32_t direccion_fisica;
+	uint32_t marco;
+	uint32_t numero_pagina;
+	uint32_t desplazamiento;
+	t_registros_cpu registros;
+} t_cpu_memoria_fs_write;
+
+typedef struct
+{
+	char *interfaz;
+	char *nombre_archivo;
+	char *dato;
+	uint32_t pid;
+	uint32_t size_nombre_archivo;
+	uint32_t size_interfaz;
+	uint32_t size_dato;
+	uint32_t puntero_archivo;
+	uint32_t registro_direccion;
+	uint32_t registro_tamanio;
+	uint32_t resultado;
+	uint32_t direccion_fisica;
+	uint32_t marco;
+	uint32_t numero_pagina;
+	uint32_t desplazamiento;
+	t_registros_cpu registros;
+} t_memoria_cpu_fs_write;
 
 /**
  * @fn    *crear_paquete
@@ -1277,4 +1377,26 @@ t_entrada_salida_fs_create *deserializar_t_entrada_salida_fs_create(t_buffer *bu
 void serializar_t_kernel_cpu_io_fs_create(t_paquete **paquete, t_kernel_cpu_io_fs_create *read);
 
 t_kernel_cpu_io_fs_create *deserializar_t_kernel_cpu_io_fs_create(t_buffer *buffer);
+
+void serializar_t_cpu_kernel_fs_truncate(t_paquete **paquete, t_cpu_kernel_fs_truncate *truncate);
+
+t_cpu_kernel_fs_truncate *deserializar_t_cpu_kernel_fs_truncate(t_buffer *buffer);
+
+void serializar_t_kernel_entrada_salida_fs_truncate(t_paquete **paquete, t_kernel_entrada_salida_fs_truncate *truncate);
+
+t_kernel_entrada_salida_fs_truncate *deserializar_t_kernel_entrada_salida_fs_truncate(t_buffer *buffer);
+
+void serializar_t_cpu_kernel_fs_write(t_paquete **paquete, t_cpu_kernel_fs_write *write);
+
+t_cpu_kernel_fs_write *deserializar_t_cpu_kernel_fs_write(t_buffer *buffer);
+void serializar_t_kernel_entrada_salida_fs_write(t_paquete **paquete, t_kernel_entrada_salida_fs_write *write);
+t_kernel_entrada_salida_fs_write *deserializar_t_kernel_entrada_salida_fs_write(t_buffer *buffer);
+
+t_cpu_memoria_fs_write *deserializar_t_cpu_memoria_fs_write(t_buffer *buffer);
+
+void serializar_t_cpu_memoria_fs_write(t_paquete **paquete, t_cpu_memoria_fs_write *write);
+
+t_memoria_cpu_fs_write *deserializar_t_memoria_cpu_fs_write(t_buffer *buffer);
+
+void serializar_t_memoria_cpu_fs_write(t_paquete **paquete, t_memoria_cpu_fs_write *write);
 #endif

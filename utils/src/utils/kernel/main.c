@@ -445,7 +445,10 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
                     {
                         kernel_proximo_io_stdout(kernel_hilos_args, io);
                     }
-                    // TODO: Agregar case para DIALFS
+                    if (io->tipo == ENTRADA_SALIDA_DIALFS_CREATE || io->tipo == ENTRADA_SALIDA_DIALFS_READ || io->tipo == ENTRADA_SALIDA_DIALFS_WRITE || io->tipo == ENTRADA_SALIDA_DIALFS_DELETE || io->tipo == ENTRADA_SALIDA_DIALFS_TRUNCATE)
+                    {
+                        kernel_proximo_io_fs(kernel_hilos_args, io);
+                    }
                 }
             }
             kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);

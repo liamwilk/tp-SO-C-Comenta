@@ -133,54 +133,6 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 	}
 	case MEMORIA_CPU_IO_STDOUT_WRITE:
 	{
-		/* t_io_stdout_write *proceso_recibido = deserializar_t_io_stdout_write(buffer);
-
-		log_debug(args->logger, "Se recibio una respuesta de Memoria acerca de la solicitud de marco asociada a la instruccion <IO_STDOUT_WRITE> para el proceso PID <%d>", proceso_recibido->pid);
-
-		// Si se obtuvo el marco
-		if (proceso_recibido->resultado)
-		{
-			log_debug(args->logger, "Se obtuvo el marco <%d> de la pagina <%d> asociado a la instruccion IO_STDOUT_WRITE del proceso PID <%d>", proceso_recibido->marco, proceso_recibido->numero_pagina, proceso_recibido->pid);
-
-			// Genero la direccion fisica con la MMU
-			uint32_t direccion_fisica = mmu(args, proceso_recibido->registro_direccion, proceso_recibido->marco);
-
-			// Inicio la peticion contra Kernel para que retransmita a la interfaz
-			t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_STDOUT_WRITE);
-			t_io_stdout_write *proceso_completo = malloc(sizeof(t_io_stdout_write));
-
-			proceso_completo->pid = proceso_recibido->pid;
-			proceso_completo->resultado = proceso_recibido->resultado;
-			proceso_completo->registro_direccion = proceso_recibido->registro_direccion;
-			proceso_completo->registro_tamanio = proceso_recibido->registro_tamanio;
-			proceso_completo->marco = proceso_recibido->marco;
-			proceso_completo->numero_pagina = proceso_recibido->numero_pagina;
-			proceso_completo->direccion_fisica = direccion_fisica;
-			proceso_completo->desplazamiento = proceso_recibido->desplazamiento;
-			proceso_completo->size_interfaz = proceso_recibido->size_interfaz;
-			proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
-			proceso_completo->registros = args->proceso.registros;
-
-			serializar_t_io_stdout_write(&paquete, proceso_completo);
-			enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);
-			eliminar_paquete(paquete);
-
-			log_debug(args->logger, "Se envio la solicitud de la instruccion IO_STDOUT_WRITE del proceso PID <%d> a Kernel", proceso_recibido->pid);
-
-			free(proceso_completo->interfaz);
-			free(proceso_completo);
-		}
-		else // Si no se obtuvo el marco
-		{
-			log_error(args->logger, "No se pudo obtener el marco de la pagina <%d> asociado a la instruccion IO_STDOUT_WRITE del proceso PID <%d>", proceso_recibido->numero_pagina, proceso_recibido->pid);
-
-			args->proceso.ejecutado = 0;
-			instruccion_finalizar(args);
-		}
-
-		free(proceso_recibido->interfaz);
-		free(proceso_recibido);
-		*/
 		break;
 	}
 	case MEMORIA_CPU_IO_STDIN_READ:
@@ -395,6 +347,43 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 			free(proceso_recibido);
 			break;
 		}
+	}
+	case MEMORIA_CPU_IO_FS_WRITE:
+	{
+		t_memoria_cpu_fs_write *proceso_recibido = deserializar_t_memoria_cpu_fs_write(buffer);
+
+		if (proceso_recibido->resultado)
+		{
+			log_debug(args->logger, "Se recibió una respuesta de Memoria acerca de la solicitud del dato asociada a la instrucción <FS_WRITE> para el proceso PID <%d>", proceso_recibido->pid);
+
+			t_cpu_kernel_fs_write *proceso_enviar = malloc(sizeof(t_cpu_kernel_fs_write));
+
+			proceso_enviar->pid = proceso_recibido->pid;
+			proceso_enviar->resultado = proceso_recibido->resultado;
+			proceso_enviar->nombre_archivo = strdup(proceso_recibido->nombre_archivo);
+			proceso_enviar->size_nombre_archivo = proceso_recibido->size_nombre_archivo;
+			proceso_enviar->escribir = strdup(proceso_recibido->dato);
+			proceso_enviar->size_escribir = proceso_recibido->size_dato;
+			proceso_enviar->interfaz = strdup(proceso_recibido->interfaz);
+			proceso_enviar->size_interfaz = proceso_recibido->size_interfaz;
+			proceso_enviar->registros = proceso_recibido->registros;
+			proceso_enviar->puntero_archivo = proceso_recibido->puntero_archivo;
+			t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_FS_WRITE);
+			serializar_t_cpu_kernel_fs_write(&paquete, proceso_enviar);
+			enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);
+
+			log_debug(args->logger, "Se envió la solicitud de la instrucción <IO_FS_WRITE> del proceso PID <%d> a Kernel", proceso_recibido->pid);
+
+			eliminar_paquete(paquete);
+			free(proceso_enviar->nombre_archivo);
+			free(proceso_enviar->escribir);
+			free(proceso_enviar->interfaz);
+			free(proceso_enviar);
+			break;
+		}
+
+		log_error(args->logger, "No se pudo obtener el dato asociado a la instrucción <IO_FS_WRITE> del proceso PID <%d>", proceso_recibido->pid);
+		break;
 	}
 	default:
 	{
