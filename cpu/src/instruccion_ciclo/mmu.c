@@ -57,9 +57,8 @@ void *hilo_mmu(void *args_void)
                 {
                     args->marco = buscar_en_tlb(args->proceso.pid, args->pagina, args->config_leida.cantidadEntradasTlb, args->tlb);
                 }
-                
 
-                log_warning(args->logger, "Valor frame: <%d", args->marco);
+                log_warning(args->logger, "Valor frame: <%d>", args->marco);
                 // Calculo la direccion fisica
                 args->direccion_fisica = (args->marco * args->tam_pagina) + desplazamiento;
             }
@@ -189,7 +188,43 @@ void *hilo_mmu(void *args_void)
                 free(proceso_recibido);
                 break;
             }
+            case IO_FS_WRITE:
+            {
+                t_cpu_memoria_fs_write *proceso_recibido = (t_cpu_memoria_fs_write *)args->paquete;
 
+                t_cpu_memoria_fs_write *proceso_completo = malloc(sizeof(t_cpu_memoria_fs_write));
+                t_paquete *paquete = crear_paquete(CPU_MEMORIA_IO_FS_WRITE);
+
+
+                log_debug(args->logger, "Se obtuvo el marco inicial <%d> de la pagina <%d> asociado a la instruccion IO_FS_WRITE del proceso PID <%d>", args->marco, proceso_recibido->numero_pagina, proceso_recibido->pid);
+
+                proceso_completo->pid = proceso_recibido->pid;
+                proceso_completo->resultado = proceso_recibido->resultado;
+                proceso_completo->numero_pagina = proceso_recibido->numero_pagina;
+                proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
+                proceso_completo->size_interfaz = strlen(proceso_completo->interfaz) + 1;
+                proceso_completo->nombre_archivo = strdup(proceso_recibido->nombre_archivo);
+                proceso_completo->size_nombre_archivo = strlen(proceso_completo->nombre_archivo) + 1;
+                proceso_completo->registros = proceso_recibido->registros;
+                proceso_completo->registro_direccion = proceso_recibido->registro_direccion;
+                proceso_completo->registro_tamanio = proceso_recibido->registro_tamanio;
+                proceso_completo->marco = args->marco;
+                proceso_completo->direccion_fisica = args->direccion_fisica;
+                proceso_completo->desplazamiento = proceso_recibido->desplazamiento;
+
+                serializar_t_cpu_memoria_fs_write(&paquete, proceso_completo);
+                enviar_paquete(paquete, args->config_leida.socket_memoria);
+                eliminar_paquete(paquete);
+
+                log_debug(args->logger, "Se envio la solicitud de la instruccion IO_FS_WRITE del proceso PID <%d> a Memoria", proceso_recibido->pid);
+                free(proceso_completo->interfaz);
+                free(proceso_completo->nombre_archivo);
+                free(proceso_completo);
+                free(proceso_recibido->interfaz);
+                free(proceso_recibido->nombre_archivo);
+                free(proceso_recibido);
+                break;
+            }
             default:
             {
                 break;
