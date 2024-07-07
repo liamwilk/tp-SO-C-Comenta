@@ -51,6 +51,8 @@ int espacio_usuario_leer_dato(t_args *args, t_proceso *proceso, uint32_t direcci
     // Copio los datos
     memcpy(destino, origen, tamano);
 
+    log_info(args->logger, "PID: %d - Accion: LEER - Direccion fisica: <%d> - Tamaño <%ld>", proceso->pid, direccion_fisica, tamano);
+
     return 0;
 }
 

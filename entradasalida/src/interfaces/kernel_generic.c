@@ -9,7 +9,7 @@ void switch_case_kernel_generic(t_io *args, t_op_code codigo_operacion, t_buffer
         t_kernel_entrada_salida_unidad_de_trabajo *unidades = deserializar_t_kernel_entrada_salida_unidad_de_trabajo(buffer);
 
         args->unidades = unidades->unidad_de_trabajo;
-        log_info(args->logger, "PID : <%u> - Operacion a realizar: <IO_GEN_SLEEP> <%s> <%d>", unidades->pid, args->identificador, unidades->unidad_de_trabajo);
+        log_info(args->logger, "PID : <%u> - Operacion a realizar: <IO_GEN_SLEEP %s %d>", unidades->pid, args->identificador, unidades->unidad_de_trabajo);
 
         args->pid = unidades->pid;
 

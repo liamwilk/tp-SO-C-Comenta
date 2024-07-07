@@ -89,6 +89,8 @@ int espacio_usuario_escribir_dato(t_args *args, t_proceso *proceso, uint32_t dir
     // Notifico que se escribio el dato
     log_debug(args->logger, "Se escribio el dato de %ld bytes partiendo de la dirección física %d (%d -> %ld) [Frame %d -> %d]", tamano, direccion_fisica, direccion_fisica, direccion_fisica + tamano - 1, frame_inicio, frame_fin);
 
+    log_info(args->logger, "PID: %d - Accion: ESCRIBIR - Direccion fisica: <%d> - Tamaño <%ld>", proceso->pid, direccion_fisica, tamano);
+
     return 0;
 }
 

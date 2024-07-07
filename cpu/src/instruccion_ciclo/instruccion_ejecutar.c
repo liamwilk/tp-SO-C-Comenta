@@ -884,6 +884,10 @@ int instruccion_ejecutar(t_cpu *args)
         free(proceso->interfaz);
         free(proceso);
 
+        free(interfaz);
+        free(registro_direccion);
+        free(registro_tamanio);
+
         return 1;
     }
     case IO_STDOUT_WRITE:
@@ -1413,4 +1417,4 @@ int instruccion_ejecutar(t_cpu *args)
 
     log_error(args->logger, "Instruccion invalida");
     return 0;
-};
+}

@@ -10,8 +10,11 @@ void switch_case_kernel_stdout(t_io *args, t_op_code codigo_operacion, t_buffer 
 
         log_debug(args->logger, "Se recibio orden de ejecucion de instruccion IO_STDOUT_WRITE asociado al proceso PID <%d>", proceso_recibido->pid);
 
+        log_info(args->logger, "PID: <%d> - Operacion: <IO_STDOUT_WRITE %s %d %d>", proceso_recibido->pid, proceso_recibido->interfaz, proceso_recibido->direccion_fisica, proceso_recibido->registro_tamanio);
+
         // Imprimo la direccion fisica recibida en proceos_recibido
         log_debug(args->logger, "Direccion fisica recibida a leer: <%d>", proceso_recibido->direccion_fisica);
+        
         // Imprimo el tamaño en bytes
         log_debug(args->logger, "Tamaño a leer: <%d>", proceso_recibido->registro_tamanio);
 
