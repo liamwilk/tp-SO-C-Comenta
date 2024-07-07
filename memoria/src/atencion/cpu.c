@@ -365,7 +365,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 				break;
 			}
 
-			log_info(argumentos->logger, "Ampliación de Proceso: PID: %d - Tamaño Actual: <%d bytes> - Tamaño a Ampliar: <%d bytes>", proceso_recibido->pid, bytes_ocupados_proceso, proceso_recibido->bytes);
+			log_info(argumentos->logger, "Ampliación de Proceso: PID: %d - Tamaño Actual: <%d> - Tamaño a Ampliar: <%d>", proceso_recibido->pid, bytes_ocupados_proceso, proceso_recibido->bytes);
 
 			tabla_paginas_resize(argumentos, proceso, proceso_recibido->bytes);
 
@@ -394,7 +394,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			Se reducirá el mismo desde el final, liberando, en caso de ser necesario, las páginas que ya no sean utilizadas (desde la última hacia la primera).
 			*/
 
-			log_info(argumentos->logger, "Reducción de Proceso: PID: <%d> - Tamaño Actual: <%d bytes> - Tamaño a Reducir: <%d bytes>", proceso_recibido->pid, bytes_ocupados_proceso, proceso_recibido->bytes);
+			log_info(argumentos->logger, "Reducción de Proceso: PID: <%d> - Tamaño Actual: <%d> - Tamaño a Reducir: <%d>", proceso_recibido->pid, bytes_ocupados_proceso, proceso_recibido->bytes);
 
 			tabla_paginas_resize(argumentos, proceso, proceso_recibido->bytes);
 
