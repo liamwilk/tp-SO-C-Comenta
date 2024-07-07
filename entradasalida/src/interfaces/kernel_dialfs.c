@@ -345,22 +345,6 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
         serializar_t_kernel_entrada_salida_fs_write(&paquete, write);
         enviar_paquete(paquete, args->sockets.socket_kernel_dialfs);
         eliminar_paquete(paquete);
-
-        // TODO: Esto no se debe hacer en un entorno productivo, es solo para verificar que se escribio correctamente
-        //  Chequeamos que se haya escrito bien, para eso vuelvo a obtener el valor de la memoria mapeada y lo comparo con write->escribir
-        char *contenido = malloc(strlen(write->escribir) + 1);
-        memcpy(contenido, args->dial_fs.archivo_bloques + write->puntero_archivo, strlen(write->escribir) + 1);
-        log_debug(args->logger, "Contenido escrito: %s", contenido);
-        if (strcmp(contenido, write->escribir) != 0)
-        {
-            log_error(args->logger, "Error al escribir en el archivo");
-            break;
-        }
-        else
-        {
-            log_debug(args->logger, "Se escribio correctamente en el archivo");
-        }
-        free(contenido);
         free(write->nombre_archivo);
         free(write->escribir);
         free(write);
@@ -370,8 +354,37 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
     {
         t_kernel_entrada_salida_fs_read *read = deserializar_t_kernel_entrada_salida_fs_read(buffer);
 
-        log_info(args->logger, "PID: <%d> - Leer Archivo: <%s> - Tamaño a Leer: <%d> - Puntero Archivo: <%d> - Dirección física: <%d>", read->pid, read->nombre_archivo, read->registro_tamanio, read->puntero_archivo, read->direccion_fisica);
+        log_info(args->logger, "PID: <%d> - Leer Archivo: <%s> - Tamaño a Leer: <%d> - Puntero Archivo: <%d>", read->pid, read->nombre_archivo, read->registro_tamanio, read->puntero_archivo);
+        char *contenido = malloc(read->registro_tamanio + 1);
+        memcpy(contenido, args->dial_fs.archivo_bloques + read->puntero_archivo, read->registro_tamanio + 1);
+        log_debug(args->logger, "Contenido que se leyo: %s", contenido);
+        // Enviamos a kernel
+        t_entrada_salida_fs_read_kernel *proceso = malloc(sizeof(t_entrada_salida_fs_read_kernel));
+        proceso->pid = read->pid;
+        proceso->resultado = 0;
+        proceso->nombre_archivo = strdup(read->nombre_archivo);
+        proceso->registro_tamanio = read->registro_tamanio;
+        proceso->puntero_archivo = read->puntero_archivo;
+        proceso->dato = contenido;
+        proceso->size_dato = strlen(contenido) + 1;
+        proceso->size_nombre_archivo = strlen(read->nombre_archivo) + 1;
+        proceso->direccion_fisica = read->direccion_fisica;
+        proceso->marco = read->marco;
+        proceso->desplazamiento = read->desplazamiento;
+        proceso->numero_pagina = read->numero_pagina;
+        proceso->interfaz = strdup(read->interfaz);
+        proceso->size_interfaz = strlen(read->interfaz) + 1;
+        proceso->registro_direccion = read->registro_direccion;
+        // Crear el paquete
+        t_paquete *paquete = crear_paquete(ENTRADA_SALIDA_KERNEL_IO_FS_READ);
+        serializar_t_entrada_salida_fs_read_kernel(&paquete, proceso);
+        enviar_paquete(paquete, args->sockets.socket_kernel_dialfs);
+        eliminar_paquete(paquete);
 
+        free(proceso->nombre_archivo);
+        free(proceso->interfaz);
+        free(proceso);
+        free(contenido);
         free(read->nombre_archivo);
         free(read);
         break;

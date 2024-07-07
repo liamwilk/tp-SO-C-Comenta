@@ -81,7 +81,8 @@ typedef enum
 	CPU_KERNEL_IO_FS_READ,
 	CPU_KERNEL_COPY_STRING,
 	PLACEHOLDER,
-	KERNEL_CPU_IO_FS_DELETE
+	KERNEL_CPU_IO_FS_DELETE,
+	ENTRADA_SALIDA_KERNEL_IO_FS_READ
 } t_op_code;
 
 typedef enum
@@ -589,6 +590,25 @@ typedef struct
 	uint32_t desplazamiento;
 	t_registros_cpu registros;
 } t_kernel_entrada_salida_fs_read;
+
+typedef struct
+{
+	char *interfaz;
+	char *nombre_archivo;
+	uint32_t pid;
+	uint32_t size_nombre_archivo;
+	uint32_t size_interfaz;
+	uint32_t puntero_archivo;
+	uint32_t registro_direccion;
+	uint32_t registro_tamanio;
+	uint32_t resultado;
+	uint32_t direccion_fisica;
+	uint32_t marco;
+	uint32_t numero_pagina;
+	uint32_t desplazamiento;
+	char *dato;
+	uint32_t size_dato;
+} t_entrada_salida_fs_read_kernel;
 
 /**
  * @fn    *crear_paquete
@@ -1621,4 +1641,8 @@ void serializar_t_kernel_entrada_salida_fs_read(t_paquete **paquete, t_kernel_en
  * @return Puntero a la estructura t_kernel_entrada_salida_fs_read deserializada.
  */
 t_kernel_entrada_salida_fs_read *deserializar_t_kernel_entrada_salida_fs_read(t_buffer *buffer);
+
+void serializar_t_entrada_salida_fs_read_kernel(t_paquete **paquete, t_entrada_salida_fs_read_kernel *read);
+
+t_entrada_salida_fs_read_kernel *deserializar_t_entrada_salida_fs_read_kernel(t_buffer *buffer);
 #endif

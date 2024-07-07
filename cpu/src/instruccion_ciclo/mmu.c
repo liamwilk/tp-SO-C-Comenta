@@ -218,13 +218,14 @@ void *hilo_mmu(void *args_void)
                 }
                 case IO_FS_READ:
                 {
+                    // TODO: Arreglar esto se debe hacer una vez que la
+
                     t_cpu_kernel_fs_read *proceso_recibido = (t_cpu_kernel_fs_read *)args->paquete;
 
                     t_cpu_kernel_fs_read *proceso_completo = malloc(sizeof(t_cpu_kernel_fs_read));
                     t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_FS_READ);
 
                     log_debug(args->logger, "Se obtuvo el marco inicial <%d> de la pagina <%d> asociado a la instruccion IO_FS_READ del proceso PID <%d> con puntero archivo <%d>", args->marco, proceso_recibido->numero_pagina, proceso_recibido->pid, proceso_recibido->puntero_archivo);
-
                     proceso_completo->pid = proceso_recibido->pid;
                     proceso_completo->resultado = proceso_recibido->resultado;
                     proceso_completo->numero_pagina = proceso_recibido->numero_pagina;
