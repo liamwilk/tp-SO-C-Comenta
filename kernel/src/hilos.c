@@ -27,8 +27,8 @@ void *hilos_atender_consola(void *args)
     while (hiloArgs->kernel_orden_apagado)
     {
         reiniciar_prompt(hiloArgs);
-
-        linea = readline(generar_prompt());
+        char *prompt = generar_prompt();
+        linea = readline(prompt);
         if (linea && *linea)
         {
             add_history(linea);
@@ -101,6 +101,7 @@ void *hilos_atender_consola(void *args)
         }
         free(separar_linea);
         free(linea);
+        free(prompt);
     }
 
     write_history(comandos_archivo_historial);
