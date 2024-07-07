@@ -685,6 +685,8 @@ void kernel_proximo_io_stdin(hilos_args *args, t_kernel_entrada_salida *io)
     }
 }
 
+// TODO: actualmente de FS sólo está para el create, habría que hacer de los demás también
+
 void kernel_proximo_io_fs(hilos_args *args, t_kernel_entrada_salida *io)
 {
     int proceso_en_block = list_size(args->estados->block);

@@ -366,6 +366,16 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
         free(write);
         break;
     }
+    case KERNEL_ENTRADA_SALIDA_IO_FS_READ:
+    {
+        t_kernel_entrada_salida_fs_read *read = deserializar_t_kernel_entrada_salida_fs_read(buffer);
+
+        log_info(args->logger, "PID: <%d> - Leer Archivo: <%s> - Tamaño a Leer: <%d> - Puntero Archivo: <%d> - Dirección física: <%d>", read->pid, read->nombre_archivo, read->registro_tamanio, read->puntero_archivo, read->direccion_fisica);
+
+        free(read->nombre_archivo);
+        free(read);
+        break;
+    }
     default:
     {
         liberar_conexion(&args->sockets.socket_kernel_dialfs);

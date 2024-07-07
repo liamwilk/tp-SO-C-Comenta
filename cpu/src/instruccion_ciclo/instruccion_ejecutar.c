@@ -1235,7 +1235,123 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case IO_FS_READ:
     {
-        log_debug(args->logger, "reconoci un IO_FS_READ");
+        char *interfaz = strdup(args->instruccion.array[1]);
+        char *nombre_archivo = strdup(args->instruccion.array[2]);
+        char *registro_direccion = strdup(args->instruccion.array[3]);
+        char *registro_tamanio = strdup(args->instruccion.array[4]);
+        char *registro_puntero_archivo = strdup(args->instruccion.array[3]);
+
+        t_cpu_kernel_fs_read *proceso = malloc(sizeof(t_cpu_kernel_fs_read));
+
+        t_registro registro_tipo_puntero_archivo = obtener_tipo_registro(registro_puntero_archivo);
+        if (registro_tipo_puntero_archivo == INVALIDO)
+        {
+            log_error(args->logger, "Registro invalido");
+            return -1;
+        }
+        uint32_t *registro_puntero_archivo_a_escribir;
+        if (registro_tipo_puntero_archivo == REGISTRO_32)
+        {
+            registro_puntero_archivo_a_escribir = determinar_tipo_registro_uint32_t(registro_puntero_archivo, &args->proceso);
+        }
+        if (registro_tipo_puntero_archivo == REGISTRO_8)
+        {
+            uint8_t *registro_tamanio_ptr = determinar_tipo_registro_uint8_t(registro_puntero_archivo, &args->proceso);
+            uint32_t registro_tamanio_casteado = casteo_uint32_t(*registro_tamanio_ptr);
+            registro_puntero_archivo_a_escribir = &registro_tamanio_casteado;
+        }
+
+        // Determino que tipo de registros debo operar
+        t_registro registro_direccion_tipo = obtener_tipo_registro(registro_direccion);
+        t_registro registro_tamanio_tipo = obtener_tipo_registro(registro_tamanio);
+
+        // Si alguno de los registros es invalido, no se puede continuar
+        if (registro_direccion_tipo == INVALIDO || registro_tamanio_tipo == INVALIDO)
+        {
+            log_error(args->logger, "Registro invalido");
+            return -1;
+        }
+
+        // Casos posibles:
+        // 1. Registro tamaño de 32 bits y registro direccion de 32 bits
+        // 2. Registro tamaño de 32 bits y registro direccion de 8 bits: Casteo a 32 bits
+        // 3. Registro tamaño de 8 bits y registro direccion de 32 bits: Casteo a 32 bits
+        // 4. Registro tamaño de 8 bits y registro direccion de 8 bits: Casteo a 32 bits
+
+        // Paso el valor de los registros a la estructura que le voy a mandar a memoria
+        if (registro_direccion_tipo == REGISTRO_32) // El registro direccion es de 32 bits
+        {
+            if (registro_tamanio_tipo == REGISTRO_32) // && El registro tamaño es de 32 bits
+            {
+                uint32_t *registro_direccion_ptr = determinar_tipo_registro_uint32_t(registro_direccion, &args->proceso);
+                uint32_t *registro_tamanio_ptr = determinar_tipo_registro_uint32_t(registro_tamanio, &args->proceso);
+
+                proceso->registro_direccion = *registro_direccion_ptr;
+                proceso->registro_tamanio = *registro_tamanio_ptr;
+                proceso->numero_pagina = calcular_numero_pagina(args, *registro_direccion_ptr);
+            }
+            else // && El registro tamaño es de 8 bits
+            {
+                uint32_t *registro_direccion_ptr = determinar_tipo_registro_uint32_t(registro_direccion, &args->proceso);
+                uint8_t *registro_tamanio_ptr = determinar_tipo_registro_uint8_t(registro_tamanio, &args->proceso);
+
+                uint32_t registro_tamanio_casteado = casteo_uint32_t(*registro_tamanio_ptr);
+
+                proceso->registro_direccion = *registro_direccion_ptr;
+                proceso->registro_tamanio = registro_tamanio_casteado;
+                proceso->numero_pagina = calcular_numero_pagina(args, *registro_direccion_ptr);
+            }
+        }
+        else // El registro direccion es de 8 bits
+        {
+            if (registro_tamanio_tipo == REGISTRO_32) // && El registro tamaño es de 32 bits
+            {
+                uint8_t *registro_direccion_ptr = determinar_tipo_registro_uint8_t(registro_direccion, &args->proceso);
+                uint32_t *registro_tamanio_ptr = determinar_tipo_registro_uint32_t(registro_tamanio, &args->proceso);
+
+                uint32_t registro_direccion_casteado = casteo_uint32_t(*registro_direccion_ptr);
+
+                proceso->registro_direccion = registro_direccion_casteado;
+                proceso->registro_tamanio = *registro_tamanio_ptr;
+                proceso->numero_pagina = calcular_numero_pagina(args, registro_direccion_casteado);
+            }
+            else // && El registro tamaño es de 8 bits
+            {
+                uint8_t *registro_direccion_ptr = determinar_tipo_registro_uint8_t(registro_direccion, &args->proceso);
+                uint8_t *registro_tamanio_ptr = determinar_tipo_registro_uint8_t(registro_tamanio, &args->proceso);
+
+                uint32_t registro_direccion_casteado = casteo_uint32_t(*registro_direccion_ptr);
+                uint32_t registro_tamanio_casteado = casteo_uint32_t(*registro_tamanio_ptr);
+
+                proceso->registro_direccion = registro_direccion_casteado;
+                proceso->registro_tamanio = registro_tamanio_casteado;
+                proceso->numero_pagina = calcular_numero_pagina(args, registro_direccion_casteado);
+            }
+        }
+
+        // Me guardo el desplazamiento para poder calcular la dirección física
+        proceso->desplazamiento = proceso->registro_direccion - proceso->numero_pagina * args->tam_pagina;
+
+        // Por ultimo, me guardo el contexto del proceso
+        proceso->registros = args->proceso.registros;
+
+        proceso->pid = args->proceso.pid;
+        proceso->interfaz = strdup(interfaz);
+        proceso->size_interfaz = strlen(interfaz) + 1;
+        proceso->nombre_archivo = strdup(nombre_archivo);
+        proceso->size_nombre_archivo = strlen(nombre_archivo) + 1;
+        proceso->puntero_archivo = *registro_puntero_archivo_a_escribir;
+        proceso->resultado = 0;
+        proceso->direccion_fisica = 0;
+
+        mmu_iniciar(args, IO_FS_READ, proceso->registro_direccion, (void *)proceso);
+
+        free(interfaz);
+        free(nombre_archivo);
+        free(registro_direccion);
+        free(registro_tamanio);
+        free(registro_puntero_archivo);
+
         return 1;
     }
     case WAIT:
