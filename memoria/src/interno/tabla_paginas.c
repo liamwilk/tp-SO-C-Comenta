@@ -84,7 +84,7 @@ t_pagina *tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, u
 
     argumentos->memoria.bitmap_array[pagina->marco] = 1;
 
-    log_info(argumentos->logger, "Asignación de tabla de páginas: PID: <%d> - Página: <%d> - Marco: <%d>", proceso->pid, numero_pagina, pagina->marco);
+    log_debug(argumentos->logger, "Asignación de tabla de páginas: PID: <%d> - Página: <%d> - Marco: <%d>", proceso->pid, numero_pagina, pagina->marco);
 
     return pagina;
 }
@@ -92,7 +92,7 @@ t_pagina *tabla_paginas_asignar_pagina(t_args *argumentos, t_proceso *proceso, u
 // Libera la página, y borra los datos del frame en la memoria
 int tabla_paginas_liberar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina)
 {
-    log_info(argumentos->logger, "Liberación de tabla de páginas: PID: <%d> - Página: <%d>", proceso->pid, numero_pagina);
+    log_debug(argumentos->logger, "Liberación de tabla de páginas: PID: <%d> - Página: <%d>", proceso->pid, numero_pagina);
 
     if (numero_pagina >= list_size(proceso->tabla_paginas))
     {
@@ -158,7 +158,7 @@ int tabla_paginas_resize(t_args *args, t_proceso *proceso, uint32_t bytes_nuevos
     // Verifico si es necesario redimensionar la tabla de páginas
     if (bytes_actuales == bytes_nuevos)
     {
-        log_info(args->logger, "No es necesario redimensionar la tabla de páginas del proceso <%d> porque ya tiene esa cantidad de bytes.", proceso->pid);
+        log_warning(args->logger, "No es necesario redimensionar la tabla de páginas del proceso <%d> porque ya tiene esa cantidad de bytes.", proceso->pid);
         pthread_mutex_unlock(&proceso->mutex_tabla_paginas);
         return 0;
     }

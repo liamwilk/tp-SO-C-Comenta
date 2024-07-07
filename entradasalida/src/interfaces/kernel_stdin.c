@@ -17,6 +17,8 @@ void switch_case_kernel_stdin(t_io *args, t_op_code codigo_operacion, t_buffer *
         log_debug(args->logger, "Tamanio de registro recibido: <%d>", proceso_recibido->registro_tamanio);
         log_debug(args->logger, "PID del proceso recibido: <%d>", proceso_recibido->pid);
 
+        log_info(args->logger, "PID: <%d> - Operacion: <IO_STDIN_READ %s %d %d>", proceso_recibido->pid, proceso_recibido->interfaz, proceso_recibido->registro_direccion, proceso_recibido->registro_tamanio);
+
         log_debug(args->logger, "Se recibio orden de lectura por pantalla asociada a <IO_STDIN_READ> del proceso PID <%d>", proceso_recibido->pid);
 
         char *input = leer_input_usuario(proceso_recibido->registro_tamanio);

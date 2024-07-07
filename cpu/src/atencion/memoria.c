@@ -12,7 +12,9 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 		{
 			log_debug(args->logger, "Numero de frame recibido de Memoria: %d", recibido->numero_marco);
 
-			if (config_get_int_value(args->config, "CANTIDAD_ENTRADAS_TLB") == 0)
+			log_info(args->logger, "PID: <%d> - OBTENER MARCO - Página: <%d> - Marco: <%d>", recibido->pid, recibido->numero_pagina, recibido->numero_marco);
+
+			if (args->config_leida.cantidadEntradasTlb == 0)
 			{
 				args->marco = recibido->numero_marco;
 			}
@@ -50,10 +52,16 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 			// Notifico que se escribio el dato
 			if (proceso_recibido->tamanio_registro_datos == 4)
 			{
+
+				// Imprimo log: “PID: <PID> - Acción: <LEER / ESCRIBIR> - Dirección Física: <DIRECCION_FISICA> - Valor: <VALOR LEIDO / ESCRITO>”.
+				log_info(args->logger, "PID: <%d> - Acción: <ESCRIBIR> - Dirección Física: <%d> - Valor: <%d>", proceso_recibido->pid, proceso_recibido->direccion_fisica, proceso_recibido->dato_32);
+
 				log_debug(args->logger, "Se escribio el dato <%d> en el marco <%d> asociado a la instruccion <MOV_OUT> del proceso PID <%d>", proceso_recibido->dato_32, proceso_recibido->numero_marco, proceso_recibido->pid);
 			}
 			else
 			{
+				log_info(args->logger, "PID: <%d> - Acción: <ESCRIBIR> - Dirección Física: <%d> - Valor: <%d>", proceso_recibido->pid, proceso_recibido->direccion_fisica, proceso_recibido->dato_8);
+
 				log_debug(args->logger, "Se escribio el dato <%d> en el marco <%d> asociado a la instruccion <MOV_OUT> del proceso PID <%d>", proceso_recibido->dato_8, proceso_recibido->numero_marco, proceso_recibido->pid);
 			}
 
@@ -94,6 +102,8 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 			// Guardo el dato en el registro correspondiente
 			if (proceso_recibido->tamanio_registro_datos == 4)
 			{
+				log_info(args->logger, "PID: <%d> - Acción: <LEER> - Dirección Física: <%d> - Valor: <%d>", proceso_recibido->pid, proceso_recibido->direccion_fisica, proceso_recibido->dato_32);
+
 				log_debug(args->logger, "Se obtuvo el dato <%d> del marco <%d> asociado a la instruccion <MOV_IN> del proceso PID <%d>", proceso_recibido->dato_32, proceso_recibido->numero_marco, proceso_recibido->pid);
 				uint32_t *registro_datos_ptr = determinar_tipo_registro_uint32_t(registro_datos, &args->proceso);
 				*registro_datos_ptr = proceso_recibido->dato_32;
@@ -102,6 +112,8 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 			}
 			else
 			{
+				log_info(args->logger, "PID: <%d> - Acción: <LEER> - Dirección Física: <%d> - Valor: <%d>", proceso_recibido->pid, proceso_recibido->direccion_fisica, proceso_recibido->dato_8);
+
 				log_debug(args->logger, "Se obtuvo el dato <%d> del marco <%d> asociado a la instruccion <MOV_IN> del proceso PID <%d>", proceso_recibido->dato_8, proceso_recibido->numero_marco, proceso_recibido->pid);
 				uint8_t *registro_datos_ptr = determinar_tipo_registro_uint8_t(registro_datos, &args->proceso);
 				*registro_datos_ptr = proceso_recibido->dato_8;
@@ -131,10 +143,6 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 		}
 		break;
 	}
-	case MEMORIA_CPU_IO_STDOUT_WRITE:
-	{
-		break;
-	}
 	case MEMORIA_CPU_IO_STDIN_READ:
 	{
 		t_io_stdin_read *proceso_recibido = deserializar_t_io_stdin_read(buffer);
@@ -147,12 +155,13 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 			log_debug(args->logger, "Se asigno el marco inicial <%d> de la pagina <%d> asociado a la instruccion IO_STDIN_READ del proceso PID <%d>", proceso_recibido->marco_inicial, proceso_recibido->numero_pagina, proceso_recibido->pid);
 
 			log_debug(args->logger, "Se envio la solicitud de la instruccion IO_STDIN_READ del proceso PID <%d> a Kernel", proceso_recibido->pid);
-			// Genero la direccion fisica con la MMU
 
-			if (config_get_int_value(args->config, "CANTIDAD_ENTRADAS_TLB") > 0)
+			// Genero la direccion fisica con la MMU
+			if (args->config_leida.cantidadEntradasTlb > 0)
 			{
 				agregar_en_tlb(proceso_recibido->pid, proceso_recibido->numero_pagina, proceso_recibido->marco_inicial, args);
 			}
+
 			mmu_iniciar(args, IO_STDIN_READ, proceso_recibido->registro_direccion, (void *)proceso_recibido);
 		}
 		else // Si no se obtuvo el marco
@@ -165,7 +174,6 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 			free(proceso_recibido->interfaz);
 			free(proceso_recibido);
 		}
-
 		break;
 	}
 	case MEMORIA_CPU_RESIZE:
@@ -318,6 +326,8 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 
 		if (proceso_recibido->resultado)
 		{
+			log_info(args->logger, "PID: <%d> - Acción: <ESCRIBIR> - Dirección Física: <%d> - Valor: <%s>", proceso_recibido->pid, proceso_recibido->direccion_fisica_di, proceso_recibido->frase);
+
 			log_debug(args->logger, "Se escribio la frase <%s> en la direccion logica apuntada por el registro DI asociado a la instruccion <COPY_STRING> del proceso PID <%d>", proceso_recibido->frase, proceso_recibido->pid);
 
 			serializar_t_copy_string(&paquete, proceso_recibido);
