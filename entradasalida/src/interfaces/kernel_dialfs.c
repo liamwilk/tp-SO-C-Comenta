@@ -322,6 +322,9 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
             break;
         }
 
+        // Se crea un puntero absoluto, Si por ejemplo me dicen escribir en el byte 100 del archivo, el puntero absoluto seria 100 + (inicio_bloque * blocksize)
+        uint32_t puntero_absoluto = write->puntero_archivo + (archivo->inicio * args->dial_fs.blockSize);
+
         // Comprobamos que al escribir no se pase del tamaño del archivo
         if (write->puntero_archivo + cantidad_bloques > archivo->fin_bloque)
         {
@@ -329,17 +332,10 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
             write->resultado = 2; // 2 es para archivo  fuera del maximum size del archivo
             break;
         }
-
-        // Comprobamos que el puntero archivo este entre el inicio y el fin del archivo
-        if (write->puntero_archivo < archivo->inicio || write->puntero_archivo > archivo->fin_bloque)
-        {
-            log_error(args->logger, "Se intenta escribir fuera del archivo");
-            write->resultado = 3; // 3 es para archivo que no tiene espacio suficiente
-            break;
-        }
-
+        log_debug(args->logger, "Puntero absoluto en bloques.dat: %d", puntero_absoluto);
         // Escribimos en el archivo, para ello usamos la variable mapeada en memoria el valor de write->escribir
-        memcpy(args->dial_fs.archivo_bloques + write->puntero_archivo, write->escribir, strlen(write->escribir) + 1);
+        memcpy((char *)args->dial_fs.archivo_bloques + puntero_absoluto, write->escribir, strlen(write->escribir) + 1);
+
         write->resultado = 0; // 0 es para archivo que se escribio correctamente
         t_paquete *paquete = crear_paquete(ENTRADA_SALIDA_KERNEL_IO_FS_WRITE);
         serializar_t_kernel_entrada_salida_fs_write(&paquete, write);
@@ -355,8 +351,16 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
         t_kernel_entrada_salida_fs_read *read = deserializar_t_kernel_entrada_salida_fs_read(buffer);
 
         log_info(args->logger, "PID: <%d> - Leer Archivo: <%s> - Tamaño a Leer: <%d> - Puntero Archivo: <%d>", read->pid, read->nombre_archivo, read->registro_tamanio, read->puntero_archivo);
+        t_fcb *archivo = dictionary_get(args->dial_fs.archivos, read->nombre_archivo);
+        if (archivo == NULL)
+        {
+            log_error(args->logger, "El archivo no existe");
+            break;
+        }
+
+        uint32_t puntero_absoluto = read->puntero_archivo + (archivo->inicio * args->dial_fs.blockSize);
         char *contenido = malloc(read->registro_tamanio + 1);
-        memcpy(contenido, args->dial_fs.archivo_bloques + read->puntero_archivo, read->registro_tamanio + 1);
+        memcpy(contenido, (char *)args->dial_fs.archivo_bloques + puntero_absoluto, read->registro_tamanio + 1);
         log_debug(args->logger, "Contenido que se leyo: %s", contenido);
         // Enviamos a kernel
         t_entrada_salida_fs_read_kernel *proceso = malloc(sizeof(t_entrada_salida_fs_read_kernel));
