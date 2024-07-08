@@ -97,11 +97,21 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 
 		log_debug(argumentos->logger, "Proceso <%d> agregado a la lista de procesos global en la posicion %d", proceso->pid, index);
 
+		char* pid_char = string_itoa(proceso->pid);
+
 		// Añado el proceso al diccionario de procesos, mapeando el PID a el indice en la lista de procesos
-		dictionary_put(argumentos->memoria.diccionario_procesos, string_itoa(proceso->pid), string_itoa(index));
+		dictionary_put(argumentos->memoria.diccionario_procesos, pid_char, string_itoa(index));
+
+		free(pid_char);
 
 		{ // Reviso que se haya guardado correctamente en el diccionario de procesos y en la lista de procesos
-			char *indice = dictionary_get(argumentos->memoria.diccionario_procesos, string_itoa(proceso->pid));
+			
+			char* proceso_pid = string_itoa(proceso->pid);
+			
+			char *indice = dictionary_get(argumentos->memoria.diccionario_procesos, proceso_pid);
+			
+			free(proceso_pid);
+			
 			t_proceso *proceso_encontrado = list_get(argumentos->memoria.lista_procesos, atoi(indice));
 
 			log_debug(argumentos->logger, "Reviso que se haya guardado correctamente en el diccionario de procesos y en la lista de procesos");
