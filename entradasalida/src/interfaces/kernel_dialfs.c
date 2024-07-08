@@ -55,7 +55,8 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
             free(create);
             break;
         }
-        // Verificamos que el archivo no exista
+
+        // Verificamos que el archivo  exista
         t_fcb *archivo = dictionary_get(args->dial_fs.archivos, create->nombre_archivo);
 
         if (archivo != NULL)
@@ -152,7 +153,7 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
         log_debug(args->logger, "Cantidad de bloques a truncar: %d", cantidad_bloques);
         // Contar cantidad de bloques ocupados con bitarray
         int bloques_ocupados = 0;
-        for (int i = 0; i < args->dial_fs.bitarray->size; i++)
+        for (int i = 0; i < args->dial_fs.blockCount; i++)
         {
             if (bitarray_test_bit(args->dial_fs.bitarray, i) == 1)
             {
@@ -186,26 +187,68 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
             free(truncate);
             break;
         }
-        //  Verificamos que no solape con otro archivo al truncar
         int fin_bloque = archivo->inicio + cantidad_bloques;
 
         // Recorremos el diccionario para verificar que no solape con otro archivo
-        bool solapa = false;
+        bool compactar = false;
         t_list *keys = dictionary_keys(args->dial_fs.archivos);
+        // Search index for truncate->nombre_archivo
         for (int i = 0; i < list_size(keys); i++)
         {
             char *key = list_get(keys, i);
-            t_fcb *comparator = dictionary_get(args->dial_fs.archivos, key);
-            if (strcmp(key, truncate->nombre_archivo) != 0 && fin_bloque > comparator->inicio)
+            if (strcmp(key, truncate->nombre_archivo) == 0)
             {
-                solapa = true;
+                // Verificamos si hay que compactar
+                if (i == list_size(keys) - 1)
+                {
+                    break;
+                }
+                char *key_siguiente = list_get(keys, i + 1);
+                t_fcb *comparator = dictionary_get(args->dial_fs.archivos, key_siguiente);
+                if (fin_bloque >= comparator->inicio)
+                {
+                    compactar = true;
+                    break;
+                }
                 break;
             }
         }
-        if (solapa)
+        if (compactar)
         {
             log_info(args->logger, "DialFS - Inicio Compactación: “PID: <%d> - Inicio Compactación.", truncate->pid);
-            // TODO: Hay que compactar
+
+            // QUIERO AGREGAR 3 BLOQUES AL ARCHIVO 1
+            // ARCHIVO 1      ARCHIVO 2  LIBRE   ARCHIVO 3  LIBRES
+            // 0,1,2,3,4      5,6,7,8,9   10   11,12,13,14 15,16,17
+
+            // Tras compactar
+            // ARCHIVO 1       LIBRE    ARCHIVO 2   LIBRE    ARCHIVO 3
+            // 0,1,2,3,4      5,6,7    8,9,10,11,12  13  14,15,16,17
+
+            for (int i = 0; i < list_size(keys); i++)
+            {
+
+                // Nos desplazamos de derecha a izquierda
+                int bloque_libre = fs_buscar_primera_ocurrencia_libre(args, archivo->fin_bloque, cantidad_bloques);
+                if (bloque_libre == -1)
+                {
+                    // Se terminaron los bloques libres
+                    break;
+                }
+                int bloque_fin_mas_proximo = bloque_libre - 1;
+
+                char *archivo_mas_proximo = fs_buscar_por_bloque_fin(args, bloque_fin_mas_proximo);
+                // No se compacta el archivo que se quiere truncar
+                if (strcmp(archivo_mas_proximo, truncate->nombre_archivo) == 0)
+                {
+                    break;
+                }
+                fs_desplazar_archivo_hacia_derecha(args, archivo_mas_proximo, cantidad_bloques);
+            }
+
+            int tiempo_dormir = args->dial_fs.retrasoCompactacion / 1000; // Es en milisegundos
+            sleep(tiempo_dormir);
+            log_info(args->logger, "DialFS - Fin Compactación: “PID: <%d> - Fin Compactación.", truncate->pid);
         }
 
         // Se procede a truncarlo
