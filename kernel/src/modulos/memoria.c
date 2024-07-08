@@ -49,9 +49,9 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *
     {
         t_memoria_kernel_fs_read *recibido = deserializar_t_memoria_kernel_fs_read(buffer);
 
-        log_debug(logger, "Recibí la respuesta de Memoria acerca de la solicitud de IO_FS_READ");
-        log_debug(logger, "PID: %d", recibido->pid);
-        log_debug(logger, "Mensaje: %s", recibido->motivo);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Recibí la respuesta de Memoria acerca de la solicitud de IO_FS_READ");
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "PID: %d", recibido->pid);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Mensaje: %s", recibido->motivo);
 
         free(recibido->motivo);
         free(recibido);
