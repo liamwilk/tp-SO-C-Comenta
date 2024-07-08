@@ -285,7 +285,7 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
             sleep(tiempo_dormir);
             log_info(args->logger, "DialFS - Fin Compactación: “PID: <%d> - Fin Compactación.", truncate->pid);
         }
-
+        log_warning(args->logger, "El archivo %s dispone de %d bloques contiguos, se procede a truncar para el PID %d", truncate->nombre_archivo, cantidad_bloques, truncate->pid);
         // Se procede a truncarlo
         // Recorremos el bitmap desde fin_bloque anterior
         for (int i = archivo->fin_bloque + 1; i <= archivo->fin_bloque + cantidad_bloques; i++)
