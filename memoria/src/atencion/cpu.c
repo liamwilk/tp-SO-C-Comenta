@@ -322,6 +322,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 
 			free(proceso_enviar->motivo);
 			free(proceso_enviar);
+			free(proceso_recibido);
 			eliminar_paquete(paquete);
 			break;
 		}
@@ -361,6 +362,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 
 				free(proceso_enviar->motivo);
 				free(proceso_enviar);
+				free(proceso_recibido);
 				eliminar_paquete(paquete);
 				break;
 			}
@@ -383,7 +385,9 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			serializar_t_memoria_cpu_resize(&paquete, proceso_enviar);
 			enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
 			eliminar_paquete(paquete);
+			free(proceso_enviar->motivo);
 			free(proceso_enviar);
+			free(proceso_recibido);
 		}
 		else
 		{
@@ -412,7 +416,9 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			serializar_t_memoria_cpu_resize(&paquete, proceso_enviar);
 			enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
 			eliminar_paquete(paquete);
+			free(proceso_enviar->motivo);
 			free(proceso_enviar);
+			free(proceso_recibido);
 		}
 
 		break;
