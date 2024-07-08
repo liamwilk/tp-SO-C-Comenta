@@ -604,22 +604,29 @@ void fs_desplazar_archivo_hacia_derecha(t_io *args, char *archivo, int cantidad_
     // Calculamos el puntero absoluto
     uint32_t puntero_absoluto = archivo_a_desplazar->inicio * args->dial_fs.blockSize;
     memcpy(contenido_archivo, (char *)args->dial_fs.archivo_bloques + puntero_absoluto, archivo_a_desplazar->total_size);
-
-    // Ponemos todos los bloques ocupados en 0 para este archivo
-    for (int i = archivo_a_desplazar->inicio; i <= archivo_a_desplazar->fin_bloque; i++)
+    if (archivo_a_desplazar->inicio == archivo_a_desplazar->fin_bloque)
     {
-        log_debug(args->logger, "Se setea el bit %d en 0", i);
-        bitarray_clean_bit(args->dial_fs.bitarray, i);
+        log_debug(args->logger, "Se setea el bit %d en 0", archivo_a_desplazar->inicio);
+        bitarray_clean_bit(args->dial_fs.bitarray, archivo_a_desplazar->inicio);
+        log_debug(args->logger, "Se setea el bit %d en 1", archivo_a_desplazar->inicio + cantidad_bloques);
+        bitarray_set_bit(args->dial_fs.bitarray, archivo_a_desplazar->inicio + cantidad_bloques);
     }
-
-    // Desplazamos en el bitmap los bloques ocupados hacia la derecha
-    for (int i = archivo_a_desplazar->inicio + cantidad_bloques; i <= archivo_a_desplazar->fin_bloque + cantidad_bloques; i++)
+    else
     {
-        log_debug(args->logger, "Se setea el bit %d en 1", i);
-        bitarray_set_bit(args->dial_fs.bitarray, i);
+        // Ponemos los primeros n bloques en 0
+        for (int i = archivo_a_desplazar->inicio; i < archivo_a_desplazar->inicio + cantidad_bloques; i++)
+        {
+            log_debug(args->logger, "Se setea el bit %d en 0", i);
+            bitarray_clean_bit(args->dial_fs.bitarray, i);
+        }
+        // Desplazamos en el bitmap los bloques ocupados hacia la derecha
+        for (int i = archivo_a_desplazar->inicio + cantidad_bloques; i <= archivo_a_desplazar->fin_bloque + cantidad_bloques; i++)
+        {
+            log_debug(args->logger, "Se setea el bit %d en 1", i);
+            bitarray_set_bit(args->dial_fs.bitarray, i);
+        }
     }
-
-    // Le sumamos 3 al bloque_inicio del comparator
+    // Le sumamos n al bloque_inicio del comparator
     archivo_a_desplazar->inicio = archivo_a_desplazar->inicio + cantidad_bloques;
     // Recalculamos el fin_bloque
     archivo_a_desplazar->fin_bloque = archivo_a_desplazar->inicio + (archivo_a_desplazar->total_size / args->dial_fs.blockSize);

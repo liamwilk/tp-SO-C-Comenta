@@ -151,8 +151,42 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
             free(truncate);
             break;
         }
+
+        // Obtengo cuantos bytes tiene de tamanio el archivo
+        int size_original = archivo->total_size;
+        int tamanio_post_truncate = size_original + truncate->tamanio_a_truncar;
+
+        if (size_original == 0 && (tamanio_post_truncate < args->dial_fs.blockSize))
+        {
+            archivo->total_size = tamanio_post_truncate;
+            config_set_value(archivo->metadata, "TAMANIO_ARCHIVO", string_itoa(archivo->total_size));
+            config_save(archivo->metadata);
+            proceso->pid = truncate->pid;
+            proceso->resultado = 1;
+            proceso->nombre_archivo = strdup(truncate->nombre_archivo);
+            proceso->tamanio_a_truncar = truncate->tamanio_a_truncar;
+            proceso->size_nombre_archivo = strlen(truncate->nombre_archivo) + 1;
+            proceso->interfaz = strdup(truncate->interfaz);
+            proceso->size_interfaz = strlen(truncate->interfaz) + 1;
+            t_paquete *paquete = crear_paquete(ENTRADA_SALIDA_KERNEL_IO_FS_TRUNCATE);
+            serializar_t_kernel_entrada_salida_fs_truncate(&paquete, proceso);
+            enviar_paquete(paquete, args->sockets.socket_kernel_dialfs);
+            eliminar_paquete(paquete);
+            free(proceso->nombre_archivo);
+            free(proceso->interfaz);
+            free(proceso);
+            free(truncate->nombre_archivo);
+            free(truncate->interfaz);
+            free(truncate);
+            break;
+        }
+        if (size_original == 0)
+        {
+            truncate->tamanio_a_truncar = truncate->tamanio_a_truncar - args->dial_fs.blockSize;
+        }
         int cantidad_bloques = (int)(truncate->tamanio_a_truncar / args->dial_fs.blockSize);
         log_debug(args->logger, "Cantidad de bloques a truncar: %d", cantidad_bloques);
+
         // Contar cantidad de bloques ocupados con bitarray
         int bloques_ocupados = 0;
         for (int i = 0; i < args->dial_fs.blockCount; i++)
@@ -194,11 +228,9 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
         // Recorremos el diccionario para verificar que no solape con otro archivo
         bool compactar = false;
         t_list *keys = fs_obtener_archivos_ordenados(args);
-        // Search index for truncate->nombre_archivo
         for (int i = 0; i < list_size(keys); i++)
         {
             char *key = list_get(keys, i);
-            log_warning(args->logger, "Archivo: %s", key);
             if (strcmp(key, truncate->nombre_archivo) == 0)
             {
                 // Verificamos si hay que compactar
@@ -207,7 +239,6 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
                     break;
                 }
                 char *key_siguiente = list_get(keys, i + 1);
-                log_warning(args->logger, "Archivo siguiten: %s", key_siguiente);
                 t_fcb *comparator = dictionary_get(args->dial_fs.archivos, key_siguiente);
                 if (fin_bloque >= comparator->inicio)
                 {
@@ -262,11 +293,14 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
             log_debug(args->logger, "Se setea el bit %d en 1", i);
             bitarray_set_bit(args->dial_fs.bitarray, i);
         }
+
         // Actualizamos total_size y fin_bloque del archivo
-        archivo->total_size = archivo->total_size + truncate->tamanio_a_truncar;
+        archivo->total_size = tamanio_post_truncate;
+
         log_debug(args->logger, "Tamaño total del archivo: %d", archivo->total_size);
         archivo->fin_bloque = fin_bloque;
         log_debug(args->logger, "Fin bloque del archivo: %d", archivo->fin_bloque);
+
         // Actualizar el config y guardar en archivo
         config_set_value(archivo->metadata, "TAMANIO_ARCHIVO", string_itoa(archivo->total_size));
         config_save(archivo->metadata);
