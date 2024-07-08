@@ -275,6 +275,7 @@ void kernel_wait(hilos_args *args, uint32_t pid, char *recursoSolicitado)
         proceso_en_exec->quantum = interrumpir_temporizador(args);
         kernel_log_generic(args, LOG_LEVEL_INFO, "Se bloquea el proceso <%d> por falta de instancias del recurso <%s>", pid, recursoSolicitado);
         list_add(recurso_encontrado->procesos_bloqueados, proceso_en_exec);
+        kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", pid, recursoSolicitado);
         kernel_transicion_exec_block(args);
         return;
     }
@@ -287,6 +288,8 @@ void kernel_wait(hilos_args *args, uint32_t pid, char *recursoSolicitado)
         proceso_en_exec->quantum = interrumpir_temporizador(args);
         kernel_log_generic(args, LOG_LEVEL_INFO, "Se bloquea el proceso <%d> por falta de instancias del recurso <%s>", pid, recursoSolicitado);
         list_add(recurso_encontrado->procesos_bloqueados, proceso_en_exec);
+        kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", pid, recursoSolicitado);
+
         kernel_transicion_exec_block(args);
         return;
     }

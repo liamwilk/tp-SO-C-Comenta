@@ -19,6 +19,7 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
     case KERNEL_ENTRADA_SALIDA_IO_FS_CREATE:
     {
         t_entrada_salida_fs_create *create = deserializar_t_entrada_salida_fs_create(buffer);
+        log_info(args->logger, "PID: <%d> - Operacion: <IO_FS_CREATE>", create->pid);
         log_info(args->logger, "PID: <%d> - Crear Archivo: <%s>", create->pid, create->nombre_archivo);
 
         t_entrada_salida_fs_create *proceso = malloc(sizeof(t_entrada_salida_fs_create));
@@ -121,6 +122,7 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
     case KERNEL_ENTRADA_SALIDA_IO_FS_TRUNCATE:
     {
         t_kernel_entrada_salida_fs_truncate *truncate = deserializar_t_kernel_entrada_salida_fs_truncate(buffer);
+        log_info(args->logger, "PID: <%d> - Operacion: <IO_FS_TRUNCATE>", truncate->pid);
 
         t_kernel_entrada_salida_fs_truncate *proceso = malloc(sizeof(t_kernel_entrada_salida_fs_truncate));
 
@@ -299,6 +301,7 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
     {
         // Uso las funciones de serializacion de create para no repetir la misma logica
         t_entrada_salida_fs_create *delete = deserializar_t_entrada_salida_fs_create(buffer);
+        log_info(args->logger, "PID: <%d> - Operacion: <IO_FS_DELETE>", delete->pid);
         log_info(args->logger, "PID: <%d> - Eliminar Archivo: <%s>", delete->pid, delete->nombre_archivo);
 
         t_fcb *archivo = dictionary_get(args->dial_fs.archivos, delete->nombre_archivo);
@@ -350,6 +353,7 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
     case KERNEL_ENTRADA_SALIDA_IO_FS_WRITE:
     {
         t_kernel_entrada_salida_fs_write *write = deserializar_t_kernel_entrada_salida_fs_write(buffer);
+        log_info(args->logger, "PID: <%d> - Operacion: <IO_FS_WRITE>", write->pid);
 
         log_info(args->logger, "PID: <%d> - Escribir Archivo: <%s> - Tamaño a Escribir: <%ld> - Puntero Archivo: <%d>", write->pid, write->nombre_archivo, strlen(write->escribir) + 1, write->puntero_archivo);
         log_debug(args->logger, "Contenido a escribir: %s", write->escribir);
@@ -394,7 +398,7 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
     case KERNEL_ENTRADA_SALIDA_IO_FS_READ:
     {
         t_kernel_entrada_salida_fs_read *read = deserializar_t_kernel_entrada_salida_fs_read(buffer);
-
+        log_info(args->logger, "PID: <%d> - Operacion: <IO_FS_READ>", read->pid);
         log_info(args->logger, "PID: <%d> - Leer Archivo: <%s> - Tamaño a Leer: <%d> - Puntero Archivo: <%d>", read->pid, read->nombre_archivo, read->registro_tamanio, read->puntero_archivo);
         t_fcb *archivo = dictionary_get(args->dial_fs.archivos, read->nombre_archivo);
         if (archivo == NULL)

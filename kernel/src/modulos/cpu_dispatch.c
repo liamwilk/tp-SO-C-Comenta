@@ -60,6 +60,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_STDOUT_WRITE> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
 
             proceso_actualizar_registros(pcb, proceso_recibido->registros);
+            kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
             kernel_transicion_exec_block(args);
 
             // Actualizar campo tiene_proxima_io
@@ -138,6 +139,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se transiciona el PID <%d> a BLOCK por ejecucion de IO_STDOUT_WRITE.", proceso_recibido->pid);
 
+        kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
+
         kernel_transicion_exec_block(args);
 
         avisar_planificador(args);
@@ -199,6 +202,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_STDIN_READ> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
 
             proceso_actualizar_registros(pcb, proceso_recibido->registros);
+            kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
             kernel_transicion_exec_block(args);
 
             // Actualizar campo tiene_proxima_io
@@ -266,7 +270,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         proceso_completo->registros = proceso_recibido->registros;
 
         proceso_actualizar_registros(pcb, proceso_recibido->registros);
-
+        kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
         kernel_transicion_exec_block(args);
         serializar_t_kernel_io_stdin_read(&paquete, proceso_completo);
         enviar_paquete(paquete, entrada_salida->socket);
@@ -502,6 +506,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
             kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_FS_CREATE> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
             proceso_actualizar_registros(pcb, proceso_recibido->registros);
+            kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
 
             kernel_transicion_exec_block(args);
 
@@ -549,6 +554,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_FS_CREATE);
 
         serializar_t_entrada_salida_fs_create(&paquete, proceso_completo);
+
+        kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
 
         kernel_transicion_exec_block(args);
         enviar_paquete(paquete, entrada_salida->socket);
@@ -622,6 +629,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
             kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_FS_TRUNCATE> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
             proceso_actualizar_registros(pcb, proceso_recibido->registros);
+            kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
 
             kernel_transicion_exec_block(args);
 
@@ -676,6 +684,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Size nombre archivo: %d", proceso_completo->size_nombre_archivo);
 
         serializar_t_kernel_entrada_salida_fs_truncate(&paquete, proceso_completo);
+
+        kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
 
         kernel_transicion_exec_block(args);
 
@@ -749,6 +759,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
             proceso_actualizar_registros(pcb, proceso_recibido->registros);
 
+            kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
+
             kernel_transicion_exec_block(args);
 
             // Actualizar campo tiene_proxima_io
@@ -789,6 +801,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "BX: %d", proceso_recibido->registros.bx);
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "CX: %d", proceso_recibido->registros.cx);
         proceso_actualizar_registros(pcb, proceso_recibido->registros);
+        kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
+
         kernel_transicion_exec_block(args);
         t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_FS_WRITE);
         t_kernel_entrada_salida_fs_write *proceso_completo = malloc(sizeof(t_kernel_entrada_salida_fs_write));
@@ -882,6 +896,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
             kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_FS_DELETE> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
             proceso_actualizar_registros(pcb, proceso_recibido->registros);
+            kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
 
             kernel_transicion_exec_block(args);
 
@@ -930,6 +945,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_FS_DELETE);
         serializar_t_entrada_salida_fs_create(&paquete, proceso_completo);
+        kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
 
         kernel_transicion_exec_block(args);
         enviar_paquete(paquete, entrada_salida->socket);
@@ -1000,6 +1016,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
                 kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_FS_READ> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
 
                 proceso_actualizar_registros(pcb, proceso_recibido->registros);
+                kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
 
                 kernel_transicion_exec_block(args);
 
@@ -1041,6 +1058,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             kernel_log_generic(args, LOG_LEVEL_DEBUG, "BX: %d", proceso_recibido->registros.bx);
             kernel_log_generic(args, LOG_LEVEL_DEBUG, "CX: %d", proceso_recibido->registros.cx);
             proceso_actualizar_registros(pcb, proceso_recibido->registros);
+            kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
+
             kernel_transicion_exec_block(args);
             t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_FS_READ);
             t_kernel_entrada_salida_fs_read *proceso_completo = malloc(sizeof(t_kernel_entrada_salida_fs_read));

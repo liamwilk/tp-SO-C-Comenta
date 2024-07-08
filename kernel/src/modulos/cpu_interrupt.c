@@ -42,6 +42,8 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
             kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_GEN_SLEEP> <%s> <%d> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", sleep->interfaz, sleep->tiempo, sleep->pid, sleep->interfaz, entrada_salida->pid);
 
             proceso_actualizar_registros(pcb, sleep->registros);
+            kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", sleep->pid, sleep->interfaz);
+
             kernel_transicion_exec_block(args);
 
             // Actualizar campo tiene_proxima_io
@@ -66,7 +68,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
 
         entrada_salida->ocupado = 1;
         entrada_salida->pid = sleep->pid;
-
+        kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", sleep->pid, sleep->interfaz);
         kernel_transicion_exec_block(args);
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Retransmito instruccion <IO_GEN_SLEEP> <%s> <%d> del PID <%d> a interfaz <%s>", sleep->interfaz, sleep->tiempo, sleep->pid, sleep->interfaz);
