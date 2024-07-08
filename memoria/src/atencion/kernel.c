@@ -237,8 +237,6 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 		free(proceso_recibido->interfaz);
 		free(proceso_recibido->nombre_archivo);
 		free(proceso_recibido);
-
-		free(respuesta->motivo);
 		free(respuesta);
 
 		eliminar_paquete(respuesta_paquete);
