@@ -218,8 +218,6 @@ void *hilo_mmu(void *args_void)
                 }
                 case IO_FS_READ:
                 {
-                    // TODO: Arreglar esto se debe hacer una vez que la
-
                     t_cpu_kernel_fs_read *proceso_recibido = (t_cpu_kernel_fs_read *)args->paquete;
 
                     t_cpu_kernel_fs_read *proceso_completo = malloc(sizeof(t_cpu_kernel_fs_read));

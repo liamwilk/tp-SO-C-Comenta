@@ -2037,3 +2037,65 @@ t_entrada_salida_fs_read_kernel *deserializar_t_entrada_salida_fs_read_kernel(t_
 	deserializar_char(&stream, &(read->dato), read->size_dato);
 	return read;
 }
+
+void serializar_t_kernel_memoria_fs_read(t_paquete **paquete, t_kernel_memoria_fs_read *read)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 12 + read->size_interfaz + read->size_nombre_archivo + read->size_dato);
+	serializar_uint32_t(read->pid, *paquete);
+	serializar_uint32_t(read->registro_tamanio, *paquete);
+	serializar_uint32_t(read->registro_direccion, *paquete);
+	serializar_uint32_t(read->size_interfaz, *paquete);
+	serializar_uint32_t(read->size_nombre_archivo, *paquete);
+	serializar_uint32_t(read->puntero_archivo, *paquete);
+	serializar_uint32_t(read->marco, *paquete);
+	serializar_uint32_t(read->numero_pagina, *paquete);
+	serializar_uint32_t(read->desplazamiento, *paquete);
+	serializar_uint32_t(read->resultado, *paquete);
+	serializar_uint32_t(read->direccion_fisica, *paquete);
+	serializar_uint32_t(read->size_dato, *paquete);
+	serializar_char(read->interfaz, *paquete);
+	serializar_char(read->nombre_archivo, *paquete);
+	serializar_char(read->dato, *paquete);
+}
+
+t_kernel_memoria_fs_read *deserializar_t_kernel_memoria_fs_read(t_buffer *buffer)
+{
+	t_kernel_memoria_fs_read *read = malloc(sizeof(t_kernel_memoria_fs_read));
+	void *stream = buffer->stream;
+	deserializar_uint32_t(&stream, &(read->pid));
+	deserializar_uint32_t(&stream, &(read->registro_tamanio));
+	deserializar_uint32_t(&stream, &(read->registro_direccion));
+	deserializar_uint32_t(&stream, &(read->size_interfaz));
+	deserializar_uint32_t(&stream, &(read->size_nombre_archivo));
+	deserializar_uint32_t(&stream, &(read->puntero_archivo));
+	deserializar_uint32_t(&stream, &(read->marco));
+	deserializar_uint32_t(&stream, &(read->numero_pagina));
+	deserializar_uint32_t(&stream, &(read->desplazamiento));
+	deserializar_uint32_t(&stream, &(read->resultado));
+	deserializar_uint32_t(&stream, &(read->direccion_fisica));
+	deserializar_uint32_t(&stream, &(read->size_dato));
+	deserializar_char(&stream, &(read->interfaz), read->size_interfaz);
+	deserializar_char(&stream, &(read->nombre_archivo), read->size_nombre_archivo);
+	deserializar_char(&stream, &(read->dato), read->size_dato);
+	return read;
+}
+
+void serializar_t_memoria_kernel_fs_read(t_paquete **paquete, t_memoria_kernel_fs_read *read)
+{
+	actualizar_buffer(*paquete, sizeof(uint32_t) * 3 + read->size_motivo);
+	serializar_uint32_t(read->pid, *paquete);
+	serializar_uint32_t(read->resultado, *paquete);
+	serializar_uint32_t(read->size_motivo, *paquete);
+	serializar_char(read->motivo, *paquete);
+}
+
+t_memoria_kernel_fs_read *deserializar_t_memoria_kernel_fs_read(t_buffer *buffer)
+{
+	t_memoria_kernel_fs_read *read = malloc(sizeof(t_memoria_kernel_fs_read));
+	void *stream = buffer->stream;
+	deserializar_uint32_t(&stream, &(read->pid));
+	deserializar_uint32_t(&stream, &(read->resultado));
+	deserializar_uint32_t(&stream, &(read->size_motivo));
+	deserializar_char(&stream, &(read->motivo), read->size_motivo);
+	return read;
+}

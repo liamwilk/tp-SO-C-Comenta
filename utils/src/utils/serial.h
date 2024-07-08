@@ -76,6 +76,8 @@ typedef enum
 	MEMORIA_CPU_COPY_STRING,
 	CPU_MEMORIA_COPY_STRING_2,
 	MEMORIA_CPU_COPY_STRING_2,
+	KERNEL_MEMORIA_IO_FS_READ,
+	MEMORIA_KERNEL_IO_FS_READ,
 	MEMORIA_CPU_IO_FS_WRITE,
 	CPU_MEMORIA_IO_FS_WRITE,
 	CPU_KERNEL_IO_FS_READ,
@@ -609,6 +611,33 @@ typedef struct
 	char *dato;
 	uint32_t size_dato;
 } t_entrada_salida_fs_read_kernel;
+
+typedef struct
+{
+	char *interfaz;
+	char *nombre_archivo;
+	uint32_t pid;
+	uint32_t size_nombre_archivo;
+	uint32_t size_interfaz;
+	uint32_t puntero_archivo;
+	uint32_t registro_direccion;
+	uint32_t registro_tamanio;
+	uint32_t resultado;
+	uint32_t direccion_fisica;
+	uint32_t marco;
+	uint32_t numero_pagina;
+	uint32_t desplazamiento;
+	char *dato;
+	uint32_t size_dato;
+} t_kernel_memoria_fs_read;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t resultado;
+	uint32_t size_motivo;
+	char *motivo;
+} t_memoria_kernel_fs_read;
 
 /**
  * @fn    *crear_paquete
@@ -1642,7 +1671,52 @@ void serializar_t_kernel_entrada_salida_fs_read(t_paquete **paquete, t_kernel_en
  */
 t_kernel_entrada_salida_fs_read *deserializar_t_kernel_entrada_salida_fs_read(t_buffer *buffer);
 
+/**
+ * @brief Serializa una estructura t_entrada_salida_fs_read_kernel en un paquete.
+ *
+ * Esta función toma una estructura t_entrada_salida_fs_read_kernel y la serializa en un paquete.
+ * El paquete resultante puede ser enviado a través de una conexión de red.
+ *
+ * @param paquete Puntero al puntero del paquete donde se almacenará la estructura serializada.
+ * @param read Puntero a la estructura t_entrada_salida_fs_read_kernel que se desea serializar.
+ */
 void serializar_t_entrada_salida_fs_read_kernel(t_paquete **paquete, t_entrada_salida_fs_read_kernel *read);
 
+/**
+ * @brief Deserializa una estructura t_entrada_salida_fs_read_kernel desde un buffer.
+ *
+ * Esta función toma un buffer que contiene una estructura t_entrada_salida_fs_read_kernel serializada
+ * y la deserializa en una estructura t_entrada_salida_fs_read_kernel.
+ *
+ * @param buffer Puntero al buffer que contiene la estructura serializada.
+ * @return Puntero a la estructura t_entrada_salida_fs_read_kernel deserializada.
+ */
 t_entrada_salida_fs_read_kernel *deserializar_t_entrada_salida_fs_read_kernel(t_buffer *buffer);
+
+/**
+ * @brief Serializa una estructura t_kernel_memoria_fs_read en un paquete.
+ *
+ * Esta función toma una estructura t_kernel_memoria_fs_read y la serializa en un paquete.
+ * El paquete resultante puede ser enviado a través de una conexión de red.
+ *
+ * @param paquete Puntero al puntero del paquete donde se almacenará la estructura serializada.
+ * @param read Puntero a la estructura t_kernel_memoria_fs_read que se desea serializar.
+ */
+void serializar_t_kernel_memoria_fs_read(t_paquete **paquete, t_kernel_memoria_fs_read *read);
+
+/**
+ * @brief Deserializa una estructura t_kernel_memoria_fs_read desde un buffer.
+ *
+ * Esta función toma un buffer que contiene una estructura t_kernel_memoria_fs_read serializada
+ * y la deserializa en una estructura t_kernel_memoria_fs_read.
+ *
+ * @param buffer Puntero al buffer que contiene la estructura serializada.
+ * @return Puntero a la estructura t_kernel_memoria_fs_read deserializada.
+ */
+t_kernel_memoria_fs_read *deserializar_t_kernel_memoria_fs_read(t_buffer *buffer);
+
+void serializar_t_memoria_kernel_fs_read(t_paquete **paquete, t_memoria_kernel_fs_read *read);
+
+t_memoria_kernel_fs_read *deserializar_t_memoria_kernel_fs_read(t_buffer *buffer);
+
 #endif

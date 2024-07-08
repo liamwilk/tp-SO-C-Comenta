@@ -45,6 +45,18 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *
         free(proceso);
         break;
     }
+    case MEMORIA_KERNEL_IO_FS_READ:
+    {
+        t_memoria_kernel_fs_read *recibido = deserializar_t_memoria_kernel_fs_read(buffer);
+
+        log_debug(logger, "Recibí la respuesta de Memoria acerca de la solicitud de IO_FS_READ");
+        log_debug(logger, "PID: %d", recibido->pid);
+        log_debug(logger, "Mensaje: %s", recibido->motivo);
+
+        free(recibido->motivo);
+        free(recibido);
+        break;
+    }
     default:
     {
         kernel_log_generic(args, LOG_LEVEL_WARNING, "[Memoria] Se recibio un codigo de operacion desconocido. Cierro hilo");

@@ -235,9 +235,36 @@ void switch_case_kernel_entrada_salida_dialfs(hilos_io_args *io_args, char *modu
                 io_args->entrada_salida->ocupado = 0;
                 io_args->entrada_salida->pid = 0;
                 kernel_manejar_ready(io_args->args, read->pid, BLOCK_READY);
-                // TODO: Enviar a memoria dato para ser guardado
-                kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "Se debe guardar en espacio de usuario el dato: %s en la direccion fisica %d", read->dato, read->direccion_fisica);
+
+                t_kernel_memoria_fs_read *proceso_enviar = malloc(sizeof(t_kernel_memoria_fs_read));
+                t_paquete *paquete = crear_paquete(KERNEL_MEMORIA_IO_FS_READ);
+                proceso_enviar->pid = read->pid;
+                proceso_enviar->resultado = 0;
+                proceso_enviar->nombre_archivo = strdup(read->nombre_archivo);
+                proceso_enviar->registro_tamanio = read->registro_tamanio;
+                proceso_enviar->puntero_archivo = read->puntero_archivo;
+                proceso_enviar->dato = strdup(read->dato);
+                proceso_enviar->size_dato = strlen(read->dato) + 1;
+                proceso_enviar->size_nombre_archivo = strlen(read->nombre_archivo) + 1;
+                proceso_enviar->direccion_fisica = read->direccion_fisica;
+                proceso_enviar->marco = read->marco;
+                proceso_enviar->desplazamiento = read->desplazamiento;
+                proceso_enviar->numero_pagina = read->numero_pagina;
+                proceso_enviar->interfaz = strdup(read->interfaz);
+                proceso_enviar->size_interfaz = strlen(read->interfaz) + 1;
+                proceso_enviar->registro_direccion = read->registro_direccion;
+
+                serializar_t_kernel_memoria_fs_read(&paquete, proceso_enviar);
+                enviar_paquete(paquete, io_args->args->kernel->sockets.memoria);
+
+                kernel_log_generic(io_args->args, LOG_LEVEL_DEBUG, "[%s/%s/%d] Se envió la operación de IO_FS_READ a memoria para el proceso PID <%d>", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden, read->pid);
                 kernel_proximo_io_fs(io_args->args, io);
+
+                eliminar_paquete(paquete);
+                free(proceso_enviar->nombre_archivo);
+                free(proceso_enviar->dato);
+                free(proceso_enviar->interfaz);
+                free(proceso_enviar);
             }
         }
         else
