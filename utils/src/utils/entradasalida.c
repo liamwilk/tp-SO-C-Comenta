@@ -628,3 +628,37 @@ void fs_desplazar_archivo_hacia_derecha(t_io *args, char *archivo, int cantidad_
     config_save(archivo_a_desplazar->metadata);
     free(contenido_archivo);
 }
+
+t_list *fs_obtener_archivos_ordenados(t_io *args)
+{
+    t_list *elements = dictionary_elements(args->dial_fs.archivos);
+    // Ordenamos los archivos por bloque inicial con list sort de menor a mayor
+    t_list *sorted_elements = list_sorted(elements, (void *)fs_comparar_archivos_por_bloque_inicial);
+    t_list *sorted_keys = list_create();
+    t_list *keys = dictionary_keys(args->dial_fs.archivos);
+    for (int i = 0; i < list_size(sorted_elements); i++)
+    {
+        t_fcb *fcb = list_get(sorted_elements, i);
+        for (int j = 0; j < list_size(keys); j++)
+        {
+            char *key = list_get(keys, j);
+            t_fcb *fcb_key = dictionary_get(args->dial_fs.archivos, key);
+            if (fcb_key->inicio == fcb->inicio)
+            {
+                list_add(sorted_keys, key);
+                break;
+            }
+        }
+    }
+    list_destroy(elements);
+    list_destroy(sorted_elements);
+    return sorted_keys;
+}
+
+bool fs_comparar_archivos_por_bloque_inicial(void *archivo1, void *archivo2)
+{
+    t_fcb *fcb1 = (t_fcb *)archivo1;
+    t_fcb *fcb2 = (t_fcb *)archivo2;
+    // Ordenar de bloque inicio menor a mayor
+    return fcb1->inicio < fcb2->inicio;
+}

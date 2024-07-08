@@ -191,7 +191,7 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
 
         // Recorremos el diccionario para verificar que no solape con otro archivo
         bool compactar = false;
-        t_list *keys = dictionary_keys(args->dial_fs.archivos);
+        t_list *keys = fs_obtener_archivos_ordenados(args);
         // Search index for truncate->nombre_archivo
         for (int i = 0; i < list_size(keys); i++)
         {
