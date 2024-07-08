@@ -237,8 +237,10 @@ char *proceso_estado(t_diagrama_estados *estados, int pid)
     char *estado = dictionary_get(estados->procesos, pid_str);
     if (estado == NULL)
     {
+        free(pid_str);
         return NULL;
     }
+    free(pid_str);
     return estado;
 }
 
@@ -249,11 +251,14 @@ void proceso_matar(t_diagrama_estados *estados, char *pid)
     char *estado = proceso_estado(estados, atoi(pid));
     t_list *cola = proceso_obtener_estado(estados, estado);
     int pidNumber = atoi(pid);
+    t_pcb *pcb_a_eliminar = proceso_buscar(estados, pidNumber);
     for (int i = 0; i < list_size(cola); i++)
     {
         t_pcb *proceso = list_get(cola, i);
         if (proceso->pid == pidNumber)
         {
+            dictionary_destroy_and_destroy_elements(pcb_a_eliminar->recursos_tomados, free);
+            free(pcb_a_eliminar->registros_cpu);
             list_remove_and_destroy_element(cola, i, free);
 
             /**SE AGREGA REFERENCIA A ESTADO EXIT DEL PROCESO EN DICCIONARIO**/

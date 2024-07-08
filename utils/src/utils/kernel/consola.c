@@ -365,9 +365,11 @@ void kernel_log_ready(hilos_args *kernel_hilos_args, bool prioritaria)
         t_pcb *pcb = list_get(listaARecorrer, i);
         char *pid = string_itoa(pcb->pid);
         msg = string_from_format("%s %s", msg, pid);
+        free(pid);
     }
     msg = string_from_format("%s ]", msg);
     kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "%s", msg);
+    free(msg);
 }
 
 void imprimir_logo(hilos_args *args)

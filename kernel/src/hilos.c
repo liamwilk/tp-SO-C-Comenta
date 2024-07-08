@@ -99,6 +99,11 @@ void *hilos_atender_consola(void *args)
             break;
         }
         }
+        //  Libero el string_split de separar_linea
+        for (int i = 0; separar_linea[i] != NULL; i++)
+        {
+            free(separar_linea[i]);
+        }
         free(separar_linea);
         free(linea);
         free(prompt);

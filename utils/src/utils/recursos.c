@@ -59,7 +59,20 @@ void recurso_init(t_dictionary *diccionario_recursos, char *instanciasRecursos, 
         recursoDiccionario->procesos_bloqueados = list_create();
         dictionary_put(diccionario_recursos, recursos_arr[i], recursoDiccionario);
     }
+
     free(instancias_arr);
     free(recursos_arr);
+    // Libero el recursos_arr
+    for (int i = 0; recursos_arr[i] != NULL; i++)
+    {
+        free(recursos_arr[i]);
+    }
+    free(recursos_arr);
+    // Libero el instancias_arr
+    for (int i = 0; instancias_arr[i] != NULL; i++)
+    {
+        free(instancias_arr[i]);
+    }
+    free(instancias_arr);
     return;
 }

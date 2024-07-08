@@ -85,6 +85,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         eliminar_paquete(paquete);
 
         free(unidad);
+        free(sleep->interfaz);
         free(sleep);
         break;
     }
