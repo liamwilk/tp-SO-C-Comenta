@@ -60,8 +60,6 @@ void recurso_init(t_dictionary *diccionario_recursos, char *instanciasRecursos, 
         dictionary_put(diccionario_recursos, recursos_arr[i], recursoDiccionario);
     }
 
-    free(instancias_arr);
-    free(recursos_arr);
     // Libero el recursos_arr
     for (int i = 0; recursos_arr[i] != NULL; i++)
     {
