@@ -105,6 +105,14 @@ void kernel_finalizar(hilos_args *args)
     // Destruyo todo lo de entrada/salida
     list_destroy(args->kernel->sockets.list_entrada_salida);
     dictionary_destroy(args->kernel->sockets.dictionary_entrada_salida);
+    // Libero los recursos y diagrama de estados
+    dictionary_destroy(args->recursos);
+    list_destroy(args->estados->new);
+    list_destroy(args->estados->ready);
+    list_destroy(args->estados->exec);
+    list_destroy(args->estados->block);
+    list_destroy(args->estados->exit);
+    free(args->estados);
 
     // Bajo el servidor interno de atencion de I/O para no aceptar mas conexiones
     liberar_conexion(&args->kernel->sockets.server);
