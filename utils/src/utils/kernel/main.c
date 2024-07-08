@@ -112,7 +112,6 @@ void kernel_finalizar(hilos_args *args)
     list_destroy(args->estados->exec);
     list_destroy(args->estados->block);
     list_destroy(args->estados->exit);
-    free(args->estados);
 
     // Bajo el servidor interno de atencion de I/O para no aceptar mas conexiones
     liberar_conexion(&args->kernel->sockets.server);
