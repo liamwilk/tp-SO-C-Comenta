@@ -199,8 +199,8 @@ t_pcb *kernel_nuevo_proceso(hilos_args *args, t_diagrama_estados *estados, t_log
     enviar_paquete(paquete, args->kernel->sockets.memoria);
 
     eliminar_paquete(paquete);
-    free(proceso);
     free(proceso->path_instrucciones);
+    free(proceso);
     return nuevaPcb;
 }
 
