@@ -196,6 +196,7 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
         for (int i = 0; i < list_size(keys); i++)
         {
             char *key = list_get(keys, i);
+            log_warning(args->logger, "Archivo: %s", key);
             if (strcmp(key, truncate->nombre_archivo) == 0)
             {
                 // Verificamos si hay que compactar
@@ -204,6 +205,7 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
                     break;
                 }
                 char *key_siguiente = list_get(keys, i + 1);
+                log_warning(args->logger, "Archivo siguiten: %s", key_siguiente);
                 t_fcb *comparator = dictionary_get(args->dial_fs.archivos, key_siguiente);
                 if (fin_bloque >= comparator->inicio)
                 {

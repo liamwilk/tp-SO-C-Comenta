@@ -517,9 +517,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->pid));
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->resultado));
-            list_add(pcb->proxima_io->args, proceso_recibido->interfaz);
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->size_interfaz));
-            list_add(pcb->proxima_io->args, proceso_recibido->nombre_archivo);
+            list_add(pcb->proxima_io->args, strdup(proceso_recibido->nombre_archivo));
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->size_nombre_archivo));
 
             avisar_planificador(args);
@@ -639,9 +638,8 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->pid));
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->resultado));
-            list_add(pcb->proxima_io->args, proceso_recibido->interfaz);
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->size_interfaz));
-            list_add(pcb->proxima_io->args, proceso_recibido->nombre_archivo);
+            list_add(pcb->proxima_io->args, strdup(proceso_recibido->nombre_archivo));
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->size_nombre_archivo));
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->tamanio_a_truncar));
 
@@ -764,16 +762,16 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             pcb->proxima_io->args = list_create();
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->pid));
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->resultado));
-            list_add(pcb->proxima_io->args, proceso_recibido->interfaz);
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->size_interfaz));
-            list_add(pcb->proxima_io->args, proceso_recibido->nombre_archivo);
+            list_add(pcb->proxima_io->args, strdup(proceso_recibido->nombre_archivo));
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->size_nombre_archivo));
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->puntero_archivo));
-            list_add(pcb->proxima_io->args, proceso_recibido->escribir);
+            list_add(pcb->proxima_io->args, strdup(proceso_recibido->escribir));
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->size_escribir));
             avisar_planificador(args);
             free(proceso_recibido->interfaz);
             free(proceso_recibido->nombre_archivo);
+            free(proceso_recibido->escribir);
             free(proceso_recibido);
             break;
         }
@@ -1016,13 +1014,13 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
                 pcb->proxima_io->args = list_create();
                 list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->pid));
                 list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->resultado));
-                list_add(pcb->proxima_io->args, proceso_recibido->interfaz);
                 list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->size_interfaz));
-                list_add(pcb->proxima_io->args, proceso_recibido->nombre_archivo);
+                list_add(pcb->proxima_io->args, strdup(proceso_recibido->nombre_archivo));
                 list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->size_nombre_archivo));
                 list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->puntero_archivo));
                 list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->direccion_fisica));
                 list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registro_tamanio));
+                list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->marco));
                 avisar_planificador(args);
                 free(proceso_recibido->interfaz);
                 free(proceso_recibido->nombre_archivo);
