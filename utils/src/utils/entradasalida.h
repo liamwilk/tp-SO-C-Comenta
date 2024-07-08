@@ -205,4 +205,22 @@ int fs_buscar_bloque_libre(t_io *args);
  */
 void fs_archivo_crear(t_io *args, char *nombre, int indice_bloque_libre);
 
+// Esto se va a utilizar para compactar, va a devolver el numero de bloque que tenga a su derecha n cantidad de bloques libres contando desde bloque_referencia
+int fs_buscar_primera_ocurrencia_libre(t_io *args, int bloque_referencia, int cantidad_bloques);
+
+int fs_buscar_indice_archivo(t_io *args, char *nombre);
+
+void fs_desplazar_archivo_hacia_derecha(t_io *args, char *archivo, int cantidad_bloques);
+
+char *fs_buscar_por_bloque_fin(t_io *args, int bloque_fin);
+
+/**
+ * Obtiene una lista ordenada de archivos basada en los argumentos de entrada/salida dados.
+ *
+ * @param args Los argumentos de entrada/salida para las operaciones del sistema de archivos.
+ * @return Una lista ordenada de archivos.
+ */
+t_list *fs_obtener_archivos_ordenados(t_io *args);
+bool fs_comparar_archivos_por_bloque_inicial(void *archivo1, void *archivo2);
+
 #endif // ENTRADASALIDA_H

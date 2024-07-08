@@ -685,6 +685,8 @@ void kernel_proximo_io_stdin(hilos_args *args, t_kernel_entrada_salida *io)
     }
 }
 
+// TODO: actualmente de FS sólo está para el create, habría que hacer de los demás también
+
 void kernel_proximo_io_fs(hilos_args *args, t_kernel_entrada_salida *io)
 {
     int proceso_en_block = list_size(args->estados->block);
@@ -711,45 +713,181 @@ void kernel_proximo_io_fs(hilos_args *args, t_kernel_entrada_salida *io)
         }
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso <%d> bloqueado por I/O en interfaz <%s>", pcb->pid, pcb->proxima_io->identificador);
-        // TODO: Agregar cada case para  WRITE, DELETE, TRUNCATE, READ
         if (strcmp(pcb->proxima_io->identificador, io->interfaz) == 0 && pcb->proxima_io->tipo == ENTRADA_SALIDA_DIALFS_CREATE)
         {
             io->ocupado = 1;
             io->pid = pcb->pid;
 
             t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_FS_CREATE);
-            t_entrada_salida_fs_create *proceso = malloc(sizeof(t_io_stdin_read));
+            t_entrada_salida_fs_create *proceso = malloc(sizeof(t_entrada_salida_fs_create));
 
             char *pid = list_get(pcb->proxima_io->args, 0);
             proceso->pid = atoi(pid);
             char *resultado = list_get(pcb->proxima_io->args, 1);
             proceso->resultado = atoi(resultado);
-            char *interfaz = list_get(pcb->proxima_io->args, 2);
-            proceso->interfaz = strdup(interfaz);
-            char *size_interfaz = list_get(pcb->proxima_io->args, 3);
+            char *size_interfaz = list_get(pcb->proxima_io->args, 2);
             proceso->size_interfaz = atoi(size_interfaz);
-            char *nombre_archivo = list_get(pcb->proxima_io->args, 4);
+            char *nombre_archivo = list_get(pcb->proxima_io->args, 3);
             proceso->nombre_archivo = strdup(nombre_archivo);
-            char *size_nombre_archivo = list_get(pcb->proxima_io->args, 5);
+            char *size_nombre_archivo = list_get(pcb->proxima_io->args, 4);
             proceso->size_nombre_archivo = atoi(size_nombre_archivo);
-
+            proceso->interfaz = strdup(io->interfaz);
             serializar_t_entrada_salida_fs_create(&paquete, proceso);
+            proceso->registros = *pcb->registros_cpu;
             enviar_paquete(paquete, io->socket);
 
             kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio el paquete a la interfaz <%s> para el proceso <%d>", io->interfaz, pcb->pid);
 
             eliminar_paquete(paquete);
 
-            free(pid);
-            free(resultado);
-            free(interfaz);
-            free(size_interfaz);
-            free(nombre_archivo);
-            free(size_nombre_archivo);
+            free(proceso->interfaz);
+            free(proceso->nombre_archivo);
+            list_destroy_and_destroy_elements(pcb->proxima_io->args, free);
+            pcb->proxima_io->tiene_proxima_io = false;
+        }
+        if (strcmp(pcb->proxima_io->identificador, io->interfaz) == 0 && pcb->proxima_io->tipo == ENTRADA_SALIDA_DIALFS_TRUNCATE)
+        {
+            io->ocupado = 1;
+            io->pid = pcb->pid;
+
+            t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_FS_TRUNCATE);
+            t_kernel_entrada_salida_fs_truncate *proceso = malloc(sizeof(t_kernel_entrada_salida_fs_truncate));
+
+            char *pid = list_get(pcb->proxima_io->args, 0);
+            proceso->pid = atoi(pid);
+            char *resultado = list_get(pcb->proxima_io->args, 1);
+            proceso->resultado = atoi(resultado);
+            char *size_interfaz = list_get(pcb->proxima_io->args, 2);
+            proceso->size_interfaz = atoi(size_interfaz);
+            char *nombre_archivo = list_get(pcb->proxima_io->args, 3);
+            proceso->nombre_archivo = strdup(nombre_archivo);
+            char *size_nombre_archivo = list_get(pcb->proxima_io->args, 4);
+            char *tamanio_a_truncar = list_get(pcb->proxima_io->args, 5);
+            proceso->tamanio_a_truncar = atoi(tamanio_a_truncar);
+            proceso->size_nombre_archivo = atoi(size_nombre_archivo);
+            proceso->interfaz = strdup(io->interfaz);
+            serializar_t_kernel_entrada_salida_fs_truncate(&paquete, proceso);
+            enviar_paquete(paquete, io->socket);
+
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio el paquete a la interfaz <%s> para el proceso <%d>", io->interfaz, pcb->pid);
+
+            eliminar_paquete(paquete);
 
             free(proceso->interfaz);
             free(proceso->nombre_archivo);
-            free(pcb->proxima_io->args);
+            list_destroy_and_destroy_elements(pcb->proxima_io->args, free);
+            pcb->proxima_io->tiene_proxima_io = false;
+        }
+        if (strcmp(pcb->proxima_io->identificador, io->interfaz) == 0 && pcb->proxima_io->tipo == ENTRADA_SALIDA_DIALFS_WRITE)
+        {
+            io->ocupado = 1;
+            io->pid = pcb->pid;
+
+            t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_FS_WRITE);
+            t_kernel_entrada_salida_fs_write *proceso = malloc(sizeof(t_kernel_entrada_salida_fs_write));
+
+            char *pid = list_get(pcb->proxima_io->args, 0);
+            proceso->pid = atoi(pid);
+            char *resultado = list_get(pcb->proxima_io->args, 1);
+            proceso->resultado = atoi(resultado);
+            char *size_interfaz = list_get(pcb->proxima_io->args, 2);
+            proceso->size_interfaz = atoi(size_interfaz);
+            char *nombre_archivo = list_get(pcb->proxima_io->args, 3);
+            proceso->nombre_archivo = strdup(nombre_archivo);
+            char *size_nombre_archivo = list_get(pcb->proxima_io->args, 4);
+            proceso->size_nombre_archivo = atoi(size_nombre_archivo);
+            char *puntero_archivo = list_get(pcb->proxima_io->args, 5);
+            proceso->puntero_archivo = atoi(puntero_archivo);
+            char *escribir = list_get(pcb->proxima_io->args, 6);
+            proceso->escribir = strdup(escribir);
+            char *size_escribir = list_get(pcb->proxima_io->args, 7);
+            proceso->size_escribir = atoi(size_escribir);
+            proceso->interfaz = strdup(io->interfaz);
+            serializar_t_kernel_entrada_salida_fs_write(&paquete, proceso);
+            enviar_paquete(paquete, io->socket);
+
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio el paquete a la interfaz <%s> para el proceso <%d>", io->interfaz, pcb->pid);
+
+            eliminar_paquete(paquete);
+
+            free(proceso->interfaz);
+            free(proceso->nombre_archivo);
+            free(proceso->escribir);
+            list_destroy_and_destroy_elements(pcb->proxima_io->args, free);
+            pcb->proxima_io->tiene_proxima_io = false;
+        }
+        if (strcmp(pcb->proxima_io->identificador, io->interfaz) == 0 && pcb->proxima_io->tipo == ENTRADA_SALIDA_DIALFS_DELETE)
+        {
+            // Para el delete utilizamos las mismas funciones de create ya que son los mismos parametros
+            io->ocupado = 1;
+            io->pid = pcb->pid;
+
+            t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_FS_DELETE);
+            t_entrada_salida_fs_create *proceso = malloc(sizeof(t_entrada_salida_fs_create));
+
+            char *pid = list_get(pcb->proxima_io->args, 0);
+            proceso->pid = atoi(pid);
+            char *resultado = list_get(pcb->proxima_io->args, 1);
+            proceso->resultado = atoi(resultado);
+            char *size_interfaz = list_get(pcb->proxima_io->args, 2);
+            proceso->size_interfaz = atoi(size_interfaz);
+            char *nombre_archivo = list_get(pcb->proxima_io->args, 3);
+            proceso->nombre_archivo = strdup(nombre_archivo);
+            char *size_nombre_archivo = list_get(pcb->proxima_io->args, 4);
+            proceso->size_nombre_archivo = atoi(size_nombre_archivo);
+            proceso->interfaz = strdup(io->interfaz);
+            proceso->registros = *pcb->registros_cpu;
+            serializar_t_entrada_salida_fs_create(&paquete, proceso);
+            proceso->registros = *pcb->registros_cpu;
+            enviar_paquete(paquete, io->socket);
+
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio el paquete a la interfaz <%s> para el proceso <%d>", io->interfaz, pcb->pid);
+
+            eliminar_paquete(paquete);
+
+            free(proceso->interfaz);
+            free(proceso->nombre_archivo);
+            list_destroy_and_destroy_elements(pcb->proxima_io->args, free);
+            pcb->proxima_io->tiene_proxima_io = false;
+        }
+        if (strcmp(pcb->proxima_io->identificador, io->interfaz) == 0 && pcb->proxima_io->tipo == ENTRADA_SALIDA_DIALFS_READ)
+        {
+            io->ocupado = 1;
+            io->pid = pcb->pid;
+
+            t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_FS_READ);
+            t_kernel_entrada_salida_fs_read *proceso = malloc(sizeof(t_kernel_entrada_salida_fs_read));
+
+            char *pid = list_get(pcb->proxima_io->args, 0);
+            proceso->pid = atoi(pid);
+            char *resultado = list_get(pcb->proxima_io->args, 1);
+            proceso->resultado = atoi(resultado);
+            char *size_interfaz = list_get(pcb->proxima_io->args, 2);
+            proceso->size_interfaz = atoi(size_interfaz);
+            char *nombre_archivo = list_get(pcb->proxima_io->args, 3);
+            proceso->nombre_archivo = strdup(nombre_archivo);
+            char *size_nombre_archivo = list_get(pcb->proxima_io->args, 4);
+            proceso->size_nombre_archivo = atoi(size_nombre_archivo);
+            char *puntero_archivo = list_get(pcb->proxima_io->args, 5);
+            proceso->puntero_archivo = atoi(puntero_archivo);
+            char *direccion_fisica = list_get(pcb->proxima_io->args, 6);
+            proceso->direccion_fisica = atoi(direccion_fisica);
+            char *registro_tamanio = list_get(pcb->proxima_io->args, 7);
+            proceso->registro_tamanio = atoi(registro_tamanio);
+            char *marco = list_get(pcb->proxima_io->args, 8);
+            proceso->marco = atoi(marco);
+            proceso->interfaz = strdup(io->interfaz);
+            proceso->registros = *pcb->registros_cpu;
+            serializar_t_kernel_entrada_salida_fs_read(&paquete, proceso);
+            enviar_paquete(paquete, io->socket);
+
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se envio el paquete a la interfaz <%s> para el proceso <%d>", io->interfaz, pcb->pid);
+
+            eliminar_paquete(paquete);
+
+            free(proceso->interfaz);
+            free(proceso->nombre_archivo);
+            list_destroy_and_destroy_elements(pcb->proxima_io->args, free);
             pcb->proxima_io->tiene_proxima_io = false;
         }
     }

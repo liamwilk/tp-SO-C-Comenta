@@ -216,6 +216,42 @@ void *hilo_mmu(void *args_void)
                     free(proceso_recibido);
                     break;
                 }
+                case IO_FS_READ:
+                {
+                    t_cpu_kernel_fs_read *proceso_recibido = (t_cpu_kernel_fs_read *)args->paquete;
+
+                    t_cpu_kernel_fs_read *proceso_completo = malloc(sizeof(t_cpu_kernel_fs_read));
+                    t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_FS_READ);
+
+                    log_debug(args->logger, "Se obtuvo el marco inicial <%d> de la pagina <%d> asociado a la instruccion IO_FS_READ del proceso PID <%d> con puntero archivo <%d>", args->marco, proceso_recibido->numero_pagina, proceso_recibido->pid, proceso_recibido->puntero_archivo);
+                    proceso_completo->pid = proceso_recibido->pid;
+                    proceso_completo->resultado = proceso_recibido->resultado;
+                    proceso_completo->numero_pagina = proceso_recibido->numero_pagina;
+                    proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
+                    proceso_completo->size_interfaz = strlen(proceso_completo->interfaz) + 1;
+                    proceso_completo->nombre_archivo = strdup(proceso_recibido->nombre_archivo);
+                    proceso_completo->size_nombre_archivo = strlen(proceso_completo->nombre_archivo) + 1;
+                    proceso_completo->registros = proceso_recibido->registros;
+                    proceso_completo->registro_direccion = proceso_recibido->registro_direccion;
+                    proceso_completo->registro_tamanio = proceso_recibido->registro_tamanio;
+                    proceso_completo->marco = args->marco;
+                    proceso_completo->direccion_fisica = args->direccion_fisica;
+                    proceso_completo->desplazamiento = proceso_recibido->desplazamiento;
+                    proceso_completo->puntero_archivo = proceso_recibido->puntero_archivo;
+
+                    serializar_t_cpu_kernel_fs_read(&paquete, proceso_completo);
+                    enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);
+                    eliminar_paquete(paquete);
+
+                    log_debug(args->logger, "Se envio la solicitud de la instruccion IO_FS_READ del proceso PID <%d> a Kernel", proceso_recibido->pid);
+                    free(proceso_completo->interfaz);
+                    free(proceso_completo->nombre_archivo);
+                    free(proceso_completo);
+                    free(proceso_recibido->interfaz);
+                    free(proceso_recibido->nombre_archivo);
+                    free(proceso_recibido);
+                    break;
+                }
                 default:
                 {
                     log_warning(args->logger, "Instruccion no reconocida");

@@ -37,6 +37,10 @@ void metadata_inicializar(t_io *args)
                 nuevo_fcb->total_size = tamanio_en_bytes;
                 nuevo_fcb->inicio = bloque_inicial;
                 nuevo_fcb->fin_bloque = bloque_inicial + (tamanio_en_bytes / args->dial_fs.blockSize);
+                if (nuevo_fcb->fin_bloque != bloque_inicial)
+                {
+                    nuevo_fcb->fin_bloque--; // Esto es para que el bloque final sea el correcto
+                }
                 nuevo_fcb->metadata = nuevo_config;
 
                 // Voy a verificar si el inicio y el fin de bloque no se encuentra entre otros bloques

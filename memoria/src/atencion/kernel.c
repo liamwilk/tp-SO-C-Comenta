@@ -194,6 +194,55 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 		free(proceso);
 		break;
 	}
+	case KERNEL_MEMORIA_IO_FS_READ:
+	{
+		t_kernel_memoria_fs_read *proceso_recibido = deserializar_t_kernel_memoria_fs_read(buffer);
+
+		log_debug(argumentos->logger, "Se recibio una instruccion de IO_FS_READ para el proceso con PID <%d>", proceso_recibido->pid);
+
+		t_proceso *proceso = buscar_proceso(argumentos, proceso_recibido->pid);
+
+		if (proceso == NULL)
+		{
+			log_warning(argumentos->logger, "No se pudo recuperar el proceso con PID <%d> porque no existe en Memoria.", proceso_recibido->pid);
+			free(proceso_recibido->interfaz);
+			free(proceso_recibido->nombre_archivo);
+			free(proceso_recibido);
+			break;
+		}
+
+		log_debug(argumentos->logger, "Proceso encontrado con PID <%d> y PC <%d>", proceso->pid, proceso->pc);
+		log_debug(argumentos->logger, "Cantidad de instrucciones: %d", list_size(proceso->instrucciones));
+
+		// Llegado a este punto, el proceso existe y tiene instrucciones
+
+		// Escribo el dato obtenido de FS en el espacio usuario
+
+		espacio_usuario_escribir_char(argumentos, proceso, proceso_recibido->direccion_fisica, proceso_recibido->dato);
+
+		log_debug(argumentos->logger, "Se escribio en espacio de usuario el dato <%s> en la dirección fisica <%d>, perteneciente al proceso PID <%d>", proceso_recibido->dato, proceso_recibido->direccion_fisica, proceso_recibido->pid);
+
+		// Le aviso a Kernel que se escribio el dato
+		t_memoria_kernel_fs_read *respuesta = malloc(sizeof(t_memoria_kernel_fs_read));
+		t_paquete *respuesta_paquete = crear_paquete(MEMORIA_KERNEL_IO_FS_READ);
+
+		respuesta->pid = proceso_recibido->pid;
+		respuesta->resultado = 1;
+		respuesta->motivo = "Se escribio el dato correctamente";
+		respuesta->size_motivo = strlen(respuesta->motivo) + 1;
+
+		serializar_t_memoria_kernel_fs_read(&respuesta_paquete, respuesta);
+		enviar_paquete(respuesta_paquete, argumentos->memoria.sockets.socket_kernel);
+
+		free(proceso_recibido->interfaz);
+		free(proceso_recibido->nombre_archivo);
+		free(proceso_recibido);
+		free(respuesta);
+
+		eliminar_paquete(respuesta_paquete);
+
+		break;
+	}
 	case FINALIZAR_SISTEMA:
 	{
 		pthread_cancel(argumentos->memoria.threads.thread_atender_cpu);

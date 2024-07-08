@@ -105,6 +105,13 @@ void kernel_finalizar(hilos_args *args)
     // Destruyo todo lo de entrada/salida
     list_destroy(args->kernel->sockets.list_entrada_salida);
     dictionary_destroy(args->kernel->sockets.dictionary_entrada_salida);
+    // Libero los recursos y diagrama de estados
+    dictionary_destroy(args->recursos);
+    list_destroy(args->estados->new);
+    list_destroy(args->estados->ready);
+    list_destroy(args->estados->exec);
+    list_destroy(args->estados->block);
+    list_destroy(args->estados->exit);
 
     // Bajo el servidor interno de atencion de I/O para no aceptar mas conexiones
     liberar_conexion(&args->kernel->sockets.server);
@@ -275,6 +282,7 @@ void kernel_wait(hilos_args *args, uint32_t pid, char *recursoSolicitado)
         proceso_en_exec->quantum = interrumpir_temporizador(args);
         kernel_log_generic(args, LOG_LEVEL_INFO, "Se bloquea el proceso <%d> por falta de instancias del recurso <%s>", pid, recursoSolicitado);
         list_add(recurso_encontrado->procesos_bloqueados, proceso_en_exec);
+        kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", pid, recursoSolicitado);
         kernel_transicion_exec_block(args);
         return;
     }
@@ -287,6 +295,8 @@ void kernel_wait(hilos_args *args, uint32_t pid, char *recursoSolicitado)
         proceso_en_exec->quantum = interrumpir_temporizador(args);
         kernel_log_generic(args, LOG_LEVEL_INFO, "Se bloquea el proceso <%d> por falta de instancias del recurso <%s>", pid, recursoSolicitado);
         list_add(recurso_encontrado->procesos_bloqueados, proceso_en_exec);
+        kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", pid, recursoSolicitado);
+
         kernel_transicion_exec_block(args);
         return;
     }

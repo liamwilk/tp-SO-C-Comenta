@@ -33,6 +33,7 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *
             // Buscar proceso
             pcb->memoria_aceptado = true;
             kernel_log_generic(args, LOG_LEVEL_DEBUG, "Proceso PID:<%d> aceptado en memoria", pcb->pid);
+            kernel_log_generic(args, LOG_LEVEL_INFO, "Se crea el proceso <%d> en NEW", pcb->pid);
             avisar_planificador(args);
         }
         else
@@ -43,6 +44,18 @@ void switch_case_memoria(t_log *logger, t_op_code codigo_operacion, hilos_args *
             kernel_log_generic(args, LOG_LEVEL_WARNING, "Proceso PID:<%d> eliminado de kernel", proceso->pid);
         };
         free(proceso);
+        break;
+    }
+    case MEMORIA_KERNEL_IO_FS_READ:
+    {
+        t_memoria_kernel_fs_read *recibido = deserializar_t_memoria_kernel_fs_read(buffer);
+
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Recibí la respuesta de Memoria acerca de la solicitud de IO_FS_READ");
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "PID: %d", recibido->pid);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Mensaje: %s", recibido->motivo);
+
+        free(recibido->motivo);
+        free(recibido);
         break;
     }
     default:

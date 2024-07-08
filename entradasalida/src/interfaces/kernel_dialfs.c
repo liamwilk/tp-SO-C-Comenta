@@ -19,6 +19,7 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
     case KERNEL_ENTRADA_SALIDA_IO_FS_CREATE:
     {
         t_entrada_salida_fs_create *create = deserializar_t_entrada_salida_fs_create(buffer);
+        log_info(args->logger, "PID: <%d> - Operacion: <IO_FS_CREATE>", create->pid);
         log_info(args->logger, "PID: <%d> - Crear Archivo: <%s>", create->pid, create->nombre_archivo);
 
         t_entrada_salida_fs_create *proceso = malloc(sizeof(t_entrada_salida_fs_create));
@@ -55,7 +56,8 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
             free(create);
             break;
         }
-        // Verificamos que el archivo no exista
+
+        // Verificamos que el archivo  exista
         t_fcb *archivo = dictionary_get(args->dial_fs.archivos, create->nombre_archivo);
 
         if (archivo != NULL)
@@ -120,6 +122,7 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
     case KERNEL_ENTRADA_SALIDA_IO_FS_TRUNCATE:
     {
         t_kernel_entrada_salida_fs_truncate *truncate = deserializar_t_kernel_entrada_salida_fs_truncate(buffer);
+        log_info(args->logger, "PID: <%d> - Operacion: <IO_FS_TRUNCATE>", truncate->pid);
 
         t_kernel_entrada_salida_fs_truncate *proceso = malloc(sizeof(t_kernel_entrada_salida_fs_truncate));
 
@@ -148,11 +151,45 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
             free(truncate);
             break;
         }
+
+        // Obtengo cuantos bytes tiene de tamanio el archivo
+        int size_original = archivo->total_size;
+        int tamanio_post_truncate = size_original + truncate->tamanio_a_truncar;
+
+        if (size_original == 0 && (tamanio_post_truncate < args->dial_fs.blockSize))
+        {
+            archivo->total_size = tamanio_post_truncate;
+            config_set_value(archivo->metadata, "TAMANIO_ARCHIVO", string_itoa(archivo->total_size));
+            config_save(archivo->metadata);
+            proceso->pid = truncate->pid;
+            proceso->resultado = 1;
+            proceso->nombre_archivo = strdup(truncate->nombre_archivo);
+            proceso->tamanio_a_truncar = truncate->tamanio_a_truncar;
+            proceso->size_nombre_archivo = strlen(truncate->nombre_archivo) + 1;
+            proceso->interfaz = strdup(truncate->interfaz);
+            proceso->size_interfaz = strlen(truncate->interfaz) + 1;
+            t_paquete *paquete = crear_paquete(ENTRADA_SALIDA_KERNEL_IO_FS_TRUNCATE);
+            serializar_t_kernel_entrada_salida_fs_truncate(&paquete, proceso);
+            enviar_paquete(paquete, args->sockets.socket_kernel_dialfs);
+            eliminar_paquete(paquete);
+            free(proceso->nombre_archivo);
+            free(proceso->interfaz);
+            free(proceso);
+            free(truncate->nombre_archivo);
+            free(truncate->interfaz);
+            free(truncate);
+            break;
+        }
+        if (size_original == 0)
+        {
+            truncate->tamanio_a_truncar = truncate->tamanio_a_truncar - args->dial_fs.blockSize;
+        }
         int cantidad_bloques = (int)(truncate->tamanio_a_truncar / args->dial_fs.blockSize);
         log_debug(args->logger, "Cantidad de bloques a truncar: %d", cantidad_bloques);
+
         // Contar cantidad de bloques ocupados con bitarray
         int bloques_ocupados = 0;
-        for (int i = 0; i < args->dial_fs.bitarray->size; i++)
+        for (int i = 0; i < args->dial_fs.blockCount; i++)
         {
             if (bitarray_test_bit(args->dial_fs.bitarray, i) == 1)
             {
@@ -186,28 +223,69 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
             free(truncate);
             break;
         }
-        //  Verificamos que no solape con otro archivo al truncar
         int fin_bloque = archivo->inicio + cantidad_bloques;
 
         // Recorremos el diccionario para verificar que no solape con otro archivo
-        bool solapa = false;
-        t_list *keys = dictionary_keys(args->dial_fs.archivos);
+        bool compactar = false;
+        t_list *keys = fs_obtener_archivos_ordenados(args);
         for (int i = 0; i < list_size(keys); i++)
         {
             char *key = list_get(keys, i);
-            t_fcb *comparator = dictionary_get(args->dial_fs.archivos, key);
-            if (strcmp(key, truncate->nombre_archivo) != 0 && fin_bloque > comparator->inicio)
+            if (strcmp(key, truncate->nombre_archivo) == 0)
             {
-                solapa = true;
+                // Verificamos si hay que compactar
+                if (i == list_size(keys) - 1)
+                {
+                    break;
+                }
+                char *key_siguiente = list_get(keys, i + 1);
+                t_fcb *comparator = dictionary_get(args->dial_fs.archivos, key_siguiente);
+                if (fin_bloque >= comparator->inicio)
+                {
+                    compactar = true;
+                    break;
+                }
                 break;
             }
         }
-        if (solapa)
+        if (compactar)
         {
             log_info(args->logger, "DialFS - Inicio Compactación: “PID: <%d> - Inicio Compactación.", truncate->pid);
-            // TODO: Hay que compactar
-        }
 
+            // QUIERO AGREGAR 3 BLOQUES AL ARCHIVO 1
+            // ARCHIVO 1      ARCHIVO 2  LIBRE   ARCHIVO 3  LIBRES
+            // 0,1,2,3,4      5,6,7,8,9   10   11,12,13,14 15,16,17
+
+            // Tras compactar
+            // ARCHIVO 1       LIBRE    ARCHIVO 2   LIBRE    ARCHIVO 3
+            // 0,1,2,3,4      5,6,7    8,9,10,11,12  13  14,15,16,17
+
+            for (int i = 0; i < list_size(keys); i++)
+            {
+
+                // Nos desplazamos de derecha a izquierda
+                int bloque_libre = fs_buscar_primera_ocurrencia_libre(args, archivo->fin_bloque, cantidad_bloques);
+                if (bloque_libre == -1)
+                {
+                    // Se terminaron los bloques libres
+                    break;
+                }
+                int bloque_fin_mas_proximo = bloque_libre - 1;
+
+                char *archivo_mas_proximo = fs_buscar_por_bloque_fin(args, bloque_fin_mas_proximo);
+                // No se compacta el archivo que se quiere truncar
+                if (strcmp(archivo_mas_proximo, truncate->nombre_archivo) == 0)
+                {
+                    break;
+                }
+                fs_desplazar_archivo_hacia_derecha(args, archivo_mas_proximo, cantidad_bloques);
+            }
+
+            int tiempo_dormir = args->dial_fs.retrasoCompactacion / 1000; // Es en milisegundos
+            sleep(tiempo_dormir);
+            log_info(args->logger, "DialFS - Fin Compactación: “PID: <%d> - Fin Compactación.", truncate->pid);
+        }
+        log_warning(args->logger, "El archivo %s dispone de %d bloques contiguos, se procede a truncar para el PID %d", truncate->nombre_archivo, cantidad_bloques, truncate->pid);
         // Se procede a truncarlo
         // Recorremos el bitmap desde fin_bloque anterior
         for (int i = archivo->fin_bloque + 1; i <= archivo->fin_bloque + cantidad_bloques; i++)
@@ -215,11 +293,14 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
             log_debug(args->logger, "Se setea el bit %d en 1", i);
             bitarray_set_bit(args->dial_fs.bitarray, i);
         }
+
         // Actualizamos total_size y fin_bloque del archivo
-        archivo->total_size = archivo->total_size + truncate->tamanio_a_truncar;
+        archivo->total_size = tamanio_post_truncate;
+
         log_debug(args->logger, "Tamaño total del archivo: %d", archivo->total_size);
         archivo->fin_bloque = fin_bloque;
         log_debug(args->logger, "Fin bloque del archivo: %d", archivo->fin_bloque);
+
         // Actualizar el config y guardar en archivo
         config_set_value(archivo->metadata, "TAMANIO_ARCHIVO", string_itoa(archivo->total_size));
         config_save(archivo->metadata);
@@ -254,6 +335,7 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
     {
         // Uso las funciones de serializacion de create para no repetir la misma logica
         t_entrada_salida_fs_create *delete = deserializar_t_entrada_salida_fs_create(buffer);
+        log_info(args->logger, "PID: <%d> - Operacion: <IO_FS_DELETE>", delete->pid);
         log_info(args->logger, "PID: <%d> - Eliminar Archivo: <%s>", delete->pid, delete->nombre_archivo);
 
         t_fcb *archivo = dictionary_get(args->dial_fs.archivos, delete->nombre_archivo);
@@ -305,6 +387,7 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
     case KERNEL_ENTRADA_SALIDA_IO_FS_WRITE:
     {
         t_kernel_entrada_salida_fs_write *write = deserializar_t_kernel_entrada_salida_fs_write(buffer);
+        log_info(args->logger, "PID: <%d> - Operacion: <IO_FS_WRITE>", write->pid);
 
         log_info(args->logger, "PID: <%d> - Escribir Archivo: <%s> - Tamaño a Escribir: <%ld> - Puntero Archivo: <%d>", write->pid, write->nombre_archivo, strlen(write->escribir) + 1, write->puntero_archivo);
         log_debug(args->logger, "Contenido a escribir: %s", write->escribir);
@@ -322,6 +405,9 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
             break;
         }
 
+        // Se crea un puntero absoluto, Si por ejemplo me dicen escribir en el byte 100 del archivo, el puntero absoluto seria 100 + (inicio_bloque * blocksize)
+        uint32_t puntero_absoluto = write->puntero_archivo + (archivo->inicio * args->dial_fs.blockSize);
+
         // Comprobamos que al escribir no se pase del tamaño del archivo
         if (write->puntero_archivo + cantidad_bloques > archivo->fin_bloque)
         {
@@ -329,41 +415,65 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
             write->resultado = 2; // 2 es para archivo  fuera del maximum size del archivo
             break;
         }
-
-        // Comprobamos que el puntero archivo este entre el inicio y el fin del archivo
-        if (write->puntero_archivo < archivo->inicio || write->puntero_archivo > archivo->fin_bloque)
-        {
-            log_error(args->logger, "Se intenta escribir fuera del archivo");
-            write->resultado = 3; // 3 es para archivo que no tiene espacio suficiente
-            break;
-        }
-
+        log_debug(args->logger, "Puntero absoluto en bloques.dat: %d", puntero_absoluto);
         // Escribimos en el archivo, para ello usamos la variable mapeada en memoria el valor de write->escribir
-        memcpy(args->dial_fs.archivo_bloques + write->puntero_archivo, write->escribir, strlen(write->escribir) + 1);
+        memcpy((char *)args->dial_fs.archivo_bloques + puntero_absoluto, write->escribir, strlen(write->escribir) + 1);
+
         write->resultado = 0; // 0 es para archivo que se escribio correctamente
         t_paquete *paquete = crear_paquete(ENTRADA_SALIDA_KERNEL_IO_FS_WRITE);
         serializar_t_kernel_entrada_salida_fs_write(&paquete, write);
         enviar_paquete(paquete, args->sockets.socket_kernel_dialfs);
         eliminar_paquete(paquete);
-
-        // TODO: Esto no se debe hacer en un entorno productivo, es solo para verificar que se escribio correctamente
-        //  Chequeamos que se haya escrito bien, para eso vuelvo a obtener el valor de la memoria mapeada y lo comparo con write->escribir
-        char *contenido = malloc(strlen(write->escribir) + 1);
-        memcpy(contenido, args->dial_fs.archivo_bloques + write->puntero_archivo, strlen(write->escribir) + 1);
-        log_debug(args->logger, "Contenido escrito: %s", contenido);
-        if (strcmp(contenido, write->escribir) != 0)
-        {
-            log_error(args->logger, "Error al escribir en el archivo");
-            break;
-        }
-        else
-        {
-            log_debug(args->logger, "Se escribio correctamente en el archivo");
-        }
-        free(contenido);
         free(write->nombre_archivo);
         free(write->escribir);
         free(write);
+        break;
+    }
+    case KERNEL_ENTRADA_SALIDA_IO_FS_READ:
+    {
+        t_kernel_entrada_salida_fs_read *read = deserializar_t_kernel_entrada_salida_fs_read(buffer);
+        log_info(args->logger, "PID: <%d> - Operacion: <IO_FS_READ>", read->pid);
+        log_info(args->logger, "PID: <%d> - Leer Archivo: <%s> - Tamaño a Leer: <%d> - Puntero Archivo: <%d>", read->pid, read->nombre_archivo, read->registro_tamanio, read->puntero_archivo);
+        t_fcb *archivo = dictionary_get(args->dial_fs.archivos, read->nombre_archivo);
+        if (archivo == NULL)
+        {
+            log_error(args->logger, "El archivo no existe");
+            break;
+        }
+
+        uint32_t puntero_absoluto = read->puntero_archivo + (archivo->inicio * args->dial_fs.blockSize);
+        char *contenido = malloc(read->registro_tamanio + 1);
+        memcpy(contenido, (char *)args->dial_fs.archivo_bloques + puntero_absoluto, read->registro_tamanio + 1);
+        log_debug(args->logger, "Contenido que se leyo: %s", contenido);
+        // Enviamos a kernel
+        t_entrada_salida_fs_read_kernel *proceso = malloc(sizeof(t_entrada_salida_fs_read_kernel));
+        proceso->pid = read->pid;
+        proceso->resultado = 0;
+        proceso->nombre_archivo = strdup(read->nombre_archivo);
+        proceso->registro_tamanio = read->registro_tamanio;
+        proceso->puntero_archivo = read->puntero_archivo;
+        proceso->dato = contenido;
+        proceso->size_dato = strlen(contenido) + 1;
+        proceso->size_nombre_archivo = strlen(read->nombre_archivo) + 1;
+        proceso->direccion_fisica = read->direccion_fisica;
+        proceso->marco = read->marco;
+        proceso->desplazamiento = read->desplazamiento;
+        proceso->numero_pagina = read->numero_pagina;
+        proceso->interfaz = strdup(read->interfaz);
+        proceso->size_interfaz = strlen(read->interfaz) + 1;
+        proceso->registro_direccion = read->registro_direccion;
+        // Crear el paquete
+        t_paquete *paquete = crear_paquete(ENTRADA_SALIDA_KERNEL_IO_FS_READ);
+        serializar_t_entrada_salida_fs_read_kernel(&paquete, proceso);
+        enviar_paquete(paquete, args->sockets.socket_kernel_dialfs);
+        eliminar_paquete(paquete);
+
+        free(proceso->nombre_archivo);
+        free(proceso->interfaz);
+        free(proceso);
+        free(contenido);
+        free(read->nombre_archivo);
+        free(read);
         break;
     }
     default:

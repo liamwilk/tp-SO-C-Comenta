@@ -47,7 +47,7 @@ int espacio_usuario_escribir_dato(t_args *args, t_proceso *proceso, uint32_t dir
     {
         if (destino[i] != '\n')
         {
-            log_warning(args->logger, "Sobrescribiendo datos en la dirección física %ld.", direccion_fisica + i);
+            log_warning(args->logger, "Sobreescribiendo datos en la dirección física %ld.", direccion_fisica + i);
         }
     }
 

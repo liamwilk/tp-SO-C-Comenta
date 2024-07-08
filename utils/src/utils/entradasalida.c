@@ -557,3 +557,115 @@ void fs_archivo_crear(t_io *args, char *nombre, int indice_bloque_libre)
     dictionary_put(args->dial_fs.archivos, nombre, nuevo_fcb);
     log_debug(args->logger, "Archivo: %s, Tamaño: %d, Bloque inicial: %d Bloque final: %d", nombre, nuevo_fcb->total_size, nuevo_fcb->inicio, nuevo_fcb->fin_bloque);
 }
+
+int fs_buscar_primera_ocurrencia_libre(t_io *args, int bloque_referencia, int cantidad_bloques)
+{
+    int contador = 0;
+    for (int i = bloque_referencia; i < args->dial_fs.blockCount; i++)
+    {
+        if (bitarray_test_bit(args->dial_fs.bitarray, i) == 0)
+        {
+            contador++;
+            if (contador == cantidad_bloques)
+            {
+                return i - cantidad_bloques + 1;
+            }
+        }
+        else
+        {
+            contador = 0;
+        }
+    }
+    return -1;
+}
+
+char *fs_buscar_por_bloque_fin(t_io *args, int bloque_fin)
+{
+    t_list *keys = dictionary_keys(args->dial_fs.archivos);
+    for (int i = 0; i < list_size(keys); i++)
+    {
+        char *key = list_get(keys, i);
+        t_fcb *fcb = dictionary_get(args->dial_fs.archivos, key);
+        if (fcb->fin_bloque == bloque_fin)
+        {
+            return key;
+        }
+    }
+    return NULL;
+}
+
+void fs_desplazar_archivo_hacia_derecha(t_io *args, char *archivo, int cantidad_bloques)
+{
+    t_fcb *archivo_a_desplazar = dictionary_get(args->dial_fs.archivos, archivo);
+    log_debug(args->logger, "El archivo %s se desplaza %d bloques  a la derecha", archivo, cantidad_bloques);
+
+    char *contenido_archivo = malloc(archivo_a_desplazar->total_size);
+
+    // Calculamos el puntero absoluto
+    uint32_t puntero_absoluto = archivo_a_desplazar->inicio * args->dial_fs.blockSize;
+    memcpy(contenido_archivo, (char *)args->dial_fs.archivo_bloques + puntero_absoluto, archivo_a_desplazar->total_size);
+    if (archivo_a_desplazar->inicio == archivo_a_desplazar->fin_bloque)
+    {
+        log_debug(args->logger, "Se setea el bit %d en 0", archivo_a_desplazar->inicio);
+        bitarray_clean_bit(args->dial_fs.bitarray, archivo_a_desplazar->inicio);
+        log_debug(args->logger, "Se setea el bit %d en 1", archivo_a_desplazar->inicio + cantidad_bloques);
+        bitarray_set_bit(args->dial_fs.bitarray, archivo_a_desplazar->inicio + cantidad_bloques);
+    }
+    else
+    {
+        // Ponemos los primeros n bloques en 0
+        for (int i = archivo_a_desplazar->inicio; i < archivo_a_desplazar->inicio + cantidad_bloques; i++)
+        {
+            log_debug(args->logger, "Se setea el bit %d en 0", i);
+            bitarray_clean_bit(args->dial_fs.bitarray, i);
+        }
+        // Desplazamos en el bitmap los bloques ocupados hacia la derecha
+        for (int i = archivo_a_desplazar->inicio + cantidad_bloques; i <= archivo_a_desplazar->fin_bloque + cantidad_bloques; i++)
+        {
+            log_debug(args->logger, "Se setea el bit %d en 1", i);
+            bitarray_set_bit(args->dial_fs.bitarray, i);
+        }
+    }
+    // Le sumamos n al bloque_inicio del comparator
+    archivo_a_desplazar->inicio = archivo_a_desplazar->inicio + cantidad_bloques;
+    // Recalculamos el fin_bloque
+    archivo_a_desplazar->fin_bloque = archivo_a_desplazar->inicio + (archivo_a_desplazar->total_size / args->dial_fs.blockSize);
+    // Actualizamos ese metadata
+    config_set_value(archivo_a_desplazar->metadata, "BLOQUE_INICIAL", string_itoa(archivo_a_desplazar->inicio));
+    config_save(archivo_a_desplazar->metadata);
+    free(contenido_archivo);
+}
+
+t_list *fs_obtener_archivos_ordenados(t_io *args)
+{
+    t_list *elements = dictionary_elements(args->dial_fs.archivos);
+    // Ordenamos los archivos por bloque inicial con list sort de menor a mayor
+    t_list *sorted_elements = list_sorted(elements, (void *)fs_comparar_archivos_por_bloque_inicial);
+    t_list *sorted_keys = list_create();
+    t_list *keys = dictionary_keys(args->dial_fs.archivos);
+    for (int i = 0; i < list_size(sorted_elements); i++)
+    {
+        t_fcb *fcb = list_get(sorted_elements, i);
+        for (int j = 0; j < list_size(keys); j++)
+        {
+            char *key = list_get(keys, j);
+            t_fcb *fcb_key = dictionary_get(args->dial_fs.archivos, key);
+            if (fcb_key->inicio == fcb->inicio)
+            {
+                list_add(sorted_keys, key);
+                break;
+            }
+        }
+    }
+    list_destroy(elements);
+    list_destroy(sorted_elements);
+    return sorted_keys;
+}
+
+bool fs_comparar_archivos_por_bloque_inicial(void *archivo1, void *archivo2)
+{
+    t_fcb *fcb1 = (t_fcb *)archivo1;
+    t_fcb *fcb2 = (t_fcb *)archivo2;
+    // Ordenar de bloque inicio menor a mayor
+    return fcb1->inicio < fcb2->inicio;
+}
