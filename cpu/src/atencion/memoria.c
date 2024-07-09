@@ -122,6 +122,7 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 			}
 
 			free(proceso_recibido);
+			free(registro_datos);
 
 			// Reanudo el ciclo de ejecucion por finalizacion de la instruccion atomica MOV_IN
 			if (args->flag_interrupt)

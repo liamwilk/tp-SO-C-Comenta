@@ -186,6 +186,8 @@ void mmu_iniciar(t_cpu *cpu, t_instruccion codigo, uint32_t direccion_logica, vo
 void liberar_recursos_cpu(t_cpu *argumentos)
 {
     log_destroy(argumentos->logger);
+    free(argumentos->tlb);
+    free(argumentos->instruccion);
     config_destroy(argumentos->config);
 }
 
@@ -203,6 +205,7 @@ void inicializar_argumentos_cpu(t_cpu *args, t_log_level nivel, int argc, char *
     cpu_imprimir_log(args);
     args->cantidad_elementos = 0;
     args->instruccion = NULL;
+    sem_init(&args->log_sem, 0, 1);
 }
 
 void *conectar_memoria(void *args_void)
@@ -272,28 +275,48 @@ void inicializar_hilos_cpu(t_cpu *args)
     pthread_join(args->threads.thread_atender_kernel_interrupt, NULL);
 }
 
+void cleanup(void *arg)
+{
+    cleanup_args_t *cleanup_args = (cleanup_args_t *)arg;
+    if (cleanup_args->paquete != NULL)
+    {
+        eliminar_paquete(cleanup_args->paquete);
+    }
+}
+
 void hilo_ejecutar_cpu(t_cpu *args, int socket, char *modulo, t_funcion_cpu_ptr switch_case_atencion)
 {
+    cleanup_args_t cleanup_args = {NULL};
+
+    // Registrar la función de limpieza
+    pthread_cleanup_push(cleanup, &cleanup_args);
+
     while (1)
     {
-        pthread_testcancel();
+        pthread_testcancel(); // Comprobar solicitud de cancelación
 
         log_debug(args->logger, "Esperando paquete de %s en socket %d", modulo, socket);
 
-        t_paquete *paquete = recibir_paquete(args->logger, &socket);
+        cleanup_args.paquete = recibir_paquete(args->logger, &socket);
 
-        if (paquete == NULL)
+        if (cleanup_args.paquete == NULL)
         {
-            log_warning(args->logger, "%s se desconecto del socket %d.", modulo, socket);
+            // log_warning(args->logger, "%s se desconecto del socket %d.", modulo, socket);
             break;
         }
 
-        revisar_paquete(paquete, args->logger, modulo);
+        revisar_paquete(cleanup_args.paquete, args->logger, modulo);
 
-        switch_case_atencion(args, paquete->codigo_operacion, paquete->buffer);
+        switch_case_atencion(args, cleanup_args.paquete->codigo_operacion, cleanup_args.paquete->buffer);
 
-        eliminar_paquete(paquete);
+        eliminar_paquete(cleanup_args.paquete);
+
+        // Reseteo para la próxima iteración
+        cleanup_args.paquete = NULL;
     }
+
+    // Se la función de limpieza si se cancela o se sale del bucle
+    pthread_cleanup_pop(1);
 }
 
 void cpu_leer_config(t_cpu *args)
@@ -347,6 +370,7 @@ void proceso_recibir(t_cpu *args, t_buffer *buffer)
     args->flag_interrupt = 0;
     args->proceso.ejecutado = 0;
     args->resultado = 0;
+    free(proceso_cpu);
     imprimir_registros(args);
 }
 
@@ -417,33 +441,6 @@ uint8_t *determinar_tipo_registro_uint8_t(char *instruccion, t_cpu_proceso *proc
 
 t_instruccion determinar_codigo_instruccion(char *instruccion)
 {
-    // Remover \n
-    remover_salto_linea(instruccion);
-
-    /* Todas las posibles instrucciones:
-    {
-        SET,
-        SUM,
-        SUB,
-        JNZ,
-        IO_GEN_SLEEP,
-        MOV_IN,
-        MOV_OUT,
-        RESIZE,
-        COPY_STRING,
-        IO_STDIN_READ,
-        IO_STDOUT_WRITE,
-        IO_FS_CREATE,
-        IO_FS_DELETE,
-        IO_FS_TRUNCATE,
-        IO_FS_WRITE,
-        IO_FS_READ,
-        WAIT,
-        SIGNAL,
-        EXIT
-
-    */
-
     if (strcmp(instruccion, "SET") == 0)
     {
         return SET;
@@ -616,15 +613,16 @@ void recibir_interrupcion(t_cpu *args, t_buffer *buffer)
     if (interrupcion->pid == args->proceso.pid)
     {
         log_debug(args->logger, "[INTERRUPCION/%s] PID: <%d>", interrupcion->motivo, interrupcion->pid);
-        free(interrupcion);
         args->flag_interrupt = 1;
     }
     else
     {
         log_error(args->logger, "El PID recibido (%d) no se corresponde con el que se esta ejecutando (%d)", interrupcion->pid, args->proceso.pid);
-        free(interrupcion);
         args->flag_interrupt = 1;
     }
+
+    free(interrupcion->motivo);
+    free(interrupcion);
 }
 
 void instruccion_interrupt(t_cpu *args)
