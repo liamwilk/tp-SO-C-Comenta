@@ -29,6 +29,7 @@ void *hilos_atender_consola(void *args)
         reiniciar_prompt(hiloArgs);
         char *prompt = generar_prompt();
         linea = readline(prompt);
+        free(prompt);
         if (linea && *linea)
         {
             add_history(linea);
@@ -106,11 +107,9 @@ void *hilos_atender_consola(void *args)
         }
         free(separar_linea);
         free(linea);
-        free(prompt);
     }
 
     write_history(comandos_archivo_historial);
-
     pthread_exit(0);
 }
 
