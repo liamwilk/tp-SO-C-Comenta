@@ -44,6 +44,8 @@ void *hilo_mmu(void *args_void)
 
             enviar_paquete(paquete, args->config_leida.socket_memoria);
 
+            free(numero_frame);
+
             eliminar_paquete(paquete);
 
             // Espero a que memoria me devuelva el numero de frame
@@ -175,6 +177,8 @@ void *hilo_mmu(void *args_void)
                     eliminar_paquete(paquete);
 
                     log_debug(args->logger, "Se envio la solicitud de la instruccion IO_STDIN_READ del proceso PID <%d> a Kernel", proceso_recibido->pid);
+                    
+                    free(proceso_completo->interfaz);
                     free(proceso_completo);
                     free(proceso_recibido);
                     break;
