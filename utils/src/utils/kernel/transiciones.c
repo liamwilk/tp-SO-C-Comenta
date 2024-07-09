@@ -151,7 +151,6 @@ t_pcb *kernel_transicion_new_ready(hilos_args *kernel_hilo_args)
     }
     if (proceso->memoria_aceptado == false)
     {
-        kernel_log_generic(kernel_hilo_args, LOG_LEVEL_WARNING, "No se puede mover el proceso PID: <%d> a ready, ya que no fue aceptado por memoria", proceso->pid);
         pthread_mutex_unlock(&kernel_hilo_args->estados->mutex_new_ready);
         return NULL;
     }

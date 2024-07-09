@@ -302,8 +302,8 @@ void hilos_io_inicializar(hilos_args *args, pthread_t thread_esperar_entrada_sal
 void *hilos_esperar_entrada_salida(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-
-    while (!hiloArgs->kernel_orden_apagado)
+    // TODO: Ver esto, si lo dejamos en 1 el hilo no se apaga nunca
+    while (1)
     {
         int socket_cliente = conexion_socket_recibir(hiloArgs->kernel->sockets.server);
 
