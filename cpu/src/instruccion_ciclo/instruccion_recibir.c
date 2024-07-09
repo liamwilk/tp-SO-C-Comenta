@@ -11,7 +11,6 @@ int instruccion_recibir(t_cpu *args, t_buffer *buffer)
         }
         free(args->instruccion);
     }
-    
 
     args->cantidad_elementos = 0;
 
