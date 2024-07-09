@@ -33,10 +33,12 @@ char *recurso_buscar_pid(t_dictionary *diccionario_recursos, uint32_t pid)
             t_pcb *pcb = list_get(recurso->procesos_bloqueados, j);
             if (pcb->pid == pid)
             {
+                list_destroy(keys);
                 return key;
             }
         }
     }
+    list_destroy(keys);
     return NULL;
 }
 

@@ -270,14 +270,14 @@ void kernel_wait(hilos_args *args, uint32_t pid, char *recursoSolicitado)
         // Nunca tomo este recurso, se lo agregamos
         int *nuevo_valor = malloc(sizeof(int));
         *nuevo_valor = 1;
-        kernel_log_generic(args, LOG_LEVEL_WARNING, "Cantidad de instancias del recurso <%s> tomadas por el proceso <%d>: <%d>", recursoSolicitado, pid, *nuevo_valor);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Cantidad de instancias del recurso <%s> tomadas por el proceso <%d>: <%d>", recursoSolicitado, pid, *nuevo_valor);
         dictionary_put(proceso_en_exec->recursos_tomados, recursoSolicitado, nuevo_valor);
     }
     else
     {
         // Le sumamos a lo que ya tenia antes y se lo actualizamos
         *instancias += 1;
-        kernel_log_generic(args, LOG_LEVEL_WARNING, "Cantidad de instancias del recurso <%s> tomadas por el proceso <%d>: <%d>", recursoSolicitado, pid, *instancias);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Cantidad de instancias del recurso <%s> tomadas por el proceso <%d>: <%d>", recursoSolicitado, pid, *instancias);
         dictionary_put(proceso_en_exec->recursos_tomados, recursoSolicitado, instancias);
     }
 
@@ -363,7 +363,7 @@ void kernel_signal(hilos_args *args, uint32_t pid, char *recurso, t_recurso_moti
             {
                 char *key = list_get(keys, i);
                 int *instancias = dictionary_get(recursos_tomados, key);
-                kernel_log_generic(args, LOG_LEVEL_WARNING, "Cantidad de instancias del recurso <%s> tomadas por el proceso <%d>: <%d>", key, pcb->pid, *instancias);
+                kernel_log_generic(args, LOG_LEVEL_DEBUG, "Cantidad de instancias del recurso <%s> tomadas por el proceso <%d>: <%d>", key, pcb->pid, *instancias);
                 t_recurso *recurso_por_pid = recurso_buscar(args->recursos, key);
                 recurso_por_pid->instancias += *instancias;
                 kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se libero una instancia del recurso <%s> - Instancias restantes <%d> - Tomado por PID: <%d>", key, recurso_por_pid->instancias, pcb->pid);
@@ -429,7 +429,7 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
         }
         if (strcmp(estado, "BLOCK") == 0)
         {
-            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "El proceso <%d> se encuentra bloqueado, se procede a desbloquearlo", pid);
+            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "El proceso <%d> se encuentra bloqueado, se procede a desbloquearlo", pid);
             kernel_transicion_block_exit(kernel_hilos_args, pid);
 
             //  Verificamos que el proceso este blockeado por recurso y no por I/O
