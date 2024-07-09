@@ -1,12 +1,11 @@
 #include <utils/memoria.h>
 
-// Función para escribir datos con verificación del bitmap y la dirección específica
 int espacio_usuario_escribir_dato(t_args *args, t_proceso *proceso, uint32_t direccion_fisica, void *dato, size_t tamano)
 {
-    // Verifico que la escritura no supere los limites de la memoria
+    // Verifico que la escritura no supere los límites de la memoria
     if (direccion_fisica + tamano > args->memoria.tamMemoria)
     {
-        log_error(args->logger, "Se intento escribir en la direccion fisica %d, pero el limite del espacio de usuario es %d.", direccion_fisica, args->memoria.tamMemoria);
+        log_error(args->logger, "Se intentó escribir en la dirección física %d, pero el límite del espacio de usuario es %d. Escritura abortada.", direccion_fisica, args->memoria.tamMemoria);
         return -1;
     }
 
@@ -33,21 +32,21 @@ int espacio_usuario_escribir_dato(t_args *args, t_proceso *proceso, uint32_t dir
             }
         }
 
+        // Si el frame no pertenece al proceso, se aborta la escritura
         if (!frame_pertenece) {
             log_error(args->logger, "El frame <%d> no pertenece al proceso PID <%d>. Escritura abortada.", frame, proceso->pid);
             return -1; 
         }
     }
 
-    // Verificar si ya hay datos en la dirección física
+    // Verifico si ya hay datos en la dirección física
     uint8_t *destino = (uint8_t *)args->memoria.espacio_usuario + direccion_fisica;
 
-    // Alarma por si se sobreescriben datos
     for (size_t i = 0; i < tamano; i++)
     {
         if (destino[i] != '\n')
         {
-            log_warning(args->logger, "Sobreescribiendo datos en la dirección física %ld.", direccion_fisica + i);
+            log_warning(args->logger, "Se estan sobre-escribiendo datos en la dirección física %ld.", direccion_fisica + i);
         }
     }
 
@@ -57,25 +56,8 @@ int espacio_usuario_escribir_dato(t_args *args, t_proceso *proceso, uint32_t dir
         args->memoria.bitmap_array[frame] = 1;
 
         // Calculo los bytes a actualizar en este frame
-        uint32_t offset_inicio, offset_fin;
-
-        if (frame == frame_inicio)
-        {
-            offset_inicio = direccion_fisica % args->memoria.tamPagina;
-        }
-        else
-        {
-            offset_inicio = 0;
-        }
-
-        if (frame == frame_fin)
-        {
-            offset_fin = (direccion_fisica + tamano - 1) % args->memoria.tamPagina;
-        }
-        else
-        {
-            offset_fin = args->memoria.tamPagina - 1;
-        }
+        uint32_t offset_inicio = (frame == frame_inicio) ? (direccion_fisica % args->memoria.tamPagina) : 0;
+        uint32_t offset_fin = (frame == frame_fin) ? ((direccion_fisica + tamano - 1) % args->memoria.tamPagina) : (args->memoria.tamPagina - 1);
 
         args->memoria.bytes_usados[frame] += (offset_fin - offset_inicio + 1);
     }
@@ -86,39 +68,24 @@ int espacio_usuario_escribir_dato(t_args *args, t_proceso *proceso, uint32_t dir
     // Actualizo los bytes usados en el proceso
     proceso->bytes_usados += tamano;
 
-    // Notifico que se escribio el dato
-    log_debug(args->logger, "Se escribio el dato de %ld bytes partiendo de la dirección física %d (%d -> %ld) [Frame %d -> %d]", tamano, direccion_fisica, direccion_fisica, direccion_fisica + tamano - 1, frame_inicio, frame_fin);
+    // Notifico que se escribió el dato
+    log_debug(args->logger, "Se escribió el dato de %ld bytes partiendo de la dirección física %d (%d -> %ld) [Frame %d -> %d]", tamano, direccion_fisica, direccion_fisica, direccion_fisica + tamano - 1, frame_inicio, frame_fin);
 
-    log_info(args->logger, "PID: %d - Accion: ESCRIBIR - Direccion fisica: <%d> - Tamaño <%ld>", proceso->pid, direccion_fisica, tamano);
+    log_info(args->logger, "PID: %d - Acción: ESCRIBIR - Dirección física: <%d> - Tamaño <%ld>", proceso->pid, direccion_fisica, tamano);
 
     return 0;
 }
 
-// Retorna el frame desde el cual se iniciaria a escribir un dato de tamaño especificado desde una dirección física
-uint32_t espacio_usuario_escribir_dato_frame_inicio(t_args *args, uint32_t direccion_fisica, size_t tamano)
-{
-    return espacio_usuario_obtener_frame(direccion_fisica, args->memoria.tamPagina);
-}
-
-// Retorna el frame desde el cual se finalizaria la escritura de un dato de tamaño especificado desde una dirección física
-uint32_t espacio_usuario_escribir_dato_frame_fin(t_args *args, uint32_t direccion_fisica, size_t tamano)
-{
-    return espacio_usuario_obtener_frame(direccion_fisica + tamano - 1, args->memoria.tamPagina);
-}
-
-// Escribir un uint32_t
 void espacio_usuario_escribir_uint32_t(t_args *args, t_proceso *proceso, uint32_t direccion_fisica, uint32_t valor)
 {
     espacio_usuario_escribir_dato(args, proceso, direccion_fisica, &valor, sizeof(uint32_t));
 }
 
-// Escribir un uint8_t
 void espacio_usuario_escribir_uint8_t(t_args *args, t_proceso *proceso, uint32_t direccion_fisica, uint8_t valor)
 {
     espacio_usuario_escribir_dato(args, proceso, direccion_fisica, &valor, sizeof(uint8_t));
 }
 
-// Escribir una cadena
 int espacio_usuario_escribir_char(t_args *args, t_proceso *proceso, uint32_t direccion_fisica, const char *cadena)
 {
     return espacio_usuario_escribir_dato(args, proceso, direccion_fisica, (void *)cadena, strlen(cadena));

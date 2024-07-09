@@ -238,29 +238,3 @@ int tabla_paginas_frames_ocupados(t_args *args, t_proceso *proceso)
 
     return frames;
 }
-
-// Retorna el marco y los bytes de la página que se encuentra en el marco pasado por parámetro, y el offset sobre el cual estan escritos los bytes
-t_frame_bytes *tabla_paginas_frame_bytes(t_args *args, t_proceso *proceso, uint32_t numero_marco)
-{
-    for (int i = 0; i < list_size(proceso->tabla_paginas); i++)
-    {
-        t_pagina *pagina = list_get(proceso->tabla_paginas, i);
-
-        if (pagina != NULL && pagina->validez == 1 && pagina->marco == numero_marco)
-        {
-            t_frame_bytes *frame_bytes = malloc(sizeof(t_frame_bytes));
-            frame_bytes->marco = pagina->marco;
-            frame_bytes->bytes = pagina->bytes;
-            frame_bytes->offset = pagina->offset;
-            return frame_bytes;
-        }
-    }
-
-    return NULL;
-}
-
-// Retorna el número de página a partir de la dirección física
-int obtener_numero_pagina(uint32_t direccion_fisica, uint32_t tam_pagina)
-{
-    return direccion_fisica / tam_pagina;
-}

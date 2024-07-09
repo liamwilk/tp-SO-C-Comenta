@@ -646,8 +646,6 @@ void kernel_proximo_io_stdin(hilos_args *args, t_kernel_entrada_salida *io)
                 char *pc = list_get(pcb->proxima_io->args, 21);
                 proceso->registros.pc = atoi(pc);
 
-                kernel_log_generic(args, LOG_LEVEL_WARNING, "Direccion fisica: <%d>     Tamanio: <%d>", proceso->direccion_fisica, proceso->registro_tamanio);
-
                 serializar_t_io_stdin_read(&paquete, proceso);
                 enviar_paquete(paquete, io->socket);
 
