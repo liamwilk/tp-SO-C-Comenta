@@ -24,6 +24,9 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
 
         t_entrada_salida_fs_create *proceso = malloc(sizeof(t_entrada_salida_fs_create));
 
+        // Unidades de trabajo emulando una IO
+        fs_consumir_unidad_trabajo(args);
+
         // Verifico que haya un bloque libre
 
         int posicion = fs_buscar_bloque_libre(args);
@@ -93,6 +96,7 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
         fs_archivo_crear(args, create->nombre_archivo, posicion);
         // Se marca el bitmap en ocupado
         bitarray_set_bit(args->dial_fs.bitarray, posicion);
+
         //  Envio la respuesta al Kernel
 
         proceso->pid = create->pid;
@@ -127,6 +131,10 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
         t_kernel_entrada_salida_fs_truncate *proceso = malloc(sizeof(t_kernel_entrada_salida_fs_truncate));
 
         log_info(args->logger, "PID : <%d> - Truncar Archivo : <%s> - Tamaño : <%d>", truncate->pid, truncate->nombre_archivo, truncate->tamanio_a_truncar);
+
+        // Unidades de trabajo emulando una IO
+        fs_consumir_unidad_trabajo(args);
+
         // Obtenemos el archivo a truncar del diccionario
         t_fcb *archivo = dictionary_get(args->dial_fs.archivos, truncate->nombre_archivo);
         if (archivo == NULL)
@@ -250,7 +258,7 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
         }
         if (compactar)
         {
-            log_info(args->logger, "DialFS - Inicio Compactación: “PID: <%d> - Inicio Compactación.", truncate->pid);
+            log_info(args->logger, "DialFS - Inicio Compactación: PID: <%d> - Inicio Compactación.", truncate->pid);
 
             // QUIERO AGREGAR 3 BLOQUES AL ARCHIVO 1
             // ARCHIVO 1      ARCHIVO 2  LIBRE   ARCHIVO 3  LIBRES
@@ -283,7 +291,7 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
 
             int tiempo_dormir = args->dial_fs.retrasoCompactacion / 1000; // Es en milisegundos
             sleep(tiempo_dormir);
-            log_info(args->logger, "DialFS - Fin Compactación: “PID: <%d> - Fin Compactación.", truncate->pid);
+            log_info(args->logger, "DialFS - Fin Compactación: PID: <%d> - Fin Compactación.", truncate->pid);
         }
         log_warning(args->logger, "El archivo %s dispone de %d bloques contiguos, se procede a truncar para el PID %d", truncate->nombre_archivo, cantidad_bloques, truncate->pid);
         // Se procede a truncarlo
@@ -337,6 +345,9 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
         t_entrada_salida_fs_create *delete = deserializar_t_entrada_salida_fs_create(buffer);
         log_info(args->logger, "PID: <%d> - Operacion: <IO_FS_DELETE>", delete->pid);
         log_info(args->logger, "PID: <%d> - Eliminar Archivo: <%s>", delete->pid, delete->nombre_archivo);
+
+        // Unidades de trabajo emulando una IO
+        fs_consumir_unidad_trabajo(args);
 
         t_fcb *archivo = dictionary_get(args->dial_fs.archivos, delete->nombre_archivo);
 
@@ -396,6 +407,9 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
         int cantidad_bloques = (int)((strlen(write->escribir) + 1) / args->dial_fs.blockSize);
         log_debug(args->logger, "Cantidad de bloques a escribir: %d", cantidad_bloques);
 
+        // Unidades de trabajo emulando una IO
+        fs_consumir_unidad_trabajo(args);
+
         // Obtenemos el archivo a escribir del diccionario
         t_fcb *archivo = dictionary_get(args->dial_fs.archivos, write->nombre_archivo);
         if (archivo == NULL)
@@ -440,8 +454,12 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
             log_error(args->logger, "El archivo no existe");
             break;
         }
+        // Unidades de trabajo emulando una IO
+        fs_consumir_unidad_trabajo(args);
 
         uint32_t puntero_absoluto = read->puntero_archivo + (archivo->inicio * args->dial_fs.blockSize);
+        log_debug(args->logger, "Puntero absoluto en bloques.dat: %d", puntero_absoluto);
+
         char *contenido = malloc(read->registro_tamanio + 1);
         memcpy(contenido, (char *)args->dial_fs.archivo_bloques + puntero_absoluto, read->registro_tamanio + 1);
         log_debug(args->logger, "Contenido que se leyo: %s", contenido);

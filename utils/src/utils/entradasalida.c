@@ -669,3 +669,10 @@ bool fs_comparar_archivos_por_bloque_inicial(void *archivo1, void *archivo2)
     // Ordenar de bloque inicio menor a mayor
     return fcb1->inicio < fcb2->inicio;
 }
+
+void fs_consumir_unidad_trabajo(t_io *args)
+{
+    // El FS siempre consumira 1 unidad de trabajo
+    log_debug(args->logger, "Consumiendo 1 unidad de trabajo en %d ms", args->tiempoUnidadDeTrabajo);
+    sleep(args->tiempoUnidadDeTrabajo / 1000);
+}
