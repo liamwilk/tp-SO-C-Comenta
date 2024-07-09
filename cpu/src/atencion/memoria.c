@@ -97,7 +97,7 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 		if (proceso_recibido->resultado)
 		{
 			// Determino que tipo de registros debo operar
-			char *registro_datos = strdup(args->instruccion.array[1]);
+			char *registro_datos = strdup(args->instruccion[1]);
 
 			// Guardo el dato en el registro correspondiente
 			if (proceso_recibido->tamanio_registro_datos == 4)
@@ -107,7 +107,7 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 				log_debug(args->logger, "Se obtuvo el dato <%d> del marco <%d> asociado a la instruccion <MOV_IN> del proceso PID <%d>", proceso_recibido->dato_32, proceso_recibido->numero_marco, proceso_recibido->pid);
 				uint32_t *registro_datos_ptr = determinar_tipo_registro_uint32_t(registro_datos, &args->proceso);
 				*registro_datos_ptr = proceso_recibido->dato_32;
-				log_debug(args->logger, "Se guardo el dato <%d> en el registro <%s> del proceso PID <%d>", proceso_recibido->dato_32, args->instruccion.array[1], proceso_recibido->pid);
+				log_debug(args->logger, "Se guardo el dato <%d> en el registro <%s> del proceso PID <%d>", proceso_recibido->dato_32, args->instruccion[1], proceso_recibido->pid);
 				imprimir_registros(args);
 			}
 			else
@@ -117,7 +117,7 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 				log_debug(args->logger, "Se obtuvo el dato <%d> del marco <%d> asociado a la instruccion <MOV_IN> del proceso PID <%d>", proceso_recibido->dato_8, proceso_recibido->numero_marco, proceso_recibido->pid);
 				uint8_t *registro_datos_ptr = determinar_tipo_registro_uint8_t(registro_datos, &args->proceso);
 				*registro_datos_ptr = proceso_recibido->dato_8;
-				log_debug(args->logger, "Se guardo el dato <%d> en el registro <%s> del proceso PID <%d>", proceso_recibido->dato_8, args->instruccion.array[1], proceso_recibido->pid);
+				log_debug(args->logger, "Se guardo el dato <%d> en el registro <%s> del proceso PID <%d>", proceso_recibido->dato_8, args->instruccion[1], proceso_recibido->pid);
 				imprimir_registros(args);
 			}
 
