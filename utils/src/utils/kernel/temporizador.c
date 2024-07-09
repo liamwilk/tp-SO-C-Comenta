@@ -26,8 +26,7 @@ int interrumpir_temporizador(hilos_args *args)
         if (quantum_restante.it_value.tv_sec > 0 || quantum_restante.it_value.tv_nsec > 0)
         {
             long tiempo_milisegundos = quantum_restante.it_value.tv_nsec / 1000000.0; // milisegundos
-            kernel_log_generic(args, LOG_LEVEL_WARNING, "[QUANTUM] Al proceso en ejecución se lo ha interrumpido y le sobra QUANTUM: <%ld> milisegundos", tiempo_milisegundos);
-            // kernel_log_generic(args, LOG_LEVEL_WARNING, "[QUANTUM] Al proceso en ejecución se lo ha interrumpido y le sobra QUANTUM: <%ld> milisegundos", segundos * 1000);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "[QUANTUM] Al proceso en ejecución se lo ha interrumpido y le sobra QUANTUM: <%ld> milisegundos", tiempo_milisegundos);
         }
     }
     long tiempo_milisegundos = quantum_restante.it_value.tv_nsec / 1000000.0; // milisegundos

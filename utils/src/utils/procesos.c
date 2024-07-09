@@ -252,7 +252,6 @@ char *proceso_estado(t_diagrama_estados *estados, int pid)
 void proceso_matar(t_diagrama_estados *estados, char *pid)
 {
     /**LIBERA LA MEMORIA DE ESE PROCESO EN KERNEL**/
-
     char *estado = proceso_estado(estados, atoi(pid));
     t_list *cola = proceso_obtener_estado(estados, estado);
     int pidNumber = atoi(pid);

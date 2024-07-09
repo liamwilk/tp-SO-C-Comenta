@@ -342,15 +342,11 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         t_cpu_kernel_proceso *proceso = deserializar_t_cpu_kernel_proceso(buffer);
 
         // Este caso se da cuando el usuario interrumpio a CPU para finalizar un proceso
-        t_pcb *proceso_en_exit = proceso_buscar_exit(args->estados, proceso->pid);
-
-        if (proceso_en_exit != NULL)
+        char *estado = proceso_estado(args->estados, proceso->pid);
+        if (strcmp(estado, "EXIT") == 0)
         {
-            // Detener QUANTUM si es RR o VRR
-            kernel_log_generic(args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> - Motivo: <INTERRUPTED_BY_USER>", proceso_en_exit->pid);
-            proceso_matar(args->estados, string_itoa(proceso_en_exit->pid));
-            free(proceso);
             avisar_planificador(args);
+            free(proceso);
             break;
         }
 
@@ -369,6 +365,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         {
             if (pcb == NULL)
             {
+                free(proceso);
                 break;
             }
 
@@ -379,7 +376,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         else if (proceso->ejecutado == PROCESO_ERROR) // La ejecucion del proceso fallo
         {
             kernel_log_generic(args, LOG_LEVEL_ERROR, "Proceso PID <%d> ejecutado fallido. Transicionar a exit", proceso->pid);
-
             kernel_finalizar_proceso(args, proceso->pid, EXECUTION_ERROR);
             avisar_planificador(args);
         }
@@ -457,7 +453,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         if (pcb == NULL)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
             break;
         }
 
@@ -848,7 +843,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         if (pcb == NULL)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
             break;
         }
 

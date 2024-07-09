@@ -102,8 +102,14 @@ void kernel_finalizar(hilos_args *args)
 
     // Destruyo todo lo de entrada/salida
     list_destroy_and_destroy_elements(args->kernel->sockets.list_entrada_salida, free);
-    dictionary_destroy_and_destroy_elements(args->kernel->sockets.dictionary_entrada_salida, free);
-    // Libero los recursos y diagrama de estados
+    // Iterate over all t_recursos and delete the list of procesos_bloqueados
+    t_list *recursos = dictionary_elements(args->recursos);
+    for (int i = 0; i < list_size(recursos); i++)
+    {
+        t_recurso *recurso = list_get(recursos, i);
+        list_destroy_and_destroy_elements(recurso->procesos_bloqueados, free);
+    }
+    free(recursos);
     dictionary_destroy_and_destroy_elements(args->recursos, free);
     list_destroy_and_destroy_elements(args->estados->new, free);
     list_destroy_and_destroy_elements(args->estados->ready, free);
@@ -411,10 +417,14 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
         if (strcmp(estado, "EXEC") == 0)
         {
             interrumpir_temporizador(kernel_hilos_args);
-            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "El proceso <%d> se encuentra en ejecucion, se procede a desalojarlo", pid);
+            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "El proceso <%d> se encuentra en ejecucion, se procede a desalojarlo", pid);
             kernel_interrumpir_cpu(kernel_hilos_args, pid, "FINALIZAR_PROCESO");
             kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
             kernel_transicion_exec_exit(kernel_hilos_args);
+            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> - Motivo: <INTERRUPTED_BY_USER>", pid);
+            proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+            // Aviso al planificador
+            sem_post(&kernel_hilos_args->kernel->planificador_iniciar);
             return false;
         }
         if (strcmp(estado, "BLOCK") == 0)
