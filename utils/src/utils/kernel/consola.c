@@ -328,7 +328,9 @@ void actualizar_prompt(int signal)
     rl_redisplay();
 
     // Genero el nuevo prompt
-    rl_set_prompt(generar_prompt());
+    char *nuevo_prompt = generar_prompt();
+    rl_set_prompt(nuevo_prompt);
+    free(nuevo_prompt);
     rl_on_new_line();
     rl_redisplay();
 }
