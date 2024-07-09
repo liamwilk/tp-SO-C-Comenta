@@ -261,6 +261,7 @@ void proceso_matar(t_diagrama_estados *estados, char *pid)
         t_pcb *proceso = list_get(cola, i);
         if (proceso->pid == pidNumber)
         {
+            free(pcb_a_eliminar->proxima_io);
             dictionary_destroy_and_destroy_elements(pcb_a_eliminar->recursos_tomados, free);
             free(pcb_a_eliminar->registros_cpu);
             list_remove_and_destroy_element(cola, i, free);
