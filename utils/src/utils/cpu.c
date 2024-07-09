@@ -20,13 +20,13 @@ void instruccion_ciclo(t_cpu *args, t_buffer *buffer)
     {
         if (args->tipo_instruccion != EXIT)
         {
-            log_debug(args->logger, "Se bifurca el ciclo de instruccion en la ejecucion del proceso PID <%d> en la instruccion <%s>.", args->proceso.pid, args->instruccion.array[0]);
+            log_debug(args->logger, "Se bifurca el ciclo de instruccion en la ejecucion del proceso PID <%d> en la instruccion <%s>.", args->proceso.pid, args->instruccion[0]);
         }
         return;
     }
     else if (args->tipo_instruccion == -1)
     {
-        log_error(args->logger, "Se finaliza la ejecucion del proceso PID <%d> por error en la instruccion <%s>.", args->proceso.pid, args->instruccion.array[0]);
+        log_error(args->logger, "Se finaliza la ejecucion del proceso PID <%d> por error en la instruccion <%s>.", args->proceso.pid, args->instruccion[0]);
         args->proceso.ejecutado = 0;
         instruccion_finalizar(args);
     }
@@ -201,6 +201,8 @@ void inicializar_argumentos_cpu(t_cpu *args, t_log_level nivel, int argc, char *
     inicializar_config(&args->config, args->logger, argc, argv);
     cpu_leer_config(args);
     cpu_imprimir_log(args);
+    args->cantidad_elementos = 0;
+    args->instruccion = NULL;
 }
 
 void *conectar_memoria(void *args_void)
@@ -319,9 +321,9 @@ void instruccion_log(t_cpu *args)
     char log_message[256] = {0};
     int offset = snprintf(log_message, sizeof(log_message), "PID: <%d> - Ejecutando:", args->proceso.pid);
 
-    for (int i = 0; i < args->instruccion.cantidad_elementos; i++)
+    for (int i = 0; i < args->cantidad_elementos; i++)
     {
-        offset += snprintf(log_message + offset, sizeof(log_message) - offset, " <%s>", args->instruccion.array[i]);
+        offset += snprintf(log_message + offset, sizeof(log_message) - offset, " <%s>", args->instruccion[i]);
     }
 
     log_info(args->logger, "%s", log_message);

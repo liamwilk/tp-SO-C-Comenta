@@ -63,7 +63,8 @@ typedef struct t_cpu
     t_log *logger;
     t_config *config;
     t_instruccion tipo_instruccion;
-    t_memoria_cpu_instruccion instruccion;
+    char **instruccion;
+    uint32_t cantidad_elementos;
     t_threads threads;
     t_cpu_proceso proceso;
     int flag_interrupt;
