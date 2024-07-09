@@ -47,7 +47,8 @@ t_pcb *kernel_transicion_ready_exec(hilos_args *kernel_hilos_args)
     t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
     serializar_t_registros_cpu(&paquete, proceso->pid, proceso->registros_cpu);
     enviar_paquete(paquete, kernel_hilos_args->kernel->sockets.cpu_dispatch);
-    free(paquete);
+
+    eliminar_paquete(paquete);
 
     return proceso;
 };

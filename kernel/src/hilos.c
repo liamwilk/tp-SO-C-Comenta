@@ -304,7 +304,7 @@ void *hilos_esperar_entrada_salida(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
 
-    while (1)
+    while (!hiloArgs->kernel_orden_apagado)
     {
         int socket_cliente = conexion_socket_recibir(hiloArgs->kernel->sockets.server);
 

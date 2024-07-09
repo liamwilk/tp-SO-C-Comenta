@@ -3,19 +3,13 @@
 /**FUNCIONES DE PROPOSITO GENERAL PARA KERNEL**/
 t_diagrama_estados kernel_inicializar_estados(t_diagrama_estados *estados)
 {
-    t_list *new = malloc(sizeof(t_list));
-    new = list_create();
-    t_list *ready = malloc(sizeof(t_list));
-    ready = list_create();
-    t_list *exec = malloc(sizeof(t_list));
-    exec = list_create();
-    t_list *block = malloc(sizeof(t_list));
-    block = list_create();
-    t_list *exit = malloc(sizeof(t_list));
-    exit = list_create();
+    t_list *new = list_create();
+    t_list *ready = list_create();
+    t_list *exec = list_create();
+    t_list *block = list_create();
+    t_list *exit = list_create();
 
-    t_list *ready_mayor_prioridad = malloc(sizeof(t_list));
-    ready_mayor_prioridad = list_create();
+    t_list *ready_mayor_prioridad = list_create();
 
     // Inicializar diccionario de procesos
     estados->procesos = dictionary_create();
@@ -99,19 +93,23 @@ void kernel_finalizar(hilos_args *args)
         }
 
         // Destruyo la lista auxiliar generada a partir de las keys del diccionario
-        list_destroy(conectados);
+        list_destroy_and_destroy_elements(conectados, free);
+    }
+    else
+    {
+        list_destroy_and_destroy_elements(conectados, free);
     }
 
     // Destruyo todo lo de entrada/salida
-    list_destroy(args->kernel->sockets.list_entrada_salida);
-    dictionary_destroy(args->kernel->sockets.dictionary_entrada_salida);
+    list_destroy_and_destroy_elements(args->kernel->sockets.list_entrada_salida, free);
+    dictionary_destroy_and_destroy_elements(args->kernel->sockets.dictionary_entrada_salida, free);
     // Libero los recursos y diagrama de estados
-    dictionary_destroy(args->recursos);
-    list_destroy(args->estados->new);
-    list_destroy(args->estados->ready);
-    list_destroy(args->estados->exec);
-    list_destroy(args->estados->block);
-    list_destroy(args->estados->exit);
+    dictionary_destroy_and_destroy_elements(args->recursos, free);
+    list_destroy_and_destroy_elements(args->estados->new, free);
+    list_destroy_and_destroy_elements(args->estados->ready, free);
+    list_destroy_and_destroy_elements(args->estados->exec, free);
+    list_destroy_and_destroy_elements(args->estados->block, free);
+    list_destroy_and_destroy_elements(args->estados->exit, free);
 
     // Bajo el servidor interno de atencion de I/O para no aceptar mas conexiones
     liberar_conexion(&args->kernel->sockets.server);
@@ -488,7 +486,10 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
         }
         kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <SUCCESS>", pid);
-        proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+
+        char *pid_string = string_itoa(pid);
+        proceso_matar(kernel_hilos_args->estados, pid_string);
+        free(pid_string);
         return true;
     }
     case INVALID_RESOURCE:

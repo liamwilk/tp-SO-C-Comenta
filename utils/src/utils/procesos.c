@@ -27,6 +27,7 @@ void proceso_push_new(t_diagrama_estados *estados, t_pcb *pcb)
     // Actualizo el diccionario de procesos
     char *estado = "NEW";
     dictionary_put(estados->procesos, pid_char, estado);
+    free(pid_char);
 };
 
 void proceso_push_ready(t_diagrama_estados *estados, t_pcb *pcb)
@@ -36,6 +37,7 @@ void proceso_push_ready(t_diagrama_estados *estados, t_pcb *pcb)
 
     char *estado = "READY";
     dictionary_put(estados->procesos, pid_char, estado);
+    free(pid_char);
 };
 
 void proceso_push_exec(t_diagrama_estados *estados, t_pcb *pcb)
@@ -45,6 +47,7 @@ void proceso_push_exec(t_diagrama_estados *estados, t_pcb *pcb)
 
     char *estado = "EXEC";
     dictionary_put(estados->procesos, pid_char, estado);
+    free(pid_char);
 };
 
 void proceso_push_block(t_diagrama_estados *estados, t_pcb *pcb)
@@ -55,6 +58,7 @@ void proceso_push_block(t_diagrama_estados *estados, t_pcb *pcb)
     // Actualizo el diccionario de procesos
     char *estado = "BLOCK";
     dictionary_put(estados->procesos, pid_char, estado);
+    free(pid_char);
 };
 
 void proceso_push_exit(t_diagrama_estados *estados, t_pcb *pcb)
@@ -67,6 +71,7 @@ void proceso_push_exit(t_diagrama_estados *estados, t_pcb *pcb)
     // Actualizo el diccionario de procesos
     char *estado = "EXIT";
     dictionary_put(estados->procesos, pid_char, estado);
+    free(pid_char);
 };
 
 t_pcb *proceso_pop_new(t_diagrama_estados *estados)
