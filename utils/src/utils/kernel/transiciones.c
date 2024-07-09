@@ -251,6 +251,7 @@ void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready T
         if (pcb == NULL)
         {
             kernel_log_generic(args, LOG_LEVEL_ERROR, "[KERNEL/MANEJAR_EXEC_READY] Se quiere buscar el proceso <%d> en exec y no se encuentra, posible condicion de carrera", pid);
+            break;
         }
         if (determinar_algoritmo(args->kernel->algoritmoPlanificador) == FIFO)
         {
@@ -277,7 +278,6 @@ void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready T
         pcb = proceso_buscar_block(args->estados, pid);
         if (pcb == NULL)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "[KERNEL/MANEJAR_BLOCK_READY] Se quiere buscar el proceso <%d> en block y no se encuentra, posible condicion de carrera", pid);
             break;
         }
         if (determinar_algoritmo(args->kernel->algoritmoPlanificador) == FIFO)
