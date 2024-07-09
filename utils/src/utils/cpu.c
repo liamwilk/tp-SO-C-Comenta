@@ -2,11 +2,13 @@
 
 void instruccion_ciclo(t_cpu *args, t_buffer *buffer)
 {
-    if (args->flag_interrupt)
-    {
-        instruccion_interrupt(args);
-        return;
-    }
+    // TODO: Ver esto
+
+    // if (args->flag_interrupt)
+    // {
+    //     instruccion_interrupt(args);
+    //     return;
+    // }
 
     if (instruccion_recibir(args, buffer))
     {
