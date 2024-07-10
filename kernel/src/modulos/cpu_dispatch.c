@@ -425,7 +425,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         {
             if (proceso_completo->resultado)
             {
-                pcb->quantum = interrumpir_temporizador(args);
                 avisar_planificador(args);
                 kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se copio el string correctamente del proceso <%d>", proceso_completo->pid);
             }

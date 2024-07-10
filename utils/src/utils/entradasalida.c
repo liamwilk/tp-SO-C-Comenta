@@ -588,9 +588,11 @@ char *fs_buscar_por_bloque_fin(t_io *args, int bloque_fin)
         t_fcb *fcb = dictionary_get(args->dial_fs.archivos, key);
         if (fcb->fin_bloque == bloque_fin)
         {
+            list_destroy(keys);
             return key;
         }
     }
+    list_destroy(keys);
     return NULL;
 }
 
@@ -604,11 +606,14 @@ void fs_desplazar_archivo_hacia_derecha(t_io *args, char *archivo, int cantidad_
     // Calculamos el puntero absoluto
     uint32_t puntero_absoluto = archivo_a_desplazar->inicio * args->dial_fs.blockSize;
     memcpy(contenido_archivo, (char *)args->dial_fs.archivo_bloques + puntero_absoluto, archivo_a_desplazar->total_size);
+
+    // Se verifica si es un archivo que ocupa un bloque
     if (archivo_a_desplazar->inicio == archivo_a_desplazar->fin_bloque)
     {
-        log_debug(args->logger, "Se setea el bit %d en 0", archivo_a_desplazar->inicio);
+        log_debug(args->logger, "[%s]: Se setea el bit %d en 0", archivo, archivo_a_desplazar->inicio);
         bitarray_clean_bit(args->dial_fs.bitarray, archivo_a_desplazar->inicio);
-        log_debug(args->logger, "Se setea el bit %d en 1", archivo_a_desplazar->inicio + cantidad_bloques);
+        log_debug(args->logger, "[%s]: Se mueve %d bloques", archivo, cantidad_bloques);
+        log_debug(args->logger, "[%s]: Se setea el bit %d en 1", archivo, archivo_a_desplazar->inicio + cantidad_bloques);
         bitarray_set_bit(args->dial_fs.bitarray, archivo_a_desplazar->inicio + cantidad_bloques);
     }
     else
@@ -616,13 +621,13 @@ void fs_desplazar_archivo_hacia_derecha(t_io *args, char *archivo, int cantidad_
         // Ponemos los primeros n bloques en 0
         for (int i = archivo_a_desplazar->inicio; i < archivo_a_desplazar->inicio + cantidad_bloques; i++)
         {
-            log_debug(args->logger, "Se setea el bit %d en 0", i);
+            log_debug(args->logger, "[%s]: Se setea el bit %d en 0", archivo, i);
             bitarray_clean_bit(args->dial_fs.bitarray, i);
         }
         // Desplazamos en el bitmap los bloques ocupados hacia la derecha
         for (int i = archivo_a_desplazar->inicio + cantidad_bloques; i <= archivo_a_desplazar->fin_bloque + cantidad_bloques; i++)
         {
-            log_debug(args->logger, "Se setea el bit %d en 1", i);
+            log_debug(args->logger, "[%s]: Se setea el bit %d en 1", archivo, i);
             bitarray_set_bit(args->dial_fs.bitarray, i);
         }
     }
@@ -630,9 +635,15 @@ void fs_desplazar_archivo_hacia_derecha(t_io *args, char *archivo, int cantidad_
     archivo_a_desplazar->inicio = archivo_a_desplazar->inicio + cantidad_bloques;
     // Recalculamos el fin_bloque
     archivo_a_desplazar->fin_bloque = archivo_a_desplazar->inicio + (archivo_a_desplazar->total_size / args->dial_fs.blockSize);
+
     // Actualizamos ese metadata
     config_set_value(archivo_a_desplazar->metadata, "BLOQUE_INICIAL", string_itoa(archivo_a_desplazar->inicio));
     config_save(archivo_a_desplazar->metadata);
+
+    // Actualizamos el bloques.dat
+    puntero_absoluto = archivo_a_desplazar->inicio * args->dial_fs.blockSize;
+    memcpy((char *)args->dial_fs.archivo_bloques + puntero_absoluto, contenido_archivo, archivo_a_desplazar->total_size);
+
     free(contenido_archivo);
 }
 
@@ -675,4 +686,88 @@ void fs_consumir_unidad_trabajo(t_io *args)
     // El FS siempre consumira 1 unidad de trabajo
     log_debug(args->logger, "Consumiendo 1 unidad de trabajo en %d ms", args->tiempoUnidadDeTrabajo);
     sleep(args->tiempoUnidadDeTrabajo / 1000);
+}
+
+bool fs_tiene_compactar(t_io *args, t_fcb *archivo, char *nombre_archivo, int cantidad_a_truncar)
+{
+    bool compactar = false;
+    int fin_bloque = archivo->inicio + cantidad_a_truncar;
+    // Obtenemos los archivos ordenados de forma ascendente por bloque de inicio
+    t_list *keys = fs_obtener_archivos_ordenados(args);
+    for (int i = 0; i < list_size(keys); i++)
+    {
+        char *key = list_get(keys, i);
+        if (strcmp(key, nombre_archivo) == 0)
+        {
+            // Verificamos si hay que compactar
+            if (i == list_size(keys) - 1)
+            {
+                break;
+            }
+            char *key_siguiente = list_get(keys, i + 1);
+            t_fcb *comparator = dictionary_get(args->dial_fs.archivos, key_siguiente);
+            if (fin_bloque >= comparator->inicio)
+            {
+                compactar = true;
+                break;
+            }
+            break;
+        }
+    }
+
+    // Liberamos memoria
+    list_destroy(keys);
+    return compactar;
+};
+
+int fs_bloques_ocupados(t_io *args)
+{
+    // Contar cantidad de bloques ocupados con bitarray
+    int bloques_ocupados = 0;
+    for (int i = 0; i < args->dial_fs.blockCount; i++)
+    {
+        if (bitarray_test_bit(args->dial_fs.bitarray, i) == 1)
+        {
+            bloques_ocupados++;
+        }
+    }
+    return bloques_ocupados;
+}
+
+void fs_compactar(t_io *args, t_kernel_entrada_salida_fs_truncate *truncate, t_fcb *archivo, int cantidad_bloques_a_truncar)
+{
+    log_info(args->logger, "DialFS - Inicio Compactación: PID: <%d> - Inicio Compactación.", truncate->pid);
+    t_list *keys = fs_obtener_archivos_ordenados(args);
+
+    // Estrategia:
+    // 1. Recorrer los archivos ordenados por bloque inicial
+    for (int i = 0; i < list_size(keys); i++)
+    {
+        // 2. Desde el archivo que quiero truncar y la cantidad que quiero truncar busco la primer ocurrencia de n bloques contiguos libres
+        int bloque_libre = fs_buscar_primera_ocurrencia_libre(args, archivo->fin_bloque, cantidad_bloques_a_truncar);
+        if (bloque_libre == -1)
+        {
+            // Llegado a este caso se termina de buscar
+            break;
+        }
+        // 3. Busco el archivo mas proximo al bloque fin libre (Se hace restando 1)
+        int bloque_fin_mas_proximo = bloque_libre - 1;
+        char *archivo_mas_proximo = fs_buscar_por_bloque_fin(args, bloque_fin_mas_proximo);
+
+        // No se compacta el archivo que se quiere truncar
+        if (strcmp(archivo_mas_proximo, truncate->nombre_archivo) == 0)
+        {
+            break;
+        }
+
+        // 4. Ese archivo encontrado se lo desplaza a la derecha la cantidad indicada por cantidad_bloques_a_truncar
+        fs_desplazar_archivo_hacia_derecha(args, archivo_mas_proximo, cantidad_bloques_a_truncar);
+    }
+
+    // Se emula retraso de compactación
+    int tiempo_dormir = args->dial_fs.retrasoCompactacion / 1000;
+    sleep(tiempo_dormir);
+
+    // Log obligatorio
+    log_info(args->logger, "DialFS - Fin Compactación: PID: <%d> - Fin Compactación.", truncate->pid);
 }
