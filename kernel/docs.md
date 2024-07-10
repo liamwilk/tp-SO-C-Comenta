@@ -160,7 +160,7 @@ make cpu config=./configs/io.config
 make cpu config=./configs/io.config
 
 ## Con valgrind
-make memcheck config=./configs/memoria.config
+make memcheck config=./configs/io.config
 ```
 
 ### 3. Levantar kernel

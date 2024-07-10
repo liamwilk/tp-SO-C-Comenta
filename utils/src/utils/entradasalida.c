@@ -44,6 +44,9 @@ void interfaz_identificar(t_op_code opcode, char *identificador, int socket)
     identificacion.size_identificador = strlen(identificador) + 1;
     serializar_t_entrada_salida_identificacion(&paquete, &identificacion);
     enviar_paquete(paquete, socket);
+
+    free(identificacion.identificador);
+    eliminar_paquete(paquete);
 }
 
 void inicializar_interfaz(t_io *io)
