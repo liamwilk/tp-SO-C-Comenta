@@ -691,7 +691,7 @@ void fs_consumir_unidad_trabajo(t_io *args)
 bool fs_tiene_compactar(t_io *args, t_fcb *archivo, char *nombre_archivo, int cantidad_a_truncar)
 {
     bool compactar = false;
-    int fin_bloque = archivo->inicio + cantidad_a_truncar;
+    int fin_bloque = archivo->fin_bloque + cantidad_a_truncar;
     // Obtenemos los archivos ordenados de forma ascendente por bloque de inicio
     t_list *keys = fs_obtener_archivos_ordenados(args);
     for (int i = 0; i < list_size(keys); i++)
@@ -744,6 +744,7 @@ void fs_compactar(t_io *args, t_kernel_entrada_salida_fs_truncate *truncate, t_f
     for (int i = 0; i < list_size(keys); i++)
     {
         // 2. Desde el archivo que quiero truncar y la cantidad que quiero truncar busco la primer ocurrencia de n bloques contiguos libres
+
         int bloque_libre = fs_buscar_primera_ocurrencia_libre(args, archivo->fin_bloque, cantidad_bloques_a_truncar);
         if (bloque_libre == -1)
         {

@@ -192,7 +192,6 @@ void switch_case_kernel_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer 
             free(truncate);
             break;
         }
-
         // Verifico si se quiere truncar un archivo vacio y ademas el tamaño a truncar es mayor al tamaño de un bloque
         if (size_original == 0)
         {
