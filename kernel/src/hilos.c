@@ -142,7 +142,7 @@ void *hilo_planificador(void *args)
         // Si tengo que pausar, salto al proximo ciclo con continue y espero que vuelvan a activar el planificador
         if (obtener_key_detencion_algoritmo(hiloArgs))
         {
-            log_debug(hiloArgs->logger, "Planificacion %s pausada.", hiloArgs->kernel->algoritmoPlanificador);
+            kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "Planificacion %s pausada.", hiloArgs->kernel->algoritmoPlanificador);
             continue;
         }
 
