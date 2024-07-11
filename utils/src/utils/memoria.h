@@ -136,13 +136,6 @@ typedef struct
     uint32_t offset;
 } t_frame_bytes;
 
-typedef struct
-{
-    int cantidad;
-    int *tamanos;
-    char **fragmentos;
-} t_char_framentado;
-
 typedef void (*t_mem_funcion_hilo_ptr)(t_args_hilo *, char *, t_op_code, t_buffer *);
 typedef void (*t_mem_funcion_ptr)(t_args *, t_op_code, t_buffer *);
 
@@ -536,15 +529,6 @@ uint32_t espacio_usuario_leer_uint32(t_args *args, t_proceso *proceso, uint32_t 
 char *espacio_usuario_leer_char(t_args *args, t_proceso *proceso, uint32_t direccion_fisica, size_t tamano_max);
 
 /**
- * Obtiene la próxima dirección disponible para asignar memoria de tamaño especificado.
- *
- * @param args Puntero a la estructura de argumentos.
- * @param tamano Tamaño de memoria a asignar.
- * @return Próxima dirección disponible.
- */
-int espacio_usuario_proxima_direccion(t_args *args, size_t tamano);
-
-/**
  * Obtiene el próximo frame disponible para asignar memoria de tamaño especificado.
  *
  * @param args Puntero a la estructura de argumentos.
@@ -553,66 +537,15 @@ int espacio_usuario_proxima_direccion(t_args *args, size_t tamano);
  */
 int espacio_usuario_proximo_frame(t_args *args, size_t tamano);
 
-/**
- * Busca un frame disponible de tamaño especificado.
- *
- * @param args Puntero a la estructura de argumentos.
- * @param size_buscado Tamaño buscado.
- * @return Puntero al frame disponible encontrado.
- */
-t_frame_disponible *espacio_usuario_buscar_frame(t_args *args, size_t size_buscado);
-
-/**
- * Imprime los fragmentos de memoria en formato de cadena de caracteres.
- *
- * @param args Puntero a la estructura de argumentos.
- * @param fs Puntero a la estructura de fragmentos de memoria.
- */
-void espacio_usuario_fragmentos_imprimir(t_args *args, t_char_framentado *fs);
-
-/**
- * Libera los fragmentos de memoria.
- *
- * @param args Puntero a la estructura de argumentos.
- * @param fs Puntero a la estructura de fragmentos de memoria.
- */
-void espacio_usuario_fragmentos_liberar(t_args *args, t_char_framentado *fs);
-
-/**
- * Fragmenta una cadena de caracteres en frames de tamaño especificado.
- *
- * @param input Cadena de caracteres a fragmentar.
- * @param frame_size Tamaño de los frames.
- * @return Puntero a la estructura de fragmentos de memoria.
- */
-t_char_framentado *espacio_usuario_fragmentar_char(char *input, int frame_size);
-
-/**
- * Obtiene el número de página correspondiente a una dirección física.
- *
- * @param direccion_fisica Dirección física.
- * @param tam_pagina Tamaño de página.
- * @return Número de página.
- */
-int obtener_numero_pagina(uint32_t direccion_fisica, uint32_t tam_pagina);
-
 int tabla_paginas_liberar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina);
 
 int tabla_paginas_frames_ocupados(t_args *args, t_proceso *proceso);
-
-t_frame_bytes *tabla_paginas_frame_bytes(t_args *args, t_proceso *proceso, uint32_t numero_marco);
 
 int tabla_paginas_resize(t_args *args, t_proceso *proceso, uint32_t bytes_nuevos);
 
 int tabla_paginas_bytes_ocupados(t_args *args, t_proceso *proceso);
 
 int espacio_usuario_bytes_disponibles(t_args *args);
-
-int espacio_usuario_frame_bytes(t_args *args, uint32_t frame);
-
-uint32_t espacio_usuario_escribir_dato_frame_inicio(t_args *args, uint32_t direccion_fisica, size_t tamano);
-
-uint32_t espacio_usuario_escribir_dato_frame_fin(t_args *args, uint32_t direccion_fisica, size_t tamano);
 
 uint8_t espacio_usuario_leer_uint8(t_args *args, t_proceso *proceso, uint8_t direccion_fisica);
 

@@ -1,12 +1,11 @@
 #include <utils/memoria.h>
 
-// Leer un dato genérico
 int espacio_usuario_leer_dato(t_args *args, t_proceso *proceso, uint32_t direccion_fisica, void *destino, size_t tamano)
 {
     // Reviso que la dirección física esté dentro de los límites del espacio de usuario
     if (direccion_fisica + tamano > args->memoria.tamMemoria)
     {
-        log_error(args->logger, "Se intento leer fuera de los límites del espacio de usuario.");
+        log_error(args->logger, "Se intentó leer fuera de los límites del espacio de usuario.");
         return -1;
     }
 
@@ -45,41 +44,45 @@ int espacio_usuario_leer_dato(t_args *args, t_proceso *proceso, uint32_t direcci
     // Alerto si es que la lectura abarca más de un frame
     if (frame_inicio != frame_fin)
     {
-        log_debug(args->logger, "La lectura de %ld bytes desde la direccion fisica %d (%d -> %ld) comienza en el frame %d hasta el %d.", tamano, direccion_fisica, direccion_fisica, tamano + direccion_fisica, frame_inicio, frame_fin);
+        log_debug(args->logger, "La lectura de %ld bytes desde la dirección física %d (%d -> %ld) comienza en el frame %d hasta el %d.", tamano, direccion_fisica, direccion_fisica, tamano + direccion_fisica, frame_inicio, frame_fin);
     }
 
     // Copio los datos
     memcpy(destino, origen, tamano);
 
-    log_info(args->logger, "PID: %d - Accion: LEER - Direccion fisica: <%d> - Tamaño <%ld>", proceso->pid, direccion_fisica, tamano);
+    log_info(args->logger, "PID: %d - Acción: LEER - Dirección física: <%d> - Tamaño <%ld>", proceso->pid, direccion_fisica, tamano);
 
     return 0;
 }
 
-// Leer un uint8_t
 uint8_t espacio_usuario_leer_uint8(t_args *args, t_proceso *proceso, uint8_t direccion_fisica)
 {
     uint8_t valor;
-    espacio_usuario_leer_dato(args, proceso, direccion_fisica, &valor, sizeof(uint8_t));
+    if (espacio_usuario_leer_dato(args, proceso, direccion_fisica, &valor, sizeof(uint8_t)) == -1) {
+        return 0; 
+    }
     return valor;
 }
 
-// Leer un uint32_t
 uint32_t espacio_usuario_leer_uint32(t_args *args, t_proceso *proceso, uint32_t direccion_fisica)
 {
     uint32_t valor;
-    espacio_usuario_leer_dato(args, proceso, direccion_fisica, &valor, sizeof(uint32_t));
+    if (espacio_usuario_leer_dato(args, proceso, direccion_fisica, &valor, sizeof(uint32_t)) == -1) {
+        return 0; 
+    }
     return valor;
 }
 
-// Leer un char*
 char *espacio_usuario_leer_char(t_args *args, t_proceso *proceso, uint32_t direccion_fisica, size_t tamano_max)
 {
-    int bytes_totales = tamano_max + 1;
+    size_t bytes_totales = tamano_max + 1;
     char *destino = malloc(bytes_totales);
-    int resultado = espacio_usuario_leer_dato(args, proceso, direccion_fisica, destino, tamano_max);
+    if (destino == NULL) {
+        log_error(args->logger, "Error al asignar memoria para la lectura de cadena.");
+        return NULL;
+    }
 
-    if (resultado == -1)
+    if (espacio_usuario_leer_dato(args, proceso, direccion_fisica, destino, tamano_max) == -1)
     {
         free(destino);
         return NULL;

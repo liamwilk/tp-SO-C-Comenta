@@ -13,7 +13,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         if (pcb == NULL)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
             free(proceso_recibido);
             break;
         }
@@ -57,7 +56,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
             pcb->quantum = interrumpir_temporizador(args);
 
-            kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_STDOUT_WRITE> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "No se pudo enviar la instrucción <IO_STDOUT_WRITE> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
 
             proceso_actualizar_registros(pcb, proceso_recibido->registros);
             kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
@@ -160,7 +159,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         if (pcb == NULL)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
             break;
         }
 
@@ -199,7 +197,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         {
             pcb->quantum = interrumpir_temporizador(args);
 
-            kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_STDIN_READ> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "No se pudo enviar la instrucción <IO_STDIN_READ> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
 
             proceso_actualizar_registros(pcb, proceso_recibido->registros);
             kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
@@ -301,7 +299,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         if (proceso == NULL)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch/RESIZE] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
             interrumpir_temporizador(args);
             kernel_finalizar_proceso(args, proceso_recibido->pid, OUT_OF_MEMORY);
             break;
@@ -345,15 +342,11 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         t_cpu_kernel_proceso *proceso = deserializar_t_cpu_kernel_proceso(buffer);
 
         // Este caso se da cuando el usuario interrumpio a CPU para finalizar un proceso
-        t_pcb *proceso_en_exit = proceso_buscar_exit(args->estados, proceso->pid);
-
-        if (proceso_en_exit != NULL)
+        char *estado = proceso_estado(args->estados, proceso->pid);
+        if (strcmp(estado, "EXIT") == 0)
         {
-            // Detener QUANTUM si es RR o VRR
-            kernel_log_generic(args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> - Motivo: <INTERRUPTED_BY_USER>", proceso_en_exit->pid);
-            proceso_matar(args->estados, string_itoa(proceso_en_exit->pid));
-            free(proceso);
             avisar_planificador(args);
+            free(proceso);
             break;
         }
 
@@ -372,7 +365,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         {
             if (pcb == NULL)
             {
-                kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso->pid);
+                free(proceso);
                 break;
             }
 
@@ -383,7 +376,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         else if (proceso->ejecutado == PROCESO_ERROR) // La ejecucion del proceso fallo
         {
             kernel_log_generic(args, LOG_LEVEL_ERROR, "Proceso PID <%d> ejecutado fallido. Transicionar a exit", proceso->pid);
-
             kernel_finalizar_proceso(args, proceso->pid, EXECUTION_ERROR);
             avisar_planificador(args);
         }
@@ -394,8 +386,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
     }
     case CPU_KERNEL_WAIT:
     {
-        t_cpu_kernel_solicitud_recurso *solicitud_recurso = malloc(sizeof(t_cpu_kernel_solicitud_recurso));
-        solicitud_recurso = deserializar_t_cpu_kernel_solicitud_recurso(buffer);
+        t_cpu_kernel_solicitud_recurso *solicitud_recurso = deserializar_t_cpu_kernel_solicitud_recurso(buffer);
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Recurso solicitado (WAIT) por CPU para el proceso <PID: %d>: %s", solicitud_recurso->pid, solicitud_recurso->nombre_recurso);
 
         t_pcb *proceso_en_exec = proceso_buscar_exec(args->estados, solicitud_recurso->pid);
@@ -406,20 +397,21 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         avisar_planificador(args);
 
         free(solicitud_recurso->nombre_recurso);
+        free(solicitud_recurso->registros);
         free(solicitud_recurso);
 
         break;
     }
     case CPU_KERNEL_SIGNAL:
     {
-        t_cpu_kernel_solicitud_recurso *solicitud_recurso = malloc(sizeof(t_cpu_kernel_solicitud_recurso));
-        solicitud_recurso = deserializar_t_cpu_kernel_solicitud_recurso(buffer);
+        t_cpu_kernel_solicitud_recurso *solicitud_recurso = deserializar_t_cpu_kernel_solicitud_recurso(buffer);
 
         t_pcb *proceso_en_exec = proceso_buscar_exec(args->estados, solicitud_recurso->pid);
         proceso_actualizar_registros(proceso_en_exec, *solicitud_recurso->registros);
         kernel_signal(args, solicitud_recurso->pid, solicitud_recurso->nombre_recurso, SIGNAL_RECURSO);
         avisar_planificador(args);
         free(solicitud_recurso->nombre_recurso);
+        free(solicitud_recurso->registros);
         free(solicitud_recurso);
         break;
     }
@@ -433,7 +425,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         {
             if (proceso_completo->resultado)
             {
-                pcb->quantum = interrumpir_temporizador(args);
                 avisar_planificador(args);
                 kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se copio el string correctamente del proceso <%d>", proceso_completo->pid);
             }
@@ -461,7 +452,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         if (pcb == NULL)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
             break;
         }
 
@@ -504,7 +494,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         {
             pcb->quantum = interrumpir_temporizador(args);
 
-            kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_FS_CREATE> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "No se pudo enviar la instrucción <IO_FS_CREATE> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
             proceso_actualizar_registros(pcb, proceso_recibido->registros);
             kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
 
@@ -587,7 +577,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         if (pcb == NULL)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
             break;
         }
 
@@ -627,7 +616,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         {
             pcb->quantum = interrumpir_temporizador(args);
 
-            kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_FS_TRUNCATE> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "No se pudo enviar la instrucción <IO_FS_TRUNCATE> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
             proceso_actualizar_registros(pcb, proceso_recibido->registros);
             kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
 
@@ -721,7 +710,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         if (pcb == NULL)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
             break;
         }
 
@@ -755,7 +743,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         {
             pcb->quantum = interrumpir_temporizador(args);
 
-            kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_FS_WRITE> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "No se pudo enviar la instrucción <IO_FS_WRITE> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
 
             proceso_actualizar_registros(pcb, proceso_recibido->registros);
 
@@ -854,7 +842,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         if (pcb == NULL)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
             break;
         }
 
@@ -894,7 +881,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         {
             pcb->quantum = interrumpir_temporizador(args);
 
-            kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_FS_DELETE> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "No se pudo enviar la instrucción <IO_FS_DELETE> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
             proceso_actualizar_registros(pcb, proceso_recibido->registros);
             kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
 
@@ -979,7 +966,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
             if (pcb == NULL)
             {
-                kernel_log_generic(args, LOG_LEVEL_ERROR, "[CPU Dispatch] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", proceso_recibido->pid);
                 break;
             }
 
@@ -1013,7 +999,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             {
                 pcb->quantum = interrumpir_temporizador(args);
 
-                kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_FS_READ> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
+                kernel_log_generic(args, LOG_LEVEL_DEBUG, "No se pudo enviar la instrucción <IO_FS_READ> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", proceso_recibido->pid, proceso_recibido->interfaz, entrada_salida->pid);
 
                 proceso_actualizar_registros(pcb, proceso_recibido->registros);
                 kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);

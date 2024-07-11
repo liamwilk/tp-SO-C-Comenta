@@ -29,6 +29,7 @@ void *hilos_atender_consola(void *args)
         reiniciar_prompt(hiloArgs);
         char *prompt = generar_prompt();
         linea = readline(prompt);
+        free(prompt);
         if (linea && *linea)
         {
             add_history(linea);
@@ -99,13 +100,16 @@ void *hilos_atender_consola(void *args)
             break;
         }
         }
+        //  Libero el string_split de separar_linea
+        for (int i = 0; separar_linea[i] != NULL; i++)
+        {
+            free(separar_linea[i]);
+        }
         free(separar_linea);
         free(linea);
-        free(prompt);
     }
 
     write_history(comandos_archivo_historial);
-
     pthread_exit(0);
 }
 
@@ -298,7 +302,7 @@ void hilos_io_inicializar(hilos_args *args, pthread_t thread_esperar_entrada_sal
 void *hilos_esperar_entrada_salida(void *args)
 {
     hilos_args *hiloArgs = (hilos_args *)args;
-
+    // TODO: Ver esto, si lo dejamos en 1 el hilo no se apaga nunca
     while (1)
     {
         int socket_cliente = conexion_socket_recibir(hiloArgs->kernel->sockets.server);

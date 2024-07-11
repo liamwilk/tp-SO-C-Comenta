@@ -63,7 +63,8 @@ typedef struct t_cpu
     t_log *logger;
     t_config *config;
     t_instruccion tipo_instruccion;
-    t_memoria_cpu_instruccion instruccion;
+    char **instruccion;
+    uint32_t cantidad_elementos;
     t_threads threads;
     t_cpu_proceso proceso;
     int flag_interrupt;
@@ -78,6 +79,7 @@ typedef struct t_cpu
     uint32_t pagina;
     t_instruccion codigo;
     void *paquete;
+    sem_t log_sem;
 } t_cpu;
 
 typedef void (*t_funcion_cpu_ptr)(t_cpu *, t_op_code, t_buffer *);
@@ -335,6 +337,11 @@ void switch_case_kernel_interrupt(t_cpu *args, t_op_code codigo_operacion, t_buf
  */
 t_instruccion determinar_codigo_instruccion(char *instruccion);
 
+typedef struct
+{
+    t_paquete *paquete;
+} cleanup_args_t;
+
 void hilo_ejecutar_cpu(t_cpu *args, int socket, char *modulo, t_funcion_cpu_ptr switch_case_atencion);
 
 void inicializar_hilos_cpu(t_cpu *argumentos);
@@ -364,5 +371,7 @@ int reemplazar_en_tlb(char *algoritmo_reemplazo, uint32_t cantidad_entradas_tlb,
 t_algoritmo_tlb determinar_codigo_algoritmo(char *algoritmo_tlb);
 
 void mmu_iniciar(t_cpu *cpu, t_instruccion codigo, uint32_t direccion_logica, void *paquete);
+
+void cleanup(void *arg);
 
 #endif /* CPU_H_ */

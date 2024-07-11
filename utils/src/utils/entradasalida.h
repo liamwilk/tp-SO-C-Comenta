@@ -222,5 +222,12 @@ char *fs_buscar_por_bloque_fin(t_io *args, int bloque_fin);
  */
 t_list *fs_obtener_archivos_ordenados(t_io *args);
 bool fs_comparar_archivos_por_bloque_inicial(void *archivo1, void *archivo2);
+void fs_consumir_unidad_trabajo(t_io *args);
+
+bool fs_tiene_compactar(t_io *args, t_fcb *archivo, char *nombre_archivo, int cantidad_a_truncar);
+
+int fs_bloques_ocupados(t_io *args);
+
+void fs_compactar(t_io *args, t_kernel_entrada_salida_fs_truncate *truncate, t_fcb *archivo, int cantidad_bloques_a_truncar);
 
 #endif // ENTRADASALIDA_H

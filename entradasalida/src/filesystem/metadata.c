@@ -72,7 +72,5 @@ void metadata_inicializar(t_io *args)
         }
         closedir(dir);
     }
-    // Cargo un valor en el archivo de bloques
-    // memset(args->dial_fs.archivo_bloques, 'A', args->dial_fs.tamanio_archivo);
     free(full_path);
 }

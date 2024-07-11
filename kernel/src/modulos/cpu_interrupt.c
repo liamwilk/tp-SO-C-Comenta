@@ -39,7 +39,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         {
             pcb->quantum = interrumpir_temporizador(args);
 
-            kernel_log_generic(args, LOG_LEVEL_WARNING, "No se pudo enviar la instrucción <IO_GEN_SLEEP> <%s> <%d> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", sleep->interfaz, sleep->tiempo, sleep->pid, sleep->interfaz, entrada_salida->pid);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "No se pudo enviar la instrucción <IO_GEN_SLEEP> <%s> <%d> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", sleep->interfaz, sleep->tiempo, sleep->pid, sleep->interfaz, entrada_salida->pid);
 
             proceso_actualizar_registros(pcb, sleep->registros);
             kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", sleep->pid, sleep->interfaz);
@@ -85,6 +85,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         eliminar_paquete(paquete);
 
         free(unidad);
+        free(sleep->interfaz);
         free(sleep);
         break;
     }

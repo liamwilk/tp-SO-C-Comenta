@@ -3,19 +3,13 @@
 /**FUNCIONES DE PROPOSITO GENERAL PARA KERNEL**/
 t_diagrama_estados kernel_inicializar_estados(t_diagrama_estados *estados)
 {
-    t_list *new = malloc(sizeof(t_list));
-    new = list_create();
-    t_list *ready = malloc(sizeof(t_list));
-    ready = list_create();
-    t_list *exec = malloc(sizeof(t_list));
-    exec = list_create();
-    t_list *block = malloc(sizeof(t_list));
-    block = list_create();
-    t_list *exit = malloc(sizeof(t_list));
-    exit = list_create();
+    t_list *new = list_create();
+    t_list *ready = list_create();
+    t_list *exec = list_create();
+    t_list *block = list_create();
+    t_list *exit = list_create();
 
-    t_list *ready_mayor_prioridad = malloc(sizeof(t_list));
-    ready_mayor_prioridad = list_create();
+    t_list *ready_mayor_prioridad = list_create();
 
     // Inicializar diccionario de procesos
     estados->procesos = dictionary_create();
@@ -99,19 +93,29 @@ void kernel_finalizar(hilos_args *args)
         }
 
         // Destruyo la lista auxiliar generada a partir de las keys del diccionario
-        list_destroy(conectados);
+        list_destroy_and_destroy_elements(conectados, free);
+    }
+    else
+    {
+        list_destroy_and_destroy_elements(conectados, free);
     }
 
     // Destruyo todo lo de entrada/salida
-    list_destroy(args->kernel->sockets.list_entrada_salida);
-    dictionary_destroy(args->kernel->sockets.dictionary_entrada_salida);
-    // Libero los recursos y diagrama de estados
-    dictionary_destroy(args->recursos);
-    list_destroy(args->estados->new);
-    list_destroy(args->estados->ready);
-    list_destroy(args->estados->exec);
-    list_destroy(args->estados->block);
-    list_destroy(args->estados->exit);
+    list_destroy_and_destroy_elements(args->kernel->sockets.list_entrada_salida, free);
+    // Iterate over all t_recursos and delete the list of procesos_bloqueados
+    t_list *recursos = dictionary_elements(args->recursos);
+    for (int i = 0; i < list_size(recursos); i++)
+    {
+        t_recurso *recurso = list_get(recursos, i);
+        list_destroy_and_destroy_elements(recurso->procesos_bloqueados, free);
+    }
+    free(recursos);
+    dictionary_destroy_and_destroy_elements(args->recursos, free);
+    list_destroy_and_destroy_elements(args->estados->new, free);
+    list_destroy_and_destroy_elements(args->estados->ready, free);
+    list_destroy_and_destroy_elements(args->estados->exec, free);
+    list_destroy_and_destroy_elements(args->estados->block, free);
+    list_destroy_and_destroy_elements(args->estados->exit, free);
 
     // Bajo el servidor interno de atencion de I/O para no aceptar mas conexiones
     liberar_conexion(&args->kernel->sockets.server);
@@ -199,8 +203,8 @@ t_pcb *kernel_nuevo_proceso(hilos_args *args, t_diagrama_estados *estados, t_log
     enviar_paquete(paquete, args->kernel->sockets.memoria);
 
     eliminar_paquete(paquete);
+    free(proceso->path_instrucciones);
     free(proceso);
-
     return nuevaPcb;
 }
 
@@ -266,14 +270,14 @@ void kernel_wait(hilos_args *args, uint32_t pid, char *recursoSolicitado)
         // Nunca tomo este recurso, se lo agregamos
         int *nuevo_valor = malloc(sizeof(int));
         *nuevo_valor = 1;
-        kernel_log_generic(args, LOG_LEVEL_WARNING, "Cantidad de instancias del recurso <%s> tomadas por el proceso <%d>: <%d>", recursoSolicitado, pid, *nuevo_valor);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Cantidad de instancias del recurso <%s> tomadas por el proceso <%d>: <%d>", recursoSolicitado, pid, *nuevo_valor);
         dictionary_put(proceso_en_exec->recursos_tomados, recursoSolicitado, nuevo_valor);
     }
     else
     {
         // Le sumamos a lo que ya tenia antes y se lo actualizamos
         *instancias += 1;
-        kernel_log_generic(args, LOG_LEVEL_WARNING, "Cantidad de instancias del recurso <%s> tomadas por el proceso <%d>: <%d>", recursoSolicitado, pid, *instancias);
+        kernel_log_generic(args, LOG_LEVEL_DEBUG, "Cantidad de instancias del recurso <%s> tomadas por el proceso <%d>: <%d>", recursoSolicitado, pid, *instancias);
         dictionary_put(proceso_en_exec->recursos_tomados, recursoSolicitado, instancias);
     }
 
@@ -359,7 +363,7 @@ void kernel_signal(hilos_args *args, uint32_t pid, char *recurso, t_recurso_moti
             {
                 char *key = list_get(keys, i);
                 int *instancias = dictionary_get(recursos_tomados, key);
-                kernel_log_generic(args, LOG_LEVEL_WARNING, "Cantidad de instancias del recurso <%s> tomadas por el proceso <%d>: <%d>", key, pcb->pid, *instancias);
+                kernel_log_generic(args, LOG_LEVEL_DEBUG, "Cantidad de instancias del recurso <%s> tomadas por el proceso <%d>: <%d>", key, pcb->pid, *instancias);
                 t_recurso *recurso_por_pid = recurso_buscar(args->recursos, key);
                 recurso_por_pid->instancias += *instancias;
                 kernel_log_generic(args, LOG_LEVEL_DEBUG, "Se libero una instancia del recurso <%s> - Instancias restantes <%d> - Tomado por PID: <%d>", key, recurso_por_pid->instancias, pcb->pid);
@@ -413,15 +417,19 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
         if (strcmp(estado, "EXEC") == 0)
         {
             interrumpir_temporizador(kernel_hilos_args);
-            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "El proceso <%d> se encuentra en ejecucion, se procede a desalojarlo", pid);
+            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "El proceso <%d> se encuentra en ejecucion, se procede a desalojarlo", pid);
             kernel_interrumpir_cpu(kernel_hilos_args, pid, "FINALIZAR_PROCESO");
             kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
             kernel_transicion_exec_exit(kernel_hilos_args);
+            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> - Motivo: <INTERRUPTED_BY_USER>", pid);
+            proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+            // Aviso al planificador
+            sem_post(&kernel_hilos_args->kernel->planificador_iniciar);
             return false;
         }
         if (strcmp(estado, "BLOCK") == 0)
         {
-            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_WARNING, "El proceso <%d> se encuentra bloqueado, se procede a desbloquearlo", pid);
+            kernel_log_generic(kernel_hilos_args, LOG_LEVEL_DEBUG, "El proceso <%d> se encuentra bloqueado, se procede a desbloquearlo", pid);
             kernel_transicion_block_exit(kernel_hilos_args, pid);
 
             //  Verificamos que el proceso este blockeado por recurso y no por I/O
@@ -488,7 +496,10 @@ bool kernel_finalizar_proceso(hilos_args *kernel_hilos_args, uint32_t pid, KERNE
         }
         kernel_avisar_memoria_finalizacion_proceso(kernel_hilos_args, pid);
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "Finaliza el proceso <%d> -  Motivo: <SUCCESS>", pid);
-        proceso_matar(kernel_hilos_args->estados, string_itoa(pid));
+
+        char *pid_string = string_itoa(pid);
+        proceso_matar(kernel_hilos_args->estados, pid_string);
+        free(pid_string);
         return true;
     }
     case INVALID_RESOURCE:

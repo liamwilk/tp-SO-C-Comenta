@@ -18,10 +18,6 @@ void planificacion_largo_plazo(hilos_args *hiloArgs)
             cant_en_new--;
         }
     }
-    if (cant_en_new == 0)
-    {
-        kernel_log_generic(hiloArgs, LOG_LEVEL_WARNING, "[PLANIFICADOR LARGO PLAZO] No hay mas procesos en new");
-    }
 };
 
 void fifo(hilos_args *kernel_hilos_args)

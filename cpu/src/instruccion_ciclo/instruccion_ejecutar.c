@@ -9,10 +9,10 @@ int instruccion_ejecutar(t_cpu *args)
     case SET:
     {
         // SET (Registro, Valor): Asigna al registro el valor pasado como parámetro.
-        log_debug(args->logger, "Instruccion: '%s' '%s' '%s' reconocida", args->instruccion.array[0], args->instruccion.array[1], args->instruccion.array[2]);
+        log_debug(args->logger, "Instruccion: '%s' '%s' '%s' reconocida", args->instruccion[0], args->instruccion[1], args->instruccion[2]);
 
-        char *registro_destino = strdup(args->instruccion.array[1]);
-        char *valor = strdup(args->instruccion.array[2]);
+        char *registro_destino = strdup(args->instruccion[1]);
+        char *valor = strdup(args->instruccion[2]);
 
         t_registro registro_tipo = obtener_tipo_registro(registro_destino);
 
@@ -62,10 +62,10 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case SUM:
     {
-        log_debug(args->logger, "Instruccion: '%s' '%s' '%s' reconocida", args->instruccion.array[0], args->instruccion.array[1], args->instruccion.array[2]);
+        log_debug(args->logger, "Instruccion: '%s' '%s' '%s' reconocida", args->instruccion[0], args->instruccion[1], args->instruccion[2]);
 
-        char *argumento_destino = strdup(args->instruccion.array[1]);
-        char *argumento_origen = strdup(args->instruccion.array[2]);
+        char *argumento_destino = strdup(args->instruccion[1]);
+        char *argumento_origen = strdup(args->instruccion[2]);
 
         // Determino si es un registro de 32 o 8 bits
         t_registro argumento_destino_tipo = obtener_tipo_registro(argumento_destino);
@@ -242,10 +242,10 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case SUB:
     {
-        log_debug(args->logger, "Instruccion: '%s' '%s' '%s' reconocida", args->instruccion.array[0], args->instruccion.array[1], args->instruccion.array[2]);
+        log_debug(args->logger, "Instruccion: '%s' '%s' '%s' reconocida", args->instruccion[0], args->instruccion[1], args->instruccion[2]);
 
-        char *argumento_destino = strdup(args->instruccion.array[1]);
-        char *argumento_origen = strdup(args->instruccion.array[2]);
+        char *argumento_destino = strdup(args->instruccion[1]);
+        char *argumento_origen = strdup(args->instruccion[2]);
 
         // Determino si es un registro de 32 o 8 bits
         t_registro argumento_destino_tipo = obtener_tipo_registro(argumento_destino);
@@ -432,8 +432,8 @@ int instruccion_ejecutar(t_cpu *args)
     case JNZ:
     {
         // JNZ (Registro, Instrucción): Si el valor del registro es distinto de cero, actualiza el program counter al número de instrucción pasada por parámetro.
-        char *registro = strdup(args->instruccion.array[1]);
-        char *instruccion = strdup(args->instruccion.array[2]);
+        char *registro = strdup(args->instruccion[1]);
+        char *instruccion = strdup(args->instruccion[2]);
 
         t_registro registro_tipo_size = obtener_tipo_registro(registro);
 
@@ -466,10 +466,10 @@ int instruccion_ejecutar(t_cpu *args)
     {
         // IO_GEN_SLEEP (Interfaz, Unidades de trabajo): Esta instrucción solicita al Kernel que se envíe a una interfaz de I/O a que realice un sleep por una cantidad de unidades de trabajo.
 
-        char *interfaz = strdup(args->instruccion.array[1]);
-        uint32_t tiempo = atoi(args->instruccion.array[2]);
+        char *interfaz = strdup(args->instruccion[1]);
+        uint32_t tiempo = atoi(args->instruccion[2]);
 
-        log_debug(args->logger, "Instruccion: '%s' '%s' '%s' reconocida", args->instruccion.array[0], args->instruccion.array[1], args->instruccion.array[2]);
+        log_debug(args->logger, "Instruccion: '%s' '%s' '%s' reconocida", args->instruccion[0], args->instruccion[1], args->instruccion[2]);
 
         log_debug(args->logger, "Interfaz: %s", interfaz);
         log_debug(args->logger, "Tiempo: %d", tiempo);
@@ -506,8 +506,8 @@ int instruccion_ejecutar(t_cpu *args)
         */
 
         // Creo copias
-        char *registro_datos = strdup(args->instruccion.array[1]);
-        char *registro_direccion = strdup(args->instruccion.array[2]);
+        char *registro_datos = strdup(args->instruccion[1]);
+        char *registro_direccion = strdup(args->instruccion[2]);
 
         // Determino que tipo de registros debo operar
         t_registro registro_datos_tipo = obtener_tipo_registro(registro_datos);
@@ -610,10 +610,10 @@ int instruccion_ejecutar(t_cpu *args)
         */
 
         // Dirección logica + desplazamiento del tamaño del registro
-        char *registro_direccion = strdup(args->instruccion.array[1]);
+        char *registro_direccion = strdup(args->instruccion[1]);
 
         // Datos a leer
-        char *registro_datos = strdup(args->instruccion.array[2]);
+        char *registro_datos = strdup(args->instruccion[2]);
 
         // Determino que tipo de registros debo operar
         t_registro registro_datos_tipo = obtener_tipo_registro(registro_datos);
@@ -717,7 +717,7 @@ int instruccion_ejecutar(t_cpu *args)
         t_paquete *paquete = crear_paquete(CPU_MEMORIA_RESIZE);
         t_cpu_memoria_resize *resize = malloc(sizeof(t_cpu_memoria_resize));
         resize->pid = args->proceso.pid;
-        resize->bytes = atoi(args->instruccion.array[1]);
+        resize->bytes = atoi(args->instruccion[1]);
 
         serializar_t_cpu_memoria_resize(&paquete, resize);
         enviar_paquete(paquete, args->config_leida.socket_memoria);
@@ -750,7 +750,7 @@ int instruccion_ejecutar(t_cpu *args)
         // Cargo las cosas
         proceso->pid = args->proceso.pid;
         proceso->resultado = 0;
-        proceso->cant_bytes = atoi(strdup(args->instruccion.array[1]));
+        proceso->cant_bytes = atoi(strdup(args->instruccion[1]));
         proceso->direccion_si = args->proceso.registros.si;
         proceso->direccion_di = args->proceso.registros.di;
 
@@ -782,9 +782,9 @@ int instruccion_ejecutar(t_cpu *args)
         y el mismo se guarde a partir de la Dirección Lógica almacenada en el Registro Dirección. */
 
         // Creo copias
-        char *interfaz = strdup(args->instruccion.array[1]);
-        char *registro_direccion = strdup(args->instruccion.array[2]);
-        char *registro_tamanio = strdup(args->instruccion.array[3]);
+        char *interfaz = strdup(args->instruccion[1]);
+        char *registro_direccion = strdup(args->instruccion[2]);
+        char *registro_tamanio = strdup(args->instruccion[3]);
 
         // Determino que tipo de registros debo operar
         t_registro registro_direccion_tipo = obtener_tipo_registro(registro_direccion);
@@ -904,9 +904,9 @@ int instruccion_ejecutar(t_cpu *args)
         // Le adjunto en el paquete los datos que necesita, más los que yo necesito que me devuelva para seguir con la ejecución de la instruccion.
 
         // Creo copias
-        char *interfaz = strdup(args->instruccion.array[1]);
-        char *registro_direccion = strdup(args->instruccion.array[2]);
-        char *registro_tamanio = strdup(args->instruccion.array[3]);
+        char *interfaz = strdup(args->instruccion[1]);
+        char *registro_direccion = strdup(args->instruccion[2]);
+        char *registro_tamanio = strdup(args->instruccion[3]);
 
         // Determino que tipo de registros debo operar
         t_registro registro_direccion_tipo = obtener_tipo_registro(registro_direccion);
@@ -1015,8 +1015,8 @@ int instruccion_ejecutar(t_cpu *args)
         IO_FS_CREATE Int3 notas.txt
         IO_FS_CREATE (Interfaz, Nombre Archivo): Esta instrucción solicita al Kernel que mediante la interfaz seleccionada, se cree un archivo en el FS montado en dicha interfaz.*/
 
-        char *interfaz = strdup(args->instruccion.array[1]);
-        char *nombre_archivo = strdup(args->instruccion.array[2]);
+        char *interfaz = strdup(args->instruccion[1]);
+        char *nombre_archivo = strdup(args->instruccion[2]);
 
         t_entrada_salida_fs_create *proceso = malloc(sizeof(t_entrada_salida_fs_create));
         proceso->pid = args->proceso.pid;
@@ -1042,8 +1042,8 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case IO_FS_DELETE:
     {
-        char *interfaz = strdup(args->instruccion.array[1]);
-        char *nombre_archivo = strdup(args->instruccion.array[2]);
+        char *interfaz = strdup(args->instruccion[1]);
+        char *nombre_archivo = strdup(args->instruccion[2]);
 
         // Se utiliza la serializacion de la estructura t_entrada_salida_fs_delete para no repetir logica
         t_entrada_salida_fs_create *proceso = malloc(sizeof(t_entrada_salida_fs_create));
@@ -1070,9 +1070,9 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case IO_FS_TRUNCATE:
     {
-        char *interfaz = strdup(args->instruccion.array[1]);
-        char *nombre_archivo = strdup(args->instruccion.array[2]);
-        char *registro_destino = strdup(args->instruccion.array[3]);
+        char *interfaz = strdup(args->instruccion[1]);
+        char *nombre_archivo = strdup(args->instruccion[2]);
+        char *registro_destino = strdup(args->instruccion[3]);
         t_registro registro_tipo = obtener_tipo_registro(registro_destino);
         if (registro_tipo == INVALIDO)
         {
@@ -1118,11 +1118,11 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case IO_FS_WRITE:
     {
-        char *interfaz = strdup(args->instruccion.array[1]);
-        char *nombre_archivo = strdup(args->instruccion.array[2]);
-        char *registro_direccion = strdup(args->instruccion.array[3]);
-        char *registro_tamanio = strdup(args->instruccion.array[4]);
-        char *registro_puntero_archivo = strdup(args->instruccion.array[5]);
+        char *interfaz = strdup(args->instruccion[1]);
+        char *nombre_archivo = strdup(args->instruccion[2]);
+        char *registro_direccion = strdup(args->instruccion[3]);
+        char *registro_tamanio = strdup(args->instruccion[4]);
+        char *registro_puntero_archivo = strdup(args->instruccion[5]);
 
         t_cpu_memoria_fs_write *proceso = malloc(sizeof(t_cpu_memoria_fs_write));
 
@@ -1241,11 +1241,11 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case IO_FS_READ:
     {
-        char *interfaz = strdup(args->instruccion.array[1]);
-        char *nombre_archivo = strdup(args->instruccion.array[2]);
-        char *registro_direccion = strdup(args->instruccion.array[3]);
-        char *registro_tamanio = strdup(args->instruccion.array[4]);
-        char *registro_puntero_archivo = strdup(args->instruccion.array[5]);
+        char *interfaz = strdup(args->instruccion[1]);
+        char *nombre_archivo = strdup(args->instruccion[2]);
+        char *registro_direccion = strdup(args->instruccion[3]);
+        char *registro_tamanio = strdup(args->instruccion[4]);
+        char *registro_puntero_archivo = strdup(args->instruccion[5]);
 
         t_cpu_kernel_fs_read *proceso = malloc(sizeof(t_cpu_kernel_fs_read));
 
@@ -1367,7 +1367,7 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case WAIT:
     {
-        char *nombre_recurso = strdup(args->instruccion.array[1]);
+        char *nombre_recurso = strdup(args->instruccion[1]);
         log_debug(args->logger, "Recurso a esperar: %s", nombre_recurso);
 
         t_paquete *paquete = crear_paquete(CPU_KERNEL_WAIT);
@@ -1392,7 +1392,7 @@ int instruccion_ejecutar(t_cpu *args)
     }
     case SIGNAL:
     {
-        char *nombre_recurso = strdup(args->instruccion.array[1]);
+        char *nombre_recurso = strdup(args->instruccion[1]);
         log_debug(args->logger, "Recurso a liberar: %s", nombre_recurso);
 
         t_paquete *paquete = crear_paquete(CPU_KERNEL_SIGNAL);
