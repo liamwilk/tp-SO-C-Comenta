@@ -25,44 +25,28 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 		// Inicializo la tabla de paginas asociada al proceso
 		tabla_paginas_inicializar(argumentos, proceso);
 
-		// /* Caso prueba espacio de usuario:
+		/* Caso prueba 4 bytes:
 		{
-			// Se deben asignar las paginas al proceso antes de escribirlas
-			tabla_paginas_asignar_pagina(argumentos, proceso, 0, 0);
-			tabla_paginas_asignar_pagina(argumentos, proceso, 1, 1);
-			tabla_paginas_asignar_pagina(argumentos, proceso, 2, 2);
-
-			char *cadena = "CURSADA DE SISTEMAS OPERATIVOS 1c 2024";
-
-			// Se deben actualizar los bytes usados del proceso cada vez que se escriba
-			espacio_usuario_escribir_char(argumentos, 0, cadena);
-			proceso->bytes_usados += strlen(cadena);
-		}
-		// */
-
-		/* Caso prueba mov_in 4 bytes:
-		{
-			tabla_paginas_asignar_pagina(argumentos, proceso);
-
 			uint32_t numero = 12345;
-
-			// Se deben actualizar los bytes usados del proceso cada vez que se escriba
-			espacio_usuario_escribir_uint32_t(argumentos, 0, numero);
-			proceso->bytes_usados += sizeof(uint32_t);
+			tabla_paginas_asignar_pagina(argumentos, proceso, 0, 0);
+			espacio_usuario_escribir_uint32_t(argumentos, proceso, 0, numero);
 		}
-		*/
 
-		/* Caso prueba mov_in 1 byte:
+		// Se deben asignar las paginas al proceso antes de escribirlas
+		tabla_paginas_asignar_pagina(argumentos, proceso, 0, 0);
+		tabla_paginas_asignar_pagina(argumentos, proceso, 1, 1);
+		tabla_paginas_asignar_pagina(argumentos, proceso, 2, 2);
+
+		char *cadena = "CURSADA DE SISTEMAS OPERATIVOS 1c 2024";
+
+		espacio_usuario_escribir_char(argumentos, proceso, 0, cadena);
+
+		// Caso prueba 1 byte:
 		{
-			tabla_paginas_asignar_pagina(argumentos, proceso);
-
 			uint8_t numero = 123;
-
-			// Se deben actualizar los bytes usados del proceso cada vez que se escriba
-			espacio_usuario_escribir_uint8_t(argumentos, 0, numero);
-			proceso->bytes_usados += sizeof(uint8_t);
-		}
-		*/
+			tabla_paginas_asignar_pagina(argumentos, proceso, 0, 0);
+			espacio_usuario_escribir_uint8_t(argumentos, proceso, 0, numero);
+		} */
 
 		// Leo las instrucciones del archivo y las guardo en la lista de instrucciones del proceso
 		proceso->instrucciones = leer_instrucciones(argumentos, path_completo, proceso->pid);
@@ -70,7 +54,6 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 		// Le aviso a Kernel que no pude leer las instrucciones para ese PID
 		if (proceso->instrucciones == NULL)
 		{
-
 			t_paquete *respuesta_paquete = crear_paquete(MEMORIA_KERNEL_NUEVO_PROCESO);
 
 			t_memoria_kernel_proceso *respuesta_proceso = malloc(sizeof(t_memoria_kernel_proceso));
@@ -114,11 +97,21 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 
 		log_debug(argumentos->logger, "Proceso <%d> agregado a la lista de procesos global en la posicion %d", proceso->pid, index);
 
+		char* pid_char = string_itoa(proceso->pid);
+
 		// Añado el proceso al diccionario de procesos, mapeando el PID a el indice en la lista de procesos
-		dictionary_put(argumentos->memoria.diccionario_procesos, string_itoa(proceso->pid), string_itoa(index));
+		dictionary_put(argumentos->memoria.diccionario_procesos, pid_char, string_itoa(index));
+
+		free(pid_char);
 
 		{ // Reviso que se haya guardado correctamente en el diccionario de procesos y en la lista de procesos
-			char *indice = dictionary_get(argumentos->memoria.diccionario_procesos, string_itoa(proceso->pid));
+			
+			char* proceso_pid = string_itoa(proceso->pid);
+			
+			char *indice = dictionary_get(argumentos->memoria.diccionario_procesos, proceso_pid);
+			
+			free(proceso_pid);
+			
 			t_proceso *proceso_encontrado = list_get(argumentos->memoria.lista_procesos, atoi(indice));
 
 			log_debug(argumentos->logger, "Reviso que se haya guardado correctamente en el diccionario de procesos y en la lista de procesos");
@@ -209,6 +202,55 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 		free(proceso_encontrado);
 		free(pid_char);
 		free(proceso);
+		break;
+	}
+	case KERNEL_MEMORIA_IO_FS_READ:
+	{
+		t_kernel_memoria_fs_read *proceso_recibido = deserializar_t_kernel_memoria_fs_read(buffer);
+
+		log_debug(argumentos->logger, "Se recibio una instruccion de IO_FS_READ para el proceso con PID <%d>", proceso_recibido->pid);
+
+		t_proceso *proceso = buscar_proceso(argumentos, proceso_recibido->pid);
+
+		if (proceso == NULL)
+		{
+			log_warning(argumentos->logger, "No se pudo recuperar el proceso con PID <%d> porque no existe en Memoria.", proceso_recibido->pid);
+			free(proceso_recibido->interfaz);
+			free(proceso_recibido->nombre_archivo);
+			free(proceso_recibido);
+			break;
+		}
+
+		log_debug(argumentos->logger, "Proceso encontrado con PID <%d> y PC <%d>", proceso->pid, proceso->pc);
+		log_debug(argumentos->logger, "Cantidad de instrucciones: %d", list_size(proceso->instrucciones));
+
+		// Llegado a este punto, el proceso existe y tiene instrucciones
+
+		// Escribo el dato obtenido de FS en el espacio usuario
+
+		espacio_usuario_escribir_char(argumentos, proceso, proceso_recibido->direccion_fisica, proceso_recibido->dato);
+
+		log_debug(argumentos->logger, "Se escribio en espacio de usuario el dato <%s> en la dirección fisica <%d>, perteneciente al proceso PID <%d>", proceso_recibido->dato, proceso_recibido->direccion_fisica, proceso_recibido->pid);
+
+		// Le aviso a Kernel que se escribio el dato
+		t_memoria_kernel_fs_read *respuesta = malloc(sizeof(t_memoria_kernel_fs_read));
+		t_paquete *respuesta_paquete = crear_paquete(MEMORIA_KERNEL_IO_FS_READ);
+
+		respuesta->pid = proceso_recibido->pid;
+		respuesta->resultado = 1;
+		respuesta->motivo = "Se escribio el dato correctamente";
+		respuesta->size_motivo = strlen(respuesta->motivo) + 1;
+
+		serializar_t_memoria_kernel_fs_read(&respuesta_paquete, respuesta);
+		enviar_paquete(respuesta_paquete, argumentos->memoria.sockets.socket_kernel);
+
+		free(proceso_recibido->interfaz);
+		free(proceso_recibido->nombre_archivo);
+		free(proceso_recibido);
+		free(respuesta);
+
+		eliminar_paquete(respuesta_paquete);
+
 		break;
 	}
 	case FINALIZAR_SISTEMA:

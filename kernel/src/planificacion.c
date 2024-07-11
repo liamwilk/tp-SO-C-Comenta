@@ -18,10 +18,6 @@ void planificacion_largo_plazo(hilos_args *hiloArgs)
             cant_en_new--;
         }
     }
-    if (cant_en_new == 0)
-    {
-        kernel_log_generic(hiloArgs, LOG_LEVEL_WARNING, "[PLANIFICADOR LARGO PLAZO] No hay mas procesos en new");
-    }
 };
 
 void fifo(hilos_args *kernel_hilos_args)
@@ -68,7 +64,7 @@ void virtual_round_robin(hilos_args *hiloArgs)
         if (ready_exec_prioridad != NULL)
         {
             kernel_log_generic(hiloArgs, LOG_LEVEL_DEBUG, "[VIRTUAL ROUND ROBIN]: Enviando proceso con MAYOR PRIORIDAD <PID: %d> a CPU, QUANTUM: <%d> milisegundos", ready_exec_prioridad->pid, quantum);
-            kernel_desalojar_proceso(hiloArgs, ready_exec_prioridad, hiloArgs->kernel->quantum);
+            kernel_desalojar_proceso(hiloArgs, ready_exec_prioridad, quantum);
         }
         return;
     }

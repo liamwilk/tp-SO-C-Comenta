@@ -26,5 +26,6 @@ void procesos_estados(hilos_args *hiloArgs)
         char *estado = proceso_estado(hiloArgs->estados, atoi(key));
         kernel_log_generic(hiloArgs, LOG_LEVEL_INFO, "PID: %s - Estado: %s", key, estado);
     }
+    list_destroy(keys);
     return;
 }

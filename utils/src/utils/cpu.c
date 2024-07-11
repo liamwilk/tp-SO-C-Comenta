@@ -2,6 +2,14 @@
 
 void instruccion_ciclo(t_cpu *args, t_buffer *buffer)
 {
+    // TODO: Ver esto
+
+    // if (args->flag_interrupt)
+    // {
+    //     instruccion_interrupt(args);
+    //     return;
+    // }
+
     if (instruccion_recibir(args, buffer))
     {
         log_error(args->logger, "Instruccion invalida.");
@@ -12,13 +20,13 @@ void instruccion_ciclo(t_cpu *args, t_buffer *buffer)
     {
         if (args->tipo_instruccion != EXIT)
         {
-            log_debug(args->logger, "Se bifurca el ciclo de instruccion en la ejecucion del proceso PID <%d> en la instruccion <%s>.", args->proceso.pid, args->instruccion.array[0]);
+            log_debug(args->logger, "Se bifurca el ciclo de instruccion en la ejecucion del proceso PID <%d> en la instruccion <%s>.", args->proceso.pid, args->instruccion[0]);
         }
         return;
     }
     else if (args->tipo_instruccion == -1)
     {
-        log_error(args->logger, "Se finaliza la ejecucion del proceso PID <%d> por error en la instruccion <%s>.", args->proceso.pid, args->instruccion.array[0]);
+        log_error(args->logger, "Se finaliza la ejecucion del proceso PID <%d> por error en la instruccion <%s>.", args->proceso.pid, args->instruccion[0]);
         args->proceso.ejecutado = 0;
         instruccion_finalizar(args);
     }
@@ -35,14 +43,151 @@ void instruccion_ciclo(t_cpu *args, t_buffer *buffer)
 void inicializar_modulo_cpu(t_cpu *argumentos, t_log_level nivel, int argc, char *argv[])
 {
     inicializar_argumentos_cpu(argumentos, nivel, argc, argv);
+    inicializar_tlb(argumentos);
     inicializar_servidores_cpu(argumentos);
     inicializar_hilos_cpu(argumentos);
     liberar_recursos_cpu(argumentos);
 }
 
+t_algoritmo_tlb determinar_codigo_algoritmo(char *algoritmo_tlb)
+{
+
+    if (strcmp(algoritmo_tlb, "FIFO") == 0)
+    {
+        return FIFO_TLB;
+    }
+    if (strcmp(algoritmo_tlb, "LRU") == 0)
+    {
+        return LRU;
+    }
+    return -1;
+};
+
+void inicializar_tlb(t_cpu *args)
+{
+    sem_init(&args->mmu_ejecucion, 0, 0);
+
+    args->proximo_indice_reemplazo = 0;
+    args->tlb = malloc(args->config_leida.cantidadEntradasTlb * sizeof(t_tlb));
+
+    for (int i = 0; i < args->config_leida.cantidadEntradasTlb; i++)
+    {
+        args->tlb[i].pid = 0;
+        args->tlb[i].pagina = 0;
+        args->tlb[i].marco = -1;
+        args->tlb[i].ultimo_acceso = 0;
+    }
+}
+
+int buscar_en_tlb(uint32_t pid, uint32_t pagina, uint32_t cantidad_entradas_tlb, t_tlb *tlb)
+{
+    for (int i = 0; i < cantidad_entradas_tlb; i++)
+    {
+        if (tlb[i].pid == pid && tlb[i].pagina == pagina)
+        {
+            // Se accedio a la entrada de la TLB, se actualiza el timestamp
+            tlb[i].ultimo_acceso = (int)time(NULL);
+            return tlb[i].marco;
+        }
+    }
+    return -1; // TLB miss
+}
+
+int buscar_entrada_vacia_tlb(uint32_t cantidad_entradas_tlb, t_tlb *tlb)
+{
+    for (int i = 0; i < cantidad_entradas_tlb; i++)
+    {
+        if (tlb[i].pid == 0)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+void agregar_en_tlb(uint32_t pid, uint32_t pagina, uint32_t frame, t_cpu *args)
+{
+    int index = buscar_entrada_vacia_tlb(args->config_leida.cantidadEntradasTlb, args->tlb);
+
+    if (index == -1)
+    { // TLB llena, reemplazar una entrada
+        index = reemplazar_en_tlb(args->config_leida.algoritmoTlb, args->config_leida.cantidadEntradasTlb, args);
+    }
+
+    args->tlb[index].pid = pid;
+    args->tlb[index].pagina = pagina;
+    args->tlb[index].marco = frame;
+    args->tlb[index].ultimo_acceso = (int)time(NULL);
+}
+
+int reemplazar_en_tlb(char *algoritmo_reemplazo, uint32_t cantidad_entradas_tlb, t_cpu *args)
+{
+    t_algoritmo_tlb algoritmo = determinar_codigo_algoritmo(algoritmo_reemplazo);
+    int index = 0;
+
+    switch (algoritmo)
+    {
+    case FIFO_TLB:
+    {
+        index = args->proximo_indice_reemplazo;
+        log_warning(args->logger, "[TLB/FIFO] Reemplazando en pos <%d> entrada en la TLB", index);
+        // Se incrementa el próximo indice y después se calcula el resto, para asegurarme que esté en los limites del array
+        args->proximo_indice_reemplazo = (args->proximo_indice_reemplazo + 1) % cantidad_entradas_tlb;
+        return index;
+    }
+    case LRU:
+        int min_timestamp = args->tlb[0].ultimo_acceso;
+        if (min_timestamp == 0)
+        {
+            // Hay un hueco vacio en la TLB y es el primero
+            log_debug(args->logger, "[TLB/LRU] Hueco vacio en la TLB");
+            return index;
+        }
+        index = 0;
+        // Se busca la entrada con el timestamp mas antiguo, esto es, el timestamp mas bajo
+        // Se utiliza UNIX timestamp para comparar
+        for (int i = 1; i < cantidad_entradas_tlb; i++)
+        {
+            if (args->tlb[i].ultimo_acceso < min_timestamp)
+            {
+                log_warning(args->logger, "[TLB/LRU] Reemplazando entrada en la TLB");
+                log_warning(args->logger, "Nuevo timestamp mas bajo: %d", args->tlb[i].ultimo_acceso);
+                min_timestamp = args->tlb[i].ultimo_acceso;
+                index = i;
+            }
+            if (min_timestamp == 0)
+            {
+                // Hay un hueco vacio en la TLB
+                log_debug(args->logger, "[TLB/LRU] Hueco vacio en la TLB");
+                return i;
+            }
+        }
+        return index;
+    default:
+        log_error(args->logger, "Algoritmo de reemplazo de TLB invalido.");
+        return -1;
+    }
+}
+
+void mmu_iniciar(t_cpu *cpu, t_instruccion codigo, uint32_t direccion_logica, void *paquete)
+{
+    cpu->pid = 0;
+    cpu->pagina = 0;
+    cpu->marco = -1;
+    cpu->resultado = 0;
+    cpu->direccion_fisica = 0;
+    cpu->codigo = codigo;
+    cpu->direccion_logica = direccion_logica;
+    cpu->paquete = paquete;
+
+    sem_post(&cpu->mmu_ejecucion);
+}
+
 void liberar_recursos_cpu(t_cpu *argumentos)
 {
     log_destroy(argumentos->logger);
+    free(argumentos->tlb);
+    free(argumentos->instruccion);
     config_destroy(argumentos->config);
 }
 
@@ -58,6 +203,9 @@ void inicializar_argumentos_cpu(t_cpu *args, t_log_level nivel, int argc, char *
     inicializar_config(&args->config, args->logger, argc, argv);
     cpu_leer_config(args);
     cpu_imprimir_log(args);
+    args->cantidad_elementos = 0;
+    args->instruccion = NULL;
+    sem_init(&args->log_sem, 0, 1);
 }
 
 void *conectar_memoria(void *args_void)
@@ -105,6 +253,9 @@ void *atender_kernel_interrupt(void *args_void)
 
 void inicializar_hilos_cpu(t_cpu *args)
 {
+    pthread_create(&args->threads.thread_mmu, NULL, hilo_mmu, args);
+    pthread_detach(args->threads.thread_mmu);
+
     pthread_create(&args->threads.thread_conectar_memoria, NULL, conectar_memoria, args);
     pthread_join(args->threads.thread_conectar_memoria, NULL);
 
@@ -124,28 +275,48 @@ void inicializar_hilos_cpu(t_cpu *args)
     pthread_join(args->threads.thread_atender_kernel_interrupt, NULL);
 }
 
+void cleanup(void *arg)
+{
+    cleanup_args_t *cleanup_args = (cleanup_args_t *)arg;
+    if (cleanup_args->paquete != NULL)
+    {
+        eliminar_paquete(cleanup_args->paquete);
+    }
+}
+
 void hilo_ejecutar_cpu(t_cpu *args, int socket, char *modulo, t_funcion_cpu_ptr switch_case_atencion)
 {
+    cleanup_args_t cleanup_args = {NULL};
+
+    // Registrar la función de limpieza
+    pthread_cleanup_push(cleanup, &cleanup_args);
+
     while (1)
     {
-        pthread_testcancel();
+        pthread_testcancel(); // Comprobar solicitud de cancelación
 
         log_debug(args->logger, "Esperando paquete de %s en socket %d", modulo, socket);
 
-        t_paquete *paquete = recibir_paquete(args->logger, &socket);
+        cleanup_args.paquete = recibir_paquete(args->logger, &socket);
 
-        if (paquete == NULL)
+        if (cleanup_args.paquete == NULL)
         {
-            log_warning(args->logger, "%s se desconecto del socket %d.", modulo, socket);
+            // log_warning(args->logger, "%s se desconecto del socket %d.", modulo, socket);
             break;
         }
 
-        revisar_paquete(paquete, args->logger, modulo);
+        revisar_paquete(cleanup_args.paquete, args->logger, modulo);
 
-        switch_case_atencion(args, paquete->codigo_operacion, paquete->buffer);
+        switch_case_atencion(args, cleanup_args.paquete->codigo_operacion, cleanup_args.paquete->buffer);
 
-        eliminar_paquete(paquete);
+        eliminar_paquete(cleanup_args.paquete);
+
+        // Reseteo para la próxima iteración
+        cleanup_args.paquete = NULL;
     }
+
+    // Se la función de limpieza si se cancela o se sale del bucle
+    pthread_cleanup_pop(1);
 }
 
 void cpu_leer_config(t_cpu *args)
@@ -168,14 +339,14 @@ void cpu_imprimir_log(t_cpu *args)
     log_info(args->logger, "ALGORITMO_TLB: %s", args->config_leida.algoritmoTlb);
 };
 
-void log_instruccion(t_cpu *args)
+void instruccion_log(t_cpu *args)
 {
     char log_message[256] = {0};
     int offset = snprintf(log_message, sizeof(log_message), "PID: <%d> - Ejecutando:", args->proceso.pid);
 
-    for (int i = 0; i < args->instruccion.cantidad_elementos; i++)
+    for (int i = 0; i < args->cantidad_elementos; i++)
     {
-        offset += snprintf(log_message + offset, sizeof(log_message) - offset, " <%s>", args->instruccion.array[i]);
+        offset += snprintf(log_message + offset, sizeof(log_message) - offset, " <%s>", args->instruccion[i]);
     }
 
     log_info(args->logger, "%s", log_message);
@@ -196,7 +367,10 @@ void proceso_recibir(t_cpu *args, t_buffer *buffer)
     args->proceso.registros.dx = proceso_cpu->registros.dx,
     args->proceso.registros.si = proceso_cpu->registros.si,
     args->proceso.registros.di = proceso_cpu->registros.di,
-
+    args->flag_interrupt = 0;
+    args->proceso.ejecutado = 0;
+    args->resultado = 0;
+    free(proceso_cpu);
     imprimir_registros(args);
 }
 
@@ -267,33 +441,6 @@ uint8_t *determinar_tipo_registro_uint8_t(char *instruccion, t_cpu_proceso *proc
 
 t_instruccion determinar_codigo_instruccion(char *instruccion)
 {
-    // Remover \n
-    remover_salto_linea(instruccion);
-
-    /* Todas las posibles instrucciones:
-    {
-        SET,
-        SUM,
-        SUB,
-        JNZ,
-        IO_GEN_SLEEP,
-        MOV_IN,
-        MOV_OUT,
-        RESIZE,
-        COPY_STRING,
-        IO_STDIN_READ,
-        IO_STDOUT_WRITE,
-        IO_FS_CREATE,
-        IO_FS_DELETE,
-        IO_FS_TRUNCATE,
-        IO_FS_WRITE,
-        IO_FS_READ,
-        WAIT,
-        SIGNAL,
-        EXIT
-
-    */
-
     if (strcmp(instruccion, "SET") == 0)
     {
         return SET;
@@ -466,15 +613,16 @@ void recibir_interrupcion(t_cpu *args, t_buffer *buffer)
     if (interrupcion->pid == args->proceso.pid)
     {
         log_debug(args->logger, "[INTERRUPCION/%s] PID: <%d>", interrupcion->motivo, interrupcion->pid);
-        free(interrupcion);
         args->flag_interrupt = 1;
     }
     else
     {
         log_error(args->logger, "El PID recibido (%d) no se corresponde con el que se esta ejecutando (%d)", interrupcion->pid, args->proceso.pid);
-        free(interrupcion);
         args->flag_interrupt = 1;
     }
+
+    free(interrupcion->motivo);
+    free(interrupcion);
 }
 
 void instruccion_interrupt(t_cpu *args)

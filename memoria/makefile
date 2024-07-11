@@ -24,6 +24,9 @@ OBJS = $(patsubst src/%.c,obj/%.o,$(SRCS_C))
 BIN = bin/$(shell cd . && pwd | xargs basename)
 TEST_BIN = bin/tests
 
+# Configuration file path (can be overridden via command line)
+config ?=
+
 .PHONY: all
 all: debug
 
@@ -41,7 +44,7 @@ clean:
 
 .PHONY: memoria
 memoria: $(BIN)
-	./$(BIN)
+	./$(BIN) $(config)
 
 .PHONY: test
 test: $(TEST_BIN)
@@ -68,12 +71,12 @@ $(sort $(dir $(BIN) $(OBJS)) $(dir $(TEST_BIN) $(TEST_OBJS))):
 
 .PHONY: start
 start: debug
-	valgrind --tool=none ./$(BIN) $(ARGS)
+	valgrind --tool=none ./$(BIN) $(config) $(ARGS)
 
 .PHONY: memcheck
 memcheck: debug
-	valgrind --leak-check=full $(MEMCHECK_FLAGS) ./$(BIN) $(ARGS)
+	valgrind --leak-check=full $(MEMCHECK_FLAGS) ./$(BIN) $(config) $(ARGS)
 
 .PHONY: helgrind
 helgrind: debug
-	valgrind --tool=helgrind $(HELGRIND_FLAGS) ./$(BIN) $(ARGS)
+	valgrind --tool=helgrind $(HELGRIND_FLAGS) ./$(BIN) $(config) $(ARGS)

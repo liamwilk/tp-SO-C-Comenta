@@ -19,10 +19,17 @@
 #include <pthread.h>
 #include <limits.h>
 #include <utils/handshake.h>
+#include <commons/temporal.h>
+
+typedef enum
+{
+    FIFO_TLB,
+    LRU
+} t_algoritmo_tlb;
 
 typedef struct
 {
-    pthread_t thread_atender_kernel_dispatch, thread_atender_kernel_interrupt, thread_conectar_memoria, thread_atender_memoria, thread_esperar_kernel_dispatch, thread_esperar_kernel_interrupt;
+    pthread_t thread_atender_kernel_dispatch, thread_atender_kernel_interrupt, thread_conectar_memoria, thread_atender_memoria, thread_esperar_kernel_dispatch, thread_esperar_kernel_interrupt, thread_mmu;
 } t_threads;
 
 typedef struct
@@ -56,10 +63,23 @@ typedef struct t_cpu
     t_log *logger;
     t_config *config;
     t_instruccion tipo_instruccion;
-    t_memoria_cpu_instruccion instruccion;
+    char **instruccion;
+    uint32_t cantidad_elementos;
     t_threads threads;
     t_cpu_proceso proceso;
     int flag_interrupt;
+    /////////////////////////
+    t_tlb *tlb;
+    uint32_t proximo_indice_reemplazo;
+    uint32_t direccion_fisica;
+    uint32_t direccion_logica;
+    sem_t mmu_ejecucion;
+    uint32_t resultado;
+    uint32_t marco;
+    uint32_t pagina;
+    t_instruccion codigo;
+    void *paquete;
+    sem_t log_sem;
 } t_cpu;
 
 typedef void (*t_funcion_cpu_ptr)(t_cpu *, t_op_code, t_buffer *);
@@ -192,7 +212,7 @@ void instruccion_interrupt(t_cpu *cpu);
  * @param cpu_proceso El proceso de la CPU.
  * @param datos_instruccion Los datos de la instrucción.
  */
-void log_instruccion(t_cpu *args);
+void instruccion_log(t_cpu *args);
 
 /**
  * Envía un aviso a la memoria sobre el tamaño de página de la CPU.
@@ -317,6 +337,11 @@ void switch_case_kernel_interrupt(t_cpu *args, t_op_code codigo_operacion, t_buf
  */
 t_instruccion determinar_codigo_instruccion(char *instruccion);
 
+typedef struct
+{
+    t_paquete *paquete;
+} cleanup_args_t;
+
 void hilo_ejecutar_cpu(t_cpu *args, int socket, char *modulo, t_funcion_cpu_ptr switch_case_atencion);
 
 void inicializar_hilos_cpu(t_cpu *argumentos);
@@ -330,5 +355,23 @@ void liberar_recursos_cpu(t_cpu *argumentos);
 void inicializar_modulo_cpu(t_cpu *argumentos, t_log_level nivel, int argc, char *argv[]);
 
 void instruccion_ciclo(t_cpu *args, t_buffer *buffer);
+
+void inicializar_tlb(t_cpu *args);
+
+void *hilo_mmu(void *args_void);
+
+int buscar_entrada_vacia_tlb(uint32_t cantidad_entradas_tlb, t_tlb *tlb);
+
+int buscar_en_tlb(uint32_t pid, uint32_t pagina, uint32_t cantidad_entradas_tlb, t_tlb *tlb);
+
+void agregar_en_tlb(uint32_t pid, uint32_t pagina, uint32_t frame, t_cpu *args);
+
+int reemplazar_en_tlb(char *algoritmo_reemplazo, uint32_t cantidad_entradas_tlb, t_cpu *args);
+
+t_algoritmo_tlb determinar_codigo_algoritmo(char *algoritmo_tlb);
+
+void mmu_iniciar(t_cpu *cpu, t_instruccion codigo, uint32_t direccion_logica, void *paquete);
+
+void cleanup(void *arg);
 
 #endif /* CPU_H_ */

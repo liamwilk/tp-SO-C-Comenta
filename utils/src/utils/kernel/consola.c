@@ -328,7 +328,9 @@ void actualizar_prompt(int signal)
     rl_redisplay();
 
     // Genero el nuevo prompt
-    rl_set_prompt(generar_prompt());
+    char *nuevo_prompt = generar_prompt();
+    rl_set_prompt(nuevo_prompt);
+    free(nuevo_prompt);
     rl_on_new_line();
     rl_redisplay();
 }
@@ -357,17 +359,26 @@ void reiniciar_prompt(hilos_args *hiloArgs)
 
 void kernel_log_ready(hilos_args *kernel_hilos_args, bool prioritaria)
 {
-    char *msg = prioritaria == false ? "Cola Ready : [" : "Cola Ready Mayor Prioridad : [";
+    char *msg = prioritaria == false ? strdup("Cola Ready : [") : strdup("Cola Ready Mayor Prioridad : [");
     t_list *listaARecorrer = prioritaria == false ? kernel_hilos_args->estados->ready : kernel_hilos_args->estados->ready_mayor_prioridad;
+
     // Iterate over ready
     for (int i = 0; i < list_size(listaARecorrer); i++)
     {
         t_pcb *pcb = list_get(listaARecorrer, i);
         char *pid = string_itoa(pcb->pid);
-        msg = string_from_format("%s %s", msg, pid);
+
+        char *new_msg = string_from_format("%s  %s", msg, pid);
+        free(msg);
+        msg = new_msg;
+
+        free(pid);
     }
-    msg = string_from_format("%s ]", msg);
-    kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "%s", msg);
+
+    char *final_msg = string_from_format("%s ]", msg);
+    free(msg);
+    kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "%s", final_msg);
+    free(final_msg);
 }
 
 void imprimir_logo(hilos_args *args)

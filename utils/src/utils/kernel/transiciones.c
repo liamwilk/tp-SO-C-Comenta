@@ -47,7 +47,8 @@ t_pcb *kernel_transicion_ready_exec(hilos_args *kernel_hilos_args)
     t_paquete *paquete = crear_paquete(KERNEL_CPU_EJECUTAR_PROCESO);
     serializar_t_registros_cpu(&paquete, proceso->pid, proceso->registros_cpu);
     enviar_paquete(paquete, kernel_hilos_args->kernel->sockets.cpu_dispatch);
-    free(paquete);
+
+    eliminar_paquete(paquete);
 
     return proceso;
 };
@@ -116,7 +117,7 @@ t_pcb *kernel_transicion_exec_exit(hilos_args *kernel_hilo_args)
     return proceso;
 };
 
-void kernel_transicion_block_exit(hilos_args *kernel_hilos_args, uint32_t pid)
+t_pcb *kernel_transicion_block_exit(hilos_args *kernel_hilos_args, uint32_t pid)
 {
     pthread_mutex_lock(&kernel_hilos_args->estados->mutex_block_exit);
 
@@ -125,7 +126,7 @@ void kernel_transicion_block_exit(hilos_args *kernel_hilos_args, uint32_t pid)
     {
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "[ESTADOS/TRANSICION] Transicion de BLOCK a EXIT fallida. PID <%d> no encontrado en la cola de block", pid);
         pthread_mutex_unlock(&kernel_hilos_args->estados->mutex_block_exit);
-        return;
+        return NULL;
     }
 
     proceso_push_exit(kernel_hilos_args->estados, proceso);
@@ -133,6 +134,8 @@ void kernel_transicion_block_exit(hilos_args *kernel_hilos_args, uint32_t pid)
 
     // log oficial de la catedra
     kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Estado Anterior: <BLOCK> - Estado Actual: <EXIT>", proceso->pid);
+
+    return proceso;
 }
 
 t_pcb *kernel_transicion_new_ready(hilos_args *kernel_hilo_args)
@@ -148,7 +151,6 @@ t_pcb *kernel_transicion_new_ready(hilos_args *kernel_hilo_args)
     }
     if (proceso->memoria_aceptado == false)
     {
-        kernel_log_generic(kernel_hilo_args, LOG_LEVEL_WARNING, "No se puede mover el proceso PID: <%d> a ready, ya que no fue aceptado por memoria", proceso->pid);
         pthread_mutex_unlock(&kernel_hilo_args->estados->mutex_new_ready);
         return NULL;
     }
@@ -249,6 +251,7 @@ void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready T
         if (pcb == NULL)
         {
             kernel_log_generic(args, LOG_LEVEL_ERROR, "[KERNEL/MANEJAR_EXEC_READY] Se quiere buscar el proceso <%d> en exec y no se encuentra, posible condicion de carrera", pid);
+            break;
         }
         if (determinar_algoritmo(args->kernel->algoritmoPlanificador) == FIFO)
         {
@@ -275,7 +278,6 @@ void kernel_manejar_ready(hilos_args *args, uint32_t pid, t_transiciones_ready T
         pcb = proceso_buscar_block(args->estados, pid);
         if (pcb == NULL)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "[KERNEL/MANEJAR_BLOCK_READY] Se quiere buscar el proceso <%d> en block y no se encuentra, posible condicion de carrera", pid);
             break;
         }
         if (determinar_algoritmo(args->kernel->algoritmoPlanificador) == FIFO)

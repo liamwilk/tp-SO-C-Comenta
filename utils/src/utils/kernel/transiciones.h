@@ -60,8 +60,9 @@ t_pcb *kernel_transicion_exec_exit(hilos_args *kernel_hilo_args);
  *
  * @param kernel_hilos_args Los argumentos para los hilos del kernel.
  * @param pid El ID del proceso del bloque a transicionar.
+ * @return t_pcb* Un puntero al bloque transicionado
  */
-void kernel_transicion_block_exit(hilos_args *kernel_hilos_args, uint32_t pid);
+t_pcb *kernel_transicion_block_exit(hilos_args *kernel_hilos_args, uint32_t pid);
 
 /**
  * @brief Función de transición para ejecutar un bloque en el kernel.

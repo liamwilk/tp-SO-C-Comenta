@@ -24,6 +24,10 @@ OBJS = $(patsubst src/%.c,obj/%.o,$(SRCS_C))
 BIN = bin/$(shell cd . && pwd | xargs basename)
 TEST_BIN = bin/tests
 
+# Configuration file path and interface name (can be overridden via command line)
+config ?=
+nombre ?=
+
 .PHONY: all
 all: debug
 
@@ -41,7 +45,7 @@ clean:
 
 .PHONY: io
 io: $(BIN)
-	./$(BIN)
+	./$(BIN) $(nombre) $(config)
 
 .PHONY: test
 test: $(TEST_BIN)
@@ -72,7 +76,7 @@ start: debug
 
 .PHONY: memcheck
 memcheck: debug
-	valgrind --leak-check=full $(MEMCHECK_FLAGS) ./$(BIN) $(ARGS)
+	valgrind --leak-check=full $(MEMCHECK_FLAGS) ./$(BIN) $(nombre) $(config) $(ARGS)
 
 .PHONY: helgrind
 helgrind: debug

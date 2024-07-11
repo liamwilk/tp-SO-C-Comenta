@@ -12,8 +12,7 @@ void switch_case_memoria_entrada_salida_stdin(t_args_hilo *argumentos, char *mod
 
 		t_proceso *proceso = buscar_proceso(argumentos->argumentos, paquete_recibido->pid);
 
-		int resultado = espacio_usuario_escribir_char(argumentos->argumentos, paquete_recibido->direccion_fisica, paquete_recibido->input);
-		proceso->bytes_usados += strlen(paquete_recibido->input);
+		int resultado = espacio_usuario_escribir_char(argumentos->argumentos, proceso,paquete_recibido->direccion_fisica, paquete_recibido->input);
 
 		t_paquete *paquete = crear_paquete(MEMORIA_ENTRADA_SALIDA_IO_STDIN_READ);
 		t_memoria_entrada_salida_io_stdin_read *paquete_enviar = malloc(sizeof(t_memoria_entrada_salida_io_stdin_read));

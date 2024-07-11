@@ -14,59 +14,58 @@ void switch_case_kernel_entrada_salida_stdin(hilos_io_args *io_args, char *modul
             break;
         };
 
+        t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDIN_READ);
+        t_kernel_cpu_io_stdin_read *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdin_read));
+
         if (proceso_recibido->resultado)
         {
             kernel_log_generic(io_args->args, LOG_LEVEL_INFO, "[%s/%s/%d] Se completó la operación de IO_STDIN_READ para el proceso PID <%d>", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden, proceso_recibido->pid);
+            t_kernel_entrada_salida *io = kernel_entrada_salida_buscar_interfaz_pid(io_args->args, proceso_recibido->pid);
+            if (io == NULL)
+            {
+                kernel_log_generic(io_args->args, LOG_LEVEL_ERROR, "No se encontro el tipo IOSTDIN para el proceso PID <%d>", proceso_recibido->pid);
+            }
+            else
+            {
+                io_args->entrada_salida->ocupado = 0;
+                io_args->entrada_salida->pid = 0;
+                kernel_manejar_ready(io_args->args, proceso_recibido->pid, BLOCK_READY);
 
-            io_args->entrada_salida->ocupado = 0;
-            kernel_manejar_ready(io_args->args, proceso_recibido->pid, BLOCK_READY);
+                proceso_enviar->pid = proceso_recibido->pid;
+                proceso_enviar->resultado = 1;
+                proceso_enviar->motivo = strdup("Se completó la operación de IO_STDIN_READ");
 
-            // Aviso a CPU que termino la ejecucion del proceso opcode KERNEL_CPU_IO_STDIN_READ
-            t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDIN_READ);
-            t_kernel_cpu_io_stdin_read *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdin_read));
+                proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
 
-            proceso_enviar->pid = proceso_recibido->pid;
-            proceso_enviar->resultado = 1;
-            proceso_enviar->motivo = strdup("Se completó la operación de IO_STDIN_READ");
-            proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
+                serializar_t_kernel_cpu_io_stdin_read(&paquete, proceso_enviar);
+                enviar_paquete(paquete, io_args->args->kernel->sockets.cpu_dispatch);
 
-            serializar_t_kernel_cpu_io_stdin_read(&paquete, proceso_enviar);
-            enviar_paquete(paquete, io_args->args->kernel->sockets.cpu_dispatch);
-            eliminar_paquete(paquete);
-
-            // Inicio el planificador nuevamente
-            avisar_planificador(io_args->args);
-
-            free(proceso_enviar->motivo);
-            free(proceso_enviar);
+                kernel_proximo_io_stdin(io_args->args, io);
+                avisar_planificador(io_args->args);
+            }
         }
         else
         {
             kernel_log_generic(io_args->args, LOG_LEVEL_ERROR, "[%s/%d] Ocurrió un error en la operación de escritura en consola para el proceso PID %d", modulo, io_args->entrada_salida->orden, proceso_recibido->pid);
+
             t_pcb *pcb = proceso_buscar(io_args->args->estados, proceso_recibido->pid);
             pcb->quantum = interrumpir_temporizador(io_args->args);
-            // Aviso a CPU que termino la ejecucion del proceso opcode KERNEL_CPU_IO_STDOUT_WRITE
-            t_paquete *paquete = crear_paquete(KERNEL_CPU_IO_STDOUT_WRITE);
-            t_kernel_cpu_io_stdout_write *proceso_enviar = malloc(sizeof(t_kernel_cpu_io_stdout_write));
 
             proceso_enviar->pid = proceso_recibido->pid;
             proceso_enviar->resultado = 0;
-            proceso_enviar->motivo = strdup("Error en la operación de escritura en consola de IO_STDOUT");
+            proceso_enviar->motivo = strdup("Error en la operación de escritura en consola de IO_STDIN");
             proceso_enviar->size_motivo = strlen(proceso_enviar->motivo) + 1;
 
-            serializar_t_kernel_cpu_io_stdout_write(&paquete, proceso_enviar);
+            serializar_t_kernel_cpu_io_stdin_read(&paquete, proceso_enviar);
             enviar_paquete(paquete, io_args->args->kernel->sockets.cpu_dispatch);
-            eliminar_paquete(paquete);
 
-            // Elimino el proceso de la cola de bloqueados
-            // TODO: Preguntar que pasa en este caso? Lo elimino? Lo mando a ready de nuevo??
-            kernel_finalizar_proceso(io_args->args, proceso_recibido->pid, INVALID_INTERFACE);
-
-            free(proceso_enviar->motivo);
-            free(proceso_enviar);
+            kernel_finalizar_proceso(io_args->args, proceso_recibido->pid, EXECUTION_ERROR);
         }
 
+        free(proceso_enviar->motivo);
+        free(proceso_enviar);
         free(proceso_recibido);
+        eliminar_paquete(paquete);
         break;
     }
     case ENTRADA_SALIDA_KERNEL_IDENTIFICACION:

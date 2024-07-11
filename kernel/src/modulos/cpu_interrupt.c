@@ -13,7 +13,6 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
 
         if (pcb == NULL)
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "[KERNEL/IO_GEN_SLEEP] Posible condiciones de carrera, el proceso <%d> no se encuentra en EXEC", sleep->pid);
             free(sleep);
             break;
         }
@@ -39,8 +38,27 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         if (entrada_salida->ocupado)
         {
             pcb->quantum = interrumpir_temporizador(args);
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar la instrucción <IO_GEN_SLEEP> <%s> <%d> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", sleep->interfaz, sleep->tiempo, sleep->pid, sleep->interfaz, entrada_salida->pid);
-            kernel_finalizar_proceso(args, sleep->pid, INVALID_INTERFACE);
+
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "No se pudo enviar la instrucción <IO_GEN_SLEEP> <%s> <%d> del PID <%d> a la interfaz <%s> porque esta ocupada con el proceso PID <%d>", sleep->interfaz, sleep->tiempo, sleep->pid, sleep->interfaz, entrada_salida->pid);
+
+            proceso_actualizar_registros(pcb, sleep->registros);
+            kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", sleep->pid, sleep->interfaz);
+
+            kernel_transicion_exec_block(args);
+
+            // Actualizar campo tiene_proxima_io
+            if (pcb->proxima_io->tiene_proxima_io == false)
+            {
+                pcb->proxima_io->tiene_proxima_io = true;
+            }
+            pcb->proxima_io->identificador = strdup(entrada_salida->interfaz);
+            pcb->proxima_io->tipo = ENTRADA_SALIDA_GENERIC;
+            pcb->proxima_io->args = list_create();
+
+            list_add(pcb->proxima_io->args, string_itoa(sleep->tiempo));
+
+            avisar_planificador(args);
+
             free(sleep);
             break;
         }
@@ -50,7 +68,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
 
         entrada_salida->ocupado = 1;
         entrada_salida->pid = sleep->pid;
-
+        kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", sleep->pid, sleep->interfaz);
         kernel_transicion_exec_block(args);
 
         kernel_log_generic(args, LOG_LEVEL_DEBUG, "Retransmito instruccion <IO_GEN_SLEEP> <%s> <%d> del PID <%d> a interfaz <%s>", sleep->interfaz, sleep->tiempo, sleep->pid, sleep->interfaz);
@@ -67,6 +85,7 @@ void switch_case_cpu_interrupt(t_log *logger, t_op_code codigo_operacion, hilos_
         eliminar_paquete(paquete);
 
         free(unidad);
+        free(sleep->interfaz);
         free(sleep);
         break;
     }

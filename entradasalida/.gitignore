@@ -16,3 +16,6 @@ obj/
 !.vscode/tasks.json
 
 module.config
+
+
+config/dialfs.config

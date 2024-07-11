@@ -33,23 +33,29 @@ char *recurso_buscar_pid(t_dictionary *diccionario_recursos, uint32_t pid)
             t_pcb *pcb = list_get(recurso->procesos_bloqueados, j);
             if (pcb->pid == pid)
             {
+                list_destroy(keys);
                 return key;
             }
         }
     }
+    list_destroy(keys);
     return NULL;
 }
 
 void recurso_init(t_dictionary *diccionario_recursos, char *instanciasRecursos, char *recursos)
 {
-    char *instancias_parsed = strdup(instanciasRecursos);
+    char *instancias_parsed_original = strdup(instanciasRecursos);
+    char *instancias_parsed = instancias_parsed_original;
     instancias_parsed[strlen(instancias_parsed) - 1] = '\0';
     instancias_parsed++;
+
     int cantidadDeRecursos = contar_cantidad_recursos(instancias_parsed, ',') + 1;
 
-    char *recursos_parsed = strdup(recursos);
+    char *recursos_parsed_original = strdup(recursos);
+    char *recursos_parsed = recursos_parsed_original;
     recursos_parsed[strlen(recursos_parsed) - 1] = '\0'; // Remover ']'
     recursos_parsed++;
+
     char **recursos_arr = string_split(recursos_parsed, ",");
     char **instancias_arr = string_split(instancias_parsed, ",");
     for (int i = 0; i < cantidadDeRecursos; i++)
@@ -59,5 +65,24 @@ void recurso_init(t_dictionary *diccionario_recursos, char *instanciasRecursos, 
         recursoDiccionario->procesos_bloqueados = list_create();
         dictionary_put(diccionario_recursos, recursos_arr[i], recursoDiccionario);
     }
+
+    // Libero el recursos_arr
+    for (int i = 0; recursos_arr[i] != NULL; i++)
+    {
+        free(recursos_arr[i]);
+    }
+    free(recursos_arr);
+
+    // Libero el instancias_arr
+    for (int i = 0; instancias_arr[i] != NULL; i++)
+    {
+        free(instancias_arr[i]);
+    }
+    free(instancias_arr);
+
+    // Libero los punteros originales
+    free(instancias_parsed_original);
+    free(recursos_parsed_original);
+
     return;
 }

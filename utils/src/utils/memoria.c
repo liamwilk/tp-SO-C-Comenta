@@ -372,13 +372,12 @@ t_proceso *buscar_proceso(t_args *argumentos, uint32_t pid)
 {
     char *pid_char = string_itoa(pid);
     char *indice = dictionary_get(argumentos->memoria.diccionario_procesos, pid_char);
+    free(pid_char);
 
     if (indice == NULL)
     {
         return NULL;
     }
-
-    free(pid_char);
 
     return list_get(argumentos->memoria.lista_procesos, atoi(indice));
 }

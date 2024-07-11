@@ -32,6 +32,8 @@ t_config *crear_config_parametro(t_log *logger, char *path)
 		log_error(logger, "No se pudo crear la config.");
 	}
 
+	free(current_dir);
+
 	return nuevo_config;
 }
 

@@ -24,6 +24,13 @@
 #include <signal.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <commons/bitarray.h>
 
 typedef struct
 {
@@ -62,7 +69,24 @@ typedef enum
     DIALFS
 } t_interfaz;
 
-typedef struct t_io
+typedef struct
+{
+    int blockSize;
+    int blockCount;
+    int retrasoCompactacion;
+    char *pathBaseDialFs;
+    char *path_bloques;
+    char *path_bitmap;
+    void *archivo_bloques;
+    char *archivo_bitmap;
+    FILE *archivo_metadata;
+    int tamanio_archivo;
+    int tamanio_bitmap;
+    t_dictionary *archivos;
+    t_bitarray *bitarray;
+} t_dial_fs;
+
+typedef struct
 {
     t_timer timer;
     t_log *logger;
@@ -75,14 +99,11 @@ typedef struct t_io
     int puertoKernel;
     char *tipoInterfaz;
     int tiempoUnidadDeTrabajo;
-    char *pathBaseDialFs;
-    int blockSize;
-    int blockCount;
-    int retrasoCompactacion;
     char *identificador;
     int pid;
-    int duracion;
+    double duracion;
     int unidades;
+    t_dial_fs dial_fs;
 } t_io;
 
 typedef void (*t_io_funcion_hilo_ptr)(t_io *, t_op_code, t_buffer *);
@@ -91,6 +112,14 @@ typedef struct
 {
     t_io *args;
 } timer_args_io_t;
+
+typedef struct t_fcb
+{
+    uint32_t total_size;
+    uint32_t inicio;
+    uint32_t fin_bloque;
+    t_config *metadata; // Esto es para ir guardando los cambios en el archivo de metadata
+} t_fcb;
 
 void *conectar_kernel_stdin(void *args);
 void *conectar_memoria_stdin(void *args);
@@ -146,11 +175,59 @@ void switch_case_memoria_dialfs(t_io *args, t_op_code codigo_operacion, t_buffer
 
 void hilo_ejecutar_interfaz(t_io *args, int *socket, char *modulo, t_io_funcion_hilo_ptr switch_case_atencion);
 
-void interfaz_iniciar_temporizador(t_io *args, int duracion);
+void interfaz_iniciar_temporizador(t_io *args, double duracion);
 void interfaz_inicializar_temporizador(t_io *args, timer_args_io_t *temporizador);
 void interfaz_manejador_temporizador(union sigval arg);
 void interfaz_interrumpir_temporizador(t_io *args);
 
 char *leer_input_usuario(uint32_t size_input);
+
+void bloques_mapear(t_io *args);
+void bloques_desmapear(t_io *args);
+
+void bitmap_mapear(t_io *args);
+void bitmap_desmapear(t_io *args);
+void metadata_inicializar(t_io *args);
+
+/**
+ * Devuelve el índice de un bloque libre en el sistema de archivos.
+ *
+ * @param args La estructura de entrada/salida que contiene la información necesaria.
+ * @return El índice de un bloque libre, o -1 si no hay bloques libres disponibles.
+ */
+int fs_buscar_bloque_libre(t_io *args);
+
+/**
+ * Crea un archivo en el sistema de archivos.
+ *
+ * @param args Los argumentos de E/S.
+ * @param nombre El nombre del archivo a crear.
+ */
+void fs_archivo_crear(t_io *args, char *nombre, int indice_bloque_libre);
+
+// Esto se va a utilizar para compactar, va a devolver el numero de bloque que tenga a su derecha n cantidad de bloques libres contando desde bloque_referencia
+int fs_buscar_primera_ocurrencia_libre(t_io *args, int bloque_referencia, int cantidad_bloques);
+
+int fs_buscar_indice_archivo(t_io *args, char *nombre);
+
+void fs_desplazar_archivo_hacia_derecha(t_io *args, char *archivo, int cantidad_bloques);
+
+char *fs_buscar_por_bloque_fin(t_io *args, int bloque_fin);
+
+/**
+ * Obtiene una lista ordenada de archivos basada en los argumentos de entrada/salida dados.
+ *
+ * @param args Los argumentos de entrada/salida para las operaciones del sistema de archivos.
+ * @return Una lista ordenada de archivos.
+ */
+t_list *fs_obtener_archivos_ordenados(t_io *args);
+bool fs_comparar_archivos_por_bloque_inicial(void *archivo1, void *archivo2);
+void fs_consumir_unidad_trabajo(t_io *args);
+
+bool fs_tiene_compactar(t_io *args, t_fcb *archivo, char *nombre_archivo, int cantidad_a_truncar);
+
+int fs_bloques_ocupados(t_io *args);
+
+void fs_compactar(t_io *args, t_kernel_entrada_salida_fs_truncate *truncate, t_fcb *archivo, int cantidad_bloques_a_truncar);
 
 #endif // ENTRADASALIDA_H

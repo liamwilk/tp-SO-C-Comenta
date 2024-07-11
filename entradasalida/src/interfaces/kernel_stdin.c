@@ -10,6 +10,15 @@ void switch_case_kernel_stdin(t_io *args, t_op_code codigo_operacion, t_buffer *
     {
         t_kernel_io_stdin_read *proceso_recibido = deserializar_t_kernel_io_stdin_read(buffer);
 
+        // Imprimo lo recibido en proceso_recibido
+        log_debug(args->logger, "Marco inicial: <%d>", proceso_recibido->marco_inicial);
+        log_debug(args->logger, "Marco final: <%d>", proceso_recibido->marco_final);
+        log_debug(args->logger, "Direccion fisica recibida: <%d>", proceso_recibido->direccion_fisica);
+        log_debug(args->logger, "Tamanio de registro recibido: <%d>", proceso_recibido->registro_tamanio);
+        log_debug(args->logger, "PID del proceso recibido: <%d>", proceso_recibido->pid);
+
+        log_info(args->logger, "PID: <%d> - Operacion: <IO_STDIN_READ %s %d %d>", proceso_recibido->pid, proceso_recibido->interfaz, proceso_recibido->registro_direccion, proceso_recibido->registro_tamanio);
+
         log_debug(args->logger, "Se recibio orden de lectura por pantalla asociada a <IO_STDIN_READ> del proceso PID <%d>", proceso_recibido->pid);
 
         char *input = leer_input_usuario(proceso_recibido->registro_tamanio);
@@ -25,13 +34,14 @@ void switch_case_kernel_stdin(t_io *args, t_op_code codigo_operacion, t_buffer *
 
         serializar_t_io_memoria_stdin(&paquete, paquete_enviar);
         enviar_paquete(paquete, args->sockets.socket_memoria_stdin);
+
         eliminar_paquete(paquete);
 
+        free(paquete_enviar->input);
         free(paquete_enviar);
 
         free(proceso_recibido->interfaz);
         free(proceso_recibido);
-        free(input);
         break;
     }
     case KERNEL_ENTRADA_SALIDA_IDENTIFICACION_RECHAZO:
@@ -62,4 +72,3 @@ void switch_case_kernel_stdin(t_io *args, t_op_code codigo_operacion, t_buffer *
     }
     }
 }
-
