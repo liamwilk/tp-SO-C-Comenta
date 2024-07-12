@@ -217,7 +217,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			break;
 		}
 
-		// Si no hay espacio en la tabla de paginas para escribir el tamaño solicitado, envio un mensaje a CPU
+		// Si no hay espacio en el espacio de usuario para escribir el tamaño solicitado, envio un mensaje a CPU
 		if (proceso_recibido->registro_tamanio > espacio_usuario_bytes_disponibles(argumentos))
 		{
 			log_error(argumentos->logger, "No hay espacio suficiente para poder escribir %d bytes en el proceso con PID <%d> asociado a IO_STDIN_READ", proceso_recibido->registro_tamanio, proceso_recibido->pid);
@@ -253,15 +253,22 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		}
 
 		int j = 0;
-		proceso_recibido->marco_inicial = proceso_recibido->registro_direccion / argumentos->memoria.tamPagina;
-		proceso_recibido->marco_final = (proceso_recibido->registro_direccion + proceso_recibido->registro_tamanio - 1) / argumentos->memoria.tamPagina;
 
-		log_debug(argumentos->logger, "Se asignaron los marcos <%d> al <%d> para el proceso con PID <%d> asociado a IO_STDIN_READ", proceso_recibido->marco_inicial, proceso_recibido->marco_final, proceso_recibido->pid);
+		// Determino la cantidad de marcos a asignar
+		int cantidad_de_marcos = (int)ceil((double)proceso_recibido->registro_tamanio / argumentos->memoria.tamPagina);
 
-		for (int i = proceso_recibido->marco_inicial; i <= proceso_recibido->marco_final; i++)
+		for (int i = 0; i < cantidad_de_marcos; i++)
 		{
+			int proximo_frame = espacio_usuario_proximo_frame(argumentos, argumentos->memoria.tamPagina);
+
+			if (proximo_frame == -1)
+			{
+				log_error(argumentos->logger, "No hay frames disponibles en espacio de usuario para asignar al proceso PID <%d>", proceso_recibido->pid);
+				break;
+			}
+
 			// Le asigno el marco y pagina al proceso
-			tabla_paginas_asignar_pagina(argumentos, proceso, proceso_recibido->numero_pagina + j, i);
+			tabla_paginas_asignar_pagina(argumentos, proceso, proceso_recibido->numero_pagina + j, proximo_frame);
 			j++;
 		}
 

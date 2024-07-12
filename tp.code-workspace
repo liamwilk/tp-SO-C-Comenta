@@ -8,7 +8,8 @@
 			"initializer_list": "c",
 			"utility": "c",
 			"cctype": "c",
-			"random": "c"
+			"random": "c",
+			"cmath": "c"
 		},
 		"C_Cpp.errorSquiggles": "disabled",
 	},

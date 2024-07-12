@@ -153,7 +153,7 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 		// Si se obtuvo el marco correctamente
 		if (proceso_recibido->resultado)
 		{
-			log_debug(args->logger, "Se asigno el marco inicial <%d> de la pagina <%d> asociado a la instruccion IO_STDIN_READ del proceso PID <%d>", proceso_recibido->marco_inicial, proceso_recibido->numero_pagina, proceso_recibido->pid);
+			log_debug(args->logger, "Se asignaron los marcos asociados a la instruccion IO_STDIN_READ del proceso PID <%d>", proceso_recibido->pid);
 
 			log_debug(args->logger, "Se envio la solicitud de la instruccion IO_STDIN_READ del proceso PID <%d> a Kernel", proceso_recibido->pid);
 
