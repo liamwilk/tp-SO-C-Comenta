@@ -147,24 +147,25 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 	{
 		t_io_stdin_read *proceso_recibido = deserializar_t_io_stdin_read(buffer);
 
-		log_debug(args->logger, "Se recibio una respuesta de Memoria acerca de la solicitud de marco asociada a la instruccion IO_STDIN_READ para el proceso PID <%d>", proceso_recibido->pid);
+		log_debug(args->logger, "Se recibio una respuesta de Memoria acerca de la solicitud de asignacion de marcos asociada a la instruccion IO_STDIN_READ para el proceso PID <%d>", proceso_recibido->pid);
 
-		// Si se obtuvo el marco correctamente
+		// Si se asigno el marco correctamente
 		if (proceso_recibido->resultado)
 		{
-			log_debug(args->logger, "Se asignaron los marcos asociados a la instruccion IO_STDIN_READ del proceso PID <%d>", proceso_recibido->pid);
+			log_debug(args->logger, "Se asignaron los marcos asociados a la instruccion IO_STDIN_READ del proceso PID <%d> a partir de la dirección logica <%d>", proceso_recibido->pid, proceso_recibido->registro_direccion);
 
-			log_debug(args->logger, "Se envio la solicitud de la instruccion IO_STDIN_READ del proceso PID <%d> a Kernel", proceso_recibido->pid);
 
-			// Genero la direccion fisica con la MMU
-			if (args->config_leida.cantidadEntradasTlb > 0)
-			{
-				agregar_en_tlb(proceso_recibido->pid, proceso_recibido->numero_pagina, proceso_recibido->marco_inicial, args);
-			}
+			// FIXME: Esto está mal
 
+			// // Genero la direccion fisica con la MMU
+			// if (args->config_leida.cantidadEntradasTlb > 0)
+			// {
+			// 	agregar_en_tlb(proceso_recibido->pid, proceso_recibido->numero_pagina, proceso_recibido->marco_inicial, args);
+			// }
+			
 			mmu_iniciar(args, IO_STDIN_READ, proceso_recibido->registro_direccion, (void *)proceso_recibido);
 		}
-		else // Si no se obtuvo el marco
+		else // Si no se pudo asignar el marco
 		{
 			log_error(args->logger, "No se pudo asignar el marco de la pagina <%d> asociado a la instruccion IO_STDIN_READ del proceso PID <%d>", proceso_recibido->pid, proceso_recibido->numero_pagina);
 

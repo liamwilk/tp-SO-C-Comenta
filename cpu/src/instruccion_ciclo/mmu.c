@@ -68,6 +68,7 @@ void *hilo_mmu(void *args_void)
                 log_error(args->logger, "Error al buscar el frame en memoria");
             }
         }
+        
         if (args->resultado)
         {
             switch (args->codigo)
@@ -166,18 +167,23 @@ void *hilo_mmu(void *args_void)
                 t_paquete *paquete = crear_paquete(CPU_KERNEL_IO_STDIN_READ);
                 t_io_stdin_read *proceso_completo = malloc(sizeof(t_io_stdin_read));
 
+                proceso_completo->desplazamiento = 0; // FIXME: Remover
+                proceso_completo->marco_inicial = 0; // FIXME: Remover
+                proceso_completo->marco_final = 0; // FIXME: Remover
+                
                 proceso_completo->pid = proceso_recibido->pid;
+                proceso_completo->numero_pagina = proceso_recibido->numero_pagina;
+                proceso_completo->direccion_fisica = args->direccion_fisica;
                 proceso_completo->resultado = proceso_recibido->resultado;
                 proceso_completo->registro_direccion = proceso_recibido->registro_direccion;
                 proceso_completo->registro_tamanio = proceso_recibido->registro_tamanio;
-                proceso_completo->marco_inicial = proceso_recibido->marco_inicial;
-                proceso_completo->marco_final = proceso_recibido->marco_final;
-                proceso_completo->numero_pagina = proceso_recibido->numero_pagina;
-                proceso_completo->direccion_fisica = args->direccion_fisica;
-                proceso_completo->desplazamiento = proceso_recibido->desplazamiento;
                 proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
                 proceso_completo->size_interfaz = strlen(proceso_completo->interfaz) + 1;
                 proceso_completo->registros = proceso_recibido->registros;
+
+                proceso_completo->cantidad_marcos = proceso_recibido->cantidad_marcos;
+                proceso_completo->marcos = strdup(proceso_recibido->marcos);
+                proceso_completo->size_marcos = strlen(proceso_completo->marcos) + 1;
 
                 serializar_t_io_stdin_read(&paquete, proceso_completo);
                 enviar_paquete(paquete, args->config_leida.socket_kernel_dispatch);

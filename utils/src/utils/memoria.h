@@ -137,6 +137,13 @@ typedef struct
     uint32_t offset;
 } t_frame_bytes;
 
+typedef struct
+{
+    int cantidad;
+    int *tamanos;
+    char **fragmentos;
+} t_char_fragmentado;
+
 typedef void (*t_mem_funcion_hilo_ptr)(t_args_hilo *, char *, t_op_code, t_buffer *);
 typedef void (*t_mem_funcion_ptr)(t_args *, t_op_code, t_buffer *);
 
@@ -553,5 +560,7 @@ uint8_t espacio_usuario_leer_uint8(t_args *args, t_proceso *proceso, uint8_t dir
 void espacio_usuario_escribir_uint8_t(t_args *args, t_proceso *proceso, uint32_t direccion_fisica, uint8_t valor);
 
 uint32_t espacio_usuario_obtener_frame(uint32_t direccion_fisica, uint32_t tamPagina);
+
+t_char_fragmentado *espacio_usuario_fragmentar_char(char *input, int frame_size);
 
 #endif // MEMORIA_H

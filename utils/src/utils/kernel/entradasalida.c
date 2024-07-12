@@ -618,32 +618,42 @@ void kernel_proximo_io_stdin(hilos_args *args, t_kernel_entrada_salida *io)
                 char *direccion_fisica = list_get(pcb->proxima_io->args, 7);
                 proceso->direccion_fisica = atoi(direccion_fisica);
                 char *desplazamiento = list_get(pcb->proxima_io->args, 8);
+
+                char *cantidad_marcos = list_get(pcb->proxima_io->args, 9);
+                proceso->cantidad_marcos = atoi(cantidad_marcos);
+
+                char *marcos = list_get(pcb->proxima_io->args, 10);
+                proceso->marcos = strdup(marcos);
+
+                char *size_marcos = list_get(pcb->proxima_io->args, 11);
+                proceso->size_marcos = atoi(size_marcos);
+
                 proceso->desplazamiento = atoi(desplazamiento);
-                char *interfaz = list_get(pcb->proxima_io->args, 9);
+                char *interfaz = list_get(pcb->proxima_io->args, 12);
                 proceso->interfaz = strdup(interfaz);
-                char *size_interfaz = list_get(pcb->proxima_io->args, 10);
+                char *size_interfaz = list_get(pcb->proxima_io->args, 13);
                 proceso->size_interfaz = atoi(size_interfaz);
-                char *ax = list_get(pcb->proxima_io->args, 11);
+                char *ax = list_get(pcb->proxima_io->args, 14);
                 proceso->registros.ax = atoi(ax);
-                char *bx = list_get(pcb->proxima_io->args, 12);
+                char *bx = list_get(pcb->proxima_io->args, 15);
                 proceso->registros.bx = atoi(bx);
-                char *cx = list_get(pcb->proxima_io->args, 13);
+                char *cx = list_get(pcb->proxima_io->args, 16);
                 proceso->registros.cx = atoi(cx);
-                char *dx = list_get(pcb->proxima_io->args, 14);
+                char *dx = list_get(pcb->proxima_io->args, 17);
                 proceso->registros.dx = atoi(dx);
-                char *eax = list_get(pcb->proxima_io->args, 15);
+                char *eax = list_get(pcb->proxima_io->args, 18);
                 proceso->registros.eax = atoi(eax);
-                char *ebx = list_get(pcb->proxima_io->args, 16);
+                char *ebx = list_get(pcb->proxima_io->args, 19);
                 proceso->registros.ebx = atoi(ebx);
-                char *ecx = list_get(pcb->proxima_io->args, 17);
+                char *ecx = list_get(pcb->proxima_io->args, 20);
                 proceso->registros.ecx = atoi(ecx);
-                char *edx = list_get(pcb->proxima_io->args, 18);
+                char *edx = list_get(pcb->proxima_io->args, 21);
                 proceso->registros.edx = atoi(edx);
-                char *si = list_get(pcb->proxima_io->args, 19);
+                char *si = list_get(pcb->proxima_io->args, 22);
                 proceso->registros.si = atoi(si);
-                char *di = list_get(pcb->proxima_io->args, 20);
+                char *di = list_get(pcb->proxima_io->args, 23);
                 proceso->registros.di = atoi(di);
-                char *pc = list_get(pcb->proxima_io->args, 21);
+                char *pc = list_get(pcb->proxima_io->args, 24);
                 proceso->registros.pc = atoi(pc);
 
                 serializar_t_io_stdin_read(&paquete, proceso);

@@ -2,21 +2,17 @@
 
 void instruccion_ciclo(t_cpu *args, t_buffer *buffer)
 {
-    // TODO: Ver esto
-
-    // if (args->flag_interrupt)
-    // {
-    //     instruccion_interrupt(args);
-    //     return;
-    // }
-
     if (instruccion_recibir(args, buffer))
     {
-        log_error(args->logger, "Instruccion invalida.");
+        log_error(args->logger, "Se finaliza la ejecucion del proceso PID <%d> por error en la recepcion de la instrucción.", args->proceso.pid);
+        args->proceso.ejecutado = 0;
+        instruccion_finalizar(args);
         return;
     }
 
-    if (instruccion_ejecutar(args))
+    int resultado = instruccion_ejecutar(args);
+
+    if (resultado)
     {
         if (args->tipo_instruccion != EXIT)
         {
@@ -24,11 +20,12 @@ void instruccion_ciclo(t_cpu *args, t_buffer *buffer)
         }
         return;
     }
-    else if (args->tipo_instruccion == -1)
+    else if (resultado == -1)
     {
-        log_error(args->logger, "Se finaliza la ejecucion del proceso PID <%d> por error en la instruccion <%s>.", args->proceso.pid, args->instruccion[0]);
+        log_error(args->logger, "Se finaliza la ejecucion del proceso PID <%d> por error en la ejecucion de la instruccion <%s>.", args->proceso.pid, args->instruccion[0]);
         args->proceso.ejecutado = 0;
         instruccion_finalizar(args);
+        return;
     }
 
     if (args->flag_interrupt)

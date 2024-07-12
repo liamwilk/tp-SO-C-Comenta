@@ -337,6 +337,9 @@ typedef struct
 	uint32_t desplazamiento;
 	uint32_t size_interfaz;
 	t_registros_cpu registros;
+	uint32_t cantidad_marcos;
+	uint32_t size_marcos;
+	char *marcos;
 	char *interfaz;
 } t_io_stdin_read;
 typedef struct
@@ -367,6 +370,9 @@ typedef struct
 	uint32_t size_interfaz;
 	t_registros_cpu registros;
 	char *interfaz;
+	char *marcos;
+	uint32_t cantidad_marcos;
+	uint32_t size_marcos;
 } t_kernel_io_stdin_read;
 
 typedef struct
@@ -376,6 +382,9 @@ typedef struct
 	uint32_t size_input;
 	uint32_t registro_tamanio;
 	char *input;
+	char *marcos;
+	uint32_t cantidad_marcos;
+	uint32_t size_marcos;
 } t_io_memoria_stdin;
 
 typedef struct

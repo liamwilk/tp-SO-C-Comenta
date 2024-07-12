@@ -280,9 +280,11 @@ int verificar_argumentos(int argc)
 
 void inicializar_argumentos(t_io *args, char *argv[])
 {
+    // args->identificador = "TECLADO";
     args->identificador = strdup(argv[1]);
     args->logger = iniciar_logger(args->identificador, LOG_LEVEL_DEBUG);
     args->config = crear_config_parametro(args->logger, argv[2]);
+    // args->config = crear_config_parametro(args->logger, "config/io/teclado.config");
 }
 
 void *conectar_kernel_stdin(void *args_void)
@@ -333,10 +335,10 @@ void finalizar_interfaz(t_io *args)
 
 int inicializar_modulo_interfaz(t_io *args, int argc, char *argv[], timer_args_io_t *temporizador)
 {
-    if (verificar_argumentos(argc))
-    {
-        return 1;
-    }
+    // if (verificar_argumentos(argc))
+    // {
+    //     return 1;
+    // }
     temporizador->args = args;
     inicializar_argumentos(args, argv);
     interfaz_inicializar_temporizador(args, temporizador);

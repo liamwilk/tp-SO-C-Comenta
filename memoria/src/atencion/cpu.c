@@ -143,7 +143,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 	{
 		t_io_stdin_read *proceso_recibido = deserializar_t_io_stdin_read(buffer);
 
-		log_debug(argumentos->logger, "Se recibio una peticion de asignacion de marco de <%d> bytes para el proceso PID <%d>", proceso_recibido->registro_tamanio, proceso_recibido->pid);
+		log_debug(argumentos->logger, "Se recibio una peticion de asignacion de marcos para almacenar <%d> bytes en el proceso PID <%d>", proceso_recibido->registro_tamanio, proceso_recibido->pid);
 
 		// Busco el proceso en la lista de procesos globales
 		t_proceso *proceso = buscar_proceso(argumentos, proceso_recibido->pid);
@@ -182,7 +182,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			break;
 		}
 
-		// Verifico si la página solicitada existe
+		// Verifico si la página inicial solicitada existe
 		t_pagina *pagina = list_get(proceso->tabla_paginas, proceso_recibido->numero_pagina);
 
 		if (pagina == NULL)
@@ -252,52 +252,89 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			break;
 		}
 
-		int j = 0;
-
 		// Determino la cantidad de marcos a asignar
 		int cantidad_de_marcos = (int)ceil((double)proceso_recibido->registro_tamanio / argumentos->memoria.tamPagina);
 
-		for (int i = 0; i < cantidad_de_marcos; i++)
-		{
-			int proximo_frame = espacio_usuario_proximo_frame(argumentos, argumentos->memoria.tamPagina);
+		char *marcos = string_new();
 
-			if (proximo_frame == -1)
+		// Asigno los marcos al proceso en paginas contiguas desde la pagina solicitada
+		for (int iterador_pagina = 0; iterador_pagina < cantidad_de_marcos; iterador_pagina++)
+		{
+			// Busco un frame disponible en el espacio de usuario
+			int frame = espacio_usuario_proximo_frame(argumentos, argumentos->memoria.tamPagina);
+
+			// Si no hay frames disponibles, envio un mensaje a CPU
+			if (frame == -1)
 			{
 				log_error(argumentos->logger, "No hay frames disponibles en espacio de usuario para asignar al proceso PID <%d>", proceso_recibido->pid);
+
+				// Notifico a CPU que el tamaño solicitado a leer no coincide con lo que fue escrito por el proceso
+				t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_STDIN_READ);
+				t_io_stdin_read *proceso_enviar = malloc(sizeof(t_io_stdin_read));
+
+				// Le devuelvo lo que recibi, pero con resultado 0 indicando que fallo
+				proceso_enviar->pid = proceso_recibido->pid;
+				proceso_enviar->resultado = 0;
+				proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
+				proceso_enviar->registro_tamanio = proceso_recibido->registro_tamanio;
+				proceso_enviar->marco_inicial = proceso_recibido->marco_inicial;
+				proceso_enviar->marco_final = proceso_recibido->marco_final;
+				proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
+				proceso_enviar->direccion_fisica = proceso_recibido->direccion_fisica;
+				proceso_enviar->desplazamiento = proceso_recibido->desplazamiento;
+				proceso_enviar->interfaz = strdup(proceso_recibido->interfaz);
+				proceso_enviar->size_interfaz = proceso_recibido->size_interfaz;
+				proceso_enviar->registros = proceso_recibido->registros;
+
+				serializar_t_io_stdin_read(&paquete, proceso_enviar);
+				enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+				eliminar_paquete(paquete);
+
+				free(proceso_enviar->interfaz);
+				free(proceso_enviar);
+
+				free(proceso_recibido->interfaz);
+				free(proceso_recibido);
 				break;
 			}
 
-			// Le asigno el marco y pagina al proceso
-			tabla_paginas_asignar_pagina(argumentos, proceso, proceso_recibido->numero_pagina + j, proximo_frame);
-			j++;
+			tabla_paginas_asignar_pagina(argumentos, proceso, proceso_recibido->numero_pagina + iterador_pagina, frame);
+
+			string_append_with_format(&marcos, "%d ", frame);
 		}
 
-		// Notifico a CPU que se asigno el marco
+		// Notifico a CPU que se asignaron los marcos.
 		t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_STDIN_READ);
 		t_io_stdin_read *proceso_enviar = malloc(sizeof(t_io_stdin_read));
 
-		proceso_enviar->pid = proceso_recibido->pid;
+		proceso_enviar->marco_inicial = 0;	// FIXME: Remover
+		proceso_enviar->marco_final = 0;	// FIXME: Remover
+		proceso_enviar->desplazamiento = 0; // FIXME: Remover
+
 		proceso_enviar->resultado = 1;
+		proceso_enviar->pid = proceso_recibido->pid;
 		proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
 		proceso_enviar->registro_tamanio = proceso_recibido->registro_tamanio;
-		proceso_enviar->marco_inicial = proceso_recibido->marco_inicial;
-		proceso_enviar->marco_final = proceso_recibido->marco_final;
 		proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
 		proceso_enviar->direccion_fisica = proceso_recibido->direccion_fisica;
-		proceso_enviar->desplazamiento = proceso_recibido->desplazamiento;
 		proceso_enviar->interfaz = strdup(proceso_recibido->interfaz);
 		proceso_enviar->size_interfaz = proceso_recibido->size_interfaz;
 		proceso_enviar->registros = proceso_recibido->registros;
 
+		// Nuevo
+		proceso_enviar->cantidad_marcos = cantidad_de_marcos;
+		proceso_enviar->marcos = strdup(marcos);
+		proceso_enviar->size_marcos = strlen(proceso_enviar->marcos) + 1;
+
 		serializar_t_io_stdin_read(&paquete, proceso_enviar);
 		enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
-		eliminar_paquete(paquete);
 
+		eliminar_paquete(paquete);
 		free(proceso_enviar->interfaz);
 		free(proceso_enviar);
-
 		free(proceso_recibido->interfaz);
 		free(proceso_recibido);
+
 		break;
 	}
 	case CPU_MEMORIA_RESIZE:
