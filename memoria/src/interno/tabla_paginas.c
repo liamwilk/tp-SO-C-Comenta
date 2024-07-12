@@ -111,15 +111,13 @@ int tabla_paginas_liberar_pagina(t_args *argumentos, t_proceso *proceso, uint32_
     int direccion_fisica = pagina->marco * argumentos->memoria.tamPagina;
 
     argumentos->memoria.bytes_usados[pagina->marco] = 0;
-    
-    espacio_usuario_liberar_dato(argumentos, direccion_fisica, argumentos->memoria.tamPagina);
 
+    espacio_usuario_liberar_dato(argumentos, direccion_fisica, argumentos->memoria.tamPagina);
 
     pagina->marco = 0;
     pagina->validez = 0;
     pagina->bytes = 0;
     pagina->offset = 0;
-    
 
     return 0;
 }
@@ -181,7 +179,14 @@ int tabla_paginas_resize(t_args *args, t_proceso *proceso, uint32_t bytes_nuevos
         {
             int proximo_frame = espacio_usuario_proximo_frame(args, args->memoria.tamPagina);
 
-            if(args->memoria.bitmap_array[proximo_frame] == 1)
+            if(proximo_frame == -1)
+            {
+                log_error(args->logger, "No hay frames disponibles en espacio de usuario para asignar al proceso <%d>", proceso->pid);
+                pthread_mutex_unlock(&proceso->mutex_tabla_paginas);
+                return -1;
+            }
+
+            if (args->memoria.bitmap_array[proximo_frame] == 1)
             {
                 log_error(args->logger, "El frame %d ya esta ocupado", proximo_frame);
                 pthread_mutex_unlock(&proceso->mutex_tabla_paginas);

@@ -20,6 +20,7 @@
 #include <commons/collections/list.h>
 #include <utils/template.h>
 #include <commons/bitarray.h>
+#include <math.h>
 
 typedef enum
 {

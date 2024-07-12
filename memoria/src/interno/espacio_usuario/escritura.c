@@ -14,28 +14,27 @@ int espacio_usuario_escribir_dato(t_args *args, t_proceso *proceso, uint32_t dir
     uint32_t frame_fin = espacio_usuario_obtener_frame(direccion_fisica + tamano - 1, args->memoria.tamPagina);
 
     // // Verifica que todos los frames pertenecen al proceso
-    // for (uint32_t frame = frame_inicio; frame <= frame_fin; frame++) {
+    // for (uint32_t frame = frame_inicio; frame <= frame_fin; frame++)
+    // {
     //     bool frame_pertenece = false;
 
     //     // Recorre todas las páginas del proceso para verificar si el frame está asignado
-    //     for (int i = 0; i < list_size(proceso->tabla_paginas); i++) {
+    //     for (int i = 0; i < list_size(proceso->tabla_paginas); i++)
+    //     {
     //         t_pagina *pagina = list_get(proceso->tabla_paginas, i);
-    //         int marco = -1;
 
-    //         if (pagina != NULL && pagina->validez == 1) {
-    //             marco = pagina->marco;
-    //         }
-
-    //         if (marco == frame) {
+    //         if (pagina->validez == 1 && pagina->marco == frame)
+    //         {
     //             frame_pertenece = true;
     //             break;
     //         }
     //     }
 
     //     // Si el frame no pertenece al proceso, se aborta la escritura
-    //     if (!frame_pertenece) {
+    //     if (!frame_pertenece)
+    //     {
     //         log_error(args->logger, "El frame <%d> no pertenece al proceso PID <%d>. Escritura abortada.", frame, proceso->pid);
-    //         return -1; 
+    //         return -1;
     //     }
     // }
 
@@ -46,7 +45,7 @@ int espacio_usuario_escribir_dato(t_args *args, t_proceso *proceso, uint32_t dir
     {
         if (destino[i] != '\n')
         {
-            log_warning(args->logger, "Se estan sobre-escribiendo datos en la dirección física %ld.", direccion_fisica + i);
+            log_debug(args->logger, "Se estan sobre-escribiendo datos en la dirección física %ld.", direccion_fisica + i);
         }
     }
 

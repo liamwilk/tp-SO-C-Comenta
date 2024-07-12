@@ -17,27 +17,26 @@ int espacio_usuario_leer_dato(t_args *args, t_proceso *proceso, uint32_t direcci
     uint32_t frame_fin = espacio_usuario_obtener_frame(direccion_fisica + tamano - 1, args->memoria.tamPagina);
 
     // // Verifica que todos los frames pertenecen al proceso
-    // for (uint32_t frame = frame_inicio; frame <= frame_fin; frame++) {
+    // for (uint32_t frame = frame_inicio; frame <= frame_fin; frame++)
+    // {
     //     bool frame_pertenece = false;
 
     //     // Recorre todas las páginas del proceso para verificar si el frame está asignado
-    //     for (int i = 0; i < list_size(proceso->tabla_paginas); i++) {
+    //     for (int i = 0; i < list_size(proceso->tabla_paginas); i++)
+    //     {
     //         t_pagina *pagina = list_get(proceso->tabla_paginas, i);
-    //         int marco = -1;
-
-    //         if (pagina != NULL && pagina->validez == 1) {
-    //             marco = pagina->marco;
-    //         }
-
-    //         if (marco == frame) {
+            
+    //         if (pagina->validez == 1 && pagina->marco == frame)
+    //         {
     //             frame_pertenece = true;
     //             break;
     //         }
     //     }
 
-    //     if (!frame_pertenece) {
+    //     if (!frame_pertenece)
+    //     {
     //         log_error(args->logger, "El frame <%d> no pertenece al proceso PID <%d>. Lectura abortada.", frame, proceso->pid);
-    //         return -1; 
+    //         return -1;
     //     }
     // }
 
@@ -58,8 +57,9 @@ int espacio_usuario_leer_dato(t_args *args, t_proceso *proceso, uint32_t direcci
 uint8_t espacio_usuario_leer_uint8(t_args *args, t_proceso *proceso, uint8_t direccion_fisica)
 {
     uint8_t valor;
-    if (espacio_usuario_leer_dato(args, proceso, direccion_fisica, &valor, sizeof(uint8_t)) == -1) {
-        return 0; 
+    if (espacio_usuario_leer_dato(args, proceso, direccion_fisica, &valor, sizeof(uint8_t)) == -1)
+    {
+        return 0;
     }
     return valor;
 }
@@ -67,8 +67,9 @@ uint8_t espacio_usuario_leer_uint8(t_args *args, t_proceso *proceso, uint8_t dir
 uint32_t espacio_usuario_leer_uint32(t_args *args, t_proceso *proceso, uint32_t direccion_fisica)
 {
     uint32_t valor;
-    if (espacio_usuario_leer_dato(args, proceso, direccion_fisica, &valor, sizeof(uint32_t)) == -1) {
-        return 0; 
+    if (espacio_usuario_leer_dato(args, proceso, direccion_fisica, &valor, sizeof(uint32_t)) == -1)
+    {
+        return 0;
     }
     return valor;
 }
@@ -77,7 +78,9 @@ char *espacio_usuario_leer_char(t_args *args, t_proceso *proceso, uint32_t direc
 {
     size_t bytes_totales = tamano_max + 1;
     char *destino = malloc(bytes_totales);
-    if (destino == NULL) {
+
+    if (destino == NULL)
+    {
         log_error(args->logger, "Error al asignar memoria para la lectura de cadena.");
         return NULL;
     }
