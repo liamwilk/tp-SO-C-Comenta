@@ -604,7 +604,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		}
 
 		// Si la pagina existe y los bytes a leer pertenecen al proceso, envio el marco recuperado de la tabla de paginas a CPU
-		proceso_enviar->frase = espacio_usuario_leer_char(argumentos, proceso, proceso_recibido->direccion_si, proceso_recibido->cant_bytes);
+		proceso_enviar->frase = espacio_usuario_leer_char(argumentos, proceso, proceso_recibido->direccion_fisica_si, proceso_recibido->cant_bytes);
 
 		// Si el dato no existe, envio un mensaje a CPU
 		if (proceso_enviar->frase == NULL)
@@ -619,6 +619,8 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			proceso_enviar->num_pagina_di = proceso_recibido->num_pagina_di;
 			proceso_enviar->direccion_si = proceso_recibido->direccion_si;
 			proceso_enviar->direccion_di = proceso_recibido->direccion_di;
+			proceso_enviar->direccion_fisica_di = proceso_recibido->direccion_fisica_di;
+			proceso_enviar->direccion_fisica_si = proceso_recibido->direccion_fisica_si;
 			proceso_enviar->cant_bytes = proceso_recibido->cant_bytes;
 			proceso_enviar->frase = strdup("No se encontro la frase");
 			proceso_enviar->size_frase = strlen(proceso_enviar->frase) + 1;
@@ -652,6 +654,8 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			proceso_enviar->num_pagina_di = proceso_recibido->num_pagina_di;
 			proceso_enviar->direccion_si = proceso_recibido->direccion_si;
 			proceso_enviar->direccion_di = proceso_recibido->direccion_di;
+			proceso_enviar->direccion_fisica_di = proceso_recibido->direccion_fisica_di;
+			proceso_enviar->direccion_fisica_si = proceso_recibido->direccion_fisica_si;
 			proceso_enviar->cant_bytes = proceso_recibido->cant_bytes;
 			proceso_enviar->frase = strdup("No se pudo escribir el registro DI");
 			proceso_enviar->size_frase = strlen(proceso_enviar->frase) + 1;
@@ -678,6 +682,8 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		proceso_enviar->num_pagina_di = proceso_recibido->num_pagina_di;
 		proceso_enviar->direccion_si = proceso_recibido->direccion_si;
 		proceso_enviar->direccion_di = proceso_recibido->direccion_di;
+		proceso_enviar->direccion_fisica_di = proceso_recibido->direccion_fisica_di;
+		proceso_enviar->direccion_fisica_si = proceso_recibido->direccion_fisica_si;
 		proceso_enviar->cant_bytes = proceso_recibido->cant_bytes;
 		proceso_enviar->frase = strdup(proceso_enviar->frase);
 		proceso_enviar->size_frase = strlen(proceso_enviar->frase) + 1;

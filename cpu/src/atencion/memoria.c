@@ -22,7 +22,6 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 			{
 				agregar_en_tlb(recibido->pid, recibido->numero_pagina, recibido->numero_marco, args);
 			}
-
 			args->resultado = 1;
 		}
 		else

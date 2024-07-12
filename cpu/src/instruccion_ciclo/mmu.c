@@ -144,7 +144,7 @@ void *hilo_mmu(void *args_void)
                 t_copy_string *proceso_completo = (t_copy_string *)args->paquete;
 
                 log_debug(args->logger, "Marco DI: <%d>", args->marco);
-                log_debug(args->logger, "Direccion fisica SI: <%d>", args->direccion_fisica);
+                log_debug(args->logger, "Direccion fisica DI: <%d>", args->direccion_fisica);
 
                 proceso_completo->direccion_fisica_di = args->direccion_fisica;
                 proceso_completo->marco_di = args->marco;

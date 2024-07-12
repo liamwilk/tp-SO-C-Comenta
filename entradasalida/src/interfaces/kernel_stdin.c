@@ -11,8 +11,6 @@ void switch_case_kernel_stdin(t_io *args, t_op_code codigo_operacion, t_buffer *
         t_kernel_io_stdin_read *proceso_recibido = deserializar_t_kernel_io_stdin_read(buffer);
 
         // Imprimo lo recibido en proceso_recibido
-        log_debug(args->logger, "Marco inicial: <%d>", proceso_recibido->marco_inicial);
-        log_debug(args->logger, "Marco final: <%d>", proceso_recibido->marco_final);
         log_debug(args->logger, "Direccion fisica recibida: <%d>", proceso_recibido->direccion_fisica);
         log_debug(args->logger, "Tamanio de registro recibido: <%d>", proceso_recibido->registro_tamanio);
         log_debug(args->logger, "PID del proceso recibido: <%d>", proceso_recibido->pid);
