@@ -758,7 +758,7 @@ int instruccion_ejecutar(t_cpu *args)
 
         proceso->num_pagina_di = 0;
 
-        log_warning(args->logger, "Se calculan las paginas <%d> para SI y <%d> para DI", proceso->num_pagina_si, proceso->num_pagina_di);
+        log_debug(args->logger, "Se calculan las paginas <%d> para SI y <%d> para DI", proceso->num_pagina_si, proceso->num_pagina_di);
 
         proceso->direccion_fisica_si = 0;
         proceso->direccion_fisica_di = 0;
@@ -1354,8 +1354,8 @@ int instruccion_ejecutar(t_cpu *args)
         proceso->resultado = 0;
         proceso->direccion_fisica = 0;
 
-        log_warning(args->logger, "String registro puntero: <%s>", registro_puntero_archivo);
-        log_warning(args->logger, "Registro puntero: <%d>", proceso->puntero_archivo);
+        log_debug(args->logger, "String registro puntero: <%s>", registro_puntero_archivo);
+        log_debug(args->logger, "Registro puntero: <%d>", proceso->puntero_archivo);
 
         mmu_iniciar(args, IO_FS_READ, proceso->registro_direccion, (void *)proceso);
 

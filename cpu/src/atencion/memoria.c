@@ -273,7 +273,7 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 			proceso_completo->direccion_fisica_si = mmu(args, proceso_recibido->direccion_si, proceso_recibido->marco_si);
 			proceso_completo->direccion_fisica_di = mmu(args, proceso_recibido->direccion_di, proceso_recibido->marco_di);
 
-			log_warning(args->logger, "Se genero la direccion fisica <%d> para SI y <%d> para DI asociada a la instruccion <COPY_STRING> del proceso PID <%d>", proceso_completo->direccion_fisica_si, proceso_completo->direccion_fisica_di, proceso_recibido->pid);
+			log_debug(args->logger, "Se genero la direccion fisica <%d> para SI y <%d> para DI asociada a la instruccion <COPY_STRING> del proceso PID <%d>", proceso_completo->direccion_fisica_si, proceso_completo->direccion_fisica_di, proceso_recibido->pid);
 
 			proceso_completo->direccion_si = proceso_recibido->direccion_si;
 			proceso_completo->direccion_di = proceso_recibido->direccion_di;

@@ -130,8 +130,8 @@ void *hilo_mmu(void *args_void)
                 // Ahora, pediría el marco de DI
                 t_copy_string *proceso_completo = (t_copy_string *)args->paquete;
 
-                log_warning(args->logger, "Marco SI: <%d>", args->marco);
-                log_warning(args->logger, "Direccion fisica SI: <%d>", args->direccion_fisica);
+                log_debug(args->logger, "Marco SI: <%d>", args->marco);
+                log_debug(args->logger, "Direccion fisica SI: <%d>", args->direccion_fisica);
 
                 proceso_completo->direccion_fisica_si = args->direccion_fisica;
                 proceso_completo->marco_si = args->marco;
@@ -143,8 +143,8 @@ void *hilo_mmu(void *args_void)
                 t_paquete *paquete = crear_paquete(CPU_MEMORIA_COPY_STRING_2);
                 t_copy_string *proceso_completo = (t_copy_string *)args->paquete;
 
-                log_warning(args->logger, "Marco DI: <%d>", args->marco);
-                log_warning(args->logger, "Direccion fisica SI: <%d>", args->direccion_fisica);
+                log_debug(args->logger, "Marco DI: <%d>", args->marco);
+                log_debug(args->logger, "Direccion fisica SI: <%d>", args->direccion_fisica);
 
                 proceso_completo->direccion_fisica_di = args->direccion_fisica;
                 proceso_completo->marco_di = args->marco;
