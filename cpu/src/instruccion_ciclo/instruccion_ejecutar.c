@@ -1137,7 +1137,8 @@ int instruccion_ejecutar(t_cpu *args)
             uint32_t *registro_tipo_puntero_archivo_ptr = determinar_tipo_registro_uint32_t(registro_puntero_archivo, &args->proceso);
             proceso->puntero_archivo = *registro_tipo_puntero_archivo_ptr;
             proceso->numero_pagina = calcular_numero_pagina(args, *registro_tipo_puntero_archivo_ptr);
-        } else // El registro direccion es de 8 bits
+        }
+        else // El registro direccion es de 8 bits
         {
             uint8_t *registro_tipo_puntero_archivo_ptr = determinar_tipo_registro_uint8_t(registro_puntero_archivo, &args->proceso);
 
@@ -1328,7 +1329,8 @@ int instruccion_ejecutar(t_cpu *args)
             uint32_t *registro_tipo_puntero_archivo_ptr = determinar_tipo_registro_uint32_t(registro_puntero_archivo, &args->proceso);
             proceso->puntero_archivo = *registro_tipo_puntero_archivo_ptr;
             proceso->numero_pagina = calcular_numero_pagina(args, *registro_tipo_puntero_archivo_ptr);
-        } else // El registro direccion es de 8 bits
+        }
+        else // El registro direccion es de 8 bits
         {
             uint8_t *registro_tipo_puntero_archivo_ptr = determinar_tipo_registro_uint8_t(registro_puntero_archivo, &args->proceso);
 
@@ -1422,6 +1424,5 @@ int instruccion_ejecutar(t_cpu *args)
     }
     }
 
-    log_error(args->logger, "Instruccion invalida");
     return 0;
 }

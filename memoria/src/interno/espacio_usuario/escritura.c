@@ -13,31 +13,31 @@ int espacio_usuario_escribir_dato(t_args *args, t_proceso *proceso, uint32_t dir
     uint32_t frame_inicio = espacio_usuario_obtener_frame(direccion_fisica, args->memoria.tamPagina);
     uint32_t frame_fin = espacio_usuario_obtener_frame(direccion_fisica + tamano - 1, args->memoria.tamPagina);
 
-    // Verifica que todos los frames pertenecen al proceso
-    for (uint32_t frame = frame_inicio; frame <= frame_fin; frame++) {
-        bool frame_pertenece = false;
+    // // Verifica que todos los frames pertenecen al proceso
+    // for (uint32_t frame = frame_inicio; frame <= frame_fin; frame++) {
+    //     bool frame_pertenece = false;
 
-        // Recorre todas las páginas del proceso para verificar si el frame está asignado
-        for (int i = 0; i < list_size(proceso->tabla_paginas); i++) {
-            t_pagina *pagina = list_get(proceso->tabla_paginas, i);
-            int marco = -1;
+    //     // Recorre todas las páginas del proceso para verificar si el frame está asignado
+    //     for (int i = 0; i < list_size(proceso->tabla_paginas); i++) {
+    //         t_pagina *pagina = list_get(proceso->tabla_paginas, i);
+    //         int marco = -1;
 
-            if (pagina != NULL && pagina->validez == 1) {
-                marco = pagina->marco;
-            }
+    //         if (pagina != NULL && pagina->validez == 1) {
+    //             marco = pagina->marco;
+    //         }
 
-            if (marco == frame) {
-                frame_pertenece = true;
-                break;
-            }
-        }
+    //         if (marco == frame) {
+    //             frame_pertenece = true;
+    //             break;
+    //         }
+    //     }
 
-        // Si el frame no pertenece al proceso, se aborta la escritura
-        if (!frame_pertenece) {
-            log_error(args->logger, "El frame <%d> no pertenece al proceso PID <%d>. Escritura abortada.", frame, proceso->pid);
-            return -1; 
-        }
-    }
+    //     // Si el frame no pertenece al proceso, se aborta la escritura
+    //     if (!frame_pertenece) {
+    //         log_error(args->logger, "El frame <%d> no pertenece al proceso PID <%d>. Escritura abortada.", frame, proceso->pid);
+    //         return -1; 
+    //     }
+    // }
 
     // Verifico si ya hay datos en la dirección física
     uint8_t *destino = (uint8_t *)args->memoria.espacio_usuario + direccion_fisica;

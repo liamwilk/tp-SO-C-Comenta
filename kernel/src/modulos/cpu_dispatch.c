@@ -375,8 +375,16 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         }
         else if (proceso->ejecutado == PROCESO_ERROR) // La ejecucion del proceso fallo
         {
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "Proceso PID <%d> ejecutado fallido. Transicionar a exit", proceso->pid);
-            kernel_finalizar_proceso(args, proceso->pid, EXECUTION_ERROR);
+            // kernel_log_generic(args, LOG_LEVEL_ERROR, "Proceso PID <%d> ejecutado fallido. Transicionar a exit", proceso->pid);
+            // kernel_finalizar_proceso(args, proceso->pid, EXECUTION_ERROR);
+            // Lo vuelvo a mandar a ready
+            if (pcb == NULL)
+            {
+                free(proceso);
+                break;
+            }
+            proceso_actualizar_registros(pcb, proceso->registros);
+            kernel_manejar_ready(args, pcb->pid, EXEC_READY);
             avisar_planificador(args);
         }
 

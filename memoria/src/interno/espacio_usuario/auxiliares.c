@@ -87,9 +87,7 @@ int espacio_usuario_liberar_dato(t_args *args, uint32_t direccion_fisica, size_t
         args->memoria.bytes_usados[frame] -= (offset_fin - offset_inicio + 1);
 
         // Marco el frame como libre en el bitmap
-        if (args->memoria.bytes_usados[frame] == 0) {
-            args->memoria.bitmap_array[frame] = 0;
-        }
+        args->memoria.bitmap_array[frame] = 0;
 
         // Calculo la dirección física inicial del frame
         uint32_t direccion_frame = frame * args->memoria.tamPagina;

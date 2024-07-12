@@ -16,30 +16,30 @@ int espacio_usuario_leer_dato(t_args *args, t_proceso *proceso, uint32_t direcci
     uint32_t frame_inicio = espacio_usuario_obtener_frame(direccion_fisica, args->memoria.tamPagina);
     uint32_t frame_fin = espacio_usuario_obtener_frame(direccion_fisica + tamano - 1, args->memoria.tamPagina);
 
-    // Verifica que todos los frames pertenecen al proceso
-    for (uint32_t frame = frame_inicio; frame <= frame_fin; frame++) {
-        bool frame_pertenece = false;
+    // // Verifica que todos los frames pertenecen al proceso
+    // for (uint32_t frame = frame_inicio; frame <= frame_fin; frame++) {
+    //     bool frame_pertenece = false;
 
-        // Recorre todas las páginas del proceso para verificar si el frame está asignado
-        for (int i = 0; i < list_size(proceso->tabla_paginas); i++) {
-            t_pagina *pagina = list_get(proceso->tabla_paginas, i);
-            int marco = -1;
+    //     // Recorre todas las páginas del proceso para verificar si el frame está asignado
+    //     for (int i = 0; i < list_size(proceso->tabla_paginas); i++) {
+    //         t_pagina *pagina = list_get(proceso->tabla_paginas, i);
+    //         int marco = -1;
 
-            if (pagina != NULL && pagina->validez == 1) {
-                marco = pagina->marco;
-            }
+    //         if (pagina != NULL && pagina->validez == 1) {
+    //             marco = pagina->marco;
+    //         }
 
-            if (marco == frame) {
-                frame_pertenece = true;
-                break;
-            }
-        }
+    //         if (marco == frame) {
+    //             frame_pertenece = true;
+    //             break;
+    //         }
+    //     }
 
-        if (!frame_pertenece) {
-            log_error(args->logger, "El frame <%d> no pertenece al proceso PID <%d>. Lectura abortada.", frame, proceso->pid);
-            return -1; 
-        }
-    }
+    //     if (!frame_pertenece) {
+    //         log_error(args->logger, "El frame <%d> no pertenece al proceso PID <%d>. Lectura abortada.", frame, proceso->pid);
+    //         return -1; 
+    //     }
+    // }
 
     // Alerto si es que la lectura abarca más de un frame
     if (frame_inicio != frame_fin)
