@@ -110,9 +110,10 @@ int tabla_paginas_liberar_pagina(t_args *argumentos, t_proceso *proceso, uint32_
 
     int direccion_fisica = pagina->marco * argumentos->memoria.tamPagina;
 
+    argumentos->memoria.bytes_usados[pagina->marco] = 0;
+    
     espacio_usuario_liberar_dato(argumentos, direccion_fisica, argumentos->memoria.tamPagina);
 
-    argumentos->memoria.bytes_usados[pagina->marco] = 0;
 
     pagina->marco = 0;
     pagina->validez = 0;
