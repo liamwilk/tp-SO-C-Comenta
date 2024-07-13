@@ -19,11 +19,88 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		{
 			if (paquete_recibido->tamanio_registro_datos == 4) // Debo escribir 4 bytes desde DF
 			{
-				espacio_usuario_escribir_uint32_t(argumentos, proceso, paquete_recibido->direccion_fisica, paquete_recibido->registro_datos);
-				log_debug(argumentos->logger, "Se escribio en espacio de usuario desde a la direccion fisica <%d> el siguiente numero de 4 bytes: %d", paquete_recibido->direccion_fisica, paquete_recibido->registro_datos);
+				uint32_t marco = paquete_recibido->direccion_fisica / argumentos->memoria.tamPagina;
+
+				int desplazamiento = paquete_recibido->direccion_fisica % argumentos->memoria.tamPagina;
+
+				int size_disponible = argumentos->memoria.tamPagina - desplazamiento;
+
+				log_debug(argumentos->logger, "El tamaño disponible en el marco <%d> es de <%d> bytes", marco, size_disponible);
+
+				int marco_proxima_pagina = -1;
+				int direccion_fisica_proxima_pagina = -1;
+
+				if (size_disponible < 4)
+				{
+					marco_proxima_pagina = tabla_paginas_acceder_pagina(argumentos, proceso, paquete_recibido->numero_pagina + 1);
+					direccion_fisica_proxima_pagina = marco_proxima_pagina * argumentos->memoria.tamPagina;
+				}
+
+				if (size_disponible >= 4)
+				{
+					// Escribo los 4 bytes del dato en el primer marco, porque entra todo
+					espacio_usuario_escribir_uint32_t(argumentos, proceso, paquete_recibido->direccion_fisica, paquete_recibido->registro_datos);
+					log_debug(argumentos->logger, "Se escribio en espacio de usuario desde la direccion fisica <%d> el siguiente numero de 4 bytes: %d", paquete_recibido->direccion_fisica, paquete_recibido->registro_datos);
+				}
+				else if (size_disponible == 3)
+				{
+					// Escribo 3 bytes del dato con memcpy y el resto va en el proximo marco de la proxima pagina
+					uint32_t dato = paquete_recibido->registro_datos;
+					uint8_t bytes[4];
+					memcpy(bytes, &dato, sizeof(dato));
+
+					// Escribo los primeros 3 bytes en la página actual
+					for (int i = 0; i < 3; i++)
+					{
+						espacio_usuario_escribir_uint8_t(argumentos, proceso, paquete_recibido->direccion_fisica + i, bytes[i]);
+					}
+
+					// Escribo el byte restante en la siguiente página
+					espacio_usuario_escribir_uint8_t(argumentos, proceso, direccion_fisica_proxima_pagina, bytes[3]);
+
+					log_debug(argumentos->logger, "Se escribieron 3 bytes en la direccion fisica <%d> y 1 byte en la direccion fisica <%d>", paquete_recibido->direccion_fisica, direccion_fisica_proxima_pagina);
+				}
+				else if (size_disponible == 2)
+				{
+					// Escribo 2 bytes del dato con memcpy y el resto va a la proxima pagina
+					uint32_t dato = paquete_recibido->registro_datos;
+					uint8_t bytes[4];
+					memcpy(bytes, &dato, sizeof(dato));
+
+					// Escribo los primeros 2 bytes en la página actual
+					for (int i = 0; i < 2; i++)
+					{
+						espacio_usuario_escribir_uint8_t(argumentos, proceso, paquete_recibido->direccion_fisica + i, bytes[i]);
+					}
+
+					// Escribo los 2 bytes restantes en la siguiente página
+					for (int i = 0; i < 2; i++)
+					{
+						espacio_usuario_escribir_uint8_t(argumentos, proceso, direccion_fisica_proxima_pagina + i, bytes[2 + i]);
+					}
+					log_debug(argumentos->logger, "Se escribieron 2 bytes en la direccion fisica <%d> y 2 bytes en la direccion fisica <%d>", paquete_recibido->direccion_fisica, direccion_fisica_proxima_pagina);
+				}
+				else if (size_disponible == 1)
+				{
+					// Escribo 1 byte del dato con memcpy y el resto va a la proxima pagina
+					uint32_t dato = paquete_recibido->registro_datos;
+					uint8_t bytes[4];
+					memcpy(bytes, &dato, sizeof(dato));
+
+					// Escribo el primer byte en la página actual
+					espacio_usuario_escribir_uint8_t(argumentos, proceso, paquete_recibido->direccion_fisica, bytes[0]);
+
+					// Escribo los 3 bytes restantes en la siguiente página
+					for (int i = 0; i < 3; i++)
+					{
+						espacio_usuario_escribir_uint8_t(argumentos, proceso, direccion_fisica_proxima_pagina + i, bytes[1 + i]);
+					}
+					log_debug(argumentos->logger, "Se escribio 1 byte en la direccion fisica <%d> y 3 bytes en la direccion fisica <%d>", paquete_recibido->direccion_fisica, direccion_fisica_proxima_pagina);
+				}
 			}
 			else if (paquete_recibido->tamanio_registro_datos == 1) // Debo escribir 1 byte desde DF
 			{
+				// Se escribe en un solo marco
 				espacio_usuario_escribir_uint8_t(argumentos, proceso, paquete_recibido->direccion_fisica, paquete_recibido->registro_datos);
 				log_debug(argumentos->logger, "Se escribio en espacio de usuario desde a la direccion fisica <%d> el siguiente numero de 1 byte: %d", paquete_recibido->direccion_fisica, paquete_recibido->registro_datos);
 			}
@@ -87,9 +164,65 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		{
 			if (paquete_recibido->tamanio_registro_datos == 4)
 			{
-				paquete_enviar->dato_8 = 0;
-				paquete_enviar->dato_32 = espacio_usuario_leer_uint32(argumentos, proceso, paquete_recibido->direccion_fisica);
-				log_debug(argumentos->logger, "Se leyo del espacio de usuario asociado a la direccion fisica <%d> el siguiente numero: %d", paquete_recibido->direccion_fisica, paquete_enviar->dato_32);
+				int desplazamiento = paquete_recibido->direccion_fisica % argumentos->memoria.tamPagina;
+
+				int size_disponible = argumentos->memoria.tamPagina - desplazamiento;
+
+				int marco_proxima_pagina = -1;
+				int direccion_fisica_proxima_pagina = -1;
+
+				if (size_disponible < 4)
+				{
+					marco_proxima_pagina = tabla_paginas_acceder_pagina(argumentos, proceso, paquete_recibido->numero_pagina + 1);
+					direccion_fisica_proxima_pagina = marco_proxima_pagina * argumentos->memoria.tamPagina;
+				}
+
+				if (size_disponible >= 4)
+				{
+					// Lee los 4 bytes del dato en el primer marco, porque está todo
+					paquete_enviar->dato_8 = 0;
+					paquete_enviar->dato_32 = espacio_usuario_leer_uint32(argumentos, proceso, paquete_recibido->direccion_fisica);
+					log_debug(argumentos->logger, "Se leyo del espacio de usuario asociado a la direccion fisica <%d> el siguiente numero: %d", paquete_recibido->direccion_fisica, paquete_enviar->dato_32);
+				}
+				else if (size_disponible == 3)
+				{
+					// Leo 3 bytes de la primera direccion fisica y el resto leo del proximo marco de la proxima pagina
+					uint8_t bytes[4];
+					for (int i = 0; i < 3; i++)
+					{
+						bytes[i] = espacio_usuario_leer_uint8(argumentos, proceso, paquete_recibido->direccion_fisica + i);
+					}
+					bytes[3] = espacio_usuario_leer_uint8(argumentos, proceso, direccion_fisica_proxima_pagina);
+					memcpy(&paquete_enviar->dato_32, bytes, sizeof(paquete_enviar->dato_32));
+					log_debug(argumentos->logger, "Se leyeron 3 bytes de la direccion fisica <%d> y 1 byte de la direccion fisica <%d>", paquete_recibido->direccion_fisica, direccion_fisica_proxima_pagina);
+				}
+				else if (size_disponible == 2)
+				{
+					// Leo 2 bytes de la primera direccion fisica y el resto leo del proximo marco de la proxima pagina
+					uint8_t bytes[4];
+					for (int i = 0; i < 2; i++)
+					{
+						bytes[i] = espacio_usuario_leer_uint8(argumentos, proceso, paquete_recibido->direccion_fisica + i);
+					}
+					for (int i = 0; i < 2; i++)
+					{
+						bytes[2 + i] = espacio_usuario_leer_uint8(argumentos, proceso, direccion_fisica_proxima_pagina + i);
+					}
+					memcpy(&paquete_enviar->dato_32, bytes, sizeof(paquete_enviar->dato_32));
+					log_debug(argumentos->logger, "Se leyeron 2 bytes de la direccion fisica <%d> y 2 bytes de la direccion fisica <%d>", paquete_recibido->direccion_fisica, direccion_fisica_proxima_pagina);
+				}
+				else if (size_disponible == 1)
+				{
+					// Leo 1 byte de la primera direccion fisica y el resto leo del proximo marco de la proxima pagina
+					uint8_t bytes[4];
+					bytes[0] = espacio_usuario_leer_uint8(argumentos, proceso, paquete_recibido->direccion_fisica);
+					for (int i = 0; i < 3; i++)
+					{
+						bytes[1 + i] = espacio_usuario_leer_uint8(argumentos, proceso, direccion_fisica_proxima_pagina + i);
+					}
+					memcpy(&paquete_enviar->dato_32, bytes, sizeof(paquete_enviar->dato_32));
+					log_debug(argumentos->logger, "Se leyo 1 byte de la direccion fisica <%d> y 3 bytes de la direccion fisica <%d>", paquete_recibido->direccion_fisica, direccion_fisica_proxima_pagina);
+				}
 			}
 			else if (paquete_recibido->tamanio_registro_datos == 1)
 			{

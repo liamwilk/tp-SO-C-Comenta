@@ -17,15 +17,11 @@ void switch_case_memoria_entrada_salida_stdin(t_args_hilo *argumentos, char *mod
 			log_error(argumentos->argumentos->logger, "No se encontro el proceso con PID <%d>", paquete_recibido->pid);
 			break;
 		}
+		
 		// Estan en el orden de asignacion de las paginas
 		int cantidad_marcos = paquete_recibido->cantidad_marcos;
 		char **marcos = string_split(paquete_recibido->marcos, " ");
-		// Mostrar todos los marcos
-		// Iterate over all the elements of the array
-		for (int i = 0; marcos[i] != NULL; i++)
-		{
-			log_debug(argumentos->argumentos->logger, "Marco <%d>", atoi(marcos[i]));
-		}
+		
 		t_char_fragmentado *input = espacio_usuario_fragmentar_char(paquete_recibido->input, argumentos->argumentos->memoria.tamPagina);
 
 		if (input->cantidad != cantidad_marcos)
