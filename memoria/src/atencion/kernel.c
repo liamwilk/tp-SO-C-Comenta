@@ -74,7 +74,7 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 
 		log_debug(argumentos->logger, "Proceso <%d> agregado a la lista de procesos global en la posicion %d", proceso->pid, index);
 
-		char* pid_char = string_itoa(proceso->pid);
+		char *pid_char = string_itoa(proceso->pid);
 
 		// Añado el proceso al diccionario de procesos, mapeando el PID a el indice en la lista de procesos
 		dictionary_put(argumentos->memoria.diccionario_procesos, pid_char, string_itoa(index));
@@ -82,13 +82,13 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 		free(pid_char);
 
 		{ // Reviso que se haya guardado correctamente en el diccionario de procesos y en la lista de procesos
-			
-			char* proceso_pid = string_itoa(proceso->pid);
-			
+
+			char *proceso_pid = string_itoa(proceso->pid);
+
 			char *indice = dictionary_get(argumentos->memoria.diccionario_procesos, proceso_pid);
-			
+
 			free(proceso_pid);
-			
+
 			t_proceso *proceso_encontrado = list_get(argumentos->memoria.lista_procesos, atoi(indice));
 
 			log_debug(argumentos->logger, "Reviso que se haya guardado correctamente en el diccionario de procesos y en la lista de procesos");
@@ -153,7 +153,6 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 		// Caso borde, no debería pasar nunca
 		if (list_is_empty(proceso_encontrado->instrucciones))
 		{
-			log_warning(argumentos->logger, "No se encontraron instrucciones para el proceso con PID <%d>. Es un proceso invalido, lo elimino de la lista.", proceso_encontrado->pid);
 			list_destroy(proceso_encontrado->instrucciones);
 			free(proceso_encontrado->instrucciones);
 			free(proceso_encontrado);
@@ -191,7 +190,7 @@ void switch_case_kernel(t_args *argumentos, t_op_code codigo_operacion, t_buffer
 
 		if (proceso == NULL)
 		{
-			log_warning(argumentos->logger, "No se pudo recuperar el proceso con PID <%d> porque no existe en Memoria.", proceso_recibido->pid);
+			log_debug(argumentos->logger, "No se pudo recuperar el proceso con PID <%d> porque no existe en Memoria.", proceso_recibido->pid);
 			free(proceso_recibido->interfaz);
 			free(proceso_recibido->nombre_archivo);
 			free(proceso_recibido);

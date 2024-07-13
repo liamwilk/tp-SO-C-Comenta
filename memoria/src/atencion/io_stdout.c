@@ -60,24 +60,21 @@ void switch_case_memoria_entrada_salida_stdout(t_args_hilo *argumentos, char *mo
 		char *lectura = string_new();
 
 		// Leo el marco de la primera pagina
-
 		uint32_t offset_size_lectura = argumentos->argumentos->memoria.tamPagina - desplazamiento;
 
 		char *primer_lectura = espacio_usuario_leer_char(argumentos->argumentos, proceso, paquete_recibido->direccion_fisica, offset_size_lectura);
 
 		string_append_with_format(&lectura, "%s", primer_lectura);
 
+		int size_a_leer = paquete_recibido->tamanio - offset_size_lectura; // Ajuste inicial del tamaño a leer
 
-		int size_a_leer = paquete_recibido->tamanio;
-
-		log_warning(argumentos->argumentos->logger, "Tamaño a leer: %d", paquete_recibido->tamanio);
+		log_debug(argumentos->argumentos->logger, "Tamaño a leer: %d", paquete_recibido->tamanio);
 
 		if (paginas_a_leer > 1)
 		{
 			// Leo el marco de pagina correspondiente
-			for (int i = 1; i < paginas_a_leer; i++)
+			for (int i = 1; i <= paginas_a_leer; i++)
 			{
-
 				int size_lectura = argumentos->argumentos->memoria.tamPagina;
 
 				if (size_a_leer < size_lectura)
@@ -90,14 +87,14 @@ void switch_case_memoria_entrada_salida_stdout(t_args_hilo *argumentos, char *mo
 				// Calculo la dirección fisica del marco de pagina
 				int direccion_fisica = pagina_obtenida->marco * argumentos->argumentos->memoria.tamPagina;
 
-				size_a_leer -= size_lectura;
-
 				char *ciclo_lectura = espacio_usuario_leer_char(argumentos->argumentos, proceso, direccion_fisica, size_lectura);
 
-				log_warning(argumentos->argumentos->logger, "Se leyo de la direccion fisica %d la siguiente cadena: %s", direccion_fisica, ciclo_lectura);
+				log_debug(argumentos->argumentos->logger, "Se leyo de la direccion fisica %d la siguiente cadena: %s", direccion_fisica, ciclo_lectura);
 
 				string_append_with_format(&lectura, "%s", ciclo_lectura);
 
+				size_a_leer -= size_lectura; // Actualiza el tamaño restante a leer
+				log_debug(argumentos->argumentos->logger, "Tamaño restante a leer: %d", size_a_leer);
 				free(ciclo_lectura);
 			}
 		}
@@ -143,7 +140,7 @@ void switch_case_memoria_entrada_salida_stdout(t_args_hilo *argumentos, char *mo
 		if (buscar_interfaz(argumentos->argumentos, identificacion->identificador) != NULL)
 		{
 			agregar_identificador_rechazado(argumentos, "no identificada");
-			log_warning(argumentos->argumentos->logger, "[%s/%d] Se rechazo identificacion, identificador %s ocupado. Cierro hilo.", modulo, argumentos->entrada_salida->orden, identificacion->identificador);
+			log_debug(argumentos->argumentos->logger, "[%s/%d] Se rechazo identificacion, identificador %s ocupado. Cierro hilo.", modulo, argumentos->entrada_salida->orden, identificacion->identificador);
 
 			argumentos->entrada_salida->valido = false;
 			argumentos->argumentos->memoria.sockets.id_entrada_salida--;
@@ -163,7 +160,7 @@ void switch_case_memoria_entrada_salida_stdout(t_args_hilo *argumentos, char *mo
 	}
 	default:
 	{
-		log_warning(argumentos->argumentos->logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo);
+		log_debug(argumentos->argumentos->logger, "[%s] Se recibio un codigo de operacion desconocido. Cierro hilo", modulo);
 		liberar_conexion(&argumentos->argumentos->memoria.sockets.socket_entrada_salida_stdin);
 		break;
 	}

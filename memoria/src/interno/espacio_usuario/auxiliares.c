@@ -62,7 +62,6 @@ int espacio_usuario_liberar_dato(t_args *args, uint32_t direccion_fisica, size_t
 {
     if (tamano == 0)
     {
-        log_warning(args->logger, "Se intentó liberar un dato de tamaño 0 bytes.");
         return -1;
     }
 
@@ -130,7 +129,7 @@ int espacio_usuario_proximo_frame(t_args *args, size_t tamano)
 
 // Corto el char en pedazos de frame_size bytes
 t_char_fragmentado *espacio_usuario_fragmentar_char(char *input, int frame_size)
-{   
+{
     // Calculo el tamaño de la entrada
     int input_length = strlen(input);
 

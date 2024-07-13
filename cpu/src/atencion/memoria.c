@@ -154,7 +154,6 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 		{
 			log_debug(args->logger, "Se asignaron los marcos asociados a la instruccion IO_STDIN_READ del proceso PID <%d> a partir de la dirección logica <%d>", proceso_recibido->pid, proceso_recibido->registro_direccion);
 
-
 			// FIXME: Esto está mal
 
 			// // Genero la direccion fisica con la MMU
@@ -162,7 +161,7 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 			// {
 			// 	agregar_en_tlb(proceso_recibido->pid, proceso_recibido->numero_pagina, proceso_recibido->marco_inicial, args);
 			// }
-			
+
 			mmu_iniciar(args, IO_STDIN_READ, proceso_recibido->registro_direccion, (void *)proceso_recibido);
 		}
 		else // Si no se pudo asignar el marco

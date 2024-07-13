@@ -10,7 +10,6 @@ void switch_case_memoria_entrada_salida_stdin(t_args_hilo *argumentos, char *mod
 
 		log_debug(argumentos->argumentos->logger, "Se solicito escribir <%ld> bytes en el espacio de usuario desde a la direccion fisica <%d>", strlen(paquete_recibido->input), paquete_recibido->direccion_fisica);
 
-
 		t_proceso *proceso = buscar_proceso(argumentos->argumentos, paquete_recibido->pid);
 
 		if (proceso == NULL)
@@ -18,11 +17,15 @@ void switch_case_memoria_entrada_salida_stdin(t_args_hilo *argumentos, char *mod
 			log_error(argumentos->argumentos->logger, "No se encontro el proceso con PID <%d>", paquete_recibido->pid);
 			break;
 		}
-		
 		// Estan en el orden de asignacion de las paginas
 		int cantidad_marcos = paquete_recibido->cantidad_marcos;
-		char** marcos = string_split(paquete_recibido->marcos, " ");
-
+		char **marcos = string_split(paquete_recibido->marcos, " ");
+		// Mostrar todos los marcos
+		// Iterate over all the elements of the array
+		for (int i = 0; marcos[i] != NULL; i++)
+		{
+			log_debug(argumentos->argumentos->logger, "Marco <%d>", atoi(marcos[i]));
+		}
 		t_char_fragmentado *input = espacio_usuario_fragmentar_char(paquete_recibido->input, argumentos->argumentos->memoria.tamPagina);
 
 		if (input->cantidad != cantidad_marcos)
@@ -34,10 +37,11 @@ void switch_case_memoria_entrada_salida_stdin(t_args_hilo *argumentos, char *mod
 		int resultado = 0;
 
 		// En cada Marco, escribo el fragmento correspondiente
-		for(int i = 0; i < cantidad_marcos; i++)
+		for (int i = 0; i < cantidad_marcos; i++)
 		{
 			int marco = atoi(marcos[i]);
 			int direccion_fisica = marco * argumentos->argumentos->memoria.tamPagina;
+			log_debug(argumentos->argumentos->logger, "Escribiendo en el marco <%d> en la direccion fisica <%d>", marco, direccion_fisica);
 			resultado = espacio_usuario_escribir_char(argumentos->argumentos, proceso, direccion_fisica, input->fragmentos[i]);
 
 			if (resultado == -1)

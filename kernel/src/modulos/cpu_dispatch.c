@@ -275,7 +275,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         proceso_completo->cantidad_marcos = proceso_recibido->cantidad_marcos;
         proceso_completo->marcos = strdup(proceso_recibido->marcos);
         proceso_completo->size_marcos = strlen(proceso_completo->marcos) + 1;
-
         proceso_actualizar_registros(pcb, proceso_recibido->registros);
 
         kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);

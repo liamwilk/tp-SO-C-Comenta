@@ -1405,7 +1405,7 @@ void serializar_t_kernel_io_stdin_read(t_paquete **paquete, t_kernel_io_stdin_re
 	serializar_char(read->interfaz, *paquete);
 
 	serializar_uint32_t(read->cantidad_marcos, *paquete);
-	serializar_uint32_t(read->size_interfaz, *paquete);
+	serializar_uint32_t(read->size_marcos, *paquete);
 	serializar_char(read->marcos, *paquete);
 }
 
@@ -1441,8 +1441,8 @@ t_kernel_io_stdin_read *deserializar_t_kernel_io_stdin_read(t_buffer *buffer)
 	deserializar_char(&stream, &(read->interfaz), read->size_interfaz);
 
 	deserializar_uint32_t(&stream, &(read->cantidad_marcos));
-	deserializar_uint32_t(&stream, &(read->size_interfaz));
-	deserializar_char(&stream, &(read->marcos), read->size_interfaz);
+	deserializar_uint32_t(&stream, &(read->size_marcos));
+	deserializar_char(&stream, &(read->marcos), read->size_marcos);
 
 	return read;
 }

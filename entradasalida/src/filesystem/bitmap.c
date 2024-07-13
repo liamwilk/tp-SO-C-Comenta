@@ -15,10 +15,6 @@ void bitmap_desmapear(t_io *args)
 
         args->dial_fs.archivo_bitmap = NULL;
     }
-    else
-    {
-        log_warning(args->logger, "Se intento de desmapear un archivo de bitmap que no estaba mapeado");
-    }
 }
 
 void bitmap_mapear(t_io *args)
@@ -33,7 +29,6 @@ void bitmap_mapear(t_io *args)
 
     if (stat(args->dial_fs.path_bloques, &st_bitmap) == -1)
     {
-        log_warning(args->logger, "No existe el directorio de bloques, se creará: %s", args->dial_fs.path_bitmap);
         mkdir(args->dial_fs.path_bitmap, 0777);
     }
 

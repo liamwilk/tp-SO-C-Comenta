@@ -299,7 +299,6 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			}
 
 			tabla_paginas_asignar_pagina(argumentos, proceso, proceso_recibido->numero_pagina + iterador_pagina, frame);
-
 			string_append_with_format(&marcos, "%d ", frame);
 		}
 
@@ -492,7 +491,6 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		// Caso borde, no debería pasar nunca
 		if (list_is_empty(proceso_encontrado->instrucciones))
 		{
-			log_warning(argumentos->logger, "No se encontraron instrucciones para el proceso con PID <%d>", proceso_encontrado->pid);
 			free(instruccion_recibida);
 			break;
 		}

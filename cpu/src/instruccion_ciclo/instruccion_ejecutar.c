@@ -227,7 +227,6 @@ int instruccion_ejecutar(t_cpu *args)
 
                     log_debug(args->logger, "Argumento destino tipo: %d", argumento_destino_tipo);
                 }
-                break;
             }
         }
         else
@@ -799,7 +798,7 @@ int instruccion_ejecutar(t_cpu *args)
 
         // Primero pido el marco a memoria asociado a la dirección lógica, para poder traducir con la MMU
         // TODO: No es un marco, son varios marcos
-        
+
         t_paquete *paquete = crear_paquete(CPU_MEMORIA_IO_STDIN_READ);
         t_io_stdin_read *proceso = malloc(sizeof(t_io_stdin_read));
 
@@ -1425,6 +1424,6 @@ int instruccion_ejecutar(t_cpu *args)
         log_error(args->logger, "Se reconoció el codigo de operación <%d> el cual no corresponde a una instruccion valida", args->tipo_instruccion);
     }
     }
-    
+    log_error(args->logger, "Instruccion no reconocida");
     return -1;
 }

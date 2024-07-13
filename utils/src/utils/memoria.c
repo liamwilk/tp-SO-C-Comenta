@@ -198,7 +198,6 @@ void eliminar_procesos(t_args *argumentos)
             // Si el proceso no tiene instrucciones, no se puede eliminar. Otro caso borde más.
             if (list_is_empty(proceso->instrucciones))
             {
-                log_error(argumentos->logger, "No se encontraron instrucciones para el proceso con PID <%s>", pid);
                 continue;
             }
 
