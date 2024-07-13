@@ -12,8 +12,40 @@ void switch_case_memoria_entrada_salida_stdin(t_args_hilo *argumentos, char *mod
 
 		t_proceso *proceso = buscar_proceso(argumentos->argumentos, paquete_recibido->pid);
 
-		int resultado = espacio_usuario_escribir_char(argumentos->argumentos, proceso,paquete_recibido->direccion_fisica, paquete_recibido->input);
+		if (proceso == NULL)
+		{
+			log_error(argumentos->argumentos->logger, "No se encontro el proceso con PID <%d>", paquete_recibido->pid);
+			break;
+		}
+		
+		// Estan en el orden de asignacion de las paginas
+		int cantidad_marcos = paquete_recibido->cantidad_marcos;
+		char **marcos = string_split(paquete_recibido->marcos, " ");
+		
+		t_char_fragmentado *input = espacio_usuario_fragmentar_char(paquete_recibido->input, argumentos->argumentos->memoria.tamPagina);
 
+		if (input->cantidad != cantidad_marcos)
+		{
+			log_error(argumentos->argumentos->logger, "La cantidad de marcos no coincide con la cantidad de fragmentos");
+			break;
+		}
+
+		int resultado = 0;
+
+		// En cada Marco, escribo el fragmento correspondiente
+		for (int i = 0; i < cantidad_marcos; i++)
+		{
+			int marco = atoi(marcos[i]);
+			int direccion_fisica = marco * argumentos->argumentos->memoria.tamPagina;
+			log_debug(argumentos->argumentos->logger, "Escribiendo en el marco <%d> en la direccion fisica <%d>", marco, direccion_fisica);
+			resultado = espacio_usuario_escribir_char(argumentos->argumentos, proceso, direccion_fisica, input->fragmentos[i]);
+
+			if (resultado == -1)
+			{
+				log_error(argumentos->argumentos->logger, "No se pudo escribir en el espacio de usuario");
+				break;
+			}
+		}
 		t_paquete *paquete = crear_paquete(MEMORIA_ENTRADA_SALIDA_IO_STDIN_READ);
 		t_memoria_entrada_salida_io_stdin_read *paquete_enviar = malloc(sizeof(t_memoria_entrada_salida_io_stdin_read));
 
@@ -36,6 +68,7 @@ void switch_case_memoria_entrada_salida_stdin(t_args_hilo *argumentos, char *mod
 		eliminar_paquete(paquete);
 		free(paquete_enviar);
 		free(paquete_recibido);
+		free(marcos);
 		break;
 	}
 	case MEMORIA_ENTRADA_SALIDA_IDENTIFICACION:

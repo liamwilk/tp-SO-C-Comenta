@@ -12,7 +12,7 @@ void hilo_ejecutar(t_log *logger, int socket, char *modulo, t_funcion_ptr switch
 
         if (paquete == NULL)
         {
-            log_warning(logger, "%s se desconecto del socket %d.", modulo, socket);
+            log_debug(logger, "%s se desconecto del socket %d.", modulo, socket);
             break;
         }
 

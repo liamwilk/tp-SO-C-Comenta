@@ -3,26 +3,24 @@
 t_pcb *kernel_transicion_exec_ready(hilos_args *kernel_hilos_args)
 {
     pthread_mutex_lock(&kernel_hilos_args->estados->mutex_exec_ready);
+    t_pcb *proceso = list_get(kernel_hilos_args->estados->exec, 0);
+    proceso_push_ready(kernel_hilos_args->estados, proceso);
+    // Log oficial de la catedra (En procedimiento)
+    kernel_log_ready(kernel_hilos_args, false);
 
-    t_pcb *proceso = proceso_pop_exec(kernel_hilos_args->estados);
+    proceso_pop_exec(kernel_hilos_args->estados);
     if (proceso == NULL)
     {
         kernel_log_generic(kernel_hilos_args, LOG_LEVEL_ERROR, "[ESTADOS] Transicion de exec a ready fallida. No hay procesos en exec.");
         pthread_mutex_unlock(&kernel_hilos_args->estados->mutex_exec_ready);
         return NULL;
     }
-    proceso_push_ready(kernel_hilos_args->estados, proceso);
 
     // Log oficial de la catedra
     kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Estado Anterior: <EXEC> - Estado Actual: <READY>", proceso->pid);
 
-    if (determinar_algoritmo(kernel_hilos_args->kernel->algoritmoPlanificador) == VRR)
-    {
-        kernel_log_ready(kernel_hilos_args, true);
-    }
-    // Log oficial de la catedra (En procedimiento)
-    kernel_log_ready(kernel_hilos_args, false);
     pthread_mutex_unlock(&kernel_hilos_args->estados->mutex_exec_ready);
+
     return proceso;
 };
 
@@ -186,8 +184,7 @@ t_pcb *kernel_transicion_block_ready_mayor_prioridad(hilos_args *kernel_hilos_ar
     kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Estado Anterior: <BLOCK> - Estado Actual: <READY_PRIORIDAD>", proceso->pid);
 
     // Log oficial de la catedra (En procedimiento)
-    kernel_log_ready(kernel_hilos_args, true);  // Se muestra la cola de mayor prioridad
-    kernel_log_ready(kernel_hilos_args, false); // Se muestra la cola de menor prioridad
+    kernel_log_ready(kernel_hilos_args, true); // Se muestra la cola de mayor prioridad
     return proceso;
 }
 
@@ -235,8 +232,7 @@ t_pcb *kernel_transicion_exec_ready_mayor_prioridad(hilos_args *kernel_hilos_arg
     kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "PID: <%d> - Estado Anterior: <EXEC> - Estado Actual: <READY_PRIORIDAD>", proceso->pid);
 
     // Log oficial de la catedra (En procedimiento)
-    kernel_log_ready(kernel_hilos_args, true);  // Se muestra la cola de mayor prioridad
-    kernel_log_ready(kernel_hilos_args, false); // Se muestra la cola de menor prioridad
+    kernel_log_ready(kernel_hilos_args, true); // Se muestra la cola de mayor prioridad
     pthread_mutex_unlock(&kernel_hilos_args->estados->mutex_exec_ready_mayor_prioridad);
     return proceso;
 }

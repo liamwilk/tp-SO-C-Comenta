@@ -15,10 +15,6 @@ void bloques_desmapear(t_io *args)
 
         args->dial_fs.archivo_bloques = NULL;
     }
-    else
-    {
-        log_warning(args->logger, "Se intento de desmapear un archivo de bloques que no estaba mapeado");
-    }
 }
 
 void bloques_mapear(t_io *args)
@@ -33,7 +29,6 @@ void bloques_mapear(t_io *args)
 
     if (stat(args->dial_fs.path_bloques, &st_bloques) == -1)
     {
-        log_warning(args->logger, "No existe el directorio de bloques, se creará: %s", args->dial_fs.path_bloques);
         mkdir(args->dial_fs.path_bloques, 0777);
     }
 

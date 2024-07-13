@@ -618,7 +618,7 @@ void hilo_ejecutar_kernel(int socket, hilos_args *args, char *modulo, t_funcion_
 
         if (paquete == NULL)
         {
-            kernel_log_generic(args, LOG_LEVEL_WARNING, "%s se desconecto.", modulo);
+            kernel_log_generic(args, LOG_LEVEL_DEBUG, "%s se desconecto.", modulo);
             break;
         }
 

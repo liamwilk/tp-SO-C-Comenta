@@ -22,7 +22,6 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 			{
 				agregar_en_tlb(recibido->pid, recibido->numero_pagina, recibido->numero_marco, args);
 			}
-
 			args->resultado = 1;
 		}
 		else
@@ -54,13 +53,13 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 			{
 
 				// Imprimo log: “PID: <PID> - Acción: <LEER / ESCRIBIR> - Dirección Física: <DIRECCION_FISICA> - Valor: <VALOR LEIDO / ESCRITO>”.
-				log_info(args->logger, "PID: <%d> - Acción: <ESCRIBIR> - Dirección Física: <%d> - Valor: <%d>", proceso_recibido->pid, proceso_recibido->direccion_fisica, proceso_recibido->dato_32);
+				log_info(args->logger, "PID: <%d> - Acción: <ESCRIBIR> - Dirección Física: <%d> - Valor: <%d>", proceso_recibido->pid, proceso_recibido->direccion_fisica, proceso_recibido->registro_datos);
 
 				log_debug(args->logger, "Se escribio el dato <%d> en el marco <%d> asociado a la instruccion <MOV_OUT> del proceso PID <%d>", proceso_recibido->dato_32, proceso_recibido->numero_marco, proceso_recibido->pid);
 			}
 			else
 			{
-				log_info(args->logger, "PID: <%d> - Acción: <ESCRIBIR> - Dirección Física: <%d> - Valor: <%d>", proceso_recibido->pid, proceso_recibido->direccion_fisica, proceso_recibido->dato_8);
+				log_info(args->logger, "PID: <%d> - Acción: <ESCRIBIR> - Dirección Física: <%d> - Valor: <%d>", proceso_recibido->pid, proceso_recibido->direccion_fisica, proceso_recibido->registro_datos);
 
 				log_debug(args->logger, "Se escribio el dato <%d> en el marco <%d> asociado a la instruccion <MOV_OUT> del proceso PID <%d>", proceso_recibido->dato_8, proceso_recibido->numero_marco, proceso_recibido->pid);
 			}
@@ -148,24 +147,24 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 	{
 		t_io_stdin_read *proceso_recibido = deserializar_t_io_stdin_read(buffer);
 
-		log_debug(args->logger, "Se recibio una respuesta de Memoria acerca de la solicitud de marco asociada a la instruccion IO_STDIN_READ para el proceso PID <%d>", proceso_recibido->pid);
+		log_debug(args->logger, "Se recibio una respuesta de Memoria acerca de la solicitud de asignacion de marcos asociada a la instruccion IO_STDIN_READ para el proceso PID <%d>", proceso_recibido->pid);
 
-		// Si se obtuvo el marco correctamente
+		// Si se asigno el marco correctamente
 		if (proceso_recibido->resultado)
 		{
-			log_debug(args->logger, "Se asignaron los marcos asociados a la instruccion IO_STDIN_READ del proceso PID <%d>", proceso_recibido->pid);
+			log_debug(args->logger, "Se asignaron los marcos asociados a la instruccion IO_STDIN_READ del proceso PID <%d> a partir de la dirección logica <%d>", proceso_recibido->pid, proceso_recibido->registro_direccion);
 
-			log_debug(args->logger, "Se envio la solicitud de la instruccion IO_STDIN_READ del proceso PID <%d> a Kernel", proceso_recibido->pid);
+			// FIXME: Esto está mal
 
-			// Genero la direccion fisica con la MMU
-			if (args->config_leida.cantidadEntradasTlb > 0)
-			{
-				agregar_en_tlb(proceso_recibido->pid, proceso_recibido->numero_pagina, proceso_recibido->marco_inicial, args);
-			}
+			// // Genero la direccion fisica con la MMU
+			// if (args->config_leida.cantidadEntradasTlb > 0)
+			// {
+			// 	agregar_en_tlb(proceso_recibido->pid, proceso_recibido->numero_pagina, proceso_recibido->marco_inicial, args);
+			// }
 
 			mmu_iniciar(args, IO_STDIN_READ, proceso_recibido->registro_direccion, (void *)proceso_recibido);
 		}
-		else // Si no se obtuvo el marco
+		else // Si no se pudo asignar el marco
 		{
 			log_error(args->logger, "No se pudo asignar el marco de la pagina <%d> asociado a la instruccion IO_STDIN_READ del proceso PID <%d>", proceso_recibido->pid, proceso_recibido->numero_pagina);
 
@@ -273,7 +272,7 @@ void switch_case_memoria(t_cpu *args, t_op_code codigo_operacion, t_buffer *buff
 			proceso_completo->direccion_fisica_si = mmu(args, proceso_recibido->direccion_si, proceso_recibido->marco_si);
 			proceso_completo->direccion_fisica_di = mmu(args, proceso_recibido->direccion_di, proceso_recibido->marco_di);
 
-			log_warning(args->logger, "Se genero la direccion fisica <%d> para SI y <%d> para DI asociada a la instruccion <COPY_STRING> del proceso PID <%d>", proceso_completo->direccion_fisica_si, proceso_completo->direccion_fisica_di, proceso_recibido->pid);
+			log_debug(args->logger, "Se genero la direccion fisica <%d> para SI y <%d> para DI asociada a la instruccion <COPY_STRING> del proceso PID <%d>", proceso_completo->direccion_fisica_si, proceso_completo->direccion_fisica_di, proceso_recibido->pid);
 
 			proceso_completo->direccion_si = proceso_recibido->direccion_si;
 			proceso_completo->direccion_di = proceso_recibido->direccion_di;

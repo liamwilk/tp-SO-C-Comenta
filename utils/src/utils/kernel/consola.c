@@ -361,24 +361,17 @@ void kernel_log_ready(hilos_args *kernel_hilos_args, bool prioritaria)
 {
     char *msg = prioritaria == false ? strdup("Cola Ready : [") : strdup("Cola Ready Mayor Prioridad : [");
     t_list *listaARecorrer = prioritaria == false ? kernel_hilos_args->estados->ready : kernel_hilos_args->estados->ready_mayor_prioridad;
-
+    int elementos = list_size(listaARecorrer);
     // Iterate over ready
-    for (int i = 0; i < list_size(listaARecorrer); i++)
+    for (int i = 0; i < elementos; i++)
     {
         t_pcb *pcb = list_get(listaARecorrer, i);
         char *pid = string_itoa(pcb->pid);
-
         char *new_msg = string_from_format("%s  %s", msg, pid);
-        free(msg);
         msg = new_msg;
-
-        free(pid);
     }
-
     char *final_msg = string_from_format("%s ]", msg);
-    free(msg);
     kernel_log_generic(kernel_hilos_args, LOG_LEVEL_INFO, "%s", final_msg);
-    free(final_msg);
 }
 
 void imprimir_logo(hilos_args *args)

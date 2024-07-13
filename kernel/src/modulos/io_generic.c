@@ -49,10 +49,6 @@ void switch_case_kernel_entrada_salida_generic(hilos_io_args *io_args, char *mod
                 kernel_proximo_io_generic(io_args->args, io);
             }
         }
-        else
-        {
-            kernel_log_generic(io_args->args, LOG_LEVEL_WARNING, "[%s/%s/%d] La interfaz me aviso que la ejecucion de la instruccion IO_GEN_SLEEP fue interrumpida antes de finalizar.", modulo, io_args->entrada_salida->interfaz, io_args->entrada_salida->orden);
-        }
         avisar_planificador(io_args->args);
         free(unidad);
         break;

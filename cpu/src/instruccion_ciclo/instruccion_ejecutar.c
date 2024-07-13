@@ -227,7 +227,6 @@ int instruccion_ejecutar(t_cpu *args)
 
                     log_debug(args->logger, "Argumento destino tipo: %d", argumento_destino_tipo);
                 }
-                break;
             }
         }
         else
@@ -758,7 +757,7 @@ int instruccion_ejecutar(t_cpu *args)
 
         proceso->num_pagina_di = 0;
 
-        log_warning(args->logger, "Se calculan las paginas <%d> para SI y <%d> para DI", proceso->num_pagina_si, proceso->num_pagina_di);
+        log_debug(args->logger, "Se calculan las paginas <%d> para SI y <%d> para DI", proceso->num_pagina_si, proceso->num_pagina_di);
 
         proceso->direccion_fisica_si = 0;
         proceso->direccion_fisica_di = 0;
@@ -798,25 +797,21 @@ int instruccion_ejecutar(t_cpu *args)
         }
 
         // Primero pido el marco a memoria asociado a la dirección lógica, para poder traducir con la MMU
+        // TODO: No es un marco, son varios marcos
 
         t_paquete *paquete = crear_paquete(CPU_MEMORIA_IO_STDIN_READ);
         t_io_stdin_read *proceso = malloc(sizeof(t_io_stdin_read));
 
         // Cargo el PID
         proceso->pid = args->proceso.pid;
-
-        // Cargo la Interfaz
         proceso->interfaz = strdup(interfaz);
-
-        // El tamaño del identificador de la interfaz
         proceso->size_interfaz = strlen(interfaz) + 1;
+        proceso->resultado = 0;
 
         // Estos son los datos que me va a devolver memoria
+        // TODO: Ajustar a cantidad de marcos y lista de marcos
         proceso->marco_inicial = 0;
         proceso->marco_final = 0;
-
-        // Esto tambien me lo devuelve memoria
-        proceso->resultado = 0;
 
         // Paso el valor de los registros a la estructura que le voy a mandar a memoria
         if (registro_direccion_tipo == REGISTRO_32) // El registro direccion es de 32 bits
@@ -870,24 +865,26 @@ int instruccion_ejecutar(t_cpu *args)
         }
 
         // Calculo desplazamiento
-        proceso->desplazamiento = proceso->registro_direccion - proceso->numero_pagina * args->tam_pagina;
+        // TODO: Remover
+        proceso->desplazamiento = 0;
 
         // Me guardo el contexto del proceso
         proceso->registros = args->proceso.registros;
+        proceso->cantidad_marcos = 0;
+        proceso->marcos = string_new();
+        proceso->size_marcos = strlen(proceso->marcos) + 1;
 
         // Serializo la estructura y se la envio a memoria
         serializar_t_io_stdin_read(&paquete, proceso);
         enviar_paquete(paquete, args->config_leida.socket_memoria);
-        eliminar_paquete(paquete);
 
         // Libero las cosas
+        eliminar_paquete(paquete);
         free(proceso->interfaz);
         free(proceso);
-
         free(interfaz);
         free(registro_direccion);
         free(registro_tamanio);
-
         return 1;
     }
     case IO_STDOUT_WRITE:
@@ -1354,8 +1351,8 @@ int instruccion_ejecutar(t_cpu *args)
         proceso->resultado = 0;
         proceso->direccion_fisica = 0;
 
-        log_warning(args->logger, "String registro puntero: <%s>", registro_puntero_archivo);
-        log_warning(args->logger, "Registro puntero: <%d>", proceso->puntero_archivo);
+        log_debug(args->logger, "String registro puntero: <%s>", registro_puntero_archivo);
+        log_debug(args->logger, "Registro puntero: <%d>", proceso->puntero_archivo);
 
         mmu_iniciar(args, IO_FS_READ, proceso->registro_direccion, (void *)proceso);
 
@@ -1422,7 +1419,11 @@ int instruccion_ejecutar(t_cpu *args)
         instruccion_finalizar(args);
         return 1;
     }
+    default:
+    {
+        log_error(args->logger, "Se reconoció el codigo de operación <%d> el cual no corresponde a una instruccion valida", args->tipo_instruccion);
     }
-
-    return 0;
+    }
+    log_error(args->logger, "Instruccion no reconocida");
+    return -1;
 }

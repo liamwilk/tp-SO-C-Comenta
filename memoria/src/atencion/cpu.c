@@ -19,11 +19,88 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		{
 			if (paquete_recibido->tamanio_registro_datos == 4) // Debo escribir 4 bytes desde DF
 			{
-				espacio_usuario_escribir_uint32_t(argumentos, proceso, paquete_recibido->direccion_fisica, paquete_recibido->registro_datos);
-				log_debug(argumentos->logger, "Se escribio en espacio de usuario desde a la direccion fisica <%d> el siguiente numero de 4 bytes: %d", paquete_recibido->direccion_fisica, paquete_recibido->registro_datos);
+				uint32_t marco = paquete_recibido->direccion_fisica / argumentos->memoria.tamPagina;
+
+				int desplazamiento = paquete_recibido->direccion_fisica % argumentos->memoria.tamPagina;
+
+				int size_disponible = argumentos->memoria.tamPagina - desplazamiento;
+
+				log_debug(argumentos->logger, "El tamaño disponible en el marco <%d> es de <%d> bytes", marco, size_disponible);
+
+				int marco_proxima_pagina = -1;
+				int direccion_fisica_proxima_pagina = -1;
+
+				if (size_disponible < 4)
+				{
+					marco_proxima_pagina = tabla_paginas_acceder_pagina(argumentos, proceso, paquete_recibido->numero_pagina + 1);
+					direccion_fisica_proxima_pagina = marco_proxima_pagina * argumentos->memoria.tamPagina;
+				}
+
+				if (size_disponible >= 4)
+				{
+					// Escribo los 4 bytes del dato en el primer marco, porque entra todo
+					espacio_usuario_escribir_uint32_t(argumentos, proceso, paquete_recibido->direccion_fisica, paquete_recibido->registro_datos);
+					log_debug(argumentos->logger, "Se escribio en espacio de usuario desde la direccion fisica <%d> el siguiente numero de 4 bytes: %d", paquete_recibido->direccion_fisica, paquete_recibido->registro_datos);
+				}
+				else if (size_disponible == 3)
+				{
+					// Escribo 3 bytes del dato con memcpy y el resto va en el proximo marco de la proxima pagina
+					uint32_t dato = paquete_recibido->registro_datos;
+					uint8_t bytes[4];
+					memcpy(bytes, &dato, sizeof(dato));
+
+					// Escribo los primeros 3 bytes en la página actual
+					for (int i = 0; i < 3; i++)
+					{
+						espacio_usuario_escribir_uint8_t(argumentos, proceso, paquete_recibido->direccion_fisica + i, bytes[i]);
+					}
+
+					// Escribo el byte restante en la siguiente página
+					espacio_usuario_escribir_uint8_t(argumentos, proceso, direccion_fisica_proxima_pagina, bytes[3]);
+
+					log_debug(argumentos->logger, "Se escribieron 3 bytes en la direccion fisica <%d> y 1 byte en la direccion fisica <%d>", paquete_recibido->direccion_fisica, direccion_fisica_proxima_pagina);
+				}
+				else if (size_disponible == 2)
+				{
+					// Escribo 2 bytes del dato con memcpy y el resto va a la proxima pagina
+					uint32_t dato = paquete_recibido->registro_datos;
+					uint8_t bytes[4];
+					memcpy(bytes, &dato, sizeof(dato));
+
+					// Escribo los primeros 2 bytes en la página actual
+					for (int i = 0; i < 2; i++)
+					{
+						espacio_usuario_escribir_uint8_t(argumentos, proceso, paquete_recibido->direccion_fisica + i, bytes[i]);
+					}
+
+					// Escribo los 2 bytes restantes en la siguiente página
+					for (int i = 0; i < 2; i++)
+					{
+						espacio_usuario_escribir_uint8_t(argumentos, proceso, direccion_fisica_proxima_pagina + i, bytes[2 + i]);
+					}
+					log_debug(argumentos->logger, "Se escribieron 2 bytes en la direccion fisica <%d> y 2 bytes en la direccion fisica <%d>", paquete_recibido->direccion_fisica, direccion_fisica_proxima_pagina);
+				}
+				else if (size_disponible == 1)
+				{
+					// Escribo 1 byte del dato con memcpy y el resto va a la proxima pagina
+					uint32_t dato = paquete_recibido->registro_datos;
+					uint8_t bytes[4];
+					memcpy(bytes, &dato, sizeof(dato));
+
+					// Escribo el primer byte en la página actual
+					espacio_usuario_escribir_uint8_t(argumentos, proceso, paquete_recibido->direccion_fisica, bytes[0]);
+
+					// Escribo los 3 bytes restantes en la siguiente página
+					for (int i = 0; i < 3; i++)
+					{
+						espacio_usuario_escribir_uint8_t(argumentos, proceso, direccion_fisica_proxima_pagina + i, bytes[1 + i]);
+					}
+					log_debug(argumentos->logger, "Se escribio 1 byte en la direccion fisica <%d> y 3 bytes en la direccion fisica <%d>", paquete_recibido->direccion_fisica, direccion_fisica_proxima_pagina);
+				}
 			}
 			else if (paquete_recibido->tamanio_registro_datos == 1) // Debo escribir 1 byte desde DF
 			{
+				// Se escribe en un solo marco
 				espacio_usuario_escribir_uint8_t(argumentos, proceso, paquete_recibido->direccion_fisica, paquete_recibido->registro_datos);
 				log_debug(argumentos->logger, "Se escribio en espacio de usuario desde a la direccion fisica <%d> el siguiente numero de 1 byte: %d", paquete_recibido->direccion_fisica, paquete_recibido->registro_datos);
 			}
@@ -87,9 +164,65 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		{
 			if (paquete_recibido->tamanio_registro_datos == 4)
 			{
-				paquete_enviar->dato_8 = 0;
-				paquete_enviar->dato_32 = espacio_usuario_leer_uint32(argumentos, proceso, paquete_recibido->direccion_fisica);
-				log_debug(argumentos->logger, "Se leyo del espacio de usuario asociado a la direccion fisica <%d> el siguiente numero: %d", paquete_recibido->direccion_fisica, paquete_enviar->dato_32);
+				int desplazamiento = paquete_recibido->direccion_fisica % argumentos->memoria.tamPagina;
+
+				int size_disponible = argumentos->memoria.tamPagina - desplazamiento;
+
+				int marco_proxima_pagina = -1;
+				int direccion_fisica_proxima_pagina = -1;
+
+				if (size_disponible < 4)
+				{
+					marco_proxima_pagina = tabla_paginas_acceder_pagina(argumentos, proceso, paquete_recibido->numero_pagina + 1);
+					direccion_fisica_proxima_pagina = marco_proxima_pagina * argumentos->memoria.tamPagina;
+				}
+
+				if (size_disponible >= 4)
+				{
+					// Lee los 4 bytes del dato en el primer marco, porque está todo
+					paquete_enviar->dato_8 = 0;
+					paquete_enviar->dato_32 = espacio_usuario_leer_uint32(argumentos, proceso, paquete_recibido->direccion_fisica);
+					log_debug(argumentos->logger, "Se leyo del espacio de usuario asociado a la direccion fisica <%d> el siguiente numero: %d", paquete_recibido->direccion_fisica, paquete_enviar->dato_32);
+				}
+				else if (size_disponible == 3)
+				{
+					// Leo 3 bytes de la primera direccion fisica y el resto leo del proximo marco de la proxima pagina
+					uint8_t bytes[4];
+					for (int i = 0; i < 3; i++)
+					{
+						bytes[i] = espacio_usuario_leer_uint8(argumentos, proceso, paquete_recibido->direccion_fisica + i);
+					}
+					bytes[3] = espacio_usuario_leer_uint8(argumentos, proceso, direccion_fisica_proxima_pagina);
+					memcpy(&paquete_enviar->dato_32, bytes, sizeof(paquete_enviar->dato_32));
+					log_debug(argumentos->logger, "Se leyeron 3 bytes de la direccion fisica <%d> y 1 byte de la direccion fisica <%d>", paquete_recibido->direccion_fisica, direccion_fisica_proxima_pagina);
+				}
+				else if (size_disponible == 2)
+				{
+					// Leo 2 bytes de la primera direccion fisica y el resto leo del proximo marco de la proxima pagina
+					uint8_t bytes[4];
+					for (int i = 0; i < 2; i++)
+					{
+						bytes[i] = espacio_usuario_leer_uint8(argumentos, proceso, paquete_recibido->direccion_fisica + i);
+					}
+					for (int i = 0; i < 2; i++)
+					{
+						bytes[2 + i] = espacio_usuario_leer_uint8(argumentos, proceso, direccion_fisica_proxima_pagina + i);
+					}
+					memcpy(&paquete_enviar->dato_32, bytes, sizeof(paquete_enviar->dato_32));
+					log_debug(argumentos->logger, "Se leyeron 2 bytes de la direccion fisica <%d> y 2 bytes de la direccion fisica <%d>", paquete_recibido->direccion_fisica, direccion_fisica_proxima_pagina);
+				}
+				else if (size_disponible == 1)
+				{
+					// Leo 1 byte de la primera direccion fisica y el resto leo del proximo marco de la proxima pagina
+					uint8_t bytes[4];
+					bytes[0] = espacio_usuario_leer_uint8(argumentos, proceso, paquete_recibido->direccion_fisica);
+					for (int i = 0; i < 3; i++)
+					{
+						bytes[1 + i] = espacio_usuario_leer_uint8(argumentos, proceso, direccion_fisica_proxima_pagina + i);
+					}
+					memcpy(&paquete_enviar->dato_32, bytes, sizeof(paquete_enviar->dato_32));
+					log_debug(argumentos->logger, "Se leyo 1 byte de la direccion fisica <%d> y 3 bytes de la direccion fisica <%d>", paquete_recibido->direccion_fisica, direccion_fisica_proxima_pagina);
+				}
 			}
 			else if (paquete_recibido->tamanio_registro_datos == 1)
 			{
@@ -143,7 +276,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 	{
 		t_io_stdin_read *proceso_recibido = deserializar_t_io_stdin_read(buffer);
 
-		log_debug(argumentos->logger, "Se recibio una peticion de asignacion de marco de <%d> bytes para el proceso PID <%d>", proceso_recibido->registro_tamanio, proceso_recibido->pid);
+		log_debug(argumentos->logger, "Se recibio una peticion de asignacion de marcos para almacenar <%d> bytes en el proceso PID <%d>", proceso_recibido->registro_tamanio, proceso_recibido->pid);
 
 		// Busco el proceso en la lista de procesos globales
 		t_proceso *proceso = buscar_proceso(argumentos, proceso_recibido->pid);
@@ -182,7 +315,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			break;
 		}
 
-		// Verifico si la página solicitada existe
+		// Verifico si la página inicial solicitada existe
 		t_pagina *pagina = list_get(proceso->tabla_paginas, proceso_recibido->numero_pagina);
 
 		if (pagina == NULL)
@@ -252,52 +385,88 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			break;
 		}
 
-		int j = 0;
-
 		// Determino la cantidad de marcos a asignar
 		int cantidad_de_marcos = (int)ceil((double)proceso_recibido->registro_tamanio / argumentos->memoria.tamPagina);
 
-		for (int i = 0; i < cantidad_de_marcos; i++)
-		{
-			int proximo_frame = espacio_usuario_proximo_frame(argumentos, argumentos->memoria.tamPagina);
+		char *marcos = string_new();
 
-			if (proximo_frame == -1)
+		// Asigno los marcos al proceso en paginas contiguas desde la pagina solicitada
+		for (int iterador_pagina = 0; iterador_pagina < cantidad_de_marcos; iterador_pagina++)
+		{
+			// Busco un frame disponible en el espacio de usuario
+			int frame = espacio_usuario_proximo_frame(argumentos, argumentos->memoria.tamPagina);
+
+			// Si no hay frames disponibles, envio un mensaje a CPU
+			if (frame == -1)
 			{
 				log_error(argumentos->logger, "No hay frames disponibles en espacio de usuario para asignar al proceso PID <%d>", proceso_recibido->pid);
+
+				// Notifico a CPU que el tamaño solicitado a leer no coincide con lo que fue escrito por el proceso
+				t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_STDIN_READ);
+				t_io_stdin_read *proceso_enviar = malloc(sizeof(t_io_stdin_read));
+
+				// Le devuelvo lo que recibi, pero con resultado 0 indicando que fallo
+				proceso_enviar->pid = proceso_recibido->pid;
+				proceso_enviar->resultado = 0;
+				proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
+				proceso_enviar->registro_tamanio = proceso_recibido->registro_tamanio;
+				proceso_enviar->marco_inicial = proceso_recibido->marco_inicial;
+				proceso_enviar->marco_final = proceso_recibido->marco_final;
+				proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
+				proceso_enviar->direccion_fisica = proceso_recibido->direccion_fisica;
+				proceso_enviar->desplazamiento = proceso_recibido->desplazamiento;
+				proceso_enviar->interfaz = strdup(proceso_recibido->interfaz);
+				proceso_enviar->size_interfaz = proceso_recibido->size_interfaz;
+				proceso_enviar->registros = proceso_recibido->registros;
+
+				serializar_t_io_stdin_read(&paquete, proceso_enviar);
+				enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
+				eliminar_paquete(paquete);
+
+				free(proceso_enviar->interfaz);
+				free(proceso_enviar);
+
+				free(proceso_recibido->interfaz);
+				free(proceso_recibido);
 				break;
 			}
 
-			// Le asigno el marco y pagina al proceso
-			tabla_paginas_asignar_pagina(argumentos, proceso, proceso_recibido->numero_pagina + j, proximo_frame);
-			j++;
+			tabla_paginas_asignar_pagina(argumentos, proceso, proceso_recibido->numero_pagina + iterador_pagina, frame);
+			string_append_with_format(&marcos, "%d ", frame);
 		}
 
-		// Notifico a CPU que se asigno el marco
+		// Notifico a CPU que se asignaron los marcos.
 		t_paquete *paquete = crear_paquete(MEMORIA_CPU_IO_STDIN_READ);
 		t_io_stdin_read *proceso_enviar = malloc(sizeof(t_io_stdin_read));
 
-		proceso_enviar->pid = proceso_recibido->pid;
+		proceso_enviar->marco_inicial = 0;	// FIXME: Remover
+		proceso_enviar->marco_final = 0;	// FIXME: Remover
+		proceso_enviar->desplazamiento = 0; // FIXME: Remover
+
 		proceso_enviar->resultado = 1;
+		proceso_enviar->pid = proceso_recibido->pid;
 		proceso_enviar->registro_direccion = proceso_recibido->registro_direccion;
 		proceso_enviar->registro_tamanio = proceso_recibido->registro_tamanio;
-		proceso_enviar->marco_inicial = proceso_recibido->marco_inicial;
-		proceso_enviar->marco_final = proceso_recibido->marco_final;
 		proceso_enviar->numero_pagina = proceso_recibido->numero_pagina;
 		proceso_enviar->direccion_fisica = proceso_recibido->direccion_fisica;
-		proceso_enviar->desplazamiento = proceso_recibido->desplazamiento;
 		proceso_enviar->interfaz = strdup(proceso_recibido->interfaz);
 		proceso_enviar->size_interfaz = proceso_recibido->size_interfaz;
 		proceso_enviar->registros = proceso_recibido->registros;
 
+		// Nuevo
+		proceso_enviar->cantidad_marcos = cantidad_de_marcos;
+		proceso_enviar->marcos = strdup(marcos);
+		proceso_enviar->size_marcos = strlen(proceso_enviar->marcos) + 1;
+
 		serializar_t_io_stdin_read(&paquete, proceso_enviar);
 		enviar_paquete(paquete, argumentos->memoria.sockets.socket_cpu);
-		eliminar_paquete(paquete);
 
+		eliminar_paquete(paquete);
 		free(proceso_enviar->interfaz);
 		free(proceso_enviar);
-
 		free(proceso_recibido->interfaz);
 		free(proceso_recibido);
+
 		break;
 	}
 	case CPU_MEMORIA_RESIZE:
@@ -455,7 +624,6 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		// Caso borde, no debería pasar nunca
 		if (list_is_empty(proceso_encontrado->instrucciones))
 		{
-			log_warning(argumentos->logger, "No se encontraron instrucciones para el proceso con PID <%d>", proceso_encontrado->pid);
 			free(instruccion_recibida);
 			break;
 		}
@@ -469,7 +637,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		if (pc_solicitado == list_size(proceso_encontrado->instrucciones))
 		{
 
-			log_warning(argumentos->logger, "Se solicito una instruccion fuera de rango para el proceso con PID <%d>", proceso_encontrado->pid);
+			log_debug(argumentos->logger, "Se solicito una instruccion fuera de rango para el proceso con PID <%d>", proceso_encontrado->pid);
 
 			log_debug(argumentos->logger, "Le aviso a CPU que no hay mas instrucciones para el proceso con PID <%d>", proceso_encontrado->pid);
 
@@ -604,7 +772,7 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		}
 
 		// Si la pagina existe y los bytes a leer pertenecen al proceso, envio el marco recuperado de la tabla de paginas a CPU
-		proceso_enviar->frase = espacio_usuario_leer_char(argumentos, proceso, proceso_recibido->direccion_si, proceso_recibido->cant_bytes);
+		proceso_enviar->frase = espacio_usuario_leer_char(argumentos, proceso, proceso_recibido->direccion_fisica_si, proceso_recibido->cant_bytes);
 
 		// Si el dato no existe, envio un mensaje a CPU
 		if (proceso_enviar->frase == NULL)
@@ -619,6 +787,8 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			proceso_enviar->num_pagina_di = proceso_recibido->num_pagina_di;
 			proceso_enviar->direccion_si = proceso_recibido->direccion_si;
 			proceso_enviar->direccion_di = proceso_recibido->direccion_di;
+			proceso_enviar->direccion_fisica_di = proceso_recibido->direccion_fisica_di;
+			proceso_enviar->direccion_fisica_si = proceso_recibido->direccion_fisica_si;
 			proceso_enviar->cant_bytes = proceso_recibido->cant_bytes;
 			proceso_enviar->frase = strdup("No se encontro la frase");
 			proceso_enviar->size_frase = strlen(proceso_enviar->frase) + 1;
@@ -652,6 +822,8 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 			proceso_enviar->num_pagina_di = proceso_recibido->num_pagina_di;
 			proceso_enviar->direccion_si = proceso_recibido->direccion_si;
 			proceso_enviar->direccion_di = proceso_recibido->direccion_di;
+			proceso_enviar->direccion_fisica_di = proceso_recibido->direccion_fisica_di;
+			proceso_enviar->direccion_fisica_si = proceso_recibido->direccion_fisica_si;
 			proceso_enviar->cant_bytes = proceso_recibido->cant_bytes;
 			proceso_enviar->frase = strdup("No se pudo escribir el registro DI");
 			proceso_enviar->size_frase = strlen(proceso_enviar->frase) + 1;
@@ -678,6 +850,8 @@ void switch_case_cpu(t_args *argumentos, t_op_code codigo_operacion, t_buffer *b
 		proceso_enviar->num_pagina_di = proceso_recibido->num_pagina_di;
 		proceso_enviar->direccion_si = proceso_recibido->direccion_si;
 		proceso_enviar->direccion_di = proceso_recibido->direccion_di;
+		proceso_enviar->direccion_fisica_di = proceso_recibido->direccion_fisica_di;
+		proceso_enviar->direccion_fisica_si = proceso_recibido->direccion_fisica_si;
 		proceso_enviar->cant_bytes = proceso_recibido->cant_bytes;
 		proceso_enviar->frase = strdup(proceso_enviar->frase);
 		proceso_enviar->size_frase = strlen(proceso_enviar->frase) + 1;

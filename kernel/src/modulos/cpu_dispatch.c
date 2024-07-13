@@ -222,6 +222,11 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->numero_pagina));
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->direccion_fisica));
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->desplazamiento));
+
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->cantidad_marcos));
+            list_add(pcb->proxima_io->args, strdup(proceso_recibido->marcos));
+            list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->size_marcos));
+
             list_add(pcb->proxima_io->args, strdup(proceso_recibido->interfaz));
             list_add(pcb->proxima_io->args, string_itoa((strlen(proceso_recibido->interfaz) + 1)));
             list_add(pcb->proxima_io->args, string_itoa(proceso_recibido->registros.ax));
@@ -254,22 +259,28 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         t_paquete *paquete = crear_paquete(KERNEL_ENTRADA_SALIDA_IO_STDIN_READ);
         t_kernel_io_stdin_read *proceso_completo = malloc(sizeof(t_kernel_io_stdin_read));
 
+        proceso_completo->marco_inicial = 0;  // FIXME: Borrar
+        proceso_completo->marco_final = 0;    // FIXME: Borrar
+        proceso_completo->desplazamiento = 0; // FIXME: Borrar
+
         proceso_completo->pid = proceso_recibido->pid;
         proceso_completo->resultado = proceso_recibido->resultado;
         proceso_completo->registro_direccion = proceso_recibido->registro_direccion;
         proceso_completo->registro_tamanio = proceso_recibido->registro_tamanio;
-        proceso_completo->marco_inicial = proceso_recibido->marco_inicial;
-        proceso_completo->marco_final = proceso_recibido->marco_final;
         proceso_completo->numero_pagina = proceso_recibido->numero_pagina;
         proceso_completo->direccion_fisica = proceso_recibido->direccion_fisica;
-        proceso_completo->desplazamiento = proceso_recibido->desplazamiento;
         proceso_completo->interfaz = strdup(proceso_recibido->interfaz);
         proceso_completo->size_interfaz = strlen(proceso_completo->interfaz) + 1;
         proceso_completo->registros = proceso_recibido->registros;
-
+        proceso_completo->cantidad_marcos = proceso_recibido->cantidad_marcos;
+        proceso_completo->marcos = strdup(proceso_recibido->marcos);
+        proceso_completo->size_marcos = strlen(proceso_completo->marcos) + 1;
         proceso_actualizar_registros(pcb, proceso_recibido->registros);
+
         kernel_log_generic(args, LOG_LEVEL_INFO, "PID: <%d> - Bloqueado por: <%s>", proceso_recibido->pid, proceso_recibido->interfaz);
+
         kernel_transicion_exec_block(args);
+
         serializar_t_kernel_io_stdin_read(&paquete, proceso_completo);
         enviar_paquete(paquete, entrada_salida->socket);
 
@@ -343,6 +354,7 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
 
         // Este caso se da cuando el usuario interrumpio a CPU para finalizar un proceso
         char *estado = proceso_estado(args->estados, proceso->pid);
+
         if (strcmp(estado, "EXIT") == 0)
         {
             avisar_planificador(args);
@@ -375,8 +387,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         }
         else if (proceso->ejecutado == PROCESO_ERROR) // La ejecucion del proceso fallo
         {
-            // kernel_log_generic(args, LOG_LEVEL_ERROR, "Proceso PID <%d> ejecutado fallido. Transicionar a exit", proceso->pid);
-            // kernel_finalizar_proceso(args, proceso->pid, EXECUTION_ERROR);
             // Lo vuelvo a mandar a ready
             if (pcb == NULL)
             {
@@ -385,7 +395,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
             }
             proceso_actualizar_registros(pcb, proceso->registros);
             kernel_manejar_ready(args, pcb->pid, EXEC_READY);
-            avisar_planificador(args);
         }
 
         avisar_planificador(args);

@@ -157,7 +157,7 @@ int tabla_paginas_resize(t_args *args, t_proceso *proceso, uint32_t bytes_nuevos
     // Verifico si es necesario redimensionar la tabla de páginas
     if (bytes_actuales == bytes_nuevos)
     {
-        log_warning(args->logger, "No es necesario redimensionar la tabla de páginas del proceso <%d> porque ya tiene esa cantidad de bytes.", proceso->pid);
+        log_debug(args->logger, "No es necesario redimensionar la tabla de páginas del proceso <%d> porque ya tiene esa cantidad de bytes.", proceso->pid);
         pthread_mutex_unlock(&proceso->mutex_tabla_paginas);
         return 0;
     }
@@ -179,7 +179,7 @@ int tabla_paginas_resize(t_args *args, t_proceso *proceso, uint32_t bytes_nuevos
         {
             int proximo_frame = espacio_usuario_proximo_frame(args, args->memoria.tamPagina);
 
-            if(proximo_frame == -1)
+            if (proximo_frame == -1)
             {
                 log_error(args->logger, "No hay frames disponibles en espacio de usuario para asignar al proceso <%d>", proceso->pid);
                 pthread_mutex_unlock(&proceso->mutex_tabla_paginas);
@@ -201,7 +201,7 @@ int tabla_paginas_resize(t_args *args, t_proceso *proceso, uint32_t bytes_nuevos
 
     if (tabla_paginas_bytes_ocupados(args, proceso) == args->memoria.tamMemoria)
     {
-        log_warning(args->logger, "El proceso PID <%d> monopolizo la memoria.", proceso->pid);
+        log_debug(args->logger, "El proceso PID <%d> monopolizo la memoria.", proceso->pid);
     }
     return 1;
 }

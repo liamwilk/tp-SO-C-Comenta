@@ -2,21 +2,17 @@
 
 void instruccion_ciclo(t_cpu *args, t_buffer *buffer)
 {
-    // TODO: Ver esto
-
-    // if (args->flag_interrupt)
-    // {
-    //     instruccion_interrupt(args);
-    //     return;
-    // }
-
     if (instruccion_recibir(args, buffer))
     {
-        log_error(args->logger, "Instruccion invalida.");
+        log_error(args->logger, "Se finaliza la ejecucion del proceso PID <%d> por error en la recepcion de la instrucción.", args->proceso.pid);
+        args->proceso.ejecutado = 0;
+        instruccion_finalizar(args);
         return;
     }
 
-    if (instruccion_ejecutar(args))
+    int resultado = instruccion_ejecutar(args);
+
+    if (resultado)
     {
         if (args->tipo_instruccion != EXIT)
         {
@@ -24,11 +20,12 @@ void instruccion_ciclo(t_cpu *args, t_buffer *buffer)
         }
         return;
     }
-    else if (args->tipo_instruccion == -1)
+    else if (resultado == -1)
     {
-        log_error(args->logger, "Se finaliza la ejecucion del proceso PID <%d> por error en la instruccion <%s>.", args->proceso.pid, args->instruccion[0]);
+        log_error(args->logger, "Se finaliza la ejecucion del proceso PID <%d> por error en la ejecucion de la instruccion <%s>.", args->proceso.pid, args->instruccion[0]);
         args->proceso.ejecutado = 0;
         instruccion_finalizar(args);
+        return;
     }
 
     if (args->flag_interrupt)
@@ -130,7 +127,7 @@ int reemplazar_en_tlb(char *algoritmo_reemplazo, uint32_t cantidad_entradas_tlb,
     case FIFO_TLB:
     {
         index = args->proximo_indice_reemplazo;
-        log_warning(args->logger, "[TLB/FIFO] Reemplazando en pos <%d> entrada en la TLB", index);
+        log_debug(args->logger, "[TLB/FIFO] Reemplazando en pos <%d> entrada en la TLB", index);
         // Se incrementa el próximo indice y después se calcula el resto, para asegurarme que esté en los limites del array
         args->proximo_indice_reemplazo = (args->proximo_indice_reemplazo + 1) % cantidad_entradas_tlb;
         return index;
@@ -150,8 +147,8 @@ int reemplazar_en_tlb(char *algoritmo_reemplazo, uint32_t cantidad_entradas_tlb,
         {
             if (args->tlb[i].ultimo_acceso < min_timestamp)
             {
-                log_warning(args->logger, "[TLB/LRU] Reemplazando entrada en la TLB");
-                log_warning(args->logger, "Nuevo timestamp mas bajo: %d", args->tlb[i].ultimo_acceso);
+                log_debug(args->logger, "[TLB/LRU] Reemplazando entrada en la TLB");
+                log_debug(args->logger, "Nuevo timestamp mas bajo: %d", args->tlb[i].ultimo_acceso);
                 min_timestamp = args->tlb[i].ultimo_acceso;
                 index = i;
             }
