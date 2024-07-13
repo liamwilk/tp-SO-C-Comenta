@@ -545,10 +545,33 @@ char *espacio_usuario_leer_char(t_args *args, t_proceso *proceso, uint32_t direc
  */
 int espacio_usuario_proximo_frame(t_args *args, size_t tamano);
 
+/**
+ * Libera una página de la tabla de páginas de un proceso.
+ *
+ * @param argumentos Estructura de argumentos del hilo.
+ * @param proceso Puntero al proceso al que pertenece la página.
+ * @param numero_pagina Número de la página a liberar.
+ * @return 0 si la página se liberó correctamente, -1 en caso de error.
+ */
 int tabla_paginas_liberar_pagina(t_args *argumentos, t_proceso *proceso, uint32_t numero_pagina);
 
+/**
+ * Obtiene la cantidad de frames ocupados en la tabla de páginas de un proceso.
+ *
+ * @param args Estructura de argumentos del hilo.
+ * @param proceso Puntero al proceso.
+ * @return La cantidad de frames ocupados en la tabla de páginas.
+ */
 int tabla_paginas_frames_ocupados(t_args *args, t_proceso *proceso);
 
+/**
+ * Redimensiona la tabla de páginas de un proceso.
+ *
+ * @param args Estructura de argumentos del hilo.
+ * @param proceso Puntero al proceso.
+ * @param bytes_nuevos Cantidad de bytes nuevos para la tabla de páginas.
+ * @return 0 si se redimensionó correctamente, -1 en caso de error.
+ */
 int tabla_paginas_resize(t_args *args, t_proceso *proceso, uint32_t bytes_nuevos);
 
 int tabla_paginas_bytes_ocupados(t_args *args, t_proceso *proceso);

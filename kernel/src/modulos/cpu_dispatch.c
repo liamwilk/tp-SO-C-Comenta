@@ -166,7 +166,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         if (entrada_salida == NULL)
         {
             pcb->quantum = interrumpir_temporizador(args);
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar la instrucción <IO_STDIN_READ> del PID <%d> a la interfaz <%s> porque no está conectada.", proceso_recibido->pid, proceso_recibido->interfaz);
             kernel_cpu_entradasalida_no_conectada(args, CPU_IO_STDIN_READ, proceso_recibido->interfaz, proceso_recibido->pid);
             kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
 
@@ -181,7 +180,6 @@ void switch_case_cpu_dispatch(t_log *logger, t_op_code codigo_operacion, hilos_a
         {
             pcb->quantum = interrumpir_temporizador(args);
 
-            kernel_log_generic(args, LOG_LEVEL_ERROR, "No se pudo enviar la instrucción <IO_STDIN_READ> del PID <%d> a la interfaz <%s> porque no es IO_STDIN.", proceso_recibido->pid, proceso_recibido->interfaz);
             kernel_cpu_entradasalida_distinto_tipo(args, CPU_IO_STDIN_READ, proceso_recibido->interfaz, proceso_recibido->pid);
 
             kernel_finalizar_proceso(args, proceso_recibido->pid, INVALID_INTERFACE);
