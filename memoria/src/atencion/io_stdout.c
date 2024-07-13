@@ -62,6 +62,11 @@ void switch_case_memoria_entrada_salida_stdout(t_args_hilo *argumentos, char *mo
 		// Leo el marco de la primera pagina
 		uint32_t offset_size_lectura = argumentos->argumentos->memoria.tamPagina - desplazamiento;
 
+		if (offset_size_lectura > paquete_recibido->tamanio)
+		{
+			offset_size_lectura = paquete_recibido->tamanio;
+		}
+
 		char *primer_lectura = espacio_usuario_leer_char(argumentos->argumentos, proceso, paquete_recibido->direccion_fisica, offset_size_lectura);
 
 		string_append_with_format(&lectura, "%s", primer_lectura);
